@@ -1,0 +1,7 @@
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.3.5")
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
+addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.8.5")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.8.0")
+addSbtPlugin("com.cavorite" % "sbt-avro" % "0.3.2")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.1.0")
+addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.5")
