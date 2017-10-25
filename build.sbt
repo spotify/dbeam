@@ -15,7 +15,6 @@
  * under the License.
  */
 
-import com.typesafe.sbt.SbtGit.GitKeys._
 import sbt.Keys._
 import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
@@ -26,25 +25,37 @@ val beamVersion = "2.1.0"
 val slf4jVersion = "1.7.13"
 val autoValueVersion = "1.3"
 
-lazy val commonSettings = Defaults.coreDefaultSettings ++ Seq(
-  organization := "com.spotify.data",
+lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSettings ++ Seq(
+  organization := "com.spotify",
   scalaVersion := "2.11.11",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
-  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
+  javacOptions in (Compile, doc)  := Seq("-source", "1.8"),
 
   // protobuf-lite is an older subset of protobuf-java and causes issues
   excludeDependencies += "com.google.protobuf" % "protobuf-lite",
 
   // Repositories and dependencies
-  resolvers ++= Seq(
-    "Concurrent Maven Repo" at "http://conjars.org/repo",
-    "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases/",
-    "Local Maven Repository" at "file://" + Path.userHome.absolutePath + "/.m2/repository"
-  ),
+  resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors in Compile ++= Warts.unsafe.filterNot(disableWarts.contains),
-  publish := {},
-  publishLocal := {},
-  publishArtifact := false
+  //publish := {},
+  //publishLocal := {},
+  //publishArtifact := false
+
+  // Release settings
+  publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
+  releaseCrossBuild             := true,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  publishMavenStyle             := true,
+  publishArtifact in Test       := false,
+  sonatypeProfileName           := "com.spotify",
+
+  licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  homepage := Some(url("https://github.com/spotify/dbeam")),
+  scmInfo := Some(ScmInfo(
+    url("https://github.com/spotify/dbeam.git"),
+    "scm:git:git@github.com:spotify/dbeam.git"))
+
 )
 
 val disableWarts = Set(Wart.Null,
@@ -54,12 +65,12 @@ val disableWarts = Set(Wart.Null,
                        Wart.Var)
 
 
-// TODO: move this project to open source
 lazy val dbeam = project
   .in(file("dbeam"))
   .settings(commonSettings: _*)
   .settings(
-    name := "dbeam",
+    name := "dbeam-core",
+    moduleName := "dbeam-core",
     description := "DBeam dumps from SQL databases using JDBC and Apache Beam",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "../bin",
     libraryDependencies ++= Seq(
@@ -80,13 +91,12 @@ lazy val dbeam = project
 
 // This project only depends on dbeam jar and adds pack wrapper scripts
 val dbeamPack = project
-  .in(file("dbeam_pack"))
+  .in(file("dbeam-pack"))
   .settings(commonSettings: _*)
   .settings(packAutoSettings: _*)
   .settings(
-    name := "dbeam_pack",
+    name := "dbeam-pack",
     description := "DBeam dumps an SQL database using JDBC and Apache Beam",
-    //unmanagedResourceDirectories in Compile += baseDirectory.value / "../bin",
     packageOptions in (Compile, packageBin) +=
       Package.ManifestAttributes( "Class-Path" ->
         (((managedClasspath in Runtime).value.files
@@ -121,7 +131,6 @@ lazy val root = project.in(file("."))
   .aggregate(dbeam, dbeamPack)
 
 lazy val releaseSettings = Seq(
-  releaseIgnoreUntrackedFiles := true,  // TODO: remove this
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
