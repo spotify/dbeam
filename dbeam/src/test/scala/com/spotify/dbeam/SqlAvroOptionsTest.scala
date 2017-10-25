@@ -32,68 +32,76 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
   }
 
   it should "fail parse invalid arguments" in {
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("")
       optionsFromArgs("--foo=bar")
     }
   }
   it should "fail to parse with missing connectionUrl parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--table=some-table --output=/path")
     }
   }
   it should "fail to parse with missing table parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --output=/path")
     }
   }
   it should "fail to parse with missing output parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table")
     }
   }
   it should "fail to parse with missing password parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path")
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+        "--output=/path")
     }
   }
   it should "fail to parse invalid table parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some-table --output=/path --password=secret")
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some-table " +
+        "--output=/path --password=secret")
     }
   }
   it should "fail to parse non jdbc connection parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=bar --table=some_table --output=/path --password=secret")
     }
   }
   it should "fail to parse unsupported jdbc connection parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:paradox:./foo --table=some_table --output=/path --password=secret")
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:paradox:./foo --table=some_table " +
+        "--output=/path --password=secret")
     }
   }
   it should "fail to parse missing partition parameter but partition column present" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partitionColumn=col")
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+        "--output=/path --password=secret --partitionColumn=col")
     }
   }
-  it should "fail to parse for too old partition parameter" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2015-01-01")
+  it should "fail on too old partition parameter" in {
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+        "--output=/path --password=secret --partition=2015-01-01")
     }
   }
-  it should "fail to parse for too old partition parameter with configured partition = min-partition-period" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-01")
+  it should "fail on old partition parameter with configured partition = min-partition-period" in {
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+        "--output=/path --password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-01")
     }
   }
-  it should "fail to parse for too old partition parameter with configured partition < min-partition-period" in {
-    a [IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-02")
+  it should "fail on old partition parameter with configured partition < min-partition-period" in {
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+        "--output=/path --password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-02")
     }
   }
   it should "parse correctly for postgresql connection" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret")
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret")
 
     options should be (SqlAvroOptions(
       "org.postgresql.Driver",
@@ -109,7 +117,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     ))
   }
   it should "parse correctly for mysql connection" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:mysql://nonsense --table=some_table --output=/path --password=secret")
+    val options = optionsFromArgs("--connectionUrl=jdbc:mysql://nonsense --table=some_table " +
+      "--output=/path --password=secret")
 
     options should be (SqlAvroOptions(
       "com.mysql.jdbc.Driver",
@@ -125,7 +134,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     ))
   }
   it should "configure username" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --username=some_user")
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+      "--table=some_table --output=/path --password=secret --username=some_user")
 
     options should be (SqlAvroOptions(
       "org.postgresql.Driver",
@@ -141,7 +151,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     ))
   }
   it should "configure limit" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --limit=7")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+      "--table=some_table --output=/path --password=secret --limit=7")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -159,7 +170,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     actual.buildQueries() should be (Seq("SELECT * FROM some_table LIMIT 7"))
   }
   it should "configure partition" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2027-07-31")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+      "--table=some_table --output=/path --password=secret --partition=2027-07-31")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -177,7 +189,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2027-07-31T13:37:59Z")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret --partition=2027-07-31T13:37:59Z")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -195,7 +208,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2027-05")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+      "--table=some_table --output=/path --password=secret --partition=2027-05")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -213,7 +227,8 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition column" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2027-07-31 --partitionColumn=col")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret --partition=2027-07-31 --partitionColumn=col")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -228,10 +243,12 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table WHERE col >= '2027-07-31' AND col < '2027-08-01'"))
+    actual.buildQueries() should be (Seq("SELECT * FROM some_table " +
+      "WHERE col >= '2027-07-31' AND col < '2027-08-01'"))
   }
   it should "configure partition column and limit" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2027-07-31 --partitionColumn=col --limit=5")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret --partition=2027-07-31 --partitionColumn=col --limit=5")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -246,10 +263,13 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table WHERE col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5"))
+    actual.buildQueries() should be (Seq("SELECT * FROM some_table WHERE col >= '2027-07-31'" +
+      " AND col < '2027-08-01' LIMIT 5"))
   }
   it should "configure partition column and partition period" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M")
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret --partition=2027-07-31 " +
+      "--partitionColumn=col --partitionPeriod=P1M")
 
     val expected = SqlAvroOptions(
       "org.postgresql.Driver",
@@ -265,10 +285,12 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
       Period.parse("P1M")
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table WHERE col >= '2027-07-31' AND col < '2027-08-31'"))
+    actual.buildQueries() should be (Seq("SELECT * FROM some_table " +
+      "WHERE col >= '2027-07-31' AND col < '2027-08-31'"))
   }
   it should "configure avro schema namespace" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table --output=/path --password=secret --avroSchemaNamespace=ns")
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret --avroSchemaNamespace=ns")
 
     options should be (SqlAvroOptions(
       "org.postgresql.Driver",

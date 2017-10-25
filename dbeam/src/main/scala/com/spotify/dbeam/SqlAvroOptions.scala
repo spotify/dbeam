@@ -53,7 +53,8 @@ trait QueryOptions {
       case (Some(partition), Some(partitionColumn)) => {
         val datePartition = partition.toLocalDate
         val nextPartition = datePartition.plus(partitionPeriod).toString
-        s" WHERE ${partitionColumn} >= '${datePartition}' AND ${partitionColumn} < '${nextPartition}'"
+        s" WHERE ${partitionColumn} >= '${datePartition}'" +
+        s" AND ${partitionColumn} < '${nextPartition}'"
       }
       case _ => ""
     }

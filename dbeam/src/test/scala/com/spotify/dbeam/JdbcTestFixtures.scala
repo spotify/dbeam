@@ -26,7 +26,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, _}
 
 object JdbcTestFixtures {
-  type recordType = (String, Option[Int], BigDecimal, Float, Double, Boolean, Int, Long, Timestamp, Option[Timestamp], Byte, UUID)
+  type recordType = (String, Option[Int], BigDecimal, Float, Double,
+    Boolean, Int, Long, Timestamp, Option[Timestamp], Byte, UUID)
   val record1: recordType = ("costa rica caffee", None, BigDecimal("7.20"), (82.5).toFloat,
     (320.7).toDouble, true, 17, 200L, new java.sql.Timestamp(1488300933000L), None, 168.toByte,
     UUID.fromString("123e4567-e89b-12d3-a456-426655440000"))
@@ -50,7 +51,8 @@ object JdbcTestFixtures {
       def updated = column[Option[java.sql.Timestamp]]("UPDATED")
       def bt = column[Byte]("BT")
       def uid = column[UUID]("UID")
-      def * = (name, supID, price, temperature, size, isArabic, sales, total, created, updated, bt, uid)
+      def * = (name, supID, price, temperature, size,
+        isArabic, sales, total, created, updated, bt, uid)
     }
 
     val coffee = TableQuery[Coffees]
@@ -60,7 +62,6 @@ object JdbcTestFixtures {
       coffee ++= records
     )
     Await.result(db.run(dbioSeq), Duration(10, SECONDS))
-    // println(coffee.schema.create.statements.toString)
     val action = sql"select count(*) from coffees".as[(Int)]
     val f = db.run(action)
     Await.result(f, Duration(10, SECONDS))

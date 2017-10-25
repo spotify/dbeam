@@ -48,8 +48,9 @@ object JdbcAvroConversions {
       log.info(s"Schema created successfully. Genearated schema: ${schema.toString}")
       schema
     } finally {
-      if (connection != null)
+      if (connection != null) {
         connection.close()
+      }
     }
   }
 
@@ -58,70 +59,80 @@ object JdbcAvroConversions {
                        connectionUrl: String = ""): Schema = {
     val meta = rs.getMetaData
     val columnCount = meta.getColumnCount
-    val tableName = if (columnCount > 0) normalizeForAvro(meta.getTableName(1)) else "no_table_name"
-    val builder = SchemaBuilder.record(tableName)
+    val tableName = if (meta.getColumnCount > 0) {
+      normalizeForAvro(meta.getTableName(1))
+    } else {
+      "no_table_name"
+    }
+    val builder: SchemaBuilder.FieldAssembler[Schema] = SchemaBuilder.record(tableName)
       .namespace(avroSchemaNamesapce)
       .doc(s"Generate schema from JDBC ResultSet from ${tableName} ${connectionUrl}")
       .prop("tableName", tableName)
       .prop("connectionUrl", connectionUrl)
       .fields
 
-    for (i <- 1 to columnCount) {
-      val columnName: String = if (meta.getColumnName(i).isEmpty)
-          meta.getColumnLabel(i) else meta.getColumnName(i)
+    createAvroFields(meta, builder).endRecord()
+  }
+
+  private def createAvroFields(meta: ResultSetMetaData,
+                               builder: SchemaBuilder.FieldAssembler[Schema])
+  : SchemaBuilder.FieldAssembler[Schema] = {
+    for (i <- 1 to meta.getColumnCount) {
+      val columnName: String = if (meta.getColumnName(i).isEmpty) {
+          meta.getColumnLabel(i)
+      } else {
+        meta.getColumnName(i)
+      }
       val normalizedColumnName: String = normalizeForAvro(columnName)
       val columnType: Int = meta.getColumnType(i)
       val typeName: String = JDBCType.valueOf(columnType).getName()
-      val field = builder
+      val field: SchemaBuilder.FieldBuilder[Schema] = builder
         .name(normalizedColumnName)
         .doc(s"From sqlType ${columnType} ${typeName}")
         .prop("columnName", columnName)
         .prop("sqlCode", columnType.toString)
         .prop("typeName", typeName)
-        .`type`.unionOf.nullBuilder.endNull.and
 
-      columnType match {
-        case CHAR | CLOB | LONGNVARCHAR | LONGVARCHAR | NCHAR | NVARCHAR | VARCHAR =>
-          field.stringType.endUnion.nullDefault
-        case BOOLEAN => field.booleanType.endUnion.nullDefault
-        case BINARY | VARBINARY | LONGVARBINARY | ARRAY | BLOB =>
-          field.bytesType.endUnion.nullDefault
-        case TINYINT | SMALLINT | INTEGER => field.intType.endUnion.nullDefault
-        case FLOAT | REAL => field.floatType.endUnion.nullDefault
-        case DOUBLE => field.doubleType.endUnion.nullDefault
-        case DECIMAL | NUMERIC => field.stringType.endUnion.nullDefault
-        case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
-          field.longBuilder.prop("logicalType", "timestamp-millis").endLong().endUnion.nullDefault
-
-        case BIT => {
-          // psql boolean, bit(1), bit(3), bit(n) are all sqlCode=BIT
-          // check precision to distinguish boolean to bytes casting
-          val precision = meta.getPrecision(i)
-          if (precision <= 1) {
-            field.booleanType.endUnion.nullDefault
-          } else {
-            field.bytesType.endUnion.nullDefault
-          }
-        }
-        case BIGINT =>
-          val precision = meta.getPrecision(i)
-          if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
-            field.longType.endUnion.nullDefault
-          } else {
-            field.stringType.endUnion.nullDefault
-          }
-
-        case _ => field.stringType.endUnion.nullDefault
-      }
+      fieldAvroType(columnType, meta.getPrecision(i), field)
     }
-    builder.endRecord()
+    builder
   }
 
-  def nullableBytes(bts: scala.Array[Byte]): ByteBuffer = {
-    if (bts != null) {
-      ByteBuffer.wrap(bts)
-    } else {
-      null
+  // scalastyle:off cyclomatic.complexity
+  private def fieldAvroType(columnType: Int, precision: Int,
+                            fieldBuilder: SchemaBuilder.FieldBuilder[Schema])
+  : SchemaBuilder.FieldAssembler[Schema] = {
+    val field = fieldBuilder.`type`.unionOf.nullBuilder.endNull.and
+    columnType match {
+      case CHAR | CLOB | LONGNVARCHAR | LONGVARCHAR | NCHAR | NVARCHAR | VARCHAR =>
+        field.stringType.endUnion.nullDefault
+      case BOOLEAN => field.booleanType.endUnion.nullDefault
+      case BINARY | VARBINARY | LONGVARBINARY | ARRAY | BLOB =>
+        field.bytesType.endUnion.nullDefault
+      case TINYINT | SMALLINT | INTEGER => field.intType.endUnion.nullDefault
+      case FLOAT | REAL => field.floatType.endUnion.nullDefault
+      case DOUBLE => field.doubleType.endUnion.nullDefault
+      case DECIMAL | NUMERIC => field.stringType.endUnion.nullDefault
+      case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
+        field.longBuilder.prop("logicalType", "timestamp-millis").endLong().endUnion.nullDefault
+
+      case BIT => {
+        // psql boolean, bit(1), bit(3), bit(n) are all sqlCode=BIT
+        // check precision to distinguish boolean to bytes casting
+        if (precision <= 1) {
+          field.booleanType.endUnion.nullDefault
+        } else {
+          field.bytesType.endUnion.nullDefault
+        }
+      }
+      case BIGINT =>
+        if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
+          field.longType.endUnion.nullDefault
+        } else {
+          field.stringType.endUnion.nullDefault
+        }
+
+      case _ => field.stringType.endUnion.nullDefault
     }
   }
 
@@ -168,6 +179,15 @@ object JdbcAvroConversions {
       null
     } else {
       ret
+    }
+  }
+  // scalastyle:on cyclomatic.complexity
+
+  private def nullableBytes(bts: scala.Array[Byte]): ByteBuffer = {
+    if (bts != null) {
+      ByteBuffer.wrap(bts)
+    } else {
+      null
     }
   }
 

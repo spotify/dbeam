@@ -53,17 +53,20 @@ object PsqlAvroJob {
       require(rs.next())
       val lastReplication = new DateTime(rs.getTimestamp("last_replication"))
       val replicationDelay = new Duration(rs.getLong("replication_delay"))
-      log.info(s"Psql replication check lastReplication=${lastReplication} replicationDelay=${replicationDelay}")
+      log.info(s"Psql replication check " +
+        s"lastReplication=${lastReplication} replicationDelay=${replicationDelay}")
       lastReplication
     } finally {
-      if (connection != null)
+      if (connection != null) {
         connection.close()
+      }
     }
   }
 
-  def validateReplication(partition: DateTime, lastReplication: DateTime) = {
+  def validateReplication(partition: DateTime, lastReplication: DateTime): DateTime = {
     if (lastReplication.isBefore(partition)) {
-      log.error(s"Replication was not completed for partition, expected >= ${partition}, actual = ${lastReplication}")
+      log.error(s"Replication was not completed for partition, " +
+        s"expected >= ${partition}, actual = ${lastReplication}")
       System.exit(20)
     }
     partition

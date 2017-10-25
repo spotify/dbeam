@@ -29,7 +29,8 @@ import org.scalatest._
 import scala.collection.JavaConversions._
 
 class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
-  private val connectionUrl: String = "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
+  private val connectionUrl: String =
+    "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
   private val connection: Connection = db.source.createConnection()
   private val record1 = JdbcTestFixtures.record1
@@ -52,8 +53,10 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     actual.getFields.toList.map(_.name()) should be
       (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE", "IS_ARABIC", "SALES",
         "TOTAL", "CREATED", "UPDATED", "BT", "UID"))
-    actual.getFields.toList.map(_.schema().getType) should be (List.fill(fieldCount)(Schema.Type.UNION))
-    actual.getFields.toList.map(_.schema().getTypes.get(0).getType) should be (List.fill(fieldCount)(Schema.Type.NULL))
+    actual.getFields.toList.map(_.schema().getType) should
+      be (List.fill(fieldCount)(Schema.Type.UNION))
+    actual.getFields.toList.map(_.schema().getTypes.get(0).getType) should
+      be (List.fill(fieldCount)(Schema.Type.NULL))
     actual.getFields.toList.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
     actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
     actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
@@ -65,7 +68,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should be ("timestamp-millis")
+    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should
+      be ("timestamp-millis")
     actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
     actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
     actual.toString shouldNot be (null)
@@ -81,17 +85,19 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   }
 
   def toByteBuffer(uuid: UUID): ByteBuffer = {
-    val bf = ByteBuffer.allocate(16).putLong(uuid.getMostSignificantBits()).putLong(uuid.getLeastSignificantBits())
+    val bf = ByteBuffer.allocate(16)
+      .putLong(uuid.getMostSignificantBits())
+      .putLong(uuid.getLeastSignificantBits())
     bf.clear()
     bf
   }
 
   it should "convert jdbc result set to avro generic record" in {
-    val resultSet = connection.createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroConversions.createAvroSchema(resultSet, "dbeam_generated")
-    resultSet.next()
+    val rs = connection.createStatement().executeQuery(s"SELECT * FROM coffees")
+    val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated")
+    rs.next()
 
-    val record: GenericRecord = JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, resultSet)
+    val record: GenericRecord = JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, rs)
 
     record shouldNot be (null)
     record.getSchema should be (schema)

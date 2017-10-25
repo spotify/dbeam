@@ -31,7 +31,8 @@ import slick.jdbc.H2Profile.api._
 import org.scalatest._
 
 class JdbcAvroJobTest extends PipelineSpec with Matchers with BeforeAndAfterAll {
-  private val connectionUrl: String = "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
+  private val connectionUrl: String =
+    "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
   private val dir = tmpDir
 
@@ -50,13 +51,13 @@ class JdbcAvroJobTest extends PipelineSpec with Matchers with BeforeAndAfterAll 
       .args(
         "--partition=2025-02-28",
         "--skipPartitionCheck",
-        "--connectionUrl="+connectionUrl,
+        "--connectionUrl=" + connectionUrl,
         "--username=",
         "--password=",
         "--table=coffees",
         "--input=in.avro",
         "--output=" + dir.getAbsolutePath)
-        .output[String](TextIO(dir.getAbsolutePath+"/_queries"))(_ should haveSize(1))
+        .output[String](TextIO(dir.getAbsolutePath + "/_queries"))(_ should haveSize(1))
       .run()
     val files: Array[File] = dir.listFiles()
     files.map(_.getName) should contain theSameElementsAs (Seq(

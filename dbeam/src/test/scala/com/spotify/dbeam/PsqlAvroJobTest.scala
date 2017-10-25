@@ -25,7 +25,8 @@ import slick.jdbc.H2Profile.api._
 
 
 class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
-  private val connectionUrl: String = "jdbc:h2:mem:testpsql;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
+  private val connectionUrl: String =
+    "jdbc:h2:mem:testpsql;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
   private val connection: Connection = db.source.createConnection()
 
@@ -44,7 +45,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "dbeam_generated"
     )
 
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       PsqlAvroJob.validateOptions(options)
     }
   }
@@ -60,7 +61,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "dbeam_generated"
     )
 
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       PsqlAvroJob.validateOptions(options)
     }
   }
@@ -93,14 +94,15 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
     val lastReplication = new DateTime(2027, 7, 19, 0, 0, DateTimeZone.UTC)
 
-    a [IllegalArgumentException] should be thrownBy {
+    a[IllegalArgumentException] should be thrownBy {
       PsqlAvroJob.validateReplication(partition, lastReplication)
     }
   }
 
   it should "run query" in {
     val query = "SELECT " +
-      "parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC') AS last_replication, " +
+      "parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
+      " AS last_replication, " +
       "13 AS replication_delay"
     val lastReplication = new DateTime(2017, 2, 1, 23, 58, 57, DateTimeZone.UTC)
 
