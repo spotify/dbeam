@@ -19,6 +19,7 @@ import sbt.Keys._
 import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import sbtrelease.Version
+import xerial.sbt.pack.PackPlugin._
 
 val scioVersion = "0.4.4"
 val beamVersion = "2.1.0"
@@ -29,6 +30,7 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
   organization := "com.spotify",
   scalaVersion := "2.12.4",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
+  scalacOptions in (Compile, doc) += "-no-java-comments",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
   javacOptions in (Compile, doc)  := Seq("-source", "1.8"),
 
@@ -72,7 +74,6 @@ lazy val dbeam = project
     name := "dbeam-core",
     moduleName := "dbeam-core",
     description := "DBeam dumps from SQL databases using JDBC and Apache Beam",
-    unmanagedResourceDirectories in Compile += baseDirectory.value / "../bin",
     libraryDependencies ++= Seq(
       "com.spotify" %% "scio-core" % scioVersion,
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
@@ -94,7 +95,8 @@ lazy val dbeam = project
 val dbeamPack = project
   .in(file("dbeam-pack"))
   .settings(commonSettings: _*)
-  .settings(packAutoSettings: _*)
+  .enablePlugins(PackPlugin)
+  .settings(packSettings: _*)
   .settings(
     name := "dbeam-pack",
     description := "DBeam dumps an SQL database using JDBC and Apache Beam",
