@@ -20,14 +20,14 @@ import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import sbtrelease.Version
 
-val scioVersion = "0.4.3"
+val scioVersion = "0.4.4"
 val beamVersion = "2.1.0"
-val slf4jVersion = "1.7.13"
-val autoValueVersion = "1.3"
+val slf4jVersion = "1.7.25"
+val autoValueVersion = "1.4.1"
 
 lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSettings ++ Seq(
   organization := "com.spotify",
-  scalaVersion := "2.11.11",
+  scalaVersion := "2.12.4",
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
   javacOptions in (Compile, doc)  := Seq("-source", "1.8"),
@@ -77,11 +77,12 @@ lazy val dbeam = project
       "com.spotify" %% "scio-core" % scioVersion,
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.apache.commons" % "commons-dbcp2" % "2.1.1",
       "org.postgresql" % "postgresql" % "42.1.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
-      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.3",
-      "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.3",
+      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.4",
+      "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
       "com.google.auto.value" % "auto-value" % autoValueVersion % "provided",
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "com.h2database" % "h2" % "1.4.196" % "test",
