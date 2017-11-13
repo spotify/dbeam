@@ -40,9 +40,6 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
   // Repositories and dependencies
   resolvers += Resolver.sonatypeRepo("public"),
   wartremoverErrors in Compile ++= Warts.unsafe.filterNot(disableWarts.contains),
-  //publish := {},
-  //publishLocal := {},
-  //publishArtifact := false
 
   // Release settings
   publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
@@ -58,6 +55,12 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
     url("https://github.com/spotify/dbeam.git"),
     "scm:git:git@github.com:spotify/dbeam.git"))
 
+)
+
+lazy val noPublishSettings = Seq(
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false
 )
 
 val disableWarts = Set(Wart.Null,
@@ -95,6 +98,7 @@ lazy val dbeam = project
 val dbeamPack = project
   .in(file("dbeam-pack"))
   .settings(commonSettings: _*)
+  .settings(noPublishSettings: _*)
   .enablePlugins(PackPlugin)
   .settings(packSettings: _*)
   .settings(
@@ -125,6 +129,7 @@ val dbeamPack = project
 
 lazy val root = project.in(file("."))
   .settings(commonSettings: _*)
+  .settings(noPublishSettings: _*)
   .settings(releaseSettings: _*)
   .settings(
     run := {
@@ -142,8 +147,10 @@ lazy val releaseSettings = Seq(
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease, // tag version in git,
+    releaseStepCommand("publishSigned"),
     setNextVersion,
     commitNextVersion,
+    releaseStepCommand("sonatypeReleaseAll"),
     pushChanges
   )
 )
