@@ -53,7 +53,12 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
   homepage := Some(url("https://github.com/spotify/dbeam")),
   scmInfo := Some(ScmInfo(
     url("https://github.com/spotify/dbeam.git"),
-    "scm:git:git@github.com:spotify/dbeam.git"))
+    "scm:git:git@github.com:spotify/dbeam.git")),
+  developers := List(
+    Developer(id="labianchin", name="Luis Bianchin", email="labianchin@spotify.com", url=url("https://twitter.com/labianchin")),
+    Developer(id="varjoranta", name="Hannu Varjoranta", email="varjo@spotify.com", url=url("https://twitter.com/hvarjoranta")),
+    Developer(id="honnix", name="Hongxin Liang", email="honnix@spotify.com", url=url("https://spotify.com/"))
+  )
 
 )
 
