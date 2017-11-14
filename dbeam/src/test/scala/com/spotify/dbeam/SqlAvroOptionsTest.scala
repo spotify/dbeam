@@ -52,11 +52,22 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table")
     }
   }
-  it should "fail to parse with missing password parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
-        "--output=/path")
-    }
+  it should "parse correctly with missing password parameter" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path")
+
+    options should be (SqlAvroOptions(
+      "org.postgresql.Driver",
+      "jdbc:postgresql://nonsense",
+      "dbeam-extractor",
+      null,
+      "some_table",
+      "/path",
+      "dbeam_generated",
+      None,
+      None,
+      None
+    ))
   }
   it should "fail to parse invalid table parameter" in {
     a[IllegalArgumentException] should be thrownBy {
