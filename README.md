@@ -7,7 +7,7 @@ DBeam
 [![GitHub license](https://img.shields.io/github/license/spotify/dbeam.svg)](./LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/dbeam-core_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/dbeam-core_2.12)
 
-A connector tool to extract data from SQL databases and import into [GCS](https://cloud.google.com/storage/) using [Apache Beam](beam).
+A connector tool to extract data from SQL databases and import into [GCS](https://cloud.google.com/storage/) using [Apache Beam](https://beam.apache.org/).
 
 This tool is runnable locally, or on any other backend supported by Apache Beam, e.g. [Cloud Dataflow](https://cloud.google.com/dataflow/).
 
