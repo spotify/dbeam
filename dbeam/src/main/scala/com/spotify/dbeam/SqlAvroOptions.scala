@@ -133,8 +133,9 @@ object SqlAvroOptions {
       .map(Source.fromFile(_).mkString.stripLineEnd)
       .orElse(args.optional("password"))
 
-    require(password.isDefined,
-      "password must be configured either through --password or --passwordFile parameter")
+    require(sqlReadOptions.getConnectionUrl != null, "'connectionUrl' must be defined")
+    require(sqlReadOptions.getOutput != null, "'output' must be defined")
+    require(sqlReadOptions.getTable != null, "'table' must be defined")
 
     if (!skipPartitionCheck && partitionColumn.isEmpty) {
       val minPartitionDateTime = args.optional("minPartitionPeriod")
