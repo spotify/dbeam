@@ -50,6 +50,30 @@ simply streams the table contents via JDBC into target location as Avro.
 - `--skipPartitionCheck`: when partition column is not specified, by default fail when the partition parameter is not too old; use this avoid this behavior
 - `--minPartitionPeriod`: the minimum partition required for the job not to fail (when partition column is not specified), by default `now() - 2*partitionPeriod`
 
+## Building
+
+Build with SBT package to get a jar that you can run with `java -cp`. Notice that this won't
+create a fat jar, which means that you need to include dependencies on the class path.
+
+```sh
+sbt package
+```
+
+You can also build the project with SBT pack, which will create a `dbeam-pack/target/pack`
+directory with all the dependencies, and also a shell script to run DBeam.
+
+```sh
+sbt pack
+```
+
+Now you can run the script directly from created dbeam-pack directory:
+
+```sh
+./dbeam-pack/target/pack/bin/jdbc-avro-job
+```
+
+TODO: We will be improving the packaging and releasing process shortly.
+
 ## Examples
 
 ```
