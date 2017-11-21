@@ -42,7 +42,7 @@ object JdbcAvroConversions {
     log.info("Creating Avro schema based on the first read row from the database")
     try {
       val statement = connection.createStatement()
-      val rs = statement.executeQuery(s"SELECT * FROM ${tableName} LIMIT 1")
+      val rs = statement.executeQuery(s"SELECT * FROM $tableName LIMIT 1")
       val schema = JdbcAvroConversions.createAvroSchema(
         rs, avroSchemaNamespace, connection.getMetaData.getURL)
       log.info(s"Schema created successfully. Genearated schema: ${schema.toString}")
@@ -55,18 +55,17 @@ object JdbcAvroConversions {
   }
 
   def createAvroSchema(rs: ResultSet,
-                       avroSchemaNamesapce: String,
+                       avroSchemaNamespace: String,
                        connectionUrl: String = ""): Schema = {
     val meta = rs.getMetaData
-    val columnCount = meta.getColumnCount
     val tableName = if (meta.getColumnCount > 0) {
       normalizeForAvro(meta.getTableName(1))
     } else {
       "no_table_name"
     }
     val builder: SchemaBuilder.FieldAssembler[Schema] = SchemaBuilder.record(tableName)
-      .namespace(avroSchemaNamesapce)
-      .doc(s"Generate schema from JDBC ResultSet from ${tableName} ${connectionUrl}")
+      .namespace(avroSchemaNamespace)
+      .doc(s"Generate schema from JDBC ResultSet from $tableName $connectionUrl")
       .prop("tableName", tableName)
       .prop("connectionUrl", connectionUrl)
       .fields
@@ -85,10 +84,10 @@ object JdbcAvroConversions {
       }
       val normalizedColumnName: String = normalizeForAvro(columnName)
       val columnType: Int = meta.getColumnType(i)
-      val typeName: String = JDBCType.valueOf(columnType).getName()
+      val typeName: String = JDBCType.valueOf(columnType).getName
       val field: SchemaBuilder.FieldBuilder[Schema] = builder
         .name(normalizedColumnName)
-        .doc(s"From sqlType ${columnType} ${typeName}")
+        .doc(s"From sqlType $columnType $typeName")
         .prop("columnName", columnName)
         .prop("sqlCode", columnType.toString)
         .prop("typeName", typeName)
@@ -116,7 +115,7 @@ object JdbcAvroConversions {
       case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
         field.longBuilder.prop("logicalType", "timestamp-millis").endLong().endUnion.nullDefault
 
-      case BIT => {
+      case BIT =>
         // psql boolean, bit(1), bit(3), bit(n) are all sqlCode=BIT
         // check precision to distinguish boolean to bytes casting
         if (precision <= 1) {
@@ -124,7 +123,6 @@ object JdbcAvroConversions {
         } else {
           field.bytesType.endUnion.nullDefault
         }
-      }
       case BIGINT =>
         if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
           field.longType.endUnion.nullDefault
@@ -149,22 +147,20 @@ object JdbcAvroConversions {
       case TINYINT | SMALLINT | INTEGER => r.getInt(i)
       case FLOAT | REAL => r.getFloat(i)
       case DOUBLE => r.getDouble(i)
-      case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE => {
+      case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
         val t: Timestamp = r.getTimestamp(i)
         if (t != null) {
           t.getTime
         } else {
           t
         }
-      }
-      case BIT => {
+      case BIT =>
         val precision = meta.getPrecision(i)
         if (precision <= 1) {
           r.getBoolean(i)
         } else {
           nullableBytes(r.getBytes(i))
         }
-      }
       case BIGINT =>
         val precision = meta.getPrecision(i)
         if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {

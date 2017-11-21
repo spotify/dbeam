@@ -57,9 +57,7 @@ object JdbcAvroJob {
         ScioMetrics.counter("schemaElapsedTimeMs").inc(elapsedTimeSchema)
         inp
       })
-    saveString(
-      options.pathInOutput("/_AVRO_SCHEMA.avsc"),
-      generatedSchema.toString(true))
+    saveString(args.pathInOutput("/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
     generatedSchema
   }
 
@@ -76,9 +74,9 @@ object JdbcAvroJob {
     }
 
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
-        JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
-          .withUsername(options.username)
-          .withPassword(options.password), new ResultSetGenericRecordMapper())
+      JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
+        .withUsername(options.username)
+        .withPassword(options.password), new ResultSetGenericRecordMapper())
     JdbcAvroIO.Write.createWrite(
       output,
       ".avro",
@@ -89,7 +87,7 @@ object JdbcAvroJob {
 
   def publishMetrics(scioResult: ScioResult, options: SqlAvroOptions): Unit = {
     log.info(s"Metrics ${scioResult.getMetrics.toString}")
-    val metrics: Map[MetricName, MetricValue[_]] = (scioResult.allCounters ++ scioResult.allGauges)
+    val metrics: Map[MetricName, MetricValue[_]] = scioResult.allCounters ++ scioResult.allGauges
     log.info(s"all counters and gauges ${metrics.toString}")
 
     saveJsonObject(options.pathInOutput("/_METRICS.json"), metrics)
