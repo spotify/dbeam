@@ -28,6 +28,7 @@ import scala.concurrent.duration.{Duration, _}
 object JdbcTestFixtures {
   type recordType = (String, Option[Int], BigDecimal, Float, Double,
     Boolean, Int, Long, Timestamp, Option[Timestamp], Byte, UUID)
+
   val record1: recordType = ("costa rica caffee", None, BigDecimal("7.20"), (82.5).toFloat,
     (320.7).toDouble, true, 17, 200L, new java.sql.Timestamp(1488300933000L), None, 168.toByte,
     UUID.fromString("123e4567-e89b-12d3-a456-426655440000"))

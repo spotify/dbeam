@@ -18,7 +18,6 @@
 import sbt.Keys._
 import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
-import sbtrelease.Version
 import xerial.sbt.pack.PackPlugin._
 
 val scioVersion = "0.4.4"
@@ -39,10 +38,13 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
 
   // Repositories and dependencies
   resolvers += Resolver.sonatypeRepo("public"),
+
   wartremoverErrors in Compile ++= Warts.unsafe.filterNot(disableWarts.contains),
 
   // Release settings
-  publishTo := Some(if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging),
+  publishTo := Some(
+    if (isSnapshot.value) Opts.resolver.sonatypeSnapshots else Opts.resolver.sonatypeStaging
+  ),
   releaseCrossBuild             := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   publishMavenStyle             := true,
@@ -55,11 +57,13 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
     url("https://github.com/spotify/dbeam.git"),
     "scm:git:git@github.com:spotify/dbeam.git")),
   developers := List(
-    Developer(id="labianchin", name="Luis Bianchin", email="labianchin@spotify.com", url=url("https://twitter.com/labianchin")),
-    Developer(id="varjoranta", name="Hannu Varjoranta", email="varjo@spotify.com", url=url("https://twitter.com/hvarjoranta")),
-    Developer(id="honnix", name="Hongxin Liang", email="honnix@spotify.com", url=url("https://spotify.com/"))
+    Developer(id = "labianchin", name = "Luis Bianchin", email = "labianchin@spotify.com",
+      url = url("https://twitter.com/labianchin")),
+    Developer(id = "varjoranta", name = "Hannu Varjoranta", email = "varjo@spotify.com",
+      url = url("https://twitter.com/hvarjoranta")),
+    Developer(id = "honnix", name = "Hongxin Liang", email = "honnix@spotify.com",
+      url = url("https://spotify.com/"))
   )
-
 )
 
 lazy val noPublishSettings = Seq(
@@ -109,12 +113,12 @@ val dbeamPack = project
   .settings(
     name := "dbeam-pack",
     description := "DBeam dumps an SQL database using JDBC and Apache Beam",
-    packageOptions in (Compile, packageBin) +=
-      Package.ManifestAttributes( "Class-Path" ->
-        (((managedClasspath in Runtime).value.files
+    packageOptions in(Compile, packageBin) +=
+      Package.ManifestAttributes("Class-Path" ->
+        ((managedClasspath in Runtime).value.files
           .map(f => f.getName)
           .filter(_.endsWith(".jar"))
-          .mkString(" ")) + " " +
+          .mkString(" ") + " " +
           (packageBin in Compile in dbeam).value.getName
           // add as run time dependency
           )
@@ -159,5 +163,3 @@ lazy val releaseSettings = Seq(
     pushChanges
   )
 )
-
-

@@ -41,7 +41,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "create schema" in {
     val fieldCount = 12
-    var actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       db.source.createConnection(),
       "coffees", "dbeam_generated")
 
@@ -76,9 +76,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   }
 
   it should "create schema under specified namespace" in {
-    var actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      db.source.createConnection(),
-      "coffees", "ns")
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+      db.source.createConnection(), "coffees", "ns")
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
@@ -86,8 +85,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   def toByteBuffer(uuid: UUID): ByteBuffer = {
     val bf = ByteBuffer.allocate(16)
-      .putLong(uuid.getMostSignificantBits())
-      .putLong(uuid.getLeastSignificantBits())
+      .putLong(uuid.getMostSignificantBits)
+      .putLong(uuid.getLeastSignificantBits)
     bf.clear()
     bf
   }
