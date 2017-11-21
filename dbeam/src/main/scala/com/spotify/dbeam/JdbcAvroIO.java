@@ -105,7 +105,7 @@ public class JdbcAvroIO {
   }
 
 
-  private static class JdbcAvroWriteOperation extends org.apache.beam.sdk.io.FileBasedSink.WriteOperation<String> {
+  private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<String> {
     private final AvroCoder<GenericRecord> coder;
     private final JdbcAvroOptions jdbcAvroOptions;
 
@@ -124,7 +124,7 @@ public class JdbcAvroIO {
     }
   }
 
-  private static class JdbcAvroWriter extends org.apache.beam.sdk.io.FileBasedSink.Writer<String> {
+  private static class JdbcAvroWriter extends FileBasedSink.Writer<String> {
     private static final int FETCH_SIZE = 10000;
     private static final int COUNTER_REPORT_EVERY = 100000;
     private static final int LOG_EVERY = 100000;
@@ -148,9 +148,9 @@ public class JdbcAvroIO {
     private int rowCount;
     private long writeIterateStartTime;
 
-    public JdbcAvroWriter(org.apache.beam.sdk.io.FileBasedSink.WriteOperation<String> writeOperation,
-                          JdbcAvroOptions jdbcAvroOptions,
-                          AvroCoder<GenericRecord> coder) {
+    JdbcAvroWriter(FileBasedSink.WriteOperation<String> writeOperation,
+                   JdbcAvroOptions jdbcAvroOptions,
+                   AvroCoder<GenericRecord> coder) {
       super(writeOperation, MimeTypes.BINARY);
       this.jdbcAvroOptions = jdbcAvroOptions;
       this.coder = coder;
