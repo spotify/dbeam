@@ -100,3 +100,18 @@ object PipelineOptionsUtil {
       .orElse(Option(options.getPassword))
   }
 }
+
+@Description("Configure dbeam SQL import")
+trait JdbcImportPipelineOptions extends DBeamPipelineOptions {
+  @Description("The path to read the input from.")
+  @Required
+  def getInput: String
+
+  def setInput(value: String): Unit
+
+  @Description("The format to read, currently only Avro supported.")
+  @Default.String("avro")
+  def getFormat: String
+
+  def setFormat(value: String): Unit
+}
