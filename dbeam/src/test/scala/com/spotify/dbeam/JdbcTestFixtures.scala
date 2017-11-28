@@ -37,7 +37,6 @@ object JdbcTestFixtures {
     UUID.fromString("123e4567-e89b-a456-12d3-426655440000"))
 
   def createFixtures(db: Database, records: Seq[recordType]): Unit = {
-
     class Coffees(tag: slick.jdbc.H2Profile.api.Tag) extends
       Table[recordType](tag, "COFFEES") {
       def name = column[String]("COF_NAME", O.PrimaryKey)
@@ -57,6 +56,7 @@ object JdbcTestFixtures {
     }
 
     val coffee = TableQuery[Coffees]
+
     val dbioSeq = DBIO.seq(
       sqlu"DROP TABLE IF EXISTS COFFEES",
       coffee.schema.create,

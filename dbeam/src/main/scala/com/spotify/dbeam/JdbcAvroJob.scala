@@ -23,14 +23,13 @@ import java.sql.ResultSet
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.spotify.dbeam.options.{JdbcConnectionArgs, JdbcExportArgs}
 import com.spotify.scio._
 import com.spotify.scio.metrics.MetricValue
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.coders.AvroCoder
-import org.apache.beam.sdk.io.{FileBasedSink, FileSystems, WriteFiles}
+import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.metrics.MetricName
-import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider
 import org.apache.beam.sdk.transforms.PTransform
 import org.apache.beam.sdk.util.MimeTypes
 import org.apache.beam.sdk.values.{PCollection, PDone}
@@ -40,16 +39,16 @@ object JdbcAvroJob {
   val log: Logger = LoggerFactory.getLogger(JdbcAvroJob.getClass)
 
   /**
-    *  Generate Avro schema by reading one row
-    *  Also save schema to output target and expose time to generate schema as a Beam counter
+    * Generate Avro schema by reading one row
+    * Also save schema to output target and expose time to generate schema as a Beam counter
     */
-  def createSchema(sc: ScioContext, options: SqlAvroOptions): Schema = {
+  def createSchema(sc: ScioContext, args: JdbcExportArgs): Schema = {
     val startTimeMillis: Long = System.currentTimeMillis()
     val generatedSchema: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      options.createConnection(),
-      options.tableName, options.avroSchemaNamespace)
-    val elapsedTimeSchema: Long = (System.currentTimeMillis() - startTimeMillis)
-    log.info(s"Elapsed time to schema ${elapsedTimeSchema/ 1000.0} seconds")
+      args.createConnection(),
+      args.tableName, args.avroSchemaNamespace)
+    val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
+    log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
     sc
       .parallelize(Seq(0))
       .withName("ExposeSchemaCounters")
@@ -65,7 +64,7 @@ object JdbcAvroJob {
     * Creates Beam transform to read data from JDBC and save to Avro, in a single step
     */
   def jdbcAvroTransform(output: String,
-                        options: JdbcConnectionOptions,
+                        options: JdbcConnectionArgs,
                         generatedSchema: Schema): PTransform[PCollection[String], PDone] = {
     class ResultSetGenericRecordMapper extends JdbcAvroIO.RowMapper {
       override def convert(resultSet: ResultSet, schema: Schema): GenericRecord = {
@@ -85,13 +84,13 @@ object JdbcAvroJob {
     )
   }
 
-  def publishMetrics(scioResult: ScioResult, options: SqlAvroOptions): Unit = {
+  def publishMetrics(scioResult: ScioResult, args: JdbcExportArgs): Unit = {
     log.info(s"Metrics ${scioResult.getMetrics.toString}")
     val metrics: Map[MetricName, MetricValue[_]] = scioResult.allCounters ++ scioResult.allGauges
     log.info(s"all counters and gauges ${metrics.toString}")
 
-    saveJsonObject(options.pathInOutput("/_METRICS.json"), metrics)
-    scioResult.saveMetrics(options.pathInOutput("/_SERVICE_METRICS.json"))
+    saveJsonObject(args.pathInOutput("/_METRICS.json"), metrics)
+    scioResult.saveMetrics(args.pathInOutput("/_SERVICE_METRICS.json"))
   }
 
   def writeToFile(filename: String, contents: ByteBuffer): Unit = {
@@ -116,21 +115,19 @@ object JdbcAvroJob {
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, options: SqlAvroOptions) = SqlAvroOptions.contextAndOptions(cmdlineArgs)
-    val generatedSchema: Schema = createSchema(sc, options)
+    val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
+    val generatedSchema: Schema = createSchema(sc, args)
 
-    val queries = options.buildQueries
-    log.info(s"Running queries: ${queries}")
+    val queries = args.buildQueries()
+    log.info(s"Running queries: $queries")
 
     val querySCollection = sc.parallelize(queries)
-    querySCollection
-      .withName("SaveQueries")
-      .saveAsTextFile(options.pathInOutput("/_queries"), ".sql")
-    querySCollection
-      .internal.apply("JdbcAvroSave", jdbcAvroTransform(options.output, options, generatedSchema))
+    querySCollection.withName("SaveQueries").saveAsTextFile(args.pathInOutput("/_queries"), ".sql")
+    querySCollection.internal.apply("JdbcAvroSave",
+      jdbcAvroTransform(args.output, args, generatedSchema))
 
     val scioResult: ScioResult = sc.close().waitUntilDone()
-    publishMetrics(scioResult, options)
+    publishMetrics(scioResult, args)
   }
 
 }

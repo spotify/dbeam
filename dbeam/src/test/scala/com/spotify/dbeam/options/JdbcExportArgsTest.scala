@@ -15,20 +15,20 @@
  * under the License.
  */
 
-package com.spotify.dbeam
+package com.spotify.dbeam.options
 
 import com.spotify.scio.{Args, ScioContext}
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest._
 
-class SqlAvroOptionsTest extends FlatSpec with Matchers {
+class JdbcExportArgsTest extends FlatSpec with Matchers {
 
-  def optionsFromArgs(cmdLineArgs: String): SqlAvroOptions = {
-    PipelineOptionsFactory.register(classOf[SqlReadOptions])
+  def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
+    PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
     val (opts: PipelineOptions, args: Args) =
       ScioContext.parseArguments[PipelineOptions](cmdLineArgs.split(" "))
-    SqlAvroOptions.fromArgsAndOptions(opts, args)
+    JdbcExportArgs.fromArgsAndOptions(opts, args)
   }
 
   it should "fail parse invalid arguments" in {
@@ -56,7 +56,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--output=/path")
 
-    options should be (SqlAvroOptions(
+    options should be (JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -114,7 +114,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--output=/path --password=secret")
 
-    options should be (SqlAvroOptions(
+    options should be (JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -131,7 +131,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:mysql://nonsense --table=some_table " +
       "--output=/path --password=secret")
 
-    options should be (SqlAvroOptions(
+    options should be (JdbcExportArgs(
       "com.mysql.jdbc.Driver",
       "jdbc:mysql://nonsense",
       "dbeam-extractor",
@@ -148,7 +148,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
       "--table=some_table --output=/path --password=secret --username=some_user")
 
-    options should be (SqlAvroOptions(
+    options should be (JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "some_user",
@@ -165,7 +165,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
       "--table=some_table --output=/path --password=secret --limit=7")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -184,7 +184,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
       "--table=some_table --output=/path --password=secret --partition=2027-07-31")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -203,7 +203,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--output=/path --password=secret --partition=2027-07-31T13:37:59Z")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -222,7 +222,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
       "--table=some_table --output=/path --password=secret --partition=2027-05")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -241,7 +241,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--output=/path --password=secret --partition=2027-07-31 --partitionColumn=col")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -261,7 +261,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--output=/path --password=secret --partition=2027-07-31 --partitionColumn=col --limit=5")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -282,7 +282,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
       "--output=/path --password=secret --partition=2027-07-31 " +
       "--partitionColumn=col --partitionPeriod=P1M")
 
-    val expected = SqlAvroOptions(
+    val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -303,7 +303,7 @@ class SqlAvroOptionsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--output=/path --password=secret --avroSchemaNamespace=ns")
 
-    options should be (SqlAvroOptions(
+    options should be (JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
