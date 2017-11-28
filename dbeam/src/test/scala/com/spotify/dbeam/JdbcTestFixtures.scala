@@ -17,9 +17,12 @@
 
 package com.spotify.dbeam
 
+import java.io.File
 import java.sql.Timestamp
 import java.util.UUID
 
+import org.apache.avro.file.DataFileReader
+import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.Await
@@ -36,27 +39,27 @@ object JdbcTestFixtures {
     (230.7).toDouble, true, 13, 201L, new java.sql.Timestamp(1488300723000L), None, 133.toByte,
     UUID.fromString("123e4567-e89b-a456-12d3-426655440000"))
 
+  class Coffees(tag: slick.jdbc.H2Profile.api.Tag) extends
+    Table[recordType](tag, "COFFEES") {
+    def name = column[String]("COF_NAME", O.PrimaryKey)
+    def supID = column[Option[Int]]("SUP_ID")
+    def price = column[BigDecimal]("PRICE")
+    def temperature = column[Float]("TEMPERATURE")
+    def size = column[Double]("SIZE")
+    def isArabic = column[Boolean]("IS_ARABIC")
+    def sales = column[Int]("SALES", O.Default(0))
+    def total = column[Long]("TOTAL", O.Default(0))
+    def created = column[java.sql.Timestamp]("CREATED")
+    def updated = column[Option[java.sql.Timestamp]]("UPDATED")
+    def bt = column[Byte]("BT")
+    def uid = column[UUID]("UID")
+    def * = (name, supID, price, temperature, size,
+      isArabic, sales, total, created, updated, bt, uid)
+  }
+
+  val coffee = TableQuery[Coffees]
+
   def createFixtures(db: Database, records: Seq[recordType]): Unit = {
-    class Coffees(tag: slick.jdbc.H2Profile.api.Tag) extends
-      Table[recordType](tag, "COFFEES") {
-      def name = column[String]("COF_NAME", O.PrimaryKey)
-      def supID = column[Option[Int]]("SUP_ID")
-      def price = column[BigDecimal]("PRICE")
-      def temperature = column[Float]("TEMPERATURE")
-      def size = column[Double]("SIZE")
-      def isArabic = column[Boolean]("IS_ARABIC")
-      def sales = column[Int]("SALES", O.Default(0))
-      def total = column[Long]("TOTAL", O.Default(0))
-      def created = column[java.sql.Timestamp]("CREATED")
-      def updated = column[Option[java.sql.Timestamp]]("UPDATED")
-      def bt = column[Byte]("BT")
-      def uid = column[UUID]("UID")
-      def * = (name, supID, price, temperature, size,
-        isArabic, sales, total, created, updated, bt, uid)
-    }
-
-    val coffee = TableQuery[Coffees]
-
     val dbioSeq = DBIO.seq(
       sqlu"DROP TABLE IF EXISTS COFFEES",
       coffee.schema.create,
@@ -66,5 +69,51 @@ object JdbcTestFixtures {
     val action = sql"select count(*) from coffees".as[(Int)]
     val f = db.run(action)
     Await.result(f, Duration(10, SECONDS))
+  }
+}
+
+object AvroToJdbcTestFixtures {
+  type recordType = (String, String, String, String, Float, Int, Int, Float,
+    String, String, String, String, String, Int, String)
+
+  class CountryTable(tag: slick.jdbc.H2Profile.api.Tag) extends Table[recordType](tag, "country") {
+    def code = column[String]("code", O.PrimaryKey)
+    def name = column[String]("name")
+    def continent = column[String]("continent")
+    def region = column[String]("region")
+    def surfaceArea = column[Float]("surfacearea")
+    def indepYear = column[Int]("indepyear")
+    def population = column[Int]("population")
+    def lifeExpectancy = column[Float]("lifeexpectancy")
+    def gnp = column[String]("gnp")
+    def gnpold = column[String]("gnpold")
+    def localName = column[String]("localname")
+    def governmentForm = column[String]("governmentform")
+    def headOfState = column[String]("headofstate")
+    def capital = column[Int]("capital")
+    def code2 = column[String]("code2")
+    def * = (code, name, continent, region, surfaceArea, indepYear, population,
+      lifeExpectancy, gnp, gnpold, localName, governmentForm, headOfState, capital, code2)
+  }
+  val country = TableQuery[CountryTable]
+
+  def initializeEmptyDB(db: Database): Unit = {
+    val dbioSeq = DBIO.seq(
+      sqlu"DROP TABLE IF EXISTS country",
+      country.schema.create
+    )
+    Await.result(db.run(dbioSeq), Duration(10, SECONDS))
+    val action = sql"SELECT count(*) FROM country".as[(Int)]
+    val f = db.run(action)
+    Await.result(f, Duration(10, SECONDS))
+  }
+
+  def readAvroTestData(avroFile: File): Unit = {
+    val datumReader = new GenericDatumReader[GenericRecord]
+    val dataFileReader = new DataFileReader[GenericRecord](avroFile, datumReader)
+    var datum: GenericRecord = null
+    while (dataFileReader.hasNext) {
+       datum = dataFileReader.next(datum)
+    }
   }
 }
