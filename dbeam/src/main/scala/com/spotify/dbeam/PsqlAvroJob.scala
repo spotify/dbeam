@@ -19,7 +19,8 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.scio.{Args, ScioContext}
+import com.spotify.dbeam.options.JdbcExportArgs
+import com.spotify.scio.ScioContext
 import org.joda.time.{DateTime, Duration}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -40,10 +41,10 @@ object PsqlAvroJob {
     ;
     """
 
-  def validateOptions(options: SqlAvroOptions): SqlAvroOptions = {
-    require(options.driverClass.contains("postgres"), "Must be a PostgreSql connection")
-    require(options.partition.isDefined, "Partition parameter must be defined")
-    options
+  def validateOptions(args: JdbcExportArgs): JdbcExportArgs = {
+    require(args.driverClass.contains("postgres"), "Must be a PostgreSql connection")
+    require(args.partition.isDefined, "Partition parameter must be defined")
+    args
   }
 
   def queryReplication(connection: Connection, query: String = PsqlReplicationQuery): DateTime = {
@@ -75,10 +76,10 @@ object PsqlAvroJob {
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, options: SqlAvroOptions) = SqlAvroOptions.contextAndOptions(cmdlineArgs)
-    validateOptions(options)
+    val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
+    validateOptions(args)
 
-    validateReplication(options.partition.get, queryReplication(options.createConnection()))
+    validateReplication(args.partition.get, queryReplication(args.createConnection()))
 
     JdbcAvroJob.main(cmdlineArgs)
   }
