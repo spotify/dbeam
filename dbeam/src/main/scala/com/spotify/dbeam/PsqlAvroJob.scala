@@ -19,7 +19,8 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.scio.{Args, ScioContext}
+import com.spotify.dbeam.options.JdbcExportArgs
+import com.spotify.scio.ScioContext
 import org.joda.time.{DateTime, Duration}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -28,7 +29,8 @@ import org.slf4j.{Logger, LoggerFactory}
   */
 object PsqlAvroJob {
   val log: Logger = LoggerFactory.getLogger(PsqlAvroJob.getClass)
-  val PsqlReplicationQuery: String = """
+  val PsqlReplicationQuery: String =
+    """
     SELECT
     now() AS current_timestamp,
     pg_last_xact_replay_timestamp() AS last_replication,
@@ -37,12 +39,12 @@ object PsqlAvroJob {
         EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp())
     ) * 1000) AS replication_delay
     ;
-"""
+    """
 
-  def validateOptions(options: SqlAvroOptions): SqlAvroOptions = {
-    require(options.driverClass.contains("postgres"), "Must be a PostgreSql connection")
-    require(options.partition.isDefined, "Partition parameter must be defined")
-    options
+  def validateOptions(args: JdbcExportArgs): JdbcExportArgs = {
+    require(args.driverClass.contains("postgres"), "Must be a PostgreSql connection")
+    require(args.partition.isDefined, "Partition parameter must be defined")
+    args
   }
 
   def queryReplication(connection: Connection, query: String = PsqlReplicationQuery): DateTime = {
@@ -54,7 +56,7 @@ object PsqlAvroJob {
       val lastReplication = new DateTime(rs.getTimestamp("last_replication"))
       val replicationDelay = new Duration(rs.getLong("replication_delay"))
       log.info(s"Psql replication check " +
-        s"lastReplication=${lastReplication} replicationDelay=${replicationDelay}")
+        s"lastReplication=$lastReplication replicationDelay=$replicationDelay")
       lastReplication
     } finally {
       if (connection != null) {
@@ -66,7 +68,7 @@ object PsqlAvroJob {
   def validateReplication(partition: DateTime, lastReplication: DateTime): DateTime = {
     if (lastReplication.isBefore(partition)) {
       log.error(s"Replication was not completed for partition, " +
-        s"expected >= ${partition}, actual = ${lastReplication}")
+        s"expected >= $partition, actual = $lastReplication")
       System.exit(20)
     }
     partition
@@ -74,10 +76,10 @@ object PsqlAvroJob {
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, options: SqlAvroOptions) = SqlAvroOptions.contextAndOptions(cmdlineArgs)
-    validateOptions(options)
+    val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
+    validateOptions(args)
 
-    validateReplication(options.partition.get, queryReplication(options.createConnection()))
+    validateReplication(args.partition.get, queryReplication(args.createConnection()))
 
     JdbcAvroJob.main(cmdlineArgs)
   }

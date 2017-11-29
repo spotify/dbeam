@@ -15,63 +15,88 @@
  * under the License.
  */
 
-package com.spotify.dbeam
-
-import java.util.Collections
+package com.spotify.dbeam.options
 
 import org.apache.beam.sdk.options.Validation.Required
-import org.apache.beam.sdk.options.{Default, Description, PipelineOptions, PipelineOptionsRegistrar}
+import org.apache.beam.sdk.options.{Default, Description, PipelineOptions}
 
-@Description("Configure dbeam SQL export")
-trait SqlReadOptions extends PipelineOptions {
+import scala.io.Source
+
+trait DBeamPipelineOptions extends PipelineOptions {
   @Description("The JDBC connection url to perform the extraction on.")
   @Required
   def getConnectionUrl: String
-  def setConnectionUrl(value: String) : Unit
+
+  def setConnectionUrl(value: String): Unit
 
   @Description("The database table to query and perform the extraction on.")
   @Required
   def getTable: String
-  def setTable(value: String) : Unit
 
-  @Description("The path for storing the output.")
-  @Required
-  def getOutput: String
-  def setOutput(value: String) : Unit
+  def setTable(value: String): Unit
 
   @Description("The database user name used by JDBC to authenticate.")
   @Default.String("dbeam-extractor")
   def getUsername: String
-  def setUsername(value: String) : Unit
+
+  def setUsername(value: String): Unit
 
   @Description("A path to a local file containing the database password.")
   def getPasswordFile: String
-  def setPasswordFile(value: String) : Unit
+
+  def setPasswordFile(value: String): Unit
+
+  @Description("Database password")
+  def getPassword: String
+
+  def setPassword(value: String): Unit
+}
+
+@Description("Configure dbeam SQL export")
+trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
+  @Description("The path for storing the output.")
+  @Required
+  def getOutput: String
+
+  def setOutput(value: String): Unit
 
   @Description("The date of the current partition.")
   def getPartition: String
-  def setPartition(value: String) : Unit
+
+  def setPartition(value: String): Unit
 
   @Description("The name of a date/timestamp column to filter data based on current partition.")
   def getPartitionColumn: String
-  def setPartitionColumn(value: String) : Unit
+
+  def setPartitionColumn(value: String): Unit
 
   @Description("By default, when partition column is not specified, " +
     "fails if partition is too old. Set this flag to ignore this check.")
   def isSkipPartitionCheck: Boolean
-  def setSkipPartitionCheck(value: Boolean) : Unit
+
+  def setSkipPartitionCheck(value: Boolean): Unit
 
   @Description("The minimum partition required for the job not to fail " +
     "(when partition column is not specified), by default `now() - 2*partitionPeriod`.")
   def getPartitionPeriod: String
-  def setPartitionPeriod(value: String) : Unit
+
+  def setPartitionPeriod(value: String): Unit
 
   @Description("Limit the output number of rows, indefinite by default.")
   def getLimit: Integer
-  def setLimit(value: Integer) : Unit
+
+  def setLimit(value: Integer): Unit
 
   @Description("The namespace of the generated avro schema.")
   @Default.String("dbeam_generated")
   def getAvroSchemaNamespace: String
-  def setAvroSchemaNamespace(value: String) : Unit
+
+  def setAvroSchemaNamespace(value: String): Unit
+}
+
+object PipelineOptionsUtil {
+  def readPassword(options: DBeamPipelineOptions): Option[String] = {
+    Option(options.getPasswordFile).map(Source.fromFile(_).mkString.stripLineEnd)
+      .orElse(Option(options.getPassword))
+  }
 }

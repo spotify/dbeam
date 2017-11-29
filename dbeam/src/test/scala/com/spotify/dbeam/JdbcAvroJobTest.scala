@@ -55,7 +55,6 @@ class JdbcAvroJobTest extends PipelineSpec with Matchers with BeforeAndAfterAll 
         "--username=",
         "--password=",
         "--table=coffees",
-        "--input=in.avro",
         "--output=" + dir.getAbsolutePath)
         .output[String](TextIO(dir.getAbsolutePath + "/_queries"))(_ should haveSize(1))
       .run()
