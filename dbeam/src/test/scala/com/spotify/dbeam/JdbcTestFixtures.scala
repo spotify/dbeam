@@ -28,6 +28,7 @@ import scala.concurrent.duration.{Duration, _}
 object JdbcTestFixtures {
   type recordType = (String, Option[Int], BigDecimal, Float, Double,
     Boolean, Int, Long, Timestamp, Option[Timestamp], Byte, UUID)
+
   val record1: recordType = ("costa rica caffee", None, BigDecimal("7.20"), (82.5).toFloat,
     (320.7).toDouble, true, 17, 200L, new java.sql.Timestamp(1488300933000L), None, 168.toByte,
     UUID.fromString("123e4567-e89b-12d3-a456-426655440000"))
@@ -36,7 +37,6 @@ object JdbcTestFixtures {
     UUID.fromString("123e4567-e89b-a456-12d3-426655440000"))
 
   def createFixtures(db: Database, records: Seq[recordType]): Unit = {
-
     class Coffees(tag: slick.jdbc.H2Profile.api.Tag) extends
       Table[recordType](tag, "COFFEES") {
       def name = column[String]("COF_NAME", O.PrimaryKey)
@@ -56,6 +56,7 @@ object JdbcTestFixtures {
     }
 
     val coffee = TableQuery[Coffees]
+
     val dbioSeq = DBIO.seq(
       sqlu"DROP TABLE IF EXISTS COFFEES",
       coffee.schema.create,

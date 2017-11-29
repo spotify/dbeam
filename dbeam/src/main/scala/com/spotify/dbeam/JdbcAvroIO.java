@@ -17,8 +17,18 @@
 
 package com.spotify.dbeam;
 
-import com.google.auto.value.AutoValue;
+import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.auto.value.AutoValue;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import javax.annotation.Nullable;
+import javax.sql.DataSource;
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -37,26 +47,12 @@ import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
-import org.apache.beam.sdk.transforms.display.DisplayData;
 import org.apache.beam.sdk.util.MimeTypes;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PDone;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
-import javax.annotation.Nullable;
-import javax.sql.DataSource;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class JdbcAvroIO {
   private static final String DEFAULT_CODEC = "deflate";
@@ -68,7 +64,7 @@ public class JdbcAvroIO {
     public static PTransform<PCollection<String>, PDone> createWrite(
         String filenamePrefix, String filenameSuffix, Schema schema,
         JdbcAvroOptions jdbcAvroOptions) {
-      filenamePrefix = filenamePrefix.replaceAll("\\/+$", "") + "/part";
+      filenamePrefix = filenamePrefix.replaceAll("/+$", "") + "/part";
       ValueProvider<ResourceId> prefixProvider =
           StaticValueProvider.of(FileBasedSink.convertToFileResourceIfPossible(filenamePrefix));
       FileBasedSink.FilenamePolicy usedFilenamePolicy =
@@ -89,9 +85,10 @@ public class JdbcAvroIO {
     private final JdbcAvroOptions jdbcAvroOptions;
     private final AvroCoder<GenericRecord> coder;
 
-    public <T> JdbcAvroSink(ValueProvider<ResourceId> filenamePrefix,
-                            FilenamePolicy usedFilenamePolicy,
-                            JdbcAvroOptions jdbcAvroOptions, AvroCoder<GenericRecord> coder) {
+    JdbcAvroSink(ValueProvider<ResourceId> filenamePrefix,
+                 FilenamePolicy usedFilenamePolicy,
+                 JdbcAvroOptions jdbcAvroOptions,
+                 AvroCoder<GenericRecord> coder) {
       super(filenamePrefix, usedFilenamePolicy);
       this.jdbcAvroOptions = jdbcAvroOptions;
       this.coder = coder;
@@ -104,7 +101,7 @@ public class JdbcAvroIO {
   }
 
 
-  private static class JdbcAvroWriteOperation extends org.apache.beam.sdk.io.FileBasedSink.WriteOperation<String> {
+  private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<String> {
     private final AvroCoder<GenericRecord> coder;
     private final JdbcAvroOptions jdbcAvroOptions;
 
@@ -123,7 +120,7 @@ public class JdbcAvroIO {
     }
   }
 
-  private static class JdbcAvroWriter extends org.apache.beam.sdk.io.FileBasedSink.Writer<String> {
+  private static class JdbcAvroWriter extends FileBasedSink.Writer<String> {
     private static final int FETCH_SIZE = 10000;
     private static final int COUNTER_REPORT_EVERY = 100000;
     private static final int LOG_EVERY = 100000;
@@ -134,17 +131,22 @@ public class JdbcAvroIO {
     private final int syncInterval;
     private DataFileWriter<GenericRecord> dataFileWriter;
     private Connection connection;
-    private Counter recordCount = Metrics.counter(this.getClass().getCanonicalName(), "recordCount");
-    private Counter executeQueryElapsedMs = Metrics.counter(this.getClass().getCanonicalName(), "executeQueryElapsedMs");
-    private Counter writeElapsedMs = Metrics.counter(this.getClass().getCanonicalName(), "writeElapsedMs");
-    private Gauge msPerMillionRows = Metrics.gauge(this.getClass().getCanonicalName(), "msPerMillionRows");
-    private Gauge rowsPerMinute = Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
+    private Counter recordCount =
+        Metrics.counter(this.getClass().getCanonicalName(),"recordCount");
+    private Counter executeQueryElapsedMs =
+        Metrics.counter(this.getClass().getCanonicalName(), "executeQueryElapsedMs");
+    private Counter writeElapsedMs =
+        Metrics.counter(this.getClass().getCanonicalName(), "writeElapsedMs");
+    private Gauge msPerMillionRows =
+        Metrics.gauge(this.getClass().getCanonicalName(), "msPerMillionRows");
+    private Gauge rowsPerMinute =
+        Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
     private int rowCount;
     private long writeIterateStartTime;
 
-    public JdbcAvroWriter(org.apache.beam.sdk.io.FileBasedSink.WriteOperation<String> writeOperation,
-                          JdbcAvroOptions jdbcAvroOptions,
-                          AvroCoder<GenericRecord> coder) {
+    JdbcAvroWriter(FileBasedSink.WriteOperation<String> writeOperation,
+                   JdbcAvroOptions jdbcAvroOptions,
+                   AvroCoder<GenericRecord> coder) {
       super(writeOperation, MimeTypes.BINARY);
       this.jdbcAvroOptions = jdbcAvroOptions;
       this.coder = coder;
@@ -158,9 +160,10 @@ public class JdbcAvroIO {
     protected void prepareWrite(WritableByteChannel channel) throws Exception {
       logger.info("jdbcavroio : Preparing write...");
       connection = jdbcAvroOptions.getDataSourceConfiguration().getConnection();
-      dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(coder.getSchema()))
-          .setCodec(codec)
-          .setSyncInterval(syncInterval);
+      dataFileWriter =
+          new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(coder.getSchema()))
+              .setCodec(codec)
+              .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       dataFileWriter.create(coder.getSchema(), Channels.newOutputStream(channel));
       rowCount = 0;
@@ -200,7 +203,8 @@ public class JdbcAvroIO {
                       "JDBC resultSet was not properly created");
         this.writeIterateStartTime = System.currentTimeMillis();
         while (resultSet.next()) {
-          GenericRecord genericRecord = jdbcAvroOptions.getAvroRowMapper().convert(resultSet, coder.getSchema());
+          GenericRecord genericRecord =
+              jdbcAvroOptions.getAvroRowMapper().convert(resultSet, coder.getSchema());
           writeRecord(genericRecord);
           incrementRecordCount();
         }
@@ -311,10 +315,11 @@ public class JdbcAvroIO {
     }
 
     public static DataSourceConfiguration create(DataSource dataSource) {
-      checkArgument(dataSource != null, "DataSourceConfiguration.create(dataSource) called with "
-                                        + "null data source");
+      checkArgument(dataSource != null,
+          "DataSourceConfiguration.create(dataSource) called with null data source");
       checkArgument(dataSource instanceof Serializable,
-                    "DataSourceConfiguration.create(dataSource) called with a dataSource not Serializable");
+          "DataSourceConfiguration.create(dataSource) called with "
+              + "a dataSource not Serializable");
       return new AutoValue_JdbcAvroIO_DataSourceConfiguration.Builder()
           .setDataSource(dataSource)
           .build();
@@ -322,9 +327,11 @@ public class JdbcAvroIO {
 
     public static DataSourceConfiguration create(String driverClassName, String url) {
       checkArgument(driverClassName != null,
-                    "DataSourceConfiguration.create(driverClassName, url) called with null driverClassName");
+                    "DataSourceConfiguration.create(driverClassName, url) called "
+                        + "with null driverClassName");
       checkArgument(url != null,
-                    "DataSourceConfiguration.create(driverClassName, url) called with null url");
+                    "DataSourceConfiguration.create(driverClassName, url) called "
+                        + "with null url");
       return new AutoValue_JdbcAvroIO_DataSourceConfiguration.Builder()
           .setDriverClassName(driverClassName)
           .setUrl(url)

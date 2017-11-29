@@ -23,10 +23,10 @@ import java.util.UUID
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import slick.jdbc.H2Profile.api._
 import org.scalatest._
+import slick.jdbc.H2Profile.api._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
@@ -41,7 +41,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "create schema" in {
     val fieldCount = 12
-    var actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       db.source.createConnection(),
       "coffees", "dbeam_generated")
 
@@ -50,14 +50,14 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     actual.getProp("tableName") should be ("COFFEES")
     actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
     actual.getFields.size() should be (fieldCount)
-    actual.getFields.toList.map(_.name()) should be
-      (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE", "IS_ARABIC", "SALES",
-        "TOTAL", "CREATED", "UPDATED", "BT", "UID"))
-    actual.getFields.toList.map(_.schema().getType) should
+    actual.getFields.asScala.map(_.name()) should
+      be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
+               "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID"))
+    actual.getFields.asScala.map(_.schema().getType) should
       be (List.fill(fieldCount)(Schema.Type.UNION))
-    actual.getFields.toList.map(_.schema().getTypes.get(0).getType) should
+    actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
       be (List.fill(fieldCount)(Schema.Type.NULL))
-    actual.getFields.toList.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
+    actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
     actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
     actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
     actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
@@ -76,9 +76,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   }
 
   it should "create schema under specified namespace" in {
-    var actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      db.source.createConnection(),
-      "coffees", "ns")
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+      db.source.createConnection(), "coffees", "ns")
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
@@ -86,8 +85,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   def toByteBuffer(uuid: UUID): ByteBuffer = {
     val bf = ByteBuffer.allocate(16)
-      .putLong(uuid.getMostSignificantBits())
-      .putLong(uuid.getLeastSignificantBits())
+      .putLong(uuid.getMostSignificantBits)
+      .putLong(uuid.getLeastSignificantBits)
     bf.clear()
     bf
   }

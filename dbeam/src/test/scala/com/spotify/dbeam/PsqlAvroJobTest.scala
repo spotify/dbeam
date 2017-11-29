@@ -19,6 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
+import com.spotify.dbeam.options.JdbcExportArgs
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
@@ -35,7 +36,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "fail with invalid driver" in {
-    val options = SqlAvroOptions(
+    val options = JdbcExportArgs(
       "com.mysql.jdbc.Driver",
       "jdbc:mysql://nonsense",
       "dbeam-extractor",
@@ -51,7 +52,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "fail with missing partition" in {
-    val options = SqlAvroOptions(
+    val options = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
@@ -67,7 +68,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "validate" in {
-    val options = SqlAvroOptions(
+    val options = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
