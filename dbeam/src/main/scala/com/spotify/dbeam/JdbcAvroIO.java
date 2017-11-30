@@ -197,23 +197,20 @@ public class JdbcAvroIO {
     public void write(String query) throws Exception {
       checkArgument(dataFileWriter != null,
                     "Avro DataFileWriter was not properly created");
+      RowMapper avroRowMapper = jdbcAvroOptions.getAvroRowMapper();
+      Schema schema = coder.getSchema();
       logger.info("jdbcavroio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
         checkArgument(resultSet != null,
                       "JDBC resultSet was not properly created");
         this.writeIterateStartTime = System.currentTimeMillis();
         while (resultSet.next()) {
-          GenericRecord genericRecord =
-              jdbcAvroOptions.getAvroRowMapper().convert(resultSet, coder.getSchema());
-          writeRecord(genericRecord);
+          GenericRecord genericRecord = avroRowMapper.convert(resultSet, schema);
+          this.dataFileWriter.append(genericRecord);
           incrementRecordCount();
         }
         exposeMetrics(System.currentTimeMillis() - this.writeIterateStartTime);
       }
-    }
-
-    private void writeRecord(GenericRecord genericRecord) throws IOException {
-      this.dataFileWriter.append(genericRecord);
     }
 
     /**
