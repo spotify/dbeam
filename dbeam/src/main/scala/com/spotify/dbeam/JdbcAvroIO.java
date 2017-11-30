@@ -55,7 +55,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JdbcAvroIO {
+
   private static final String DEFAULT_CODEC = "deflate";
+  public static final CodecFactory DEFAULT_DEFLATE_CODEC = CodecFactory.deflateCodec(6);
 
   public abstract static class Write {
 
@@ -150,8 +152,7 @@ public class JdbcAvroIO {
       super(writeOperation, MimeTypes.BINARY);
       this.jdbcAvroOptions = jdbcAvroOptions;
       this.coder = coder;
-      //this.codec = CodecFactory.fromString(this.jdbcAvroOptions.getCodec());
-      this.codec = CodecFactory.deflateCodec(1);
+      this.codec = DEFAULT_DEFLATE_CODEC;
       this.syncInterval = DataFileConstants.DEFAULT_SYNC_INTERVAL * 16; // 1 MB
     }
 
@@ -197,23 +198,20 @@ public class JdbcAvroIO {
     public void write(String query) throws Exception {
       checkArgument(dataFileWriter != null,
                     "Avro DataFileWriter was not properly created");
+      RowMapper avroRowMapper = jdbcAvroOptions.getAvroRowMapper();
+      Schema schema = coder.getSchema();
       logger.info("jdbcavroio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
         checkArgument(resultSet != null,
                       "JDBC resultSet was not properly created");
         this.writeIterateStartTime = System.currentTimeMillis();
         while (resultSet.next()) {
-          GenericRecord genericRecord =
-              jdbcAvroOptions.getAvroRowMapper().convert(resultSet, coder.getSchema());
-          writeRecord(genericRecord);
+          GenericRecord genericRecord = avroRowMapper.convert(resultSet, schema);
+          this.dataFileWriter.append(genericRecord);
           incrementRecordCount();
         }
         exposeMetrics(System.currentTimeMillis() - this.writeIterateStartTime);
       }
-    }
-
-    private void writeRecord(GenericRecord genericRecord) throws IOException {
-      this.dataFileWriter.append(genericRecord);
     }
 
     /**
