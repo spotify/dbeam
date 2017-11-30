@@ -55,7 +55,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JdbcAvroIO {
+
   private static final String DEFAULT_CODEC = "deflate";
+  public static final CodecFactory DEFAULT_DEFLATE_CODEC = CodecFactory.deflateCodec(6);
 
   public abstract static class Write {
 
@@ -150,8 +152,7 @@ public class JdbcAvroIO {
       super(writeOperation, MimeTypes.BINARY);
       this.jdbcAvroOptions = jdbcAvroOptions;
       this.coder = coder;
-      //this.codec = CodecFactory.fromString(this.jdbcAvroOptions.getCodec());
-      this.codec = CodecFactory.deflateCodec(1);
+      this.codec = DEFAULT_DEFLATE_CODEC;
       this.syncInterval = DataFileConstants.DEFAULT_SYNC_INTERVAL * 16; // 1 MB
     }
 
