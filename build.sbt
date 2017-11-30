@@ -28,6 +28,7 @@ val autoValueVersion = "1.4.1"
 lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSettings ++ Seq(
   organization := "com.spotify",
   scalaVersion := "2.12.4",
+  crossScalaVersions := Seq("2.11.12", "2.12.4"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions in (Compile, doc) += "-no-java-comments",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
