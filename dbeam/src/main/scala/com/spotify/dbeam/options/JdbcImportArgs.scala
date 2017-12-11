@@ -24,7 +24,9 @@ case class JdbcImportArgs(driverClass: String,
                           connectionUrl: String,
                           username: String,
                           password: String,
-                          tableName: String)
+                          tableName: String,
+                          input: String,
+                          format: String)
   extends JdbcConnectionArgs with TableArgs {
   require(checkTableName(), s"Invalid SQL table name: $tableName")
 }
@@ -45,7 +47,9 @@ object JdbcImportArgs {
       importOptions.getConnectionUrl,
       importOptions.getUsername,
       PipelineOptionsUtil.readPassword(importOptions).orNull,
-      importOptions.getTable)
+      importOptions.getTable,
+      importOptions.getInput,
+      importOptions.getFormat)
 
     (sc, importArgs)
   }

@@ -17,8 +17,11 @@
 
 package com.spotify.dbeam
 
+import java.sql.Connection
+
 import com.spotify.dbeam.options.JdbcImportArgs
-import com.spotify.scio.ScioContext
+import com.spotify.scio.{ScioContext, ScioResult}
+import org.apache.avro.generic.GenericRecord
 import org.slf4j.{Logger, LoggerFactory}
 
 object AvroToJdbcJob {
@@ -26,7 +29,13 @@ object AvroToJdbcJob {
 
   def main(cmdlineArgs: Array[String]): Unit = {
     val (sc: ScioContext, args: JdbcImportArgs) = JdbcImportArgs.contextAndArgs(cmdlineArgs)
-    log.info("nothing to do here now")
-    sc.close().waitUntilDone()
+    log.info("AvroToJdbcJob with input: " + args.input)
+
+    // val conn: Connection = args.createConnection()
+
+    val avroFilePath: String = args.input
+    sc.avroFile[GenericRecord](avroFilePath).applyTransform(new AvroToJdbcTransform())
+
+    val scioResult: ScioResult = sc.close().waitUntilDone()
   }
 }

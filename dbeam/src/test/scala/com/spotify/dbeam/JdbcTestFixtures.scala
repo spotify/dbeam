@@ -24,6 +24,7 @@ import java.util.UUID
 import org.apache.avro.file.DataFileReader
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import slick.jdbc.H2Profile.api._
+import slick.lifted.ProvenShape
 
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, _}
@@ -76,30 +77,32 @@ object AvroToJdbcTestFixtures {
   type recordType = (String, String, String, String, Float, Int, Int, Float,
     String, String, String, String, String, Int, String)
 
+  class CountryTable(tag: slick.jdbc.H2Profile.api.Tag)
+    extends Table[recordType](tag, "country") {
+    def code: Rep[String] = column[String]("code", O.PrimaryKey)
+    def name: Rep[String] = column[String]("name")
+    def continent: Rep[String] = column[String]("continent")
+    def region: Rep[String] = column[String]("region")
+    def surfaceArea: Rep[Float] = column[Float]("surfacearea")
+    def indepYear: Rep[Int] = column[Int]("indepyear")
+    def population: Rep[Int] = column[Int]("population")
+    def lifeExpectancy: Rep[Float] = column[Float]("lifeexpectancy")
+    def gnp: Rep[String] = column[String]("gnp")
+    def gnpold: Rep[String] = column[String]("gnpold")
+    def localName: Rep[String] = column[String]("localname")
+    def governmentForm: Rep[String] = column[String]("governmentform")
+    def headOfState: Rep[String] = column[String]("headofstate")
+    def capital: Rep[Int] = column[Int]("capital")
+    def code2: Rep[String] = column[String]("code2")
+    def * : ProvenShape[(String, String, String, String, Float, Int, Int, Float, String, String,
+      String, String, String, Int, String)] =
+      (code, name, continent, region, surfaceArea, indepYear, population, lifeExpectancy, gnp,
+        gnpold, localName, governmentForm, headOfState, capital, code2)
+  }
+
+  val country: TableQuery[CountryTable] = TableQuery[CountryTable]
+
   def initializeEmptyDB(db: Database): Unit = {
-    class CountryTable(tag: slick.jdbc.H2Profile.api.Tag)
-      extends Table[recordType](tag, "country") {
-      def code = column[String]("code", O.PrimaryKey)
-      def name = column[String]("name")
-      def continent = column[String]("continent")
-      def region = column[String]("region")
-      def surfaceArea = column[Float]("surfacearea")
-      def indepYear = column[Int]("indepyear")
-      def population = column[Int]("population")
-      def lifeExpectancy = column[Float]("lifeexpectancy")
-      def gnp = column[String]("gnp")
-      def gnpold = column[String]("gnpold")
-      def localName = column[String]("localname")
-      def governmentForm = column[String]("governmentform")
-      def headOfState = column[String]("headofstate")
-      def capital = column[Int]("capital")
-      def code2 = column[String]("code2")
-      def * = (code, name, continent, region, surfaceArea, indepYear, population,
-        lifeExpectancy, gnp, gnpold, localName, governmentForm, headOfState, capital, code2)
-    }
-
-    val country = TableQuery[CountryTable]
-
     val dbioSeq = DBIO.seq(
       sqlu"DROP TABLE IF EXISTS country",
       country.schema.create
