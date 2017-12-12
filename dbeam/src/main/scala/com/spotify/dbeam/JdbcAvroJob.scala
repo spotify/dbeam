@@ -73,7 +73,7 @@ object JdbcAvroJob {
     }
 
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
-      JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
+      JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.resolvedConnectionUrl)
         .withUsername(options.username)
         .withPassword(options.password), new ResultSetGenericRecordMapper())
     JdbcAvroIO.Write.createWrite(

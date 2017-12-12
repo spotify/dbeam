@@ -17,6 +17,7 @@
 
 package com.spotify.dbeam.options
 
+import java.net.{InetAddress, URI}
 import java.sql.{Connection, DriverManager}
 
 import org.joda.time.{DateTime, ReadablePeriod}
@@ -35,6 +36,17 @@ trait JdbcConnectionArgs {
   def createConnection(): Connection = {
     Class.forName(driverClass)
     DriverManager.getConnection(connectionUrl, username, password)
+  }
+
+  /**
+    * Resolve host address outside the Beam/Dataflow worker
+    * This is favorable since it is currently no easy to configure DNS server on workers
+    */
+  def resolvedConnectionUrl: String = {
+    val uri: URI = URI.create(connectionUrl)
+    val host: String = uri.getHost
+    val hostAddress: String = InetAddress.getByName(host).getHostAddress
+    connectionUrl.replaceFirst("://" + host, "://" + hostAddress)
   }
 }
 
