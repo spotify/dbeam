@@ -20,7 +20,7 @@ package com.spotify.dbeam
 import java.sql.Connection
 
 import com.spotify.dbeam.options.JdbcExportArgs
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
 
@@ -82,22 +82,45 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     PsqlAvroJob.validateOptions(options)
   }
 
-  it should "validate replication" in {
+  it should "succeed replication state, replicated until end of partition" in {
     val partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
     val lastReplication = new DateTime(2027, 8, 1, 0, 0, DateTimeZone.UTC)
+    val partitionPeriod = Days.ONE
 
-    val actual = PsqlAvroJob.validateReplication(partition, lastReplication)
-
-    actual should be (partition)
+    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe false
   }
 
-  ignore should "fail on too replication" in {
+  it should "succeed replication state, replicated until the next day" in {
     val partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
-    val lastReplication = new DateTime(2027, 7, 19, 0, 0, DateTimeZone.UTC)
+    val lastReplication = new DateTime(2027, 8, 2, 0, 0, DateTimeZone.UTC)
+    val partitionPeriod = Days.ONE
 
-    a[IllegalArgumentException] should be thrownBy {
-      PsqlAvroJob.validateReplication(partition, lastReplication)
-    }
+    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe false
+  }
+
+
+  it should "fail on delayed replication, replicated up to partition start" in {
+    val partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
+    val lastReplication = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
+    val partitionPeriod = Days.ONE
+
+    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe true
+  }
+
+  it should "fail on delayed replication, last replicated before partition start" in {
+    val partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
+    val lastReplication = new DateTime(2027, 7, 30, 22, 0, DateTimeZone.UTC)
+    val partitionPeriod = Days.ONE
+
+    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe true
+  }
+
+  it should "fail on delayed replication, last replicated inside the partition" in {
+    val partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
+    val lastReplication = new DateTime(2027, 7, 31, 23, 59, 59, DateTimeZone.UTC)
+    val partitionPeriod = Days.ONE
+
+    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe true
   }
 
   it should "run query" in {
