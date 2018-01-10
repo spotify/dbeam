@@ -21,7 +21,7 @@ import java.sql.Connection
 
 import com.spotify.dbeam.options.JdbcExportArgs
 import com.spotify.scio.ScioContext
-import org.joda.time.{DateTime, Duration}
+import org.joda.time.{DateTime, Duration, ReadablePeriod}
 import org.slf4j.{Logger, LoggerFactory}
 
 /**
@@ -65,13 +65,16 @@ object PsqlAvroJob {
     }
   }
 
-  def validateReplication(partition: DateTime, lastReplication: DateTime): DateTime = {
-    if (lastReplication.isBefore(partition)) {
+  def isReplicationDelayed(partition: DateTime,
+                           lastReplication: DateTime,
+                           partitionPeriod : ReadablePeriod): Boolean = {
+    if (lastReplication.isBefore(partition.plus(partitionPeriod))) {
       log.error(s"Replication was not completed for partition, " +
-        s"expected >= $partition, actual = $lastReplication")
-      System.exit(20)
+        s"expected >= ${partition.plus(partitionPeriod)}, actual = $lastReplication")
+      true
+    } else {
+      false
     }
-    partition
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -79,7 +82,13 @@ object PsqlAvroJob {
     val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
     validateOptions(args)
 
-    validateReplication(args.partition.get, queryReplication(args.createConnection()))
+    val partition = args.partition.get
+    val lastReplication = queryReplication(args.createConnection())
+    val partitionPeriod: ReadablePeriod = args.partitionPeriod
+
+    if (isReplicationDelayed(partition, lastReplication, partitionPeriod)) {
+      System.exit(20)
+    }
 
     JdbcAvroJob.main(cmdlineArgs)
   }
