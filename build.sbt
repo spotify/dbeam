@@ -20,10 +20,10 @@ import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.pack.PackPlugin._
 
-val scioVersion = "0.4.6"
+val scioVersion = "0.4.7"
 val beamVersion = "2.2.0"
+val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
-val autoValueVersion = "1.4.1"
 
 lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSettings ++ Seq(
   organization := "com.spotify",
