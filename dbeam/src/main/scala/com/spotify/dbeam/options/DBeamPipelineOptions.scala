@@ -92,6 +92,11 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
   def getAvroSchemaNamespace: String
 
   def setAvroSchemaNamespace(value: String): Unit
+
+  @Description("The top-level doc string of the generated avro schema.")
+  def getAvroDoc: String
+
+  def setAvroDoc(value: String): Unit
 }
 
 object PipelineOptionsUtil {

@@ -43,7 +43,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     val fieldCount = 12
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       db.source.createConnection(),
-      "coffees", "dbeam_generated")
+      "coffees", "dbeam_generated",
+      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
 
     actual shouldNot be (null)
     actual.getNamespace should be ("dbeam_generated")
@@ -73,14 +74,23 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
     actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
     actual.toString shouldNot be (null)
+    actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
   }
 
   it should "create schema under specified namespace" in {
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns")
+      db.source.createConnection(), "coffees", "ns", "doc")
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
+  }
+
+  it should "create schema with specified doc string" in {
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+      db.source.createConnection(), "coffees", "ns", "doc")
+
+    actual shouldNot be (null)
+    actual.getDoc should be ("doc")
   }
 
   def toByteBuffer(uuid: UUID): ByteBuffer = {
@@ -93,7 +103,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "convert jdbc result set to avro generic record" in {
     val rs = connection.createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated")
+    val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated","connection", "doc")
     rs.next()
 
     val record: GenericRecord = JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, rs)
