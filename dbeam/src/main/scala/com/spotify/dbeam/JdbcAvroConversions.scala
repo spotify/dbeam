@@ -38,14 +38,15 @@ object JdbcAvroConversions {
 
   def createSchemaByReadingOneRow(connection: Connection,
                                   tableName: String,
-                                  avroSchemaNamespace: String): Schema = {
+                                  avroSchemaNamespace: String,
+                                  avroDoc: String): Schema = {
     log.info("Creating Avro schema based on the first read row from the database")
     try {
       val statement = connection.createStatement()
       val rs = statement.executeQuery(s"SELECT * FROM $tableName LIMIT 1")
       val schema = JdbcAvroConversions.createAvroSchema(
-        rs, avroSchemaNamespace, connection.getMetaData.getURL)
-      log.info(s"Schema created successfully. Genearated schema: ${schema.toString}")
+        rs, avroSchemaNamespace, connection.getMetaData.getURL, avroDoc)
+      log.info(s"Schema created successfully. Generated schema: ${schema.toString}")
       schema
     } finally {
       if (connection != null) {
@@ -56,16 +57,18 @@ object JdbcAvroConversions {
 
   def createAvroSchema(rs: ResultSet,
                        avroSchemaNamespace: String,
-                       connectionUrl: String = ""): Schema = {
+                       connectionUrl: String,
+                       avroDoc: String): Schema = {
     val meta = rs.getMetaData
     val tableName = if (meta.getColumnCount > 0) {
       normalizeForAvro(meta.getTableName(1))
     } else {
       "no_table_name"
     }
+
     val builder: SchemaBuilder.FieldAssembler[Schema] = SchemaBuilder.record(tableName)
       .namespace(avroSchemaNamespace)
-      .doc(s"Generate schema from JDBC ResultSet from $tableName $connectionUrl")
+      .doc(avroDoc)
       .prop("tableName", tableName)
       .prop("connectionUrl", connectionUrl)
       .fields

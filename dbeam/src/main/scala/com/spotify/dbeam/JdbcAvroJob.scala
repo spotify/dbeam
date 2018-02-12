@@ -44,9 +44,11 @@ object JdbcAvroJob {
     */
   def createSchema(sc: ScioContext, args: JdbcExportArgs): Schema = {
     val startTimeMillis: Long = System.currentTimeMillis()
+    val connection = args.createConnection()
+    val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
+      s"${args.tableName} ${connection.getMetaData.getURL}")
     val generatedSchema: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      args.createConnection(),
-      args.tableName, args.avroSchemaNamespace)
+      connection, args.tableName, args.avroSchemaNamespace, avroDoc)
     val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
     log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
     sc
