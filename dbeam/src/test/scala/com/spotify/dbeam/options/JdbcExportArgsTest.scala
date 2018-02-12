@@ -316,4 +316,19 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       None
     ))
   }
+  it should "configure avro doc" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--output=/path --password=secret --avroDoc=doc")
+
+    options should be (JdbcExportArgs(
+      "org.postgresql.Driver",
+      "jdbc:postgresql://nonsense",
+      "dbeam-extractor",
+      "secret",
+      "some_table",
+      "/path",
+      "dbeam_generated",
+      avroDoc=Some("doc")
+    ))
+  }
 }

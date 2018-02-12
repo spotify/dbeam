@@ -33,7 +33,8 @@ case class JdbcExportArgs(driverClass: String,
                           limit: Option[Int] = None,
                           partitionColumn: Option[String] = None,
                           partition: Option[DateTime] = None,
-                          partitionPeriod: ReadablePeriod = Days.ONE)
+                          partitionPeriod: ReadablePeriod = Days.ONE,
+                          avroDoc: Option[String] = None)
   extends JdbcConnectionArgs with QueryArgs {
 
   require(checkTableName(), s"Invalid SQL table name: $tableName")
@@ -88,7 +89,8 @@ object JdbcExportArgs {
       Option(exportOptions.getLimit).map(_.toInt),
       partitionColumn,
       partition,
-      partitionPeriod
+      partitionPeriod,
+      Option(exportOptions.getAvroDoc)
     )
   }
 
