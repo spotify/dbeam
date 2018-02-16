@@ -59,8 +59,8 @@ object JdbcExportArgs {
   private def parseDateTime(input: String): DateTime =
     DateTime.parse(input.stripSuffix("Z"), ISODateTimeFormat.localDateOptionalTimeParser)
 
-  def fromArgsAndOptions(options: PipelineOptions, args: Args): JdbcExportArgs = {
-    val exportOptions = options.as(classOf[JdbcExportPipelineOptions])
+  def fromPipelineOptions(options: PipelineOptions): JdbcExportArgs = {
+    val exportOptions: JdbcExportPipelineOptions = options.as(classOf[JdbcExportPipelineOptions])
     val partitionPeriod: ReadablePeriod = Option(exportOptions.getPartitionPeriod)
       .map(Period.parse).getOrElse(Days.ONE)
     val partitionColumn: Option[String] = Option(exportOptions.getPartitionColumn)
@@ -72,7 +72,7 @@ object JdbcExportArgs {
     require(exportOptions.getTable != null, "'table' must be defined")
 
     if (!skipPartitionCheck && partitionColumn.isEmpty) {
-      val minPartitionDateTime = args.optional("minPartitionPeriod")
+      val minPartitionDateTime = Option(exportOptions.getMinPartitionPeriod)
         .map(parseDateTime)
         .getOrElse(DateTime.now().minus(partitionPeriod.toPeriod.multipliedBy(2)))
       partition.map(validatePartition(_, minPartitionDateTime))
@@ -96,8 +96,8 @@ object JdbcExportArgs {
 
   def contextAndArgs(cmdlineArgs: Array[String]): (ScioContext, JdbcExportArgs) = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
-    val (sc: ScioContext, args: Args) = ContextAndArgs(cmdlineArgs)
-    val exportArgs: JdbcExportArgs = JdbcExportArgs.fromArgsAndOptions(sc.options, args)
+    val (sc: ScioContext, _) = ContextAndArgs(cmdlineArgs)
+    val exportArgs: JdbcExportArgs = JdbcExportArgs.fromPipelineOptions(sc.options)
     (sc, exportArgs)
   }
 }
