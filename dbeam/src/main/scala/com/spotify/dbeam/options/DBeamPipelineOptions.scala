@@ -72,6 +72,7 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   @Description("By default, when partition column is not specified, " +
     "fails if partition is too old. Set this flag to ignore this check.")
+  @Default.Boolean(false)
   def isSkipPartitionCheck: Boolean
 
   def setSkipPartitionCheck(value: Boolean): Unit
@@ -81,6 +82,10 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
   def getPartitionPeriod: String
 
   def setPartitionPeriod(value: String): Unit
+
+  def getMinPartitionPeriod: String
+
+  def setMinPartitionPeriod(value: String): Unit
 
   @Description("Limit the output number of rows, indefinite by default.")
   def getLimit: Integer

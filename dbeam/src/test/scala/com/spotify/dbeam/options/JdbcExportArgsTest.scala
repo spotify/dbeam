@@ -26,9 +26,9 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
-    val (opts: PipelineOptions, args: Args) =
+    val (opts: PipelineOptions, _) =
       ScioContext.parseArguments[PipelineOptions](cmdLineArgs.split(" "))
-    JdbcExportArgs.fromArgsAndOptions(opts, args)
+    JdbcExportArgs.fromPipelineOptions(opts)
   }
 
   it should "fail parse invalid arguments" in {

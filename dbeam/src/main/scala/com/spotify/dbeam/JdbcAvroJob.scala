@@ -95,7 +95,7 @@ object JdbcAvroJob {
     scioResult.saveMetrics(args.pathInOutput("/_SERVICE_METRICS.json"))
   }
 
-  def writeToFile(filename: String, contents: ByteBuffer): Unit = {
+  private def writeToFile(filename: String, contents: ByteBuffer): Unit = {
     val resourceId = FileSystems.matchNewResource(filename, false)
     val out = FileSystems.create(resourceId, MimeTypes.TEXT)
     try {
@@ -107,17 +107,16 @@ object JdbcAvroJob {
     }
   }
 
-  def saveJsonObject(filename: String, obj: Object): Unit = {
+  private def saveJsonObject(filename: String, obj: Object): Unit = {
     val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
     writeToFile(filename, ByteBuffer.wrap(mapper.writeValueAsBytes(obj)))
   }
 
-  def saveString(filename: String, contents: String): Unit = {
+  private def saveString(filename: String, contents: String): Unit = {
     writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())))
   }
 
-  def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
+  def runExport(sc: ScioContext, args: JdbcExportArgs): Unit = {
     val generatedSchema: Schema = createSchema(sc, args)
 
     val queries = args.buildQueries()
@@ -132,4 +131,8 @@ object JdbcAvroJob {
     publishMetrics(scioResult, args)
   }
 
+  def main(cmdlineArgs: Array[String]): Unit = {
+    val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
+    runExport(sc, args)
+  }
 }
