@@ -56,11 +56,14 @@ class JdbcAvroJobTest extends PipelineSpec with Matchers with BeforeAndAfterAll 
         "--password=",
         "--table=coffees",
         "--output=" + dir.getAbsolutePath)
-        .output[String](TextIO(dir.getAbsolutePath + "/_queries"))(_ should haveSize(1))
+//        .output[String](TextIO(dir.getAbsolutePath + "/_queries"))(_ should haveSize(1))
       .run()
     val files: Array[File] = dir.listFiles()
     files.map(_.getName) should contain theSameElementsAs (Seq(
-      "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json", "part-00000-of-00001.avro"))
+      "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json",
+      "_queries", "part-00000-of-00001.avro"))
+    files.filter(_.getName.equals("_queries"))(0).listFiles().map(_.getName) should
+      contain theSameElementsAs (Seq("query_0.sql"))
     val schema = (new Schema.Parser()).parse(new File(dir, "_AVRO_SCHEMA.avsc"))
     val source: AvroSource[GenericRecord] = AvroSource
       .from(new File(dir, "part-00000-of-00001.avro").toString)
