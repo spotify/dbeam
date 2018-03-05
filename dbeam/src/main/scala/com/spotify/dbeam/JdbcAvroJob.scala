@@ -118,13 +118,13 @@ object JdbcAvroJob {
   private def subPath(path: String, subPath: String): String =
     path.replaceAll("/+$", "") + subPath
 
-  def runExport(sc: ScioContext, args: JdbcExportArgs, outputUri: String): Unit = {
+  def prepareExport(sc: ScioContext, args: JdbcExportArgs, outputUri: String): ScioContext = {
     require(outputUri != null && outputUri != "", "'output' must be defined")
     val generatedSchema: Schema = createSchema(sc, args)
     saveString(subPath(outputUri, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
 
     val queries: Iterable[String] = args.buildQueries()
-    queries.zipWithIndex.foreach{ case (q: String, n: Int) =>
+    queries.zipWithIndex.foreach { case (q: String, n: Int) =>
       saveString(subPath(outputUri, s"/_queries/query_${n}.sql"), q)
     }
     log.info(s"Running queries: $queries")
@@ -134,6 +134,11 @@ object JdbcAvroJob {
       .internal
       .apply("JdbcAvroSave",
         jdbcAvroTransform(outputUri, args, generatedSchema))
+    sc
+  }
+
+  def runExport(sc: ScioContext, args: JdbcExportArgs, outputUri: String): Unit = {
+    prepareExport(sc, args, outputUri)
 
     val scioResult: ScioResult = sc.close().waitUntilDone()
     publishMetrics(scioResult, outputUri)
