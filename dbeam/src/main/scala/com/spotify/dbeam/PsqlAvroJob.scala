@@ -88,13 +88,13 @@ object PsqlAvroJob {
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, outputUri: String) =
+    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, output: String) =
       JdbcExportArgs.contextAndArgs(cmdlineArgs)
 
     if (isReplicationDelayed(jdbcExportArgs)) {
       System.exit(20)
     } else {
-      JdbcAvroJob.runExport(sc, jdbcExportArgs, outputUri)
+      JdbcAvroJob.runExport(sc, jdbcExportArgs, output)
     }
   }
 

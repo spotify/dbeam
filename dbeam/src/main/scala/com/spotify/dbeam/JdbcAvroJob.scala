@@ -85,13 +85,13 @@ object JdbcAvroJob {
     )
   }
 
-  def publishMetrics(scioResult: ScioResult, outputUri: String): Unit = {
+  def publishMetrics(scioResult: ScioResult, output: String): Unit = {
     log.info(s"Metrics ${scioResult.getMetrics.toString}")
     val metrics: Map[MetricName, MetricValue[_]] = scioResult.allCounters ++ scioResult.allGauges
     log.info(s"all counters and gauges ${metrics.toString}")
 
-    saveJsonObject(subPath(outputUri, "/_METRICS.json"), metrics)
-    scioResult.saveMetrics(subPath(outputUri, "/_SERVICE_METRICS.json"))
+    saveJsonObject(subPath(output, "/_METRICS.json"), metrics)
+    scioResult.saveMetrics(subPath(output, "/_SERVICE_METRICS.json"))
   }
 
   private def writeToFile(filename: String, contents: ByteBuffer): Unit = {
@@ -118,14 +118,14 @@ object JdbcAvroJob {
   private def subPath(path: String, subPath: String): String =
     path.replaceAll("/+$", "") + subPath
 
-  def prepareExport(sc: ScioContext, args: JdbcExportArgs, outputUri: String): ScioContext = {
-    require(outputUri != null && outputUri != "", "'output' must be defined")
+  def prepareExport(sc: ScioContext, args: JdbcExportArgs, output: String): ScioContext = {
+    require(output != null && output != "", "'output' must be defined")
     val generatedSchema: Schema = createSchema(sc, args)
-    saveString(subPath(outputUri, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
+    saveString(subPath(output, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
 
     val queries: Iterable[String] = args.buildQueries()
     queries.zipWithIndex.foreach { case (q: String, n: Int) =>
-      saveString(subPath(outputUri, s"/_queries/query_${n}.sql"), q)
+      saveString(subPath(output, s"/_queries/query_${n}.sql"), q)
     }
     log.info(s"Running queries: $queries")
 
@@ -133,20 +133,20 @@ object JdbcAvroJob {
       .parallelize(queries)
       .internal
       .apply("JdbcAvroSave",
-        jdbcAvroTransform(outputUri, args, generatedSchema))
+        jdbcAvroTransform(output, args, generatedSchema))
     sc
   }
 
-  def runExport(sc: ScioContext, args: JdbcExportArgs, outputUri: String): Unit = {
-    prepareExport(sc, args, outputUri)
+  def runExport(sc: ScioContext, args: JdbcExportArgs, output: String): Unit = {
+    prepareExport(sc, args, output)
 
     val scioResult: ScioResult = sc.close().waitUntilDone()
-    publishMetrics(scioResult, outputUri)
+    publishMetrics(scioResult, output)
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, outputUri: String) =
+    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, output: String) =
       JdbcExportArgs.contextAndArgs(cmdlineArgs)
-    runExport(sc, jdbcExportArgs, outputUri)
+    runExport(sc, jdbcExportArgs, output)
   }
 }
