@@ -42,7 +42,6 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "dbeam-extractor",
       "secret",
       "some_table",
-      "/path",
       "dbeam_generated"
     )
 
@@ -58,7 +57,6 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "dbeam-extractor",
       "secret",
       "some_table",
-      "/path",
       "dbeam_generated"
     )
 
@@ -74,7 +72,6 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "dbeam-extractor",
       "secret",
       "some_table",
-      "/path",
       "dbeam_generated",
       partition = Some(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC))
     )

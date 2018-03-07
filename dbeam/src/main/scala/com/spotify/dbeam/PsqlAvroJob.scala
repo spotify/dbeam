@@ -78,20 +78,24 @@ object PsqlAvroJob {
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs) =
-      JdbcExportArgs.contextAndArgs(cmdlineArgs)
+  def isReplicationDelayed(jdbcExportArgs: JdbcExportArgs): Boolean = {
     validateOptions(jdbcExportArgs)
-
     val partition: DateTime = jdbcExportArgs.partition.get
     val partitionPeriod: ReadablePeriod = jdbcExportArgs.partitionPeriod
     val lastReplication = queryReplication(jdbcExportArgs.createConnection())
 
-    if (isReplicationDelayed(partition, lastReplication, partitionPeriod)) {
-      System.exit(20)
-    }
+    isReplicationDelayed(partition, lastReplication, partitionPeriod)
+  }
 
-    JdbcAvroJob.runExport(sc, jdbcExportArgs)
+  def main(cmdlineArgs: Array[String]): Unit = {
+    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, output: String) =
+      JdbcExportArgs.contextAndArgs(cmdlineArgs)
+
+    if (isReplicationDelayed(jdbcExportArgs)) {
+      System.exit(20)
+    } else {
+      JdbcAvroJob.runExport(sc, jdbcExportArgs, output)
+    }
   }
 
 }
