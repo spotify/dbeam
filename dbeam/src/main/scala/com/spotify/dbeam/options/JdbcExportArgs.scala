@@ -28,7 +28,6 @@ case class JdbcExportArgs(driverClass: String,
                           username: String,
                           password: String,
                           tableName: String,
-                          output: String,
                           avroSchemaNamespace: String,
                           limit: Option[Int] = None,
                           partitionColumn: Option[String] = None,
@@ -41,7 +40,6 @@ case class JdbcExportArgs(driverClass: String,
   require(partitionColumn.isEmpty || partition.isDefined,
     "To use --partitionColumn the --partition parameter must also be configured")
 
-  def pathInOutput(subPath: String): String = output.replaceAll("/+$", "") + subPath
 }
 
 object JdbcExportArgs {
@@ -68,7 +66,6 @@ object JdbcExportArgs {
     val partition: Option[DateTime] = Option(exportOptions.getPartition).map(parseDateTime)
 
     require(exportOptions.getConnectionUrl != null, "'connectionUrl' must be defined")
-    require(exportOptions.getOutput != null, "'output' must be defined")
     require(exportOptions.getTable != null, "'table' must be defined")
 
     if (!skipPartitionCheck && partitionColumn.isEmpty) {
@@ -84,7 +81,6 @@ object JdbcExportArgs {
       exportOptions.getUsername,
       PipelineOptionsUtil.readPassword(exportOptions).orNull,
       exportOptions.getTable,
-      exportOptions.getOutput,
       exportOptions.getAvroSchemaNamespace,
       Option(exportOptions.getLimit).map(_.toInt),
       partitionColumn,
@@ -94,10 +90,12 @@ object JdbcExportArgs {
     )
   }
 
-  def contextAndArgs(cmdlineArgs: Array[String]): (ScioContext, JdbcExportArgs) = {
+  def contextAndArgs(cmdlineArgs: Array[String]): (ScioContext, JdbcExportArgs, String) = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
-    val (sc: ScioContext, _) = ContextAndArgs(cmdlineArgs)
-    val exportArgs: JdbcExportArgs = JdbcExportArgs.fromPipelineOptions(sc.options)
-    (sc, exportArgs)
+    PipelineOptionsFactory.register(classOf[OutputOptions])
+    val opts = PipelineOptionsFactory.fromArgs(cmdlineArgs:_*).withValidation().create()
+    (ScioContext(opts),
+      JdbcExportArgs.fromPipelineOptions(opts),
+      opts.as(classOf[OutputOptions]).getOutput)
   }
 }

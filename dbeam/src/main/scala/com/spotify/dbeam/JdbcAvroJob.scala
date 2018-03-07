@@ -58,7 +58,6 @@ object JdbcAvroJob {
         ScioMetrics.counter("schemaElapsedTimeMs").inc(elapsedTimeSchema)
         inp
       })
-    saveString(args.pathInOutput("/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
     generatedSchema
   }
 
@@ -86,13 +85,13 @@ object JdbcAvroJob {
     )
   }
 
-  def publishMetrics(scioResult: ScioResult, args: JdbcExportArgs): Unit = {
+  def publishMetrics(scioResult: ScioResult, output: String): Unit = {
     log.info(s"Metrics ${scioResult.getMetrics.toString}")
     val metrics: Map[MetricName, MetricValue[_]] = scioResult.allCounters ++ scioResult.allGauges
     log.info(s"all counters and gauges ${metrics.toString}")
 
-    saveJsonObject(args.pathInOutput("/_METRICS.json"), metrics)
-    scioResult.saveMetrics(args.pathInOutput("/_SERVICE_METRICS.json"))
+    saveJsonObject(subPath(output, "/_METRICS.json"), metrics)
+    scioResult.saveMetrics(subPath(output, "/_SERVICE_METRICS.json"))
   }
 
   private def writeToFile(filename: String, contents: ByteBuffer): Unit = {
@@ -116,23 +115,38 @@ object JdbcAvroJob {
     writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())))
   }
 
-  def runExport(sc: ScioContext, args: JdbcExportArgs): Unit = {
-    val generatedSchema: Schema = createSchema(sc, args)
+  private def subPath(path: String, subPath: String): String =
+    path.replaceAll("/+$", "") + subPath
 
-    val queries = args.buildQueries()
+  def prepareExport(sc: ScioContext, args: JdbcExportArgs, output: String): ScioContext = {
+    require(output != null && output != "", "'output' must be defined")
+    val generatedSchema: Schema = createSchema(sc, args)
+    saveString(subPath(output, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
+
+    val queries: Iterable[String] = args.buildQueries()
+    queries.zipWithIndex.foreach { case (q: String, n: Int) =>
+      saveString(subPath(output, s"/_queries/query_${n}.sql"), q)
+    }
     log.info(s"Running queries: $queries")
 
-    val querySCollection = sc.parallelize(queries)
-    querySCollection.withName("SaveQueries").saveAsTextFile(args.pathInOutput("/_queries"), ".sql")
-    querySCollection.internal.apply("JdbcAvroSave",
-      jdbcAvroTransform(args.output, args, generatedSchema))
+    sc
+      .parallelize(queries)
+      .internal
+      .apply("JdbcAvroSave",
+        jdbcAvroTransform(output, args, generatedSchema))
+    sc
+  }
+
+  def runExport(sc: ScioContext, args: JdbcExportArgs, output: String): Unit = {
+    prepareExport(sc, args, output)
 
     val scioResult: ScioResult = sc.close().waitUntilDone()
-    publishMetrics(scioResult, args)
+    publishMetrics(scioResult, output)
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, args: JdbcExportArgs) = JdbcExportArgs.contextAndArgs(cmdlineArgs)
-    runExport(sc, args)
+    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, output: String) =
+      JdbcExportArgs.contextAndArgs(cmdlineArgs)
+    runExport(sc, jdbcExportArgs, output)
   }
 }

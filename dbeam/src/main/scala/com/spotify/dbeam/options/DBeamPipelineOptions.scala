@@ -54,12 +54,6 @@ trait DBeamPipelineOptions extends PipelineOptions {
 
 @Description("Configure dbeam SQL export")
 trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
-  @Description("The path for storing the output.")
-  @Required
-  def getOutput: String
-
-  def setOutput(value: String): Unit
-
   @Description("The date of the current partition.")
   def getPartition: String
 
@@ -102,6 +96,14 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
   def getAvroDoc: String
 
   def setAvroDoc(value: String): Unit
+}
+
+trait OutputOptions extends PipelineOptions {
+  @Description("The path for storing the output.")
+  @Required
+  def getOutput: String
+
+  def setOutput(value: String): Unit
 }
 
 object PipelineOptionsUtil {
