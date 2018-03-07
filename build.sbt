@@ -45,7 +45,10 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
   excludeDependencies += "com.google.protobuf" % "protobuf-lite",
 
   // Repositories and dependencies
-  resolvers += Resolver.sonatypeRepo("public"),
+  resolvers ++= Seq(
+    Resolver.sonatypeRepo("public"),
+    Resolver.sonatypeRepo("releases")
+  ),
 
   wartremoverErrors in Compile ++= Warts.unsafe.filterNot(disableWarts.contains),
 
@@ -147,27 +150,9 @@ val dbeamPack = project
 lazy val root = project.in(file("."))
   .settings(commonSettings: _*)
   .settings(noPublishSettings: _*)
-  .settings(releaseSettings: _*)
   .settings(
     run := {
       (run in dbeamPack in Compile).evaluated
     }
   )
   .aggregate(dbeam, dbeamPack)
-
-lazy val releaseSettings = Seq(
-  releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    runClean,
-    runTest,
-    setReleaseVersion,
-    commitReleaseVersion,
-    tagRelease, // tag version in git,
-    releaseStepCommand("publishSigned"),
-    setNextVersion,
-    commitNextVersion,
-    releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges
-  )
-)
