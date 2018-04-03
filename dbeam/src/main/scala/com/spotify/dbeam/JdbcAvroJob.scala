@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.sql.ResultSet
+import java.sql.{Connection, ResultSet}
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -44,7 +44,7 @@ object JdbcAvroJob {
     */
   def createSchema(sc: ScioContext, args: JdbcExportArgs): Schema = {
     val startTimeMillis: Long = System.currentTimeMillis()
-    val connection = args.createConnection()
+    val connection: Connection = args.createConnection()
     val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
       s"${args.tableName} ${connection.getMetaData.getURL}")
     val generatedSchema: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
