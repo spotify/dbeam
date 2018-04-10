@@ -17,11 +17,15 @@
 
 package com.spotify.dbeam.options
 
+import java.util.concurrent.ThreadLocalRandom
+
 import com.spotify.scio._
-import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
+import org.apache.beam.sdk.options.{ApplicationNameOptions, PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.{DateTime, Days, Period, ReadablePeriod}
 import org.slf4j.{Logger, LoggerFactory}
+
+import scala.util.Try
 
 case class JdbcExportArgs(driverClass: String,
                           connectionUrl: String,
@@ -90,12 +94,25 @@ object JdbcExportArgs {
     )
   }
 
+  def fromPipelineOptionsConfigured(options: PipelineOptions): JdbcExportArgs = {
+    val args = fromPipelineOptions(options)
+    Try(options.as(classOf[ApplicationNameOptions])).foreach(_.setAppName("JdbcAvroJob"))
+    if (options.getJobName == null) {
+      val dbName = args.createConnection().getCatalog.toLowerCase().replaceAll("[^a-z0-9]", "")
+      val tableName = args.tableName.toLowerCase().replaceAll("[^a-z0-9]", "")
+      val randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt())
+      options.setJobName(s"dbeam-${dbName}-${tableName}-${randomPart}")
+    }
+    args
+  }
+
   def contextAndArgs(cmdlineArgs: Array[String]): (ScioContext, JdbcExportArgs, String) = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
     PipelineOptionsFactory.register(classOf[OutputOptions])
-    val opts = PipelineOptionsFactory.fromArgs(cmdlineArgs:_*).withValidation().create()
+    val opts = PipelineOptionsFactory.fromArgs(cmdlineArgs: _*).withValidation().create()
     (ScioContext(opts),
-      JdbcExportArgs.fromPipelineOptions(opts),
+      JdbcExportArgs.fromPipelineOptionsConfigured(opts),
       opts.as(classOf[OutputOptions]).getOutput)
   }
+
 }
