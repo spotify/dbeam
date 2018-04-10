@@ -20,8 +20,8 @@ import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.pack.PackPlugin._
 
-val scioVersion = "0.4.7"
-val beamVersion = "2.2.0"
+val scioVersion = "0.5.2"
+val beamVersion = "2.4.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
 
@@ -103,9 +103,9 @@ lazy val dbeam = project
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.apache.commons" % "commons-dbcp2" % "2.1.1",
-      "org.postgresql" % "postgresql" % "42.1.+",
+      "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
-      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.4",
+      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
       "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
       "com.google.auto.value" % "auto-value" % autoValueVersion % "provided",
       "com.spotify" %% "scio-test" % scioVersion % "test",
