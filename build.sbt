@@ -40,6 +40,7 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSetti
   scalacOptions in (Compile, doc) ++= scalacOptions12(scalaVersion.value),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
   javacOptions in (Compile, doc)  := Seq("-source", "1.8"),
+  fork in run := true,
 
   // protobuf-lite is an older subset of protobuf-java and causes issues
   excludeDependencies += "com.google.protobuf" % "protobuf-lite",
@@ -104,8 +105,8 @@ val disableWarts = Set(Wart.Null,
                        Wart.Var)
 
 
-lazy val dbeam = project
-  .in(file("dbeam"))
+lazy val dbeamCore = project
+  .in(file("dbeam-core"))
   .settings(commonSettings: _*)
   .settings(
     name := "dbeam-core",
@@ -115,7 +116,6 @@ lazy val dbeam = project
       "com.spotify" %% "scio-core" % scioVersion,
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
-      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.apache.commons" % "commons-dbcp2" % "2.1.1",
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
@@ -144,7 +144,7 @@ val dbeamPack = project
           .map(f => f.getName)
           .filter(_.endsWith(".jar"))
           .mkString(" ") + " " +
-          (packageBin in Compile in dbeam).value.getName
+          (packageBin in Compile in dbeamCore).value.getName
           // add as run time dependency
           )
       ),
@@ -159,7 +159,7 @@ val dbeamPack = project
     packJarNameConvention := "original",
     packGenerateWindowsBatFile := false
   )
-  .dependsOn(dbeam)
+  .dependsOn(dbeamCore)
 
 lazy val root = project.in(file("."))
   .settings(commonSettings: _*)
@@ -169,4 +169,4 @@ lazy val root = project.in(file("."))
       (run in dbeamPack in Compile).evaluated
     }
   )
-  .aggregate(dbeam, dbeamPack)
+  .aggregate(dbeamCore, dbeamPack)
