@@ -20,7 +20,6 @@ import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.pack.PackPlugin._
 
-val scioVersion = "0.5.4"
 val beamVersion = "2.4.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
@@ -113,7 +112,6 @@ lazy val dbeamCore = project
     moduleName := "dbeam-core",
     description := "DBeam dumps from SQL databases using JDBC and Apache Beam",
     libraryDependencies ++= Seq(
-      "com.spotify" %% "scio-core" % scioVersion,
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       "org.apache.commons" % "commons-dbcp2" % "2.1.1",
@@ -121,8 +119,9 @@ lazy val dbeamCore = project
       "mysql" % "mysql-connector-java" % "5.1.+",
       "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
       "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5",
       "com.google.auto.value" % "auto-value" % autoValueVersion % "provided",
-      "com.spotify" %% "scio-test" % scioVersion % "test",
+      "org.scalatest" %% "scalatest" % "3.0.5" % "test",
       "com.h2database" % "h2" % "1.4.196" % "test",
       "com.typesafe.slick" %% "slick" % "3.2.0" % "test"
     )

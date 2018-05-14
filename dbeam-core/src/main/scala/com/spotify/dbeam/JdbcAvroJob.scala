@@ -24,16 +24,18 @@ import java.sql.{Connection, ResultSet}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.spotify.dbeam.options.{JdbcConnectionArgs, JdbcExportArgs}
-import com.spotify.scio._
-import com.spotify.scio.metrics.MetricValue
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
+import org.apache.beam.sdk.Pipeline
 import org.apache.beam.sdk.io.FileSystems
-import org.apache.beam.sdk.metrics.MetricName
-import org.apache.beam.sdk.transforms.PTransform
+import org.apache.beam.sdk.metrics.Metrics
+import org.apache.beam.sdk.options.PipelineOptions
+import org.apache.beam.sdk.transforms.{Create, MapElements, PTransform, SerializableFunction}
 import org.apache.beam.sdk.util.MimeTypes
-import org.apache.beam.sdk.values.{PCollection, PDone}
+import org.apache.beam.sdk.values.{PCollection, PDone, TypeDescriptors}
 import org.slf4j.{Logger, LoggerFactory}
+
+import scala.collection.JavaConverters._
 
 object JdbcAvroJob {
   val log: Logger = LoggerFactory.getLogger(JdbcAvroJob.getClass)
@@ -42,7 +44,7 @@ object JdbcAvroJob {
     * Generate Avro schema by reading one row
     * Also save schema to output target and expose time to generate schema as a Beam counter
     */
-  def createSchema(sc: ScioContext, args: JdbcExportArgs): Schema = {
+  def createSchema(p: Pipeline, args: JdbcExportArgs): Schema = {
     val startTimeMillis: Long = System.currentTimeMillis()
     val connection: Connection = args.createConnection()
     val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
@@ -51,13 +53,19 @@ object JdbcAvroJob {
       connection, args.tableName, args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
     val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
     log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
-    sc
-      .parallelize(Seq(0))
-      .withName("ExposeSchemaCounters")
-      .map(inp => {
-        ScioMetrics.counter("schemaElapsedTimeMs").inc(elapsedTimeSchema)
-        inp
-      })
+
+    val cnt = Metrics.counter(this.getClass().getCanonicalName(), "schemaElapsedTimeMs");
+    p.apply("ExposeSchemaCountersSeed",
+      Create.of(Seq(Integer.valueOf(0)).asJava).withType(TypeDescriptors.integers()))
+      .apply("ExposeSchemaCounters",
+        MapElements.into(TypeDescriptors.integers()).via(
+          new SerializableFunction[Integer, Integer]() {
+            override def apply(input: Integer): Integer = {
+              cnt.inc(elapsedTimeSchema)
+              input
+            }
+          }
+        ))
     generatedSchema
   }
 
@@ -85,13 +93,12 @@ object JdbcAvroJob {
     )
   }
 
-  def publishMetrics(scioResult: ScioResult, output: String): Unit = {
-    log.info(s"Metrics ${scioResult.getMetrics.toString}")
-    val metrics: Map[MetricName, MetricValue[_]] = scioResult.allCounters ++ scioResult.allGauges
-    log.info(s"all counters and gauges ${metrics.toString}")
+  def publishMetrics(metrics: Map[String, Long], output: String): Unit = {
+    log.info(s"Metrics: $metrics")
 
     saveJsonObject(subPath(output, "/_METRICS.json"), metrics)
-    scioResult.saveMetrics(subPath(output, "/_SERVICE_METRICS.json"))
+    // for backwards compatibility
+    saveJsonObject(subPath(output, "/_SERVICE_METRICS.json"), metrics)
   }
 
   private def writeToFile(filename: String, contents: ByteBuffer): Unit = {
@@ -118,9 +125,9 @@ object JdbcAvroJob {
   private def subPath(path: String, subPath: String): String =
     path.replaceAll("/+$", "") + subPath
 
-  def prepareExport(sc: ScioContext, args: JdbcExportArgs, output: String): ScioContext = {
+  def prepareExport(p: Pipeline, args: JdbcExportArgs, output: String): Unit = {
     require(output != null && output != "", "'output' must be defined")
-    val generatedSchema: Schema = createSchema(sc, args)
+    val generatedSchema: Schema = createSchema(p, args)
     saveString(subPath(output, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
 
     val queries: Iterable[String] = args.buildQueries()
@@ -129,24 +136,21 @@ object JdbcAvroJob {
     }
     log.info(s"Running queries: $queries")
 
-    sc
-      .parallelize(queries)
-      .internal
-      .apply("JdbcAvroSave",
-        jdbcAvroTransform(output, args, generatedSchema))
-    sc
+    p.apply("JdbcQueries", Create.of(queries.asJava))
+      .apply("JdbcAvroSave", jdbcAvroTransform(output, args, generatedSchema))
   }
 
-  def runExport(sc: ScioContext, args: JdbcExportArgs, output: String): Unit = {
-    prepareExport(sc, args, output)
-
-    val scioResult: ScioResult = sc.close().waitUntilDone()
-    publishMetrics(scioResult, output)
+  def runExport(opts: PipelineOptions, args: JdbcExportArgs, output: String): Unit = {
+    val p = Pipeline.create(opts)
+    prepareExport(p, args, output)
+    val result = p.run()
+    val s = result.waitUntilFinish()
+    publishMetrics(MetricsHelper.getMetrics(result), output)
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc: ScioContext, jdbcExportArgs: JdbcExportArgs, output: String) =
-      JdbcExportArgs.contextAndArgs(cmdlineArgs)
-    runExport(sc, jdbcExportArgs, output)
+    val (opts: PipelineOptions, jdbcExportArgs: JdbcExportArgs, output: String) =
+      JdbcExportArgs.parseOptions(cmdlineArgs)
+    runExport(opts, jdbcExportArgs, output)
   }
 }
