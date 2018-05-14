@@ -161,7 +161,10 @@ val dbeamPack = project
   )
   .dependsOn(dbeamCore)
 
-lazy val root = project.in(file("."))
+lazy val root = Project(
+  "dbeam-foss-parent",
+  file(".")
+)
   .settings(commonSettings: _*)
   .settings(noPublishSettings: _*)
   .settings(
