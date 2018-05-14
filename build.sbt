@@ -20,7 +20,7 @@ import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.pack.PackPlugin._
 
-val scioVersion = "0.5.2"
+val scioVersion = "0.5.4"
 val beamVersion = "2.4.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
