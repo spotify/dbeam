@@ -48,7 +48,7 @@ object JdbcAvroJob {
     val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
       s"${args.tableName} ${connection.getMetaData.getURL}")
     val generatedSchema: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      connection, args.tableName, args.avroSchemaNamespace, avroDoc)
+      connection, args.tableName, args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
     val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
     log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
     sc
