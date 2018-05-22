@@ -17,7 +17,6 @@
 
 package com.spotify.dbeam.options
 
-import com.spotify.scio.{Args, ScioContext}
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest._
@@ -26,8 +25,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
-    val (opts: PipelineOptions, _) =
-      ScioContext.parseArguments[PipelineOptions](cmdLineArgs.split(" "))
+    val opts: PipelineOptions =
+      PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "):_*).withValidation().create()
     JdbcExportArgs.fromPipelineOptions(opts)
   }
 
