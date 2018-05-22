@@ -96,6 +96,13 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
   def getAvroDoc: String
 
   def setAvroDoc(value: String): Unit
+
+  @Default.Boolean(false)
+  @Description(
+    "Controls whether generated Avro schema will contain logicalTypes or not.")
+  def isUseAvroLogicalTypes: Boolean
+
+  def setUseAvroLogicalTypes(value: Boolean): Unit
 }
 
 trait OutputOptions extends PipelineOptions {

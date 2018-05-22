@@ -69,6 +69,44 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should be (null)
+    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+    actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
+    actual.toString shouldNot be (null)
+    actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
+  }
+
+  it should "create schema with logical types" in {
+    val fieldCount = 12
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+      db.source.createConnection(),
+      "coffees", "dbeam_generated",
+      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+      true)
+
+    actual shouldNot be (null)
+    actual.getNamespace should be ("dbeam_generated")
+    actual.getProp("tableName") should be ("COFFEES")
+    actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
+    actual.getFields.size() should be (fieldCount)
+    actual.getFields.asScala.map(_.name()) should
+      be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
+        "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID"))
+    actual.getFields.asScala.map(_.schema().getType) should
+      be (List.fill(fieldCount)(Schema.Type.UNION))
+    actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
+      be (List.fill(fieldCount)(Schema.Type.NULL))
+    actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
+    actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
+    actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+    actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
+    actual.getField("TEMPERATURE").schema().getTypes.get(1).getType should be (Schema.Type.FLOAT)
+    actual.getField("SIZE").schema().getTypes.get(1).getType should be (Schema.Type.DOUBLE)
+    actual.getField("IS_ARABIC").schema().getTypes.get(1).getType should be (Schema.Type.BOOLEAN)
+    actual.getField("SALES").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+    actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+    actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+    actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should
       be ("timestamp-millis")
     actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
