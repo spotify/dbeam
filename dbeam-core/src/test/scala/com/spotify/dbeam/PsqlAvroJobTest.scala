@@ -29,7 +29,6 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:testpsql;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
-  private val connection: Connection = db.source.createConnection()
 
   override def beforeAll(): Unit = {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1))
@@ -126,6 +125,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       " AS last_replication, " +
       "13 AS replication_delay"
     val lastReplication = new DateTime(2017, 2, 1, 23, 58, 57, DateTimeZone.UTC)
+    val connection: Connection = db.source.createConnection()
 
     val actual = PsqlAvroJob.queryReplication(connection, query)
 
