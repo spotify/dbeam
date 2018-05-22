@@ -39,13 +39,14 @@ object JdbcAvroConversions {
   def createSchemaByReadingOneRow(connection: Connection,
                                   tableName: String,
                                   avroSchemaNamespace: String,
-                                  avroDoc: String): Schema = {
+                                  avroDoc: String,
+                                  useLogicalTypes: Boolean = false): Schema = {
     log.info("Creating Avro schema based on the first read row from the database")
     try {
       val statement = connection.createStatement()
       val rs = statement.executeQuery(s"SELECT * FROM $tableName LIMIT 1")
       val schema = JdbcAvroConversions.createAvroSchema(
-        rs, avroSchemaNamespace, connection.getMetaData.getURL, avroDoc)
+        rs, avroSchemaNamespace, connection.getMetaData.getURL, avroDoc, useLogicalTypes)
       log.info(s"Schema created successfully. Generated schema: ${schema.toString}")
       schema
     } finally {
@@ -58,7 +59,8 @@ object JdbcAvroConversions {
   def createAvroSchema(rs: ResultSet,
                        avroSchemaNamespace: String,
                        connectionUrl: String,
-                       avroDoc: String): Schema = {
+                       avroDoc: String,
+                       useLogicalTypes: Boolean = false): Schema = {
     val meta = rs.getMetaData
     val tableName = if (meta.getColumnCount > 0) {
       normalizeForAvro(meta.getTableName(1))
@@ -73,11 +75,12 @@ object JdbcAvroConversions {
       .prop("connectionUrl", connectionUrl)
       .fields
 
-    createAvroFields(meta, builder).endRecord()
+    createAvroFields(meta, builder, useLogicalTypes).endRecord()
   }
 
   private def createAvroFields(meta: ResultSetMetaData,
-                               builder: SchemaBuilder.FieldAssembler[Schema])
+                               builder: SchemaBuilder.FieldAssembler[Schema],
+                               useLogicalTypes: Boolean)
   : SchemaBuilder.FieldAssembler[Schema] = {
     for (i <- 1 to meta.getColumnCount) {
       val columnName: String = if (meta.getColumnName(i).isEmpty) {
@@ -95,14 +98,15 @@ object JdbcAvroConversions {
         .prop("sqlCode", columnType.toString)
         .prop("typeName", typeName)
 
-      fieldAvroType(columnType, meta.getPrecision(i), field)
+      fieldAvroType(columnType, meta.getPrecision(i), field, useLogicalTypes)
     }
     builder
   }
 
   // scalastyle:off cyclomatic.complexity
   private def fieldAvroType(columnType: Int, precision: Int,
-                            fieldBuilder: SchemaBuilder.FieldBuilder[Schema])
+                            fieldBuilder: SchemaBuilder.FieldBuilder[Schema],
+                            useLogicalTypes: Boolean)
   : SchemaBuilder.FieldAssembler[Schema] = {
     val field = fieldBuilder.`type`.unionOf.nullBuilder.endNull.and
     columnType match {
@@ -116,7 +120,11 @@ object JdbcAvroConversions {
       case DOUBLE => field.doubleType.endUnion.nullDefault
       case DECIMAL | NUMERIC => field.stringType.endUnion.nullDefault
       case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
-        field.longBuilder.prop("logicalType", "timestamp-millis").endLong().endUnion.nullDefault
+        if (useLogicalTypes) {
+          field.longBuilder.prop("logicalType", "timestamp-millis").endLong().endUnion.nullDefault
+        } else {
+          field.longBuilder.endLong().endUnion.nullDefault
+        }
 
       case BIT =>
         // psql boolean, bit(1), bit(3), bit(n) are all sqlCode=BIT

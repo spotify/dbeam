@@ -37,7 +37,8 @@ case class JdbcExportArgs(driverClass: String,
                           partitionColumn: Option[String] = None,
                           partition: Option[DateTime] = None,
                           partitionPeriod: ReadablePeriod = Days.ONE,
-                          avroDoc: Option[String] = None)
+                          avroDoc: Option[String] = None,
+                          useAvroLogicalTypes: Boolean = false)
   extends JdbcConnectionArgs with QueryArgs {
 
   require(checkTableName(), s"Invalid SQL table name: $tableName")
@@ -90,7 +91,8 @@ object JdbcExportArgs {
       partitionColumn,
       partition,
       partitionPeriod,
-      Option(exportOptions.getAvroDoc)
+      Option(exportOptions.getAvroDoc),
+      exportOptions.isUseAvroLogicalTypes
     )
   }
 
