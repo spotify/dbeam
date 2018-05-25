@@ -42,14 +42,15 @@ object JdbcConnectionUtil {
   private val driverMapping = Map(
     "postgresql" -> "org.postgresql.Driver",
     "mysql" -> "com.mysql.jdbc.Driver",
-    "h2" -> "org.h2.Driver"
+    "h2" -> "org.h2.Driver",
+    "oracle" -> "oracle.jdbc.OracleDriver"
   )
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getDriverClass(url: String): String = {
     val parts: Array[String] = url.split(":", 3)
     val errorMsg = s"Invalid jdbc connection URL: $url. " +
-      "Expect jdbc:postgresql or jdbc:mysql as prefix."
+      "Expect jdbc:postgresql, jdbc:oracle, or jdbc:mysql as prefix."
     require(parts(0) == "jdbc",
       errorMsg)
     val mappedClass: Option[String] = driverMapping.get(parts(1))

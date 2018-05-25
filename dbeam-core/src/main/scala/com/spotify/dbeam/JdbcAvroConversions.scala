@@ -63,7 +63,12 @@ object JdbcAvroConversions {
                        useLogicalTypes: Boolean = false): Schema = {
     val meta = rs.getMetaData
     val tableName = if (meta.getColumnCount > 0) {
-      normalizeForAvro(meta.getTableName(1))
+      val name = meta.getTableName(1)
+      if (name.isEmpty) {
+        "no_table_name"
+      } else {
+        normalizeForAvro(name)
+      }
     } else {
       "no_table_name"
     }

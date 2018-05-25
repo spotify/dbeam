@@ -48,8 +48,13 @@ object JdbcAvroJob {
     val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
       s"'${args.tableName}' or the --sqlFile with ${connection.getMetaData.getURL}")
     // either sql query or table name exists
-    val sqlQuery : String = args.sqlQuery.getOrElse(
-      s"SELECT * FROM ${args.tableName} LIMIT 1")
+    var sqlQuery: String = args.sqlQuery.getOrElse(
+      s"SELECT * FROM ${args.tableName}")
+    if (args.driverClass.equals("oracle.jdbc.OracleDriver")) {
+      sqlQuery = "SELECT * FROM (" + sqlQuery + ") WHERE 1=0"
+    } else {
+      sqlQuery += " LIMIT 1"
+    }
     val generatedSchema: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       connection, sqlQuery, args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
     val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
