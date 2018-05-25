@@ -15,7 +15,7 @@ This tool is runnable locally, or on any other backend supported by Apache Beam,
 
 ## Overview
 
-DBeam is a [Scio](scio) based single threaded pipeline that reads
+DBeam is a [Scio][scio] based single threaded pipeline that reads
 all the data from single SQL database table, and converts the data into [Avro](https://avro.apache.org/) and stores it into
 appointed location, usually in GCS. Scio runs on [Apache Beam](https://beam.apache.org/).
 
@@ -26,7 +26,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 ## `dbeam` Java/Scala package features
 
-- Support both PostgreSQL and MySQL JDBC connectors
+- Support both PostgreSQL, Oracle, and MySQL JDBC connectors
 - Supports CloudSQL managed databases
 - Currently output only in Avro format
 - Read password from a mounted password file (`--passwordFile`)
@@ -43,14 +43,37 @@ simply streams the table contents via JDBC into target location as Avro.
 - `--password`: the database password
 - `--passwordFile`: a path to a local file containing the database password
 - `--limit`: limit the output number of rows, indefinite by default
+- `--sqlFile`: local path to the text file containing the SQL query. Do not use with --partition* and --table.
+ Query needs to succeed as a subquery for Oracle or as appending " LIMIT 1" for other databases.
 - `--avroSchemaNamespace`: the namespace of the generated avro schema, `"dbeam_generated"` by default
 - `--partitionColumn`: the name of a date/timestamp column to filter data based on current partition
 - `--partition`: the date of the current partition, parsed using [ISODateTimeFormat.localDateOptionalTimeParser](http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#localDateOptionalTimeParser--)
 - `--partitionPeriod`: the period in which dbeam runs, used to filter based on current partition and also to check if executions are being run for a too old partition
 - `--skipPartitionCheck`: when partition column is not specified, by default fail when the partition parameter is not too old; use this avoid this behavior
+- `--sensitiveProperties`: will not write the SQL query to any files. Use with queries of sensitive data
 - `--minPartitionPeriod`: the minimum partition required for the job not to fail (when partition column is not specified), by default `now() - 2*partitionPeriod`
 
-## Building
+## Building with ojdbc8.jar
+
+Download [ojdbc8.jar](http://www.oracle.com/technetwork/database/features/jdbc/jdbc-ucp-122-3110062.html) to localhost,
+such as at /usr/local/lib/. With [Apache Maven](https://maven.apache.org/) installed, at the project root path, run the following:
+
+```sh
+mvn install:install-file -Dfile=/usr/local/lib/ojdbc8.jar \
+  -DgroupId=com.oracle -DartifactId=ojdbc8 -Dversion=12.2.0.1 -Dpackaging=jar -DgeneratePom=true
+```
+
+Set environment variables for building with ojdbc8.jar. Otherwise, runtime exception will occur if --connectionUrl uses Oracle.
+
+Bash:
+```sh
+export ojdbc8_PATH=/usr/local/lib/ojdbc8.jar
+```
+
+Fish shell
+```sh
+set -x ojdbc8_PATH /usr/local/lib/ojdbc8.jar
+```
 
 Build with SBT package to get a jar that you can run with `java -cp`. Notice that this won't
 create a fat jar, which means that you need to include dependencies on the class path.
@@ -66,15 +89,37 @@ directory with all the dependencies, and also a shell script to run DBeam.
 sbt pack
 ```
 
-Now you can run the script directly from created dbeam-pack directory:
+Now you can run the script directly from created dbeam-pack directory.
+
+## Examples using script and sbt
+
+Here is an example of 
+querying mySql database 'dbeamtest' table 'pet':
+```sh
+./dbeam-pack/target/pack/bin/jdbc-avro-job --connectionUrl=jdbc:mysql://localhost:3306/dbeamtest \
+  --table=pet --output=/Users/hil/Documents/dbeamtest1 --username=my_database_username --password=secret
+```
+
+Query with Oracle SID 'xe' and SQL query in /tmp/cust.sql
 
 ```sh
-./dbeam-pack/target/pack/bin/jdbc-avro-job
+./dbeam-pack/target/pack/bin/jdbc-avro-job --connectionUrl=jdbc:oracle:thin:@localhost:1521:xe \
+  --username=system --password=oracle
+  --sqlFile=/tmp/cust.sql --output=/Users/hil/Documents/oracle-avro
+```
+
+Run on Google Cloud Dataflow runner in project i-ingest-poc and other arguments. The first 3 arguments 
+are for running in Google Cloud Dataflow. Other arguments are the same as those passed in DirectRunner.
+
+```sh
+sbt "project dbeamCore" "runMain com.spotify.dbeam.JdbcAvroJob --project=i-ingest-poc --zone=us-west1-c \
+  --runner=DataflowRunner --connectionUrl=jdbc:mysql://mysql.example.com:3306/dbeamtest --table=pet \
+  --username=me --password=secret --output=gs://bucket/mysql"
 ```
 
 TODO: We will be improving the packaging and releasing process shortly.
 
-## Examples
+## Examples using java
 
 ```
 java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
@@ -125,7 +170,7 @@ To include DBeam library in a SBT project add the following in build.sbt:
 
 ## Development
 
-Make sure you have [sbt][sbt] installed. For editor, [IntelliJ IDEA][idea] with [scala plugin][scala-plugin] is recommended.
+Make sure you have [Apache Maven](https://maven.apache.org/), [sbt][sbt] installed. For editor, [IntelliJ IDEA][idea] with [scala plugin][scala-plugin] is recommended.
 
 To test and verify during development, run:
 
