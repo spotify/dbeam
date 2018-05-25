@@ -46,24 +46,53 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   override protected def afterAll(): Unit = FileUtils.deleteDirectory(dir)
 
   "JdbcAvroJob" should "work" in {
+    // each test should have a different directory to avoid stale files
+    val path: File = new File(java.nio.file.Paths.get(
+      dir.getAbsolutePath, UUID.randomUUID().toString).toString)
     JdbcAvroJob.main(Array(
-        "--partition=2025-02-28",
-        "--skipPartitionCheck",
-        "--connectionUrl=" + connectionUrl,
-        "--username=",
-        "--password=",
-        "--table=coffees",
-        "--output=" + dir.getAbsolutePath)
+      "--partition=2025-02-28",
+      "--skipPartitionCheck",
+      "--connectionUrl=" + connectionUrl,
+      "--username=",
+      "--password=",
+      "--table=coffees",
+      "--output=" + path.getAbsolutePath)
     )
-    val files: Array[File] = dir.listFiles()
+    val files: Array[File] = path.listFiles()
     files.map(_.getName) should contain theSameElementsAs Seq(
       "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json",
       "_queries", "part-00000-of-00001.avro")
     files.filter(_.getName.equals("_queries"))(0).listFiles().map(_.getName) should
       contain theSameElementsAs Seq("query_0.sql")
-    val schema = new Schema.Parser().parse(new File(dir, "_AVRO_SCHEMA.avsc"))
+    val schema = new Schema.Parser().parse(new File(path, "_AVRO_SCHEMA.avsc"))
     val source: AvroSource[GenericRecord] = AvroSource
-      .from(new File(dir, "part-00000-of-00001.avro").toString)
+      .from(new File(path, "part-00000-of-00001.avro").toString)
+      .withSchema(schema)
+    val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
+    records should have size 2
+  }
+
+  "JdbcAvroJob with sensitiveProperties" should "work" in {
+    val path: File = new File(java.nio.file.Paths.get(
+      dir.getAbsolutePath, UUID.randomUUID().toString).toString)
+    JdbcAvroJob.main(Array(
+      "--partition=2025-02-28",
+      "--skipPartitionCheck",
+      "--connectionUrl=" + connectionUrl,
+      "--username=",
+      "--password=",
+      "--table=coffees",
+      "--sensitiveProperties",
+      "--output=" + path.getAbsolutePath)
+    )
+    val files: Array[File] = path.listFiles()
+    files.map(_.getName) should contain theSameElementsAs Seq(
+      "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json",
+      "part-00000-of-00001.avro")
+    files.count(_.getName.equals("_queries")) should equal(0)
+    val schema = new Schema.Parser().parse(new File(path, "_AVRO_SCHEMA.avsc"))
+    val source: AvroSource[GenericRecord] = AvroSource
+      .from(new File(path, "part-00000-of-00001.avro").toString)
       .withSchema(schema)
     val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
     records should have size 2

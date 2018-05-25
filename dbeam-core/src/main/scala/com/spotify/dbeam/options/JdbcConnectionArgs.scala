@@ -48,12 +48,14 @@ object JdbcConnectionUtil {
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getDriverClass(url: String): String = {
     val parts: Array[String] = url.split(":", 3)
+    val errorMsg = s"Invalid jdbc connection URL: $url. " +
+      "Expect jdbc:postgresql or jdbc:mysql as prefix."
     require(parts(0) == "jdbc",
-      s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix.")
+      errorMsg)
     val mappedClass: Option[String] = driverMapping.get(parts(1))
       .map(Class.forName(_).getCanonicalName)
     require(mappedClass.isDefined,
-      s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix.")
+      errorMsg)
     mappedClass.get
   }
 }
@@ -71,11 +73,22 @@ trait TableArgs {
 trait QueryArgs extends TableArgs {
   def limit: Option[Int]
 
+  def sqlFile: Option[String]
+
   def partitionColumn: Option[String]
 
   def partition: Option[DateTime]
 
   def partitionPeriod: ReadablePeriod
+
+  def sqlQuery: Option[String] = {
+    sqlFile.map(file => {
+      val fileSource = scala.io.Source.fromFile(file)
+      val query = fileSource.mkString
+      fileSource.close
+      query
+    })
+  }
 
   def buildQueries(): Iterable[String] = {
     val limit = this.limit.map(" LIMIT %d".format(_)).getOrElse("")
@@ -87,6 +100,7 @@ trait QueryArgs extends TableArgs {
           s" AND $partitionColumn < '$nextPartition'"
       case _ => ""
     }
-    Seq(s"SELECT * FROM $tableName$where$limit")
+
+    Seq(sqlQuery.getOrElse(s"SELECT * FROM $tableName$where$limit"))
   }
 }

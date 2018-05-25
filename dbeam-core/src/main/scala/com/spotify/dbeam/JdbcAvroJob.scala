@@ -46,9 +46,12 @@ object JdbcAvroJob {
     val startTimeMillis: Long = System.currentTimeMillis()
     val connection: Connection = args.createConnection()
     val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
-      s"${args.tableName} ${connection.getMetaData.getURL}")
+      s"'${args.tableName}' or the --sqlFile with ${connection.getMetaData.getURL}")
+    // either sql query or table name exists
+    val sqlQuery : String = args.sqlQuery.getOrElse(
+      s"SELECT * FROM ${args.tableName} LIMIT 1")
     val generatedSchema: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      connection, args.tableName, args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
+      connection, sqlQuery, args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
     val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
     log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
     sc
@@ -124,8 +127,10 @@ object JdbcAvroJob {
     saveString(subPath(output, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
 
     val queries: Iterable[String] = args.buildQueries()
-    queries.zipWithIndex.foreach { case (q: String, n: Int) =>
-      saveString(subPath(output, s"/_queries/query_${n}.sql"), q)
+    if (args.isQueryLogged) {
+      queries.zipWithIndex.foreach { case (q: String, n: Int) =>
+        saveString(subPath(output, s"/_queries/query_$n.sql"), q)
+      }
     }
     log.info(s"Running queries: $queries")
 

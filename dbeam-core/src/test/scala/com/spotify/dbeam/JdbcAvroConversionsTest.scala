@@ -34,6 +34,9 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
   private val connection: Connection = db.source.createConnection()
   private val record1 = JdbcTestFixtures.record1
+  def oneRowQuery(tableName:String) : String = {
+    s"SELECT * FROM $tableName LIMIT 1"
+  }
 
   override def beforeAll(): Unit = {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1))
@@ -43,7 +46,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     val fieldCount = 12
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       db.source.createConnection(),
-      "coffees", "dbeam_generated",
+      oneRowQuery("coffees"), "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
 
     actual shouldNot be (null)
@@ -80,7 +83,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     val fieldCount = 12
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       db.source.createConnection(),
-      "coffees", "dbeam_generated",
+      oneRowQuery("coffees"), "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
       true)
 
@@ -117,7 +120,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "create schema under specified namespace" in {
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc")
+      db.source.createConnection(), oneRowQuery("coffees"), "ns", "doc")
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
@@ -125,7 +128,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "create schema with specified doc string" in {
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc")
+      db.source.createConnection(), oneRowQuery("coffees"), "ns", "doc")
 
     actual shouldNot be (null)
     actual.getDoc should be ("doc")
@@ -135,7 +138,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     val bf = ByteBuffer.allocate(16)
       .putLong(uuid.getMostSignificantBits)
       .putLong(uuid.getLeastSignificantBits)
-    bf.clear()
+    val buffer: java.nio.Buffer = bf
+    buffer.clear()
     bf
   }
 

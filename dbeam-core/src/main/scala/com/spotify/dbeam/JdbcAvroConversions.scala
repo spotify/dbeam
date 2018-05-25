@@ -37,14 +37,14 @@ object JdbcAvroConversions {
   }
 
   def createSchemaByReadingOneRow(connection: Connection,
-                                  tableName: String,
+                                  sqlQuery: String,
                                   avroSchemaNamespace: String,
                                   avroDoc: String,
                                   useLogicalTypes: Boolean = false): Schema = {
     log.info("Creating Avro schema based on the first read row from the database")
     try {
       val statement = connection.createStatement()
-      val rs = statement.executeQuery(s"SELECT * FROM $tableName LIMIT 1")
+      val rs = statement.executeQuery(sqlQuery)
       val schema = JdbcAvroConversions.createAvroSchema(
         rs, avroSchemaNamespace, connection.getMetaData.getURL, avroDoc, useLogicalTypes)
       log.info(s"Schema created successfully. Generated schema: ${schema.toString}")
@@ -84,7 +84,7 @@ object JdbcAvroConversions {
   : SchemaBuilder.FieldAssembler[Schema] = {
     for (i <- 1 to meta.getColumnCount) {
       val columnName: String = if (meta.getColumnName(i).isEmpty) {
-          meta.getColumnLabel(i)
+        meta.getColumnLabel(i)
       } else {
         meta.getColumnName(i)
       }
@@ -150,7 +150,7 @@ object JdbcAvroConversions {
     * org.postgresql.jdbc.TypeInfoCache
     * com.mysql.jdbc.MysqlDefs#mysqlToJavaType(int)
     */
-  def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData) : Any = {
+  def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData): Any = {
     val ret: Any = meta.getColumnType(i) match {
       case CHAR | CLOB | LONGNVARCHAR | LONGVARCHAR | NCHAR | NVARCHAR | VARCHAR => r.getString(i)
       case BOOLEAN => r.getBoolean(i)
@@ -188,6 +188,7 @@ object JdbcAvroConversions {
       ret
     }
   }
+
   // scalastyle:on cyclomatic.complexity
 
   private def nullableBytes(bts: scala.Array[Byte]): ByteBuffer = {

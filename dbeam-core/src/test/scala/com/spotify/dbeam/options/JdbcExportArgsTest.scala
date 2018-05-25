@@ -58,6 +58,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "dbeam_generated",
       None,
       None,
+      true,
+      None,
       None
     ))
   }
@@ -115,6 +117,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "dbeam_generated",
       None,
       None,
+      true,
+      None,
       None
     ))
   }
@@ -130,6 +134,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "dbeam_generated",
       None,
+      None,
+      true,
       None,
       None
     ))
@@ -147,6 +153,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "dbeam_generated",
       None,
       None,
+      true,
+      None,
       None
     ))
   }
@@ -162,6 +170,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "dbeam_generated",
       Some(7),
+      None,
+      true,
       None,
       None
     )
@@ -181,6 +191,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "dbeam_generated",
       None,
       None,
+      true,
+      None,
       Some(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
@@ -198,6 +210,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "dbeam_generated",
       None,
+      None,
+      true,
       None,
       Some(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC))
     )
@@ -217,6 +231,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "dbeam_generated",
       None,
       None,
+      true,
+      None,
       Some(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
@@ -234,6 +250,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "dbeam_generated",
       None,
+      None,
+      true,
       Some("col"),
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
     )
@@ -253,6 +271,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "dbeam_generated",
       Some(5),
+      None,
+      true,
       Some("col"),
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
     )
@@ -273,6 +293,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "dbeam_generated",
       None,
+      None,
+      true,
       Some("col"),
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)),
       Period.parse("P1M")
@@ -293,6 +315,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "some_table",
       "ns",
       None,
+      None,
+      true,
       None,
       None
     ))

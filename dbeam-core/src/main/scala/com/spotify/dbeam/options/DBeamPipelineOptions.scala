@@ -71,6 +71,13 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   def setSkipPartitionCheck(value: Boolean): Unit
 
+  @Description("By default, queries are logged in _queries directory. " +
+    "Passing such parameter will not log queries. Use with sensitive data in queries.")
+  @Default.Boolean(false)
+  def isSensitiveProperties: Boolean
+
+  def setSensitiveProperties(value: Boolean): Unit
+
   @Description("The minimum partition required for the job not to fail " +
     "(when partition column is not specified), by default `now() - 2*partitionPeriod`.")
   def getPartitionPeriod: String
@@ -85,6 +92,11 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
   def getLimit: Integer
 
   def setLimit(value: Integer): Unit
+
+  @Description("Local path to the text file containing the SQL query.")
+  def getSqlFile: String
+
+  def setSqlFile(value: String): Unit
 
   @Description("The namespace of the generated avro schema.")
   @Default.String("dbeam_generated")
