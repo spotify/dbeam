@@ -67,16 +67,10 @@ object JdbcAvroJob {
   def jdbcAvroTransform(output: String,
                         options: JdbcConnectionArgs,
                         generatedSchema: Schema): PTransform[PCollection[String], PDone] = {
-    class ResultSetGenericRecordMapper extends JdbcAvroIO.RowMapper {
-      override def convert(resultSet: ResultSet, schema: Schema): GenericRecord = {
-        JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, resultSet)
-      }
-    }
-
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
       JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
         .withUsername(options.username)
-        .withPassword(options.password), new ResultSetGenericRecordMapper())
+        .withPassword(options.password))
     JdbcAvroIO.Write.createWrite(
       output,
       ".avro",

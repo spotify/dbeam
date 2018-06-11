@@ -278,6 +278,14 @@ public class JdbcAvroIO {
     }
   }
 
+  private static class DefaultRowMapper implements RowMapper {
+
+    @Override
+    public GenericRecord convert(ResultSet resultSet, Schema schema) throws Exception {
+      return JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, resultSet);
+    }
+  }
+
   @AutoValue
   public abstract static class JdbcAvroOptions implements Serializable {
     abstract DataSourceConfiguration getDataSourceConfiguration();
@@ -294,11 +302,10 @@ public class JdbcAvroIO {
       abstract JdbcAvroOptions build();
     }
 
-    public static JdbcAvroOptions create(DataSourceConfiguration dataSourceConfiguration,
-                                         RowMapper avroRowMapper) {
+    public static JdbcAvroOptions create(DataSourceConfiguration dataSourceConfiguration) {
       return new AutoValue_JdbcAvroIO_JdbcAvroOptions.Builder()
           .setDataSourceConfiguration(dataSourceConfiguration)
-          .setAvroRowMapper(avroRowMapper)
+          .setAvroRowMapper(new DefaultRowMapper())
           .build();
     }
   }
