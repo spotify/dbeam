@@ -15,10 +15,9 @@
  * under the License.
  */
 
-import sbt.Keys._
 import sbt._
+import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
-import xerial.sbt.pack.PackPlugin._
 
 val scioVersion = "0.5.4"
 val beamVersion = "2.4.0"
@@ -134,7 +133,6 @@ val dbeamPack = project
   .settings(commonSettings: _*)
   .settings(noPublishSettings: _*)
   .enablePlugins(PackPlugin)
-  .settings(packSettings: _*)
   .settings(
     name := "dbeam-pack",
     description := "DBeam dumps an SQL database using JDBC and Apache Beam",
