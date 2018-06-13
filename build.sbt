@@ -23,6 +23,7 @@ val scioVersion = "0.5.4"
 val beamVersion = "2.4.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
+val ojdbc8 = System.getenv("ojdbc8_PATH")
 
 def scalacOptions12(scalaVersion: String) = {
   CrossVersion.partialVersion(scalaVersion) match {
@@ -115,6 +116,7 @@ lazy val dbeamCore = project
       "com.spotify" %% "scio-core" % scioVersion,
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.apache.commons" % "commons-dbcp2" % "2.1.1",
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
@@ -124,6 +126,20 @@ lazy val dbeamCore = project
       "com.spotify" %% "scio-test" % scioVersion % "test",
       "com.h2database" % "h2" % "1.4.196" % "test",
       "com.typesafe.slick" %% "slick" % "3.2.0" % "test"
+    )
+  )
+  .settings(resolvers ++= (
+    if (ojdbc8 != null)
+      (Resolver.mavenLocal) :: Nil
+    else
+      Nil
+    )
+  )
+  .settings(libraryDependencies ++= (
+    if (ojdbc8 != null)
+      ("com.oracle" % "ojdbc8" % "12.2.0.1") :: Nil
+    else
+      Nil
     )
   )
 
