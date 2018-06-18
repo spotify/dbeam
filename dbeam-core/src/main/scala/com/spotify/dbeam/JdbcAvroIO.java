@@ -131,7 +131,7 @@ public class JdbcAvroIO {
     }
 
     @Override
-    public FileBasedSink.Writer<Void, String> createWriter() throws Exception {
+    public FileBasedSink.Writer<Void, String> createWriter() {
       return new JdbcAvroWriter(this, dynamicDestinations, jdbcAvroOptions);
     }
   }
@@ -169,7 +169,7 @@ public class JdbcAvroIO {
     }
 
     public Void getDestination() {
-      return (Void) null;
+      return null;
     }
 
     @SuppressWarnings("deprecation") // uses internal test functionality.
@@ -261,7 +261,9 @@ public class JdbcAvroIO {
       if (rowCount > 0) {
         this.recordCount.inc((this.rowCount % COUNTER_REPORT_EVERY));
         this.msPerMillionRows.set(1000000L * elapsedMs / rowCount);
-        this.rowsPerMinute.set((60*1000L) * rowCount / elapsedMs);
+        if (elapsedMs != 0) {
+          this.rowsPerMinute.set((60 * 1000L) * rowCount / elapsedMs);
+        }
       }
     }
 

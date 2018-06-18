@@ -34,17 +34,19 @@ case class JdbcExportArgs(driverClass: String,
                           tableName: String,
                           avroSchemaNamespace: String,
                           limit: Option[Int] = None,
+                          sqlFile: Option[String] = None,
+                          isQueryLogged: Boolean = true,
                           partitionColumn: Option[String] = None,
                           partition: Option[DateTime] = None,
                           partitionPeriod: ReadablePeriod = Days.ONE,
                           avroDoc: Option[String] = None,
                           useAvroLogicalTypes: Boolean = false)
   extends JdbcConnectionArgs with QueryArgs {
-
-  require(checkTableName(), s"Invalid SQL table name: $tableName")
-  require(partitionColumn.isEmpty || partition.isDefined,
-    "To use --partitionColumn the --partition parameter must also be configured")
-
+  if (tableName != null) {
+    require(checkTableName(), s"Invalid SQL table name: $tableName")
+    require(partitionColumn.isEmpty || partition.isDefined,
+      "To use --partitionColumn the --partition parameter must also be configured")
+  }
 }
 
 object JdbcExportArgs {
@@ -68,11 +70,20 @@ object JdbcExportArgs {
       .map(Period.parse).getOrElse(Days.ONE)
     val partitionColumn: Option[String] = Option(exportOptions.getPartitionColumn)
     val skipPartitionCheck: Boolean = exportOptions.isSkipPartitionCheck
+    val isLogQuery = !exportOptions.isSensitiveProperties
     val partition: Option[DateTime] = Option(exportOptions.getPartition).map(parseDateTime)
 
     require(exportOptions.getConnectionUrl != null, "'connectionUrl' must be defined")
-    require(exportOptions.getTable != null, "'table' must be defined")
-
+    val sqlFile: Option[String] = Option(exportOptions.getSqlFile)
+    if (sqlFile.isEmpty) {
+      require(exportOptions.getTable != null, "'table' must be defined")
+    } else {
+      require(partitionColumn.isEmpty &&
+        partition.isEmpty &&
+        exportOptions.getPartitionPeriod == null &&
+        exportOptions.getTable == null,
+        "To use --sqlFile, --partition* and --table arguments can't exist")
+    }
     if (!skipPartitionCheck && partitionColumn.isEmpty) {
       val minPartitionDateTime = Option(exportOptions.getMinPartitionPeriod)
         .map(parseDateTime)
@@ -88,6 +99,8 @@ object JdbcExportArgs {
       exportOptions.getTable,
       exportOptions.getAvroSchemaNamespace,
       Option(exportOptions.getLimit).map(_.toInt),
+      sqlFile,
+      isLogQuery,
       partitionColumn,
       partition,
       partitionPeriod,
@@ -101,9 +114,16 @@ object JdbcExportArgs {
     Try(options.as(classOf[ApplicationNameOptions])).foreach(_.setAppName("JdbcAvroJob"))
     if (options.getJobName == null) {
       val dbName = args.createConnection().getCatalog.toLowerCase().replaceAll("[^a-z0-9]", "")
-      val tableName = args.tableName.toLowerCase().replaceAll("[^a-z0-9]", "")
+      var tableOrFile: String = ""
+      // only table name or sql file is specified; not both!
+      if (args.tableName != null) {
+        tableOrFile += args.tableName.toLowerCase().replaceAll("[^a-z0-9]", "")
+      }
+      if (args.sqlFile.isDefined) {
+        tableOrFile += args.sqlFile.getOrElse("").toLowerCase().replaceAll("[^a-z0-9]", "")
+      }
       val randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt())
-      options.setJobName(s"dbeam-${dbName}-${tableName}-${randomPart}")
+      options.setJobName(s"dbeam-$dbName-$tableOrFile-$randomPart")
     }
     args
   }
