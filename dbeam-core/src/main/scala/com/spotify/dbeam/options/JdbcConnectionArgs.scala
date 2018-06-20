@@ -48,13 +48,16 @@ object JdbcConnectionUtil {
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def getDriverClass(url: String): String = {
     val parts: Array[String] = url.split(":", 3)
-    require(parts(0) == "jdbc",
-      s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix.")
-    val mappedClass: Option[String] = driverMapping.get(parts(1))
+    val mappedClass: Option[String] = if (parts(0) == "jdbc") {
+      driverMapping.get(parts(1))
       .map(Class.forName(_).getCanonicalName)
-    require(mappedClass.isDefined,
-      s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix.")
-    mappedClass.get
+    } else {
+      None
+    }
+    mappedClass
+      .getOrElse(
+        throw new IllegalArgumentException(
+          s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix."))
   }
 }
 
