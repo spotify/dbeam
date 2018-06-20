@@ -84,7 +84,7 @@ object JdbcAvroConversions {
   : SchemaBuilder.FieldAssembler[Schema] = {
     for (i <- 1 to meta.getColumnCount) {
       val columnName: String = if (meta.getColumnName(i).isEmpty) {
-          meta.getColumnLabel(i)
+        meta.getColumnLabel(i)
       } else {
         meta.getColumnName(i)
       }
@@ -150,7 +150,7 @@ object JdbcAvroConversions {
     * org.postgresql.jdbc.TypeInfoCache
     * com.mysql.jdbc.MysqlDefs#mysqlToJavaType(int)
     */
-  def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData) : Any = {
+  def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData): Any = {
     val ret: Any = meta.getColumnType(i) match {
       case CHAR | CLOB | LONGNVARCHAR | LONGVARCHAR | NCHAR | NVARCHAR | VARCHAR => r.getString(i)
       case BOOLEAN => r.getBoolean(i)
@@ -188,6 +188,7 @@ object JdbcAvroConversions {
       ret
     }
   }
+
   // scalastyle:on cyclomatic.complexity
 
   private def nullableBytes(bts: scala.Array[Byte]): ByteBuffer = {
