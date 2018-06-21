@@ -15,9 +15,10 @@ This tool is runnable locally, or on any other backend supported by Apache Beam,
 
 ## Overview
 
-DBeam is a [Scio](scio) based single threaded pipeline that reads
-all the data from single SQL database table, and converts the data into [Avro](https://avro.apache.org/) and stores it into
-appointed location, usually in GCS. Scio runs on [Apache Beam](https://beam.apache.org/).
+DBeam is tool based that reads all the data from single SQL database table,
+converts the data into [Avro](https://avro.apache.org/) and stores it into
+appointed location, usually in GCS.
+It runs as a single threaded [Apache Beam](https://beam.apache.org/) pipeline.
 
 DBeam requires the database credentials, the database table name to read, and the output location
 to store the extracted data into. DBeam first makes a single select into the target table with
@@ -32,7 +33,7 @@ simply streams the table contents via JDBC into target location as Avro.
 - Read password from a mounted password file (`--passwordFile`)
 - Can filter only records of the current day with the `--partitionColumn` parameter
 - Check and fail on too old partition dates. Snapshot dumps are not filtered by a given date/partition, when running for a too old partition, the job fails to avoid new data in old partitions. (can be disabled with `--skipPartitionCheck`)
-- It has dependency on Apache Beam SDK and scio-core. No internal dependencies to Spotify. Easy to open source.
+- It has dependency on Apache Beam SDK.
 
 ### `dbeam` arguments
 
@@ -74,7 +75,9 @@ Now you can run the script directly from created dbeam-pack directory:
 
 TODO: We will be improving the packaging and releasing process shortly.
 
-## Examples
+## Usage examples
+
+Using java from the command line:
 
 ```
 java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
@@ -86,6 +89,7 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
 ```
 
 For CloudSQL:
+
 ```
 java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
@@ -113,7 +117,7 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
 
 ## Requirements
 
-DBeam is built on top of [Scio][scio] and supports both Scala 2.12 and 2.11.
+DBeam is built on top of [Apache Beam SDK](https://beam.apache.org/) and supports both Scala 2.12 and 2.11.
 
 To include DBeam library in a SBT project add the following in build.sbt:
 
@@ -151,4 +155,3 @@ Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/L
 [idea]: https://www.jetbrains.com/idea/download/
 [scala-plugin]: https://plugins.jetbrains.com/plugin/1347-scala
 [beam]: https://beam.apache.org/
-[scio]: https://github.com/spotify/scio
