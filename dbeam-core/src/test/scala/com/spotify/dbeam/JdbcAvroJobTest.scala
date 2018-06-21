@@ -18,16 +18,18 @@
 package com.spotify.dbeam
 
 import java.io.File
+import java.nio.file.{Files, Path}
 import java.util
-import java.util.UUID
+import java.util.{Comparator, UUID}
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.io.AvroSource
 import org.apache.beam.sdk.testing.SourceTestUtils
-import org.apache.commons.io.FileUtils
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
+
+import scala.collection.JavaConverters._
 
 class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
@@ -43,7 +45,13 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))
   }
 
-  override protected def afterAll(): Unit = FileUtils.deleteDirectory(dir)
+  override protected def afterAll(): Unit = {
+    Files.walk(dir.toPath)
+      .sorted(Comparator.reverseOrder())
+      .iterator()
+      .asScala
+      .foreach((p: Path) => p.toFile.delete())
+  }
 
   "JdbcAvroJob" should "work" in {
     JdbcAvroJob.main(Array(

@@ -19,7 +19,6 @@ package com.spotify.dbeam.options
 
 import java.util.concurrent.ThreadLocalRandom
 
-import com.spotify.scio._
 import org.apache.beam.sdk.options.{ApplicationNameOptions, PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.{DateTime, Days, Period, ReadablePeriod}
@@ -108,11 +107,11 @@ object JdbcExportArgs {
     args
   }
 
-  def contextAndArgs(cmdlineArgs: Array[String]): (ScioContext, JdbcExportArgs, String) = {
+  def parseOptions(cmdlineArgs: Array[String]): (PipelineOptions, JdbcExportArgs, String) = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
     PipelineOptionsFactory.register(classOf[OutputOptions])
     val opts = PipelineOptionsFactory.fromArgs(cmdlineArgs: _*).withValidation().create()
-    (ScioContext(opts),
+    (opts,
       JdbcExportArgs.fromPipelineOptionsConfigured(opts),
       opts.as(classOf[OutputOptions]).getOutput)
   }
