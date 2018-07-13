@@ -78,7 +78,9 @@ object JdbcAvroJob {
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
       JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
         .withUsername(options.username)
-        .withPassword(options.password))
+        .withPassword(options.password),
+      options.fetchSize,
+      options.deflateCompressionLevel)
     JdbcAvroIO.Write.createWrite(
       output,
       ".avro",
