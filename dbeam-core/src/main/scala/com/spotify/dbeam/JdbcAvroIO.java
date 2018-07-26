@@ -44,7 +44,6 @@ import org.apache.beam.sdk.transforms.SerializableFunctions;
 import org.apache.beam.sdk.util.MimeTypes;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PDone;
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +51,7 @@ import java.io.Serializable;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -374,12 +374,8 @@ public class JdbcAvroIO {
                ? getDataSource().getConnection(getUsername(), getPassword())
                : getDataSource().getConnection();
       } else {
-        BasicDataSource basicDataSource = new BasicDataSource();
-        basicDataSource.setDriverClassName(getDriverClassName());
-        basicDataSource.setUrl(getUrl());
-        basicDataSource.setUsername(getUsername());
-        basicDataSource.setPassword(getPassword());
-        return basicDataSource.getConnection();
+        Class.forName(getDriverClassName());
+        return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
       }
     }
   }
