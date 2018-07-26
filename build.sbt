@@ -113,7 +113,6 @@ lazy val dbeamCore = project
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
-      "org.apache.commons" % "commons-dbcp2" % "2.1.1",
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
       "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
