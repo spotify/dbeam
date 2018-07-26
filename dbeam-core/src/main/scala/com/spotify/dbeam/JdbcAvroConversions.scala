@@ -20,6 +20,7 @@ package com.spotify.dbeam
 import java.nio.ByteBuffer
 import java.sql.Types._
 import java.sql._
+import java.util.{GregorianCalendar, TimeZone}
 
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.{Schema, SchemaBuilder}
@@ -145,6 +146,8 @@ object JdbcAvroConversions {
     }
   }
 
+  val calendar: GregorianCalendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"))
+
   /**
     * Fetch resultSet data and convert to Java Objects
     * org.postgresql.jdbc.TypeInfoCache
@@ -159,7 +162,7 @@ object JdbcAvroConversions {
       case FLOAT | REAL => r.getFloat(i)
       case DOUBLE => r.getDouble(i)
       case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
-        val t: Timestamp = r.getTimestamp(i)
+        val t: Timestamp = r.getTimestamp(i, calendar)
         if (t != null) {
           t.getTime
         } else {
