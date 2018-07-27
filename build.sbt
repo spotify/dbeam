@@ -116,6 +116,7 @@ lazy val dbeamCore = project
       "org.apache.commons" % "commons-dbcp2" % "2.1.1",
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
+      "com.microsoft.sqlserver" % "mssql-jdbc" % "6.4.0.jre8",
       "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
       "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5",
