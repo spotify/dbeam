@@ -134,6 +134,22 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       None
     ))
   }
+  it should "parse correctly for sqlserver connection" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:sqlserver://nonsense --table=some_table " +
+      "--password=secret")
+
+    options should be (JdbcExportArgs(
+      "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+      "jdbc:sqlserver://nonsense",
+      "dbeam-extractor",
+      "secret",
+      "some_table",
+      "dbeam_generated",
+      None,
+      None,
+      None
+    ))
+  }
   it should "configure username" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
       "--table=some_table --password=secret --username=some_user")
@@ -166,7 +182,25 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       None
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table LIMIT 7"))
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table LIMIT 7"))
+  }
+  it should "configure limit using TOP when in SQL Server" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:sqlserver://nonsense " +
+      "--table=some_table --password=secret --limit=7")
+
+    val expected = JdbcExportArgs(
+      "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+      "jdbc:sqlserver://nonsense",
+      "dbeam-extractor",
+      "secret",
+      "some_table",
+      "dbeam_generated",
+      Some(7),
+      None,
+      None
+    )
+    actual should be (expected)
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT TOP 7 * FROM some_table"))
   }
   it should "configure partition" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
@@ -184,7 +218,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -202,7 +236,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
@@ -220,7 +254,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition column" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -238,7 +272,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table " +
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table " +
       "WHERE col >= '2027-07-31' AND col < '2027-08-01'"))
   }
   it should "configure partition column and limit" in {
@@ -257,7 +291,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table WHERE col >= '2027-07-31'" +
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table" +
+      " WHERE col >= '2027-07-31'" +
       " AND col < '2027-08-01' LIMIT 5"))
   }
   it should "configure partition column and partition period" in {
@@ -278,7 +313,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       Period.parse("P1M")
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table " +
+    actual.buildQueries(actual.connectionUrl) should be (Seq("SELECT * FROM some_table " +
       "WHERE col >= '2027-07-31' AND col < '2027-08-31'"))
   }
   it should "configure avro schema namespace" in {
