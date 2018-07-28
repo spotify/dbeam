@@ -42,7 +42,8 @@ object JdbcConnectionUtil {
   private val driverMapping = Map(
     "postgresql" -> "org.postgresql.Driver",
     "mysql" -> "com.mysql.jdbc.Driver",
-    "h2" -> "org.h2.Driver"
+    "h2" -> "org.h2.Driver",
+    "sqlserver" -> "com.microsoft.sqlserver.jdbc.SQLServerDriver"
   )
 
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
@@ -57,7 +58,12 @@ object JdbcConnectionUtil {
     mappedClass
       .getOrElse(
         throw new IllegalArgumentException(
-          s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix."))
+          s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql," +
+            s" jdbc:mysql or jdbc:sqlserver as prefix."))
+  }
+
+  def isSqlServer(url: String): Boolean = {
+    Some(JdbcConnectionUtil.getDriverClass(url)) == driverMapping.get("sqlserver")
   }
 }
 
@@ -80,8 +86,10 @@ trait QueryArgs extends TableArgs {
 
   def partitionPeriod: ReadablePeriod
 
-  def buildQueries(): Iterable[String] = {
-    val limit = this.limit.map(" LIMIT %d".format(_)).getOrElse("")
+  def buildQueries(url: String): Iterable[String] = {
+    val isSqlServer: Boolean = JdbcConnectionUtil.isSqlServer(url)
+    val limit = if (!isSqlServer) this.limit.map(" LIMIT %d".format(_)).getOrElse("") else ""
+    val top = if (isSqlServer) this.limit.map(" TOP %d".format(_)).getOrElse("") else ""
     val where = (partition, partitionColumn) match {
       case (Some(partition), Some(partitionColumn)) =>
         val datePartition = partition.toLocalDate
@@ -90,6 +98,6 @@ trait QueryArgs extends TableArgs {
           s" AND $partitionColumn < '$nextPartition'"
       case _ => ""
     }
-    Seq(s"SELECT * FROM $tableName$where$limit")
+    Seq(s"SELECT$top * FROM $tableName$where$limit")
   }
 }
