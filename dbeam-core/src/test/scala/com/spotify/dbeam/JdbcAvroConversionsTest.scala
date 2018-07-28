@@ -48,7 +48,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
     actual shouldNot be (null)
     actual.getNamespace should be ("dbeam_generated")
-    actual.getProp("tableName") should be ("COFFEES")
+    actual.getProp("tableName") should be ("coffees")
     actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
     actual.getFields.size() should be (fieldCount)
     actual.getFields.asScala.map(_.name()) should
@@ -86,7 +86,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
     actual shouldNot be (null)
     actual.getNamespace should be ("dbeam_generated")
-    actual.getProp("tableName") should be ("COFFEES")
+    actual.getProp("tableName") should be ("coffees")
     actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
     actual.getFields.size() should be (fieldCount)
     actual.getFields.asScala.map(_.name()) should
@@ -131,6 +131,23 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
     actual.getDoc should be ("doc")
   }
 
+  it should "create schema based on the first read row using limit" in {
+    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+      db.source.createConnection(), "coffees", "ns", "doc")
+    val actualQuery = JdbcAvroConversions
+      .createFirstRowQuery(connection.getMetaData.getURL, "coffees")
+
+    actual shouldNot be (null)
+    actualQuery should be ("SELECT * FROM coffees LIMIT 1")
+  }
+
+  it should "query for the first row using TOP when in SQL Server" in {
+    val connectionUrl: String = "jdbc:sqlserver://nonsense"
+    val actualQuery = JdbcAvroConversions.createFirstRowQuery(connectionUrl, "coffees")
+
+    actualQuery should be ("SELECT TOP 1 * FROM coffees")
+  }
+
   def toByteBuffer(uuid: UUID): ByteBuffer = {
     val bf = ByteBuffer.allocate(16)
       .putLong(uuid.getMostSignificantBits)
@@ -141,7 +158,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "convert jdbc result set to avro generic record" in {
     val rs = connection.createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated","connection", "doc")
+    val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated",
+      "connection", "table_name", "doc")
     rs.next()
 
     val record: GenericRecord = JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, rs)
