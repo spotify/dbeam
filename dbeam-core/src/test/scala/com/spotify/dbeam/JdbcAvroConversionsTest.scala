@@ -134,7 +134,8 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   it should "create schema based on the first read row using limit" in {
     val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
       db.source.createConnection(), "coffees", "ns", "doc")
-    val actualQuery = JdbcAvroConversions.createFirstRowQuery(connection.getMetaData.getURL, "coffees")
+    val actualQuery = JdbcAvroConversions
+      .createFirstRowQuery(connection.getMetaData.getURL, "coffees")
 
     actual shouldNot be (null)
     actualQuery should be ("SELECT * FROM coffees LIMIT 1")
