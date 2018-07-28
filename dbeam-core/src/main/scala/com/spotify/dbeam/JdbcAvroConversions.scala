@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 import java.sql.Types._
 import java.sql._
 
+import com.spotify.dbeam.options.JdbcConnectionUtil
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.slf4j.{Logger, LoggerFactory}
@@ -44,9 +45,10 @@ object JdbcAvroConversions {
     log.info("Creating Avro schema based on the first read row from the database")
     try {
       val statement = connection.createStatement()
-      val rs = statement.executeQuery(s"SELECT * FROM $tableName LIMIT 1")
+      val query = JdbcAvroConversions.createFirstRowQuery(connection.getMetaData.getURL, tableName)
+      val rs = statement.executeQuery(query)
       val schema = JdbcAvroConversions.createAvroSchema(
-        rs, avroSchemaNamespace, connection.getMetaData.getURL, avroDoc, useLogicalTypes)
+        rs, avroSchemaNamespace, connection.getMetaData.getURL, tableName, avroDoc, useLogicalTypes)
       log.info(s"Schema created successfully. Generated schema: ${schema.toString}")
       schema
     } finally {
@@ -59,19 +61,16 @@ object JdbcAvroConversions {
   def createAvroSchema(rs: ResultSet,
                        avroSchemaNamespace: String,
                        connectionUrl: String,
+                       tableName: String,
                        avroDoc: String,
                        useLogicalTypes: Boolean = false): Schema = {
     val meta = rs.getMetaData
-    val tableName = if (meta.getColumnCount > 0) {
-      normalizeForAvro(meta.getTableName(1))
-    } else {
-      "no_table_name"
-    }
+    val normalizedTableName = normalizeForAvro(tableName)
 
-    val builder: SchemaBuilder.FieldAssembler[Schema] = SchemaBuilder.record(tableName)
+    val builder: SchemaBuilder.FieldAssembler[Schema] = SchemaBuilder.record(normalizedTableName)
       .namespace(avroSchemaNamespace)
       .doc(avroDoc)
-      .prop("tableName", tableName)
+      .prop("tableName", normalizedTableName)
       .prop("connectionUrl", connectionUrl)
       .fields
 
@@ -149,6 +148,7 @@ object JdbcAvroConversions {
     * Fetch resultSet data and convert to Java Objects
     * org.postgresql.jdbc.TypeInfoCache
     * com.mysql.jdbc.MysqlDefs#mysqlToJavaType(int)
+    * com.microsoft.sqlserver.jdbc.JavaType
     */
   def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData): Any = {
     val ret: Any = meta.getColumnType(i) match {
@@ -211,5 +211,13 @@ object JdbcAvroConversions {
     }
 
     rec
+  }
+
+  def createFirstRowQuery(connectionUrl: String, tableName: String): String = {
+    if (JdbcConnectionUtil.isSqlServer(connectionUrl)) {
+      s"SELECT TOP 1 * FROM $tableName"
+    } else {
+      s"SELECT * FROM $tableName LIMIT 1"
+    }
   }
 }
