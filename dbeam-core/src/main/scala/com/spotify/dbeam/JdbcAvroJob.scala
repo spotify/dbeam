@@ -124,7 +124,7 @@ object JdbcAvroJob {
     val generatedSchema: Schema = createSchema(p, args)
     saveString(subPath(output, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
 
-    val queries: Iterable[String] = args.buildQueries()
+    val queries: Iterable[String] = args.buildQueries(args.connectionUrl)
     queries.zipWithIndex.foreach { case (q: String, n: Int) =>
       saveString(subPath(output, s"/_queries/query_${n}.sql"), q)
     }
