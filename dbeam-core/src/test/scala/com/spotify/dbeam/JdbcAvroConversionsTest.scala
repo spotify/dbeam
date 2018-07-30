@@ -32,7 +32,6 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
-  private val connection: Connection = db.source.createConnection()
   private val record1 = JdbcTestFixtures.record1
 
   override def beforeAll(): Unit = {
@@ -140,7 +139,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   }
 
   it should "convert jdbc result set to avro generic record" in {
-    val rs = connection.createStatement().executeQuery(s"SELECT * FROM coffees")
+    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
     val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated","connection", "doc")
     rs.next()
 
