@@ -18,7 +18,7 @@
 package com.spotify.dbeam
 
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.{TimeZone, UUID}
 
 import slick.jdbc.H2Profile.api._
 
@@ -26,6 +26,9 @@ import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, _}
 
 object JdbcTestFixtures {
+  // use UTC timezone for testing
+  TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+
   type recordType = (String, Option[Int], BigDecimal, Float, Double,
     Boolean, Int, Long, Timestamp, Option[Timestamp], Byte, UUID)
 
