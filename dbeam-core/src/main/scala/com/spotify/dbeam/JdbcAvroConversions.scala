@@ -154,7 +154,7 @@ object JdbcAvroConversions {
     * com.mysql.jdbc.MysqlDefs#mysqlToJavaType(int)
     */
   def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData): Any = {
-    val ret: Any = meta.getColumnType(i) match {
+    meta.getColumnType(i) match {
       case CHAR | CLOB | LONGNVARCHAR | LONGVARCHAR | NCHAR | NVARCHAR | VARCHAR => r.getString(i)
       case BOOLEAN => r.getBoolean(i)
       case BINARY | VARBINARY | LONGVARBINARY | ARRAY | BLOB => nullableBytes(r.getBytes(i))
@@ -185,11 +185,6 @@ object JdbcAvroConversions {
 
       case _ => r.getString(i)
     }
-    if (r.wasNull()) {
-      null
-    } else {
-      ret
-    }
   }
 
   // scalastyle:on cyclomatic.complexity
@@ -208,7 +203,7 @@ object JdbcAvroConversions {
 
     for (i <- 1 to meta.getColumnCount) {
       val value: Any = convertFieldToType(r, i, meta)
-      if (value != null) {
+      if (!r.wasNull() && value != null) {
         rec.put(i - 1, value)
       }
     }
