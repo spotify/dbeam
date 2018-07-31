@@ -73,14 +73,14 @@ object JdbcAvroJob {
     * Creates Beam transform to read data from JDBC and save to Avro, in a single step
     */
   def jdbcAvroTransform(output: String,
-                        options: JdbcConnectionArgs,
+                        options: JdbcExportArgs,
                         generatedSchema: Schema): PTransform[PCollection[String], _ <: POutput] = {
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
       JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
         .withUsername(options.username)
         .withPassword(options.password),
       options.fetchSize,
-      options.deflateCompressionLevel)
+      options.avroCodec)
     JdbcAvroIO.Write.createWrite(
       output,
       ".avro",

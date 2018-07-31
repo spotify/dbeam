@@ -83,7 +83,7 @@ public class JdbcAvroIO {
       final DynamicAvroDestinations<String, Void, String>
           destinations =
           AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                      CodecFactory.deflateCodec(jdbcAvroOptions.getDeflateCompressionLevel()),
+                                      jdbcAvroOptions.getCodecFactory(),
                                       SerializableFunctions.identity());
       final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
           prefixProvider,
@@ -292,9 +292,18 @@ public class JdbcAvroIO {
     @Nullable abstract StatementPreparator getStatementPreparator();
     abstract RowMapper getAvroRowMapper();
     abstract int getFetchSize();
-    abstract int getDeflateCompressionLevel();
+    abstract String getAvroCodec();
 
     abstract Builder builder();
+
+    public CodecFactory getCodecFactory() {
+      if (getAvroCodec().equals("snappy")) {
+        return CodecFactory.snappyCodec();
+      } else if (getAvroCodec().startsWith("deflate")) {
+        return CodecFactory.deflateCodec(Integer.valueOf(getAvroCodec().replace("deflate", "")));
+      }
+      throw new IllegalArgumentException("Invalid avroCodec " + getAvroCodec());
+    }
 
     @AutoValue.Builder
     abstract static class Builder {
@@ -302,17 +311,17 @@ public class JdbcAvroIO {
       abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
       abstract Builder setAvroRowMapper(RowMapper avroRowMapper);
       abstract Builder setFetchSize(int fetchSize);
-      abstract Builder setDeflateCompressionLevel(int codecFactory);
+      abstract Builder setAvroCodec(String avroCodec);
       abstract JdbcAvroOptions build();
     }
 
     public static JdbcAvroOptions create(DataSourceConfiguration dataSourceConfiguration,
-                                         int fetchSize, int deflateCompressionLevel) {
+                                         int fetchSize, String avroCodec) {
       return new AutoValue_JdbcAvroIO_JdbcAvroOptions.Builder()
           .setDataSourceConfiguration(dataSourceConfiguration)
           .setAvroRowMapper(new DefaultRowMapper())
           .setFetchSize(fetchSize)
-          .setDeflateCompressionLevel(deflateCompressionLevel)
+          .setAvroCodec(avroCodec)
           .build();
     }
   }

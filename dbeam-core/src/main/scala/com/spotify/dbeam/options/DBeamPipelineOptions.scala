@@ -115,12 +115,12 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   def setFetchSize(value: Int): Unit
 
-  @Default.Integer(6)
+  @Default.String("deflate6")
   @Description(
-    "Avro Deflate codec compression level.")
-  def getDeflateCompressionLevel: Int
+    "Avro codec (e.g. deflate6, deflate9, snappy).")
+  def getAvroCodec: String
 
-  def setDeflateCompressionLevel(value: Int): Unit
+  def setAvroCodec(value: String): Unit
 }
 
 trait OutputOptions extends PipelineOptions {
