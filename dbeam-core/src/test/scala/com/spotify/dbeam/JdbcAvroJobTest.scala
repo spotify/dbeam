@@ -55,6 +55,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "JdbcAvroJob" should "work" in {
     JdbcAvroJob.main(Array(
+        "--targetParallelism=1",  // no need for more threads when testing
         "--partition=2025-02-28",
         "--skipPartitionCheck",
         "--connectionUrl=" + connectionUrl,
