@@ -31,27 +31,27 @@ object MetricsHelper {
   def getMetrics(result: PipelineResult): Map[String, Long] = {
     val metrics: MetricQueryResults = result.metrics().queryMetrics(MetricsFilter.builder().build())
 
-    val gauges = metricsAtSteps(metrics.gauges().asScala)
-        .map{ case (k: MetricName, v: Map[String, MetricValue[GaugeResult]]) => (k.name(),
+    val gauges = metricsAtSteps(metrics.getGauges.asScala)
+        .map{ case (k: MetricName, v: Map[String, MetricValue[GaugeResult]]) => (k.getName(),
         v.values.map(_.committed.getOrElse(GaugeResult.empty())).reduce(
           (x: GaugeResult, y: GaugeResult) =>
-            if (x.timestamp() isAfter y.timestamp()) x else y).value()
+            if (x.getTimestamp isAfter y.getTimestamp) x else y).getValue
         )}
     val counters = metricsAtSteps(
-      metrics.counters().asScala.asInstanceOf[Iterable[MetricResult[Long]]])
+      metrics.getCounters.asScala.asInstanceOf[Iterable[MetricResult[Long]]])
       .map{
         case (k: MetricName, v: Map[String, MetricValue[Long]]) =>
-          (k.name(), reduceMetricValues(v))}
+          (k.getName(), reduceMetricValues(v))}
     (gauges.toSeq ++ counters.toSeq).toMap
   }
 
   private def metricsAtSteps[T](results: Iterable[MetricResult[T]])
   : Map[MetricName, Map[String, MetricValue[T]]] =
     results
-      .groupBy(_.name())
+      .groupBy(_.getName())
       .mapValues { xs =>
         val m: Map[String, MetricValue[T]] = xs.map { r =>
-          r.step() -> MetricValue(r.attempted(), Try(r.committed()).toOption)
+          r.getStep -> MetricValue(r.getAttempted, Try(r.getCommitted).toOption)
         } (scala.collection.breakOut)
         m
       }
