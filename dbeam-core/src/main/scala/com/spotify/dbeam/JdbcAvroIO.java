@@ -21,7 +21,6 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.Codec;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileWriter;
@@ -55,6 +54,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -216,13 +216,16 @@ public class JdbcAvroIO {
                     "Avro DataFileWriter was not properly created");
       logger.info("jdbcavroio : Starting write...");
       Schema schema = dynamicDestinations.getSchema(getDestination());
-      RowMapper rowMapper = jdbcAvroOptions.getAvroRowMapper();
       try (ResultSet resultSet = executeQuery(query)) {
         checkArgument(resultSet != null,
                       "JDBC resultSet was not properly created");
+        final Map<Integer, JdbcAvroRecord.SQLFunction<ResultSet, Object>>
+            mappings =
+            JdbcAvroRecord.computeAllMappings(resultSet);
         this.writeIterateStartTime = System.currentTimeMillis();
         while (resultSet.next()) {
-          GenericRecord genericRecord = rowMapper.convert(resultSet, schema);
+          GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
+              schema, resultSet, mappings);
           this.dataFileWriter.append(genericRecord);
           incrementRecordCount();
         }
@@ -278,19 +281,10 @@ public class JdbcAvroIO {
     }
   }
 
-  private static class DefaultRowMapper implements RowMapper {
-
-    @Override
-    public GenericRecord convert(ResultSet resultSet, Schema schema) throws Exception {
-      return JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, resultSet);
-    }
-  }
-
   @AutoValue
   public abstract static class JdbcAvroOptions implements Serializable {
     abstract DataSourceConfiguration getDataSourceConfiguration();
     @Nullable abstract StatementPreparator getStatementPreparator();
-    abstract RowMapper getAvroRowMapper();
     abstract int getFetchSize();
     abstract String getAvroCodec();
 
@@ -309,7 +303,6 @@ public class JdbcAvroIO {
     abstract static class Builder {
       abstract Builder setDataSourceConfiguration(DataSourceConfiguration dataSourceConfiguration);
       abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
-      abstract Builder setAvroRowMapper(RowMapper avroRowMapper);
       abstract Builder setFetchSize(int fetchSize);
       abstract Builder setAvroCodec(String avroCodec);
       abstract JdbcAvroOptions build();
@@ -319,7 +312,6 @@ public class JdbcAvroIO {
                                          int fetchSize, String avroCodec) {
       return new AutoValue_JdbcAvroIO_JdbcAvroOptions.Builder()
           .setDataSourceConfiguration(dataSourceConfiguration)
-          .setAvroRowMapper(new DefaultRowMapper())
           .setFetchSize(fetchSize)
           .setAvroCodec(avroCodec)
           .build();
@@ -396,10 +388,6 @@ public class JdbcAvroIO {
 
   public interface StatementPreparator extends Serializable {
     void setParameters(PreparedStatement preparedStatement) throws Exception;
-  }
-
-  public interface RowMapper extends Serializable {
-    GenericRecord convert(ResultSet resultSet, Schema schema) throws Exception;
   }
 
 }

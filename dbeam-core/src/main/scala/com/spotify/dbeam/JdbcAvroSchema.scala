@@ -26,11 +26,10 @@ import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.slf4j.{Logger, LoggerFactory}
 
-object JdbcAvroConversions {
+object JdbcAvroSchema {
 
-  val log: Logger = LoggerFactory.getLogger("JdbcAvroConversions")
+  val log: Logger = LoggerFactory.getLogger("JdbcAvroSchema")
 
-  val MAX_DIGITS_INT = 9
   val MAX_DIGITS_BIGINT = 19
 
   def normalizeForAvro(input: String): String = {
@@ -46,7 +45,7 @@ object JdbcAvroConversions {
     try {
       val statement = connection.createStatement()
       val rs = statement.executeQuery(s"SELECT * FROM $tableName LIMIT 1")
-      val schema = JdbcAvroConversions.createAvroSchema(
+      val schema = JdbcAvroSchema.createAvroSchema(
         rs, avroSchemaNamespace, connection.getMetaData.getURL, avroDoc, useLogicalTypes)
       log.info(s"Schema created successfully. Generated schema: ${schema.toString}")
       schema
@@ -146,68 +145,4 @@ object JdbcAvroConversions {
     }
   }
 
-  val calendar: GregorianCalendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"))
-
-  /**
-    * Fetch resultSet data and convert to Java Objects
-    * org.postgresql.jdbc.TypeInfoCache
-    * com.mysql.jdbc.MysqlDefs#mysqlToJavaType(int)
-    */
-  def convertFieldToType(r: ResultSet, i: Integer, meta: ResultSetMetaData): Any = {
-    meta.getColumnType(i) match {
-      case CHAR | CLOB | LONGNVARCHAR | LONGVARCHAR | NCHAR | NVARCHAR | VARCHAR => r.getString(i)
-      case BOOLEAN => r.getBoolean(i)
-      case BINARY | VARBINARY | LONGVARBINARY | ARRAY | BLOB => nullableBytes(r.getBytes(i))
-      case TINYINT | SMALLINT | INTEGER => r.getInt(i)
-      case FLOAT | REAL => r.getFloat(i)
-      case DOUBLE => r.getDouble(i)
-      case DATE | TIME | TIMESTAMP | TIMESTAMP_WITH_TIMEZONE =>
-        val t: Timestamp = r.getTimestamp(i, calendar)
-        if (t != null) {
-          t.getTime
-        } else {
-          t
-        }
-      case BIT =>
-        val precision = meta.getPrecision(i)
-        if (precision <= 1) {
-          r.getBoolean(i)
-        } else {
-          nullableBytes(r.getBytes(i))
-        }
-      case BIGINT =>
-        val precision = meta.getPrecision(i)
-        if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
-          r.getLong(i)
-        } else {
-          r.getString(i)
-        }
-
-      case _ => r.getString(i)
-    }
-  }
-
-  // scalastyle:on cyclomatic.complexity
-
-  private def nullableBytes(bts: scala.Array[Byte]): ByteBuffer = {
-    if (bts != null) {
-      ByteBuffer.wrap(bts)
-    } else {
-      null
-    }
-  }
-
-  def convertResultSetIntoAvroRecord(schema: Schema, r: ResultSet): GenericRecord = {
-    val rec: GenericRecord = new GenericData.Record(schema)
-    val meta: ResultSetMetaData = r.getMetaData
-
-    for (i <- 1 to meta.getColumnCount) {
-      val value: Any = convertFieldToType(r, i, meta)
-      if (!r.wasNull() && value != null) {
-        rec.put(i - 1, value)
-      }
-    }
-
-    rec
-  }
 }

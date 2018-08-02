@@ -28,7 +28,7 @@ import slick.jdbc.H2Profile.api._
 
 import scala.collection.JavaConverters._
 
-class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
@@ -40,7 +40,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "create schema" in {
     val fieldCount = 12
-    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(),
       "coffees", "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
@@ -77,7 +77,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "create schema with logical types" in {
     val fieldCount = 12
-    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(),
       "coffees", "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
@@ -115,7 +115,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   }
 
   it should "create schema under specified namespace" in {
-    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(), "coffees", "ns", "doc")
 
     actual shouldNot be (null)
@@ -123,7 +123,7 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
   }
 
   it should "create schema with specified doc string" in {
-    val actual: Schema = JdbcAvroConversions.createSchemaByReadingOneRow(
+    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(), "coffees", "ns", "doc")
 
     actual shouldNot be (null)
@@ -140,10 +140,11 @@ class JdbcAvroConversionsTest extends FlatSpec with Matchers with BeforeAndAfter
 
   it should "convert jdbc result set to avro generic record" in {
     val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroConversions.createAvroSchema(rs, "dbeam_generated","connection", "doc")
+    val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc")
     rs.next()
 
-    val record: GenericRecord = JdbcAvroConversions.convertResultSetIntoAvroRecord(schema, rs)
+    val mappings = JdbcAvroRecord.computeAllMappings(rs)
+    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(schema, rs, mappings)
 
     record shouldNot be (null)
     record.getSchema should be (schema)
