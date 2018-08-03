@@ -33,6 +33,7 @@ import org.apache.beam.sdk.io.DynamicAvroDestinations;
 import org.apache.beam.sdk.io.FileBasedSink;
 import org.apache.beam.sdk.io.ShardNameTemplate;
 import org.apache.beam.sdk.io.WriteFiles;
+import org.apache.beam.sdk.io.WriteFilesResult;
 import org.apache.beam.sdk.io.fs.ResourceId;
 import org.apache.beam.sdk.metrics.Counter;
 import org.apache.beam.sdk.metrics.Gauge;
@@ -43,7 +44,6 @@ import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.SerializableFunctions;
 import org.apache.beam.sdk.util.MimeTypes;
 import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.PDone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,14 +62,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class JdbcAvroIO {
 
-  private static final String DEFAULT_CODEC = "deflate";
-  public static final CodecFactory DEFAULT_DEFLATE_CODEC = CodecFactory.deflateCodec(6);
+  private static final CodecFactory DEFAULT_DEFLATE_CODEC = CodecFactory.deflateCodec(6);
 
   public abstract static class Write {
 
     private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
 
-    public static PTransform<PCollection<String>, PDone> createWrite(
+    public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
         String filenamePrefix, String filenameSuffix, Schema schema,
         JdbcAvroOptions jdbcAvroOptions) {
       filenamePrefix = filenamePrefix.replaceAll("/+$", "") + "/part";
@@ -82,16 +81,16 @@ public class JdbcAvroIO {
               filenameSuffix,
               false);
 
-      DynamicAvroDestinations<?, Void, String>
+      final DynamicAvroDestinations<String, Void, String>
           destinations =
           AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
                                       DEFAULT_DEFLATE_CODEC,
-                                      SerializableFunctions.<String>identity());
-      return WriteFiles.to(
-          new JdbcAvroSink(
-              prefixProvider,
-              destinations,
-              jdbcAvroOptions));
+                                      SerializableFunctions.identity());
+      final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
+          prefixProvider,
+          destinations,
+          jdbcAvroOptions);
+      return WriteFiles.to(sink);
     }
 
   }
@@ -121,7 +120,7 @@ public class JdbcAvroIO {
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroOptions jdbcAvroOptions;
 
-    private JdbcAvroWriteOperation(JdbcAvroSink sink,
+    private JdbcAvroWriteOperation(FileBasedSink<?, Void, String> sink,
                                    DynamicAvroDestinations<?, Void, String> dynamicDestinations,
                                    JdbcAvroOptions jdbcAvroOptions) {
 
