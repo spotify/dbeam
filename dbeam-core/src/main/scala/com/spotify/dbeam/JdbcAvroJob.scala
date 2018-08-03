@@ -19,20 +19,19 @@ package com.spotify.dbeam
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.sql.{Connection, ResultSet}
+import java.sql.Connection
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.spotify.dbeam.options.{JdbcConnectionArgs, JdbcExportArgs}
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.Pipeline
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.sdk.transforms.{Create, MapElements, PTransform, SerializableFunction}
 import org.apache.beam.sdk.util.MimeTypes
-import org.apache.beam.sdk.values.{PCollection, PDone, TypeDescriptors}
+import org.apache.beam.sdk.values.{PCollection, POutput, TypeDescriptors}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -74,7 +73,7 @@ object JdbcAvroJob {
     */
   def jdbcAvroTransform(output: String,
                         options: JdbcConnectionArgs,
-                        generatedSchema: Schema): PTransform[PCollection[String], PDone] = {
+                        generatedSchema: Schema): PTransform[PCollection[String], _ <: POutput] = {
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
       JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
         .withUsername(options.username)
