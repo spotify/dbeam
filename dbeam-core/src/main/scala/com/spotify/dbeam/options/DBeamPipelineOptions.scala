@@ -17,8 +17,12 @@
 
 package com.spotify.dbeam.options
 
+import java.nio.channels.Channels
+
+import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.options.Validation.Required
 import org.apache.beam.sdk.options.{Default, Description, PipelineOptions}
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.io.Source
 
@@ -114,8 +118,16 @@ trait OutputOptions extends PipelineOptions {
 }
 
 object PipelineOptionsUtil {
+  val log: Logger = LoggerFactory.getLogger(PipelineOptionsUtil.getClass)
   def readPassword(options: DBeamPipelineOptions): Option[String] = {
-    Option(options.getPasswordFile).map(Source.fromFile(_).mkString.stripLineEnd)
+    FileSystems.setDefaultPipelineOptions(options)
+    Option(options.getPasswordFile)
+      .map(FileSystems.matchSingleFileSpec)
+      .map{m =>
+        log.info("Reading password from file: {}", m.resourceId().toString)
+        Channels.newInputStream(FileSystems.open(m.resourceId()))
+      }
+      .map(Source.fromInputStream(_).mkString.stripLineEnd)
       .orElse(Option(options.getPassword))
   }
 }

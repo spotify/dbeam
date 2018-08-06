@@ -113,12 +113,13 @@ lazy val dbeamCore = project
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-simple" % slf4jVersion,
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
+      "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
       "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
       "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5",
-      "com.google.auto.value" % "auto-value" % autoValueVersion % "provided",
+      "com.google.auto.value" % "auto-value" % autoValueVersion % Provided,
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
       "com.h2database" % "h2" % "1.4.196" % "test",
       "com.typesafe.slick" %% "slick" % "3.2.0" % "test"
