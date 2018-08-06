@@ -36,6 +36,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
   private val dir = tmpDir
+  private val passwordFile = new File(dir.getAbsolutePath + ".password")
 
   def tmpDir: File = new File(
     new File(sys.props("java.io.tmpdir")),
@@ -43,9 +44,11 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))
+    passwordFile.createNewFile()
   }
 
   override protected def afterAll(): Unit = {
+    passwordFile.delete()
     Files.walk(dir.toPath)
       .sorted(Comparator.reverseOrder())
       .iterator()
@@ -60,7 +63,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         "--skipPartitionCheck",
         "--connectionUrl=" + connectionUrl,
         "--username=",
-        "--password=",
+        "--passwordFile=" + passwordFile.getAbsolutePath,
         "--table=coffees",
         "--output=" + dir.getAbsolutePath)
     )
