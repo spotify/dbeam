@@ -25,13 +25,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.spotify.dbeam.options.{JdbcConnectionArgs, JdbcExportArgs}
 import org.apache.avro.Schema
-import org.apache.beam.sdk.Pipeline
+import org.apache.beam.sdk.Pipeline.PipelineExecutionException
 import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.sdk.transforms.{Create, MapElements, PTransform, SerializableFunction}
 import org.apache.beam.sdk.util.MimeTypes
 import org.apache.beam.sdk.values.{PCollection, POutput, TypeDescriptors}
+import org.apache.beam.sdk.{Pipeline, PipelineResult}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -134,11 +135,19 @@ object JdbcAvroJob {
   }
 
   def runExport(opts: PipelineOptions, args: JdbcExportArgs, output: String): Unit = {
-    val p = Pipeline.create(opts)
-    prepareExport(p, args, output)
-    val result = p.run()
-    val s = result.waitUntilFinish()
+    val pipeline: Pipeline = Pipeline.create(opts)
+    prepareExport(pipeline, args, output)
+    val result: PipelineResult = waitUntilDone(pipeline.run())
     publishMetrics(MetricsHelper.getMetrics(result), output)
+  }
+
+  def waitUntilDone(result: PipelineResult): PipelineResult = {
+    val state: PipelineResult.State = result.waitUntilFinish()
+    if (!state.equals(PipelineResult.State.DONE)) {
+      throw new PipelineExecutionException(
+        new Exception(s"Job finished with state $state"))
+    }
+    result
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {

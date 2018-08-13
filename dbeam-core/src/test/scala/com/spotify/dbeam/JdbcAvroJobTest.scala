@@ -24,8 +24,12 @@ import java.util.{Comparator, UUID}
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
+import org.apache.beam.sdk.Pipeline.PipelineExecutionException
+import org.apache.beam.sdk.PipelineResult
 import org.apache.beam.sdk.io.AvroSource
+import org.apache.beam.sdk.metrics.MetricResults
 import org.apache.beam.sdk.testing.SourceTestUtils
+import org.joda.time.Duration
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
 
@@ -79,6 +83,20 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       .withSchema(schema)
     val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
     records should have size 2
+  }
+
+  "JdbcAvroJob" should "throw exception in case pipeline result finish with state FAILED" in {
+    val mockResult = new PipelineResult {
+      override def waitUntilFinish(): PipelineResult.State = PipelineResult.State.FAILED
+      override def getState: PipelineResult.State = null
+      override def cancel(): PipelineResult.State = null
+      override def waitUntilFinish(duration: Duration): PipelineResult.State = null
+      override def metrics(): MetricResults = null
+    }
+
+    the[PipelineExecutionException] thrownBy {
+      JdbcAvroJob.waitUntilDone(mockResult)
+    } should have message "java.lang.Exception: Job finished with state FAILED"
   }
 
 }
