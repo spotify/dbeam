@@ -88,7 +88,6 @@ public class JdbcAvroRecord {
   static SQLFunction<ResultSet, Object> computeMapping(ResultSetMetaData meta, int column)
       throws SQLException {
     final int columnType = meta.getColumnType(column);
-    System.out.println(String.format("%d col -> %d %d", column, columnType, meta.getPrecision(column)));
     if (columnType == VARCHAR || columnType == CHAR ||
         columnType == CLOB || columnType == LONGNVARCHAR ||
         columnType == LONGVARCHAR || columnType == NCHAR) {
