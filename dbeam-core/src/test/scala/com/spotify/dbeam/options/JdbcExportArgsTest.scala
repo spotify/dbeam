@@ -311,4 +311,46 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       avroDoc=Some("doc")
     ))
   }
+  it should "configure fetch size" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--password=secret --fetchSize=1234")
+
+    options should be (JdbcExportArgs(
+      "org.postgresql.Driver",
+      "jdbc:postgresql://nonsense",
+      "dbeam-extractor",
+      "secret",
+      "some_table",
+      "dbeam_generated",
+      fetchSize=1234
+    ))
+  }
+  it should "configure deflate compression level on avro codec" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--password=secret --avroCodec=deflate7")
+
+    options should be (JdbcExportArgs(
+      "org.postgresql.Driver",
+      "jdbc:postgresql://nonsense",
+      "dbeam-extractor",
+      "secret",
+      "some_table",
+      "dbeam_generated",
+      avroCodec = "deflate7"
+    ))
+  }
+  it should "configure snappy as avro codec" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--password=secret --avroCodec=snappy")
+
+    options should be (JdbcExportArgs(
+      "org.postgresql.Driver",
+      "jdbc:postgresql://nonsense",
+      "dbeam-extractor",
+      "secret",
+      "some_table",
+      "dbeam_generated",
+      avroCodec = "snappy"
+    ))
+  }
 }

@@ -21,6 +21,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.Codec;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileWriter;
@@ -62,8 +63,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class JdbcAvroIO {
 
-  private static final CodecFactory DEFAULT_DEFLATE_CODEC = CodecFactory.deflateCodec(6);
-
   public abstract static class Write {
 
     private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
@@ -84,7 +83,7 @@ public class JdbcAvroIO {
       final DynamicAvroDestinations<String, Void, String>
           destinations =
           AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                      DEFAULT_DEFLATE_CODEC,
+                                      jdbcAvroOptions.getCodecFactory(),
                                       SerializableFunctions.identity());
       final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
           prefixProvider,
@@ -136,7 +135,6 @@ public class JdbcAvroIO {
   }
 
   private static class JdbcAvroWriter extends FileBasedSink.Writer<Void, String> {
-    private static final int FETCH_SIZE = 10000;
     private static final int COUNTER_REPORT_EVERY = 100000;
     private static final int LOG_EVERY = 100000;
     private final Logger logger = LoggerFactory.getLogger(JdbcAvroWriter.class);
@@ -196,13 +194,14 @@ public class JdbcAvroIO {
           query,
           ResultSet.TYPE_FORWARD_ONLY,
           ResultSet.CONCUR_READ_ONLY);
-      statement.setFetchSize(FETCH_SIZE);
+      statement.setFetchSize(jdbcAvroOptions.getFetchSize());
       if (jdbcAvroOptions.getStatementPreparator() != null) {
         jdbcAvroOptions.getStatementPreparator().setParameters(statement);
       }
 
       long startTime = System.currentTimeMillis();
-      logger.info("jdbcavroio : Executing query (this can take a few minutes) ...");
+      logger.info("jdbcavroio : Executing query with fetchSize={} (this can take a few minutes) ...",
+                  statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
       long elapsed1 = System.currentTimeMillis() - startTime;
       logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
@@ -292,21 +291,37 @@ public class JdbcAvroIO {
     abstract DataSourceConfiguration getDataSourceConfiguration();
     @Nullable abstract StatementPreparator getStatementPreparator();
     abstract RowMapper getAvroRowMapper();
+    abstract int getFetchSize();
+    abstract String getAvroCodec();
 
     abstract Builder builder();
+
+    public CodecFactory getCodecFactory() {
+      if (getAvroCodec().equals("snappy")) {
+        return CodecFactory.snappyCodec();
+      } else if (getAvroCodec().startsWith("deflate")) {
+        return CodecFactory.deflateCodec(Integer.valueOf(getAvroCodec().replace("deflate", "")));
+      }
+      throw new IllegalArgumentException("Invalid avroCodec " + getAvroCodec());
+    }
 
     @AutoValue.Builder
     abstract static class Builder {
       abstract Builder setDataSourceConfiguration(DataSourceConfiguration dataSourceConfiguration);
       abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
       abstract Builder setAvroRowMapper(RowMapper avroRowMapper);
+      abstract Builder setFetchSize(int fetchSize);
+      abstract Builder setAvroCodec(String avroCodec);
       abstract JdbcAvroOptions build();
     }
 
-    public static JdbcAvroOptions create(DataSourceConfiguration dataSourceConfiguration) {
+    public static JdbcAvroOptions create(DataSourceConfiguration dataSourceConfiguration,
+                                         int fetchSize, String avroCodec) {
       return new AutoValue_JdbcAvroIO_JdbcAvroOptions.Builder()
           .setDataSourceConfiguration(dataSourceConfiguration)
           .setAvroRowMapper(new DefaultRowMapper())
+          .setFetchSize(fetchSize)
+          .setAvroCodec(avroCodec)
           .build();
     }
   }

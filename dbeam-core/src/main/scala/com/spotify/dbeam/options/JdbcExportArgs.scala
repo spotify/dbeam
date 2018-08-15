@@ -37,12 +37,16 @@ case class JdbcExportArgs(driverClass: String,
                           partition: Option[DateTime] = None,
                           partitionPeriod: ReadablePeriod = Days.ONE,
                           avroDoc: Option[String] = None,
-                          useAvroLogicalTypes: Boolean = false)
+                          useAvroLogicalTypes: Boolean = false,
+                          fetchSize: Int = 10000,
+                          avroCodec: String = "deflate6")
   extends JdbcConnectionArgs with QueryArgs {
 
   require(checkTableName(), s"Invalid SQL table name: $tableName")
   require(partitionColumn.isEmpty || partition.isDefined,
     "To use --partitionColumn the --partition parameter must also be configured")
+  require(avroCodec.matches("snappy|deflate[1-9]"),
+    "Avro codec should be snappy or deflate1, .., deflate9")
 
 }
 
@@ -91,7 +95,9 @@ object JdbcExportArgs {
       partition,
       partitionPeriod,
       Option(exportOptions.getAvroDoc),
-      exportOptions.isUseAvroLogicalTypes
+      exportOptions.isUseAvroLogicalTypes,
+      exportOptions.getFetchSize,
+      exportOptions.getAvroCodec
     )
   }
 

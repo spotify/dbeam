@@ -107,6 +107,20 @@ trait JdbcExportPipelineOptions extends DBeamPipelineOptions {
   def isUseAvroLogicalTypes: Boolean
 
   def setUseAvroLogicalTypes(value: Boolean): Unit
+
+  @Default.Integer(10000)
+  @Description(
+    "Jdbc result set fetch size.")
+  def getFetchSize: Int
+
+  def setFetchSize(value: Int): Unit
+
+  @Default.String("deflate6")
+  @Description(
+    "Avro codec (e.g. deflate6, deflate9, snappy).")
+  def getAvroCodec: String
+
+  def setAvroCodec(value: String): Unit
 }
 
 trait OutputOptions extends PipelineOptions {
