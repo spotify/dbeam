@@ -47,14 +47,13 @@ public class JdbcAvroRecord {
   private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
 
   public static GenericRecord convertResultSetIntoAvroRecord(
-      Schema schema, ResultSet resultSet, Map<Integer, SQLFunction<ResultSet, Object>> mappings)
+      Schema schema, ResultSet resultSet, Map<Integer, SQLFunction<ResultSet, Object>> mappings,
+      int columnCount)
       throws SQLException {
     GenericRecord record = new GenericData.Record(schema);
-    ResultSetMetaData meta = resultSet.getMetaData();
-
-    for (int i=1; i <= meta.getColumnCount(); i++) {
+    for (int i=1; i <= columnCount; i++) {
       Object value = mappings.get(i).apply(resultSet);
-      if (!resultSet.wasNull() && value != null) {
+      if (!(value == null || resultSet.wasNull())) {
         record.put(i - 1, value);
       }
     }

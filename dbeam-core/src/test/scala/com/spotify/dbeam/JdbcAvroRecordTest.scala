@@ -144,7 +144,8 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     rs.next()
 
     val mappings = JdbcAvroRecord.computeAllMappings(rs)
-    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(schema, rs, mappings)
+    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
+      schema, rs, mappings, rs.getMetaData.getColumnCount)
 
     record shouldNot be (null)
     record.getSchema should be (schema)
