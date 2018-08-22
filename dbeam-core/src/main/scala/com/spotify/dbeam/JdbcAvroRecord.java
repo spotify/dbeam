@@ -1,5 +1,7 @@
 package com.spotify.dbeam;
 
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
@@ -10,7 +12,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,9 +51,9 @@ public class JdbcAvroRecord {
       Schema schema, ResultSet resultSet, Map<Integer, SQLFunction<ResultSet, Object>> mappings,
       int columnCount)
       throws SQLException {
-    GenericRecord record = new GenericData.Record(schema);
+    final GenericRecord record = new GenericData.Record(schema);
     for (int i=1; i <= columnCount; i++) {
-      Object value = mappings.get(i).apply(resultSet);
+      final Object value = mappings.get(i).apply(resultSet);
       if (!(value == null || resultSet.wasNull())) {
         record.put(i - 1, value);
       }
@@ -62,13 +63,14 @@ public class JdbcAvroRecord {
 
   public static Map<Integer, SQLFunction<ResultSet, Object>> computeAllMappings(ResultSet resultSet)
       throws SQLException {
-    ResultSetMetaData meta = resultSet.getMetaData();
-    Map<Integer, SQLFunction<ResultSet, Object>> mappings = new HashMap<>();
+    final ResultSetMetaData meta = resultSet.getMetaData();
+    final int columnCount = meta.getColumnCount();
+    final Map<Integer, SQLFunction<ResultSet, Object>> mappings = new HashMap<>(columnCount);
 
-    for (int i = 1; i <= meta.getColumnCount(); i++) {
+    for (int i = 1; i <= columnCount; i++) {
       mappings.put(i, computeMapping(meta, i));
     }
-    return Collections.unmodifiableMap(mappings);
+    return ImmutableMap.copyOf(mappings);
   }
 
   @FunctionalInterface
@@ -84,42 +86,47 @@ public class JdbcAvroRecord {
     }
   }
 
-  static SQLFunction<ResultSet, Object> computeMapping(ResultSetMetaData meta, int column)
+  static SQLFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta, final int column)
       throws SQLException {
-    final int columnType = meta.getColumnType(column);
-    if (columnType == VARCHAR || columnType == CHAR ||
-        columnType == CLOB || columnType == LONGNVARCHAR ||
-        columnType == LONGVARCHAR || columnType == NCHAR) {
-      return resultSet -> resultSet.getString(column);
-    } else if (columnType == BIGINT) {
-      final int precision = meta.getPrecision(column);
-      if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
-        return resultSet -> resultSet.getLong(column);
-      }
-      // otherwise return as string
-    } else if (columnType == INTEGER || columnType == SMALLINT || columnType == TINYINT) {
-      return resultSet -> resultSet.getInt(column);
-    } else if (columnType == TIMESTAMP || columnType == DATE ||
-               columnType == TIME || columnType == TIME_WITH_TIMEZONE) {
-      return resultSet -> {
-        final Timestamp timestamp = resultSet.getTimestamp(column, CALENDAR);
-        if (timestamp != null) {
-          return timestamp.getTime();
-        } else {
-          return null;
+    switch (meta.getColumnType(column)) {
+      case VARCHAR: case CHAR: case CLOB:
+      case LONGNVARCHAR: case LONGVARCHAR: case NCHAR:
+        return resultSet -> resultSet.getString(column);
+      case BIGINT:
+        final int precision = meta.getPrecision(column);
+        if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
+          return resultSet -> resultSet.getLong(column);
         }
-      };
-    } else if (columnType == BOOLEAN || (columnType == BIT && meta.getPrecision(column) <= 1)) {
-      return resultSet -> resultSet.getBoolean(column);
-    } else if (columnType == BINARY || columnType == VARBINARY ||
-               columnType == LONGVARBINARY || columnType == BIT ||
-               columnType == ARRAY ||
-               columnType == BLOB) {
-      return resultSet -> nullableBytes(resultSet.getBytes(column));
-    } else if (columnType == DOUBLE) {
-      return resultSet -> resultSet.getDouble(column);
-    } else if (columnType == FLOAT || columnType == REAL) {
-      return resultSet -> resultSet.getFloat(column);
+        // otherwise return as string
+        break;
+      case INTEGER: case SMALLINT: case TINYINT:
+        return resultSet -> resultSet.getInt(column);
+      case TIMESTAMP: case DATE:
+      case TIME: case TIME_WITH_TIMEZONE:
+        return resultSet -> {
+          final Timestamp timestamp = resultSet.getTimestamp(column, CALENDAR);
+          if (timestamp != null) {
+            return timestamp.getTime();
+          } else {
+            return null;
+          }
+        };
+      case BOOLEAN:
+        return resultSet -> resultSet.getBoolean(column);
+      case BIT:
+        if (meta.getPrecision(column) <= 1) {
+          return resultSet -> resultSet.getBoolean(column);
+        } else {
+          return resultSet -> nullableBytes(resultSet.getBytes(column));
+        }
+      case BINARY: case VARBINARY:
+      case LONGVARBINARY: case ARRAY:
+      case BLOB:
+        return resultSet -> nullableBytes(resultSet.getBytes(column));
+      case DOUBLE:
+        return resultSet -> resultSet.getDouble(column);
+      case FLOAT: case REAL:
+        return resultSet -> resultSet.getFloat(column);
     }
     return resultSet -> resultSet.getString(column);
   }
