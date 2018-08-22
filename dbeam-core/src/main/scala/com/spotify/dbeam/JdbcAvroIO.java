@@ -220,12 +220,12 @@ public class JdbcAvroIO {
         checkArgument(resultSet != null,
                       "JDBC resultSet was not properly created");
         final Map<Integer, JdbcAvroRecord.SQLFunction<ResultSet, Object>>
-            mappings =
-            JdbcAvroRecord.computeAllMappings(resultSet);
+            mappings = JdbcAvroRecord.computeAllMappings(resultSet);
+        final int columnCount = resultSet.getMetaData().getColumnCount();
         this.writeIterateStartTime = System.currentTimeMillis();
         while (resultSet.next()) {
-          GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
-              schema, resultSet, mappings);
+          final GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
+              schema, resultSet, mappings, columnCount);
           this.dataFileWriter.append(genericRecord);
           incrementRecordCount();
         }
