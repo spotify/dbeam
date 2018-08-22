@@ -99,7 +99,8 @@ public class JdbcAvroRecord {
       // otherwise return as string
     } else if (columnType == INTEGER || columnType == SMALLINT || columnType == TINYINT) {
       return resultSet -> resultSet.getInt(column);
-    } else if (columnType == TIMESTAMP || columnType == DATE || columnType == TIME || columnType == TIME_WITH_TIMEZONE) {
+    } else if (columnType == TIMESTAMP || columnType == DATE ||
+               columnType == TIME || columnType == TIME_WITH_TIMEZONE) {
       return resultSet -> {
         final Timestamp timestamp = resultSet.getTimestamp(column, CALENDAR);
         if (timestamp != null) {
@@ -117,7 +118,7 @@ public class JdbcAvroRecord {
       return resultSet -> nullableBytes(resultSet.getBytes(column));
     } else if (columnType == DOUBLE) {
       return resultSet -> resultSet.getDouble(column);
-    } else if (column == FLOAT || columnType == REAL) {
+    } else if (columnType == FLOAT || columnType == REAL) {
       return resultSet -> resultSet.getFloat(column);
     }
     return resultSet -> resultSet.getString(column);
