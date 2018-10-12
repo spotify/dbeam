@@ -19,7 +19,7 @@ import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 
-val beamVersion = "2.6.0"
+val beamVersion = "2.7.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
 
@@ -116,8 +116,8 @@ lazy val dbeamCore = project
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
-      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
-      "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
+      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.11",
+      "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.11",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5",
       "com.google.auto.value" % "auto-value" % autoValueVersion % Provided,
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
