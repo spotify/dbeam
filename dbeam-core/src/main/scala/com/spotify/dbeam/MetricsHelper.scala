@@ -23,8 +23,8 @@ import org.apache.beam.sdk.metrics._
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-@SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+@SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf",
+  "org.wartremover.warts.TraversableOps"))
 object MetricsHelper {
 
 
