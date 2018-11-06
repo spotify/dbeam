@@ -19,7 +19,7 @@ import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 
-val beamVersion = "2.7.0"
+val beamVersion = "2.8.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
 
