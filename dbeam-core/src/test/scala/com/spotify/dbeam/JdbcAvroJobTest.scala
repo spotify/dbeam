@@ -95,7 +95,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     }
 
     the[PipelineExecutionException] thrownBy {
-      JdbcAvroJob.waitUntilDone(mockResult)
+      BeamHelper.waitUntilDone(mockResult)
     } should have message "java.lang.Exception: Job finished with state FAILED"
   }
 

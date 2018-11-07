@@ -139,17 +139,8 @@ object JdbcAvroJob {
   def runExport(opts: PipelineOptions, args: JdbcExportArgs, output: String): Unit = {
     val pipeline: Pipeline = Pipeline.create(opts)
     prepareExport(pipeline, args, output)
-    val result: PipelineResult = waitUntilDone(pipeline.run())
+    val result: PipelineResult = BeamHelper.waitUntilDone(pipeline.run())
     publishMetrics(MetricsHelper.getMetrics(result), output)
-  }
-
-  def waitUntilDone(result: PipelineResult): PipelineResult = {
-    val state: PipelineResult.State = result.waitUntilFinish()
-    if (!state.equals(PipelineResult.State.DONE)) {
-      throw new PipelineExecutionException(
-        new Exception(s"Job finished with state $state"))
-    }
-    result
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
