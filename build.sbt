@@ -19,7 +19,7 @@ import sbt._
 import sbt.Keys._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 
-val beamVersion = "2.6.0"
+val beamVersion = "2.8.0"
 val autoValueVersion = "1.5.3"
 val slf4jVersion = "1.7.25"
 
@@ -32,8 +32,8 @@ def scalacOptions12(scalaVersion: String) = {
 
 lazy val commonSettings = Defaults.coreDefaultSettings ++ Sonatype.sonatypeSettings ++ Seq(
   organization := "com.spotify",
-  scalaVersion := "2.12.4",
-  crossScalaVersions := Seq("2.11.12", "2.12.4"),
+  scalaVersion := "2.12.7",
+  crossScalaVersions := Seq("2.11.12", "2.12.7"),
   scalacOptions ++= Seq("-target:jvm-1.8", "-deprecation", "-feature", "-unchecked"),
   scalacOptions in (Compile, doc) ++= scalacOptions12(scalaVersion.value),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
@@ -116,8 +116,8 @@ lazy val dbeamCore = project
       "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
       "org.postgresql" % "postgresql" % "42.2.+",
       "mysql" % "mysql-connector-java" % "5.1.+",
-      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.5",
-      "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.4",
+      "com.google.cloud.sql" % "postgres-socket-factory" % "1.0.11",
+      "com.google.cloud.sql" % "mysql-socket-factory" % "1.0.11",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5",
       "com.google.auto.value" % "auto-value" % autoValueVersion % Provided,
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
