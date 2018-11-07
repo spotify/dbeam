@@ -17,20 +17,15 @@
 
 package com.spotify.dbeam
 
-import java.nio.ByteBuffer
-import java.nio.charset.Charset
 import java.sql.Connection
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.spotify.dbeam.options.{JdbcConnectionArgs, JdbcExportArgs}
+import com.spotify.dbeam.options.JdbcExportArgs
 import org.apache.avro.Schema
-import org.apache.beam.sdk.Pipeline.PipelineExecutionException
-import org.apache.beam.sdk.io.FileSystems
 import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.sdk.transforms.{Create, MapElements, PTransform, SerializableFunction}
-import org.apache.beam.sdk.util.MimeTypes
 import org.apache.beam.sdk.values.{PCollection, POutput, TypeDescriptors}
 import org.apache.beam.sdk.{Pipeline, PipelineResult}
 import org.slf4j.{Logger, LoggerFactory}
@@ -92,43 +87,22 @@ object JdbcAvroJob {
   def publishMetrics(metrics: Map[String, Long], output: String): Unit = {
     log.info(s"Metrics: $metrics")
 
-    saveJsonObject(subPath(output, "/_METRICS.json"), metrics)
-    // for backwards compatibility
-    saveJsonObject(subPath(output, "/_SERVICE_METRICS.json"), metrics)
-  }
-
-  private def writeToFile(filename: String, contents: ByteBuffer): Unit = {
-    val resourceId = FileSystems.matchNewResource(filename, false)
-    val out = FileSystems.create(resourceId, MimeTypes.TEXT)
-    try {
-      out.write(contents)
-    } finally {
-      if (out != null) {
-        out.close()
-      }
-    }
-  }
-
-  private def saveJsonObject(filename: String, obj: Object): Unit = {
     val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
-    writeToFile(filename, ByteBuffer.wrap(mapper.writeValueAsBytes(obj)))
-  }
+    val metricsJson = mapper.writeValueAsString(metrics)
 
-  private def saveString(filename: String, contents: String): Unit = {
-    writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())))
+    BeamHelper.saveStringOnSubPath(output, "/_METRICS.json", metricsJson)
+    // for backwards compatibility
+    BeamHelper.saveStringOnSubPath(output, "/_SERVICE_METRICS.json", metricsJson)
   }
-
-  private def subPath(path: String, subPath: String): String =
-    path.replaceAll("/+$", "") + subPath
 
   def prepareExport(p: Pipeline, args: JdbcExportArgs, output: String): Unit = {
     require(output != null && output != "", "'output' must be defined")
     val generatedSchema: Schema = createSchema(p, args)
-    saveString(subPath(output, "/_AVRO_SCHEMA.avsc"), generatedSchema.toString(true))
+    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true))
 
     val queries: Iterable[String] = args.buildQueries()
     queries.zipWithIndex.foreach { case (q: String, n: Int) =>
-      saveString(subPath(output, s"/_queries/query_${n}.sql"), q)
+      BeamHelper.saveStringOnSubPath(output, s"/_queries/query_${n}.sql", q)
     }
     log.info(s"Running queries: $queries")
 
