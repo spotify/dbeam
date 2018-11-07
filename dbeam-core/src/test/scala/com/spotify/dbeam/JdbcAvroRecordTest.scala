@@ -18,7 +18,6 @@
 package com.spotify.dbeam
 
 import java.nio.ByteBuffer
-import java.sql.Connection
 import java.util.UUID
 
 import org.apache.avro.Schema
@@ -43,7 +42,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(),
       "coffees", "dbeam_generated",
-      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
+      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false)
 
     actual shouldNot be (null)
     actual.getNamespace should be ("dbeam_generated")
@@ -116,7 +115,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "create schema under specified namespace" in {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc")
+      db.source.createConnection(), "coffees", "ns", "doc", false)
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
@@ -124,7 +123,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "create schema with specified doc string" in {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc")
+      db.source.createConnection(), "coffees", "ns", "doc", false)
 
     actual shouldNot be (null)
     actual.getDoc should be ("doc")
@@ -140,7 +139,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "convert jdbc result set to avro generic record" in {
     val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc")
+    val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
     rs.next()
 
     val mappings = JdbcAvroRecord.computeAllMappings(rs)

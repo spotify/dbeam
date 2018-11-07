@@ -44,7 +44,7 @@ import static java.sql.Types.VARCHAR;
 
 public class JdbcAvroRecord {
 
-  private static final int MAX_DIGITS_BIGINT = 19;
+  static final int MAX_DIGITS_BIGINT = 19;
   private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
 
   public static GenericRecord convertResultSetIntoAvroRecord(
