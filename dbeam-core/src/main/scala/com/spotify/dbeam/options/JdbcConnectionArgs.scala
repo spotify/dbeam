@@ -38,29 +38,6 @@ trait JdbcConnectionArgs {
   }
 }
 
-object JdbcConnectionUtil {
-  private val driverMapping = Map(
-    "postgresql" -> "org.postgresql.Driver",
-    "mysql" -> "com.mysql.jdbc.Driver",
-    "h2" -> "org.h2.Driver"
-  )
-
-  @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
-  def getDriverClass(url: String): String = {
-    val parts: Array[String] = url.split(":", 3)
-    val mappedClass: Option[String] = if (parts(0) == "jdbc") {
-      driverMapping.get(parts(1))
-      .map(Class.forName(_).getCanonicalName)
-    } else {
-      None
-    }
-    mappedClass
-      .getOrElse(
-        throw new IllegalArgumentException(
-          s"Invalid jdbc connection URL: $url. Expect jdbc:postgresql or jdbc:mysql as prefix."))
-  }
-}
-
 trait TableArgs {
   private val validTableName: Regex = "^[a-zA-Z_][a-zA-Z0-9_]*$".r
 
