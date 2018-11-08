@@ -19,8 +19,6 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.spotify.dbeam.options.JdbcExportArgs
 import org.apache.avro.Schema
 import org.apache.beam.sdk.metrics.Metrics
@@ -84,17 +82,6 @@ object JdbcAvroJob {
     )
   }
 
-  def publishMetrics(metrics: Map[String, Long], output: String): Unit = {
-    log.info(s"Metrics: $metrics")
-
-    val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
-    val metricsJson = mapper.writeValueAsString(metrics)
-
-    BeamHelper.saveStringOnSubPath(output, "/_METRICS.json", metricsJson)
-    // for backwards compatibility
-    BeamHelper.saveStringOnSubPath(output, "/_SERVICE_METRICS.json", metricsJson)
-  }
-
   def prepareExport(p: Pipeline, args: JdbcExportArgs, output: String): Unit = {
     require(output != null && output != "", "'output' must be defined")
     val generatedSchema: Schema = createSchema(p, args)
@@ -114,7 +101,7 @@ object JdbcAvroJob {
     val pipeline: Pipeline = Pipeline.create(opts)
     prepareExport(pipeline, args, output)
     val result: PipelineResult = BeamHelper.waitUntilDone(pipeline.run())
-    publishMetrics(MetricsHelper.getMetrics(result), output)
+    BeamHelper.saveMetrics(MetricsHelper.getMetrics(result), output)
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
