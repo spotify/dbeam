@@ -87,7 +87,7 @@ object JdbcExportArgs {
       JdbcConnectionUtil.getDriverClass(exportOptions.getConnectionUrl),
       exportOptions.getConnectionUrl,
       exportOptions.getUsername,
-      PipelineOptionsUtil.readPassword(exportOptions).orNull,
+      PasswordReader.readPassword(exportOptions).orElse(null),
       exportOptions.getTable,
       exportOptions.getAvroSchemaNamespace,
       Option(exportOptions.getLimit).map(_.toInt),
