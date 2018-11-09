@@ -48,6 +48,13 @@ case class JdbcExportArgs(driverClass: String,
   require(avroCodec.matches("snappy|deflate[1-9]"),
     "Avro codec should be snappy or deflate1, .., deflate9")
 
+  val jdbcAvroOptions: JdbcAvroOptions = JdbcAvroOptions.create(
+    JdbcConnectionConfiguration.create(driverClass, connectionUrl)
+      .withUsername(username)
+      .withPassword(password),
+    fetchSize,
+    avroCodec)
+
 }
 
 object JdbcExportArgs {

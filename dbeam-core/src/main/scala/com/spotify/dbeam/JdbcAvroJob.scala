@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcConnectionConfiguration, JdbcExportArgs}
+import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs}
 import org.apache.avro.Schema
 import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
@@ -66,14 +66,8 @@ object JdbcAvroJob {
     * Creates Beam transform to read data from JDBC and save to Avro, in a single step
     */
   def jdbcAvroTransform(output: String,
-                        options: JdbcExportArgs,
+                        jdbcAvroOptions: JdbcAvroOptions,
                         generatedSchema: Schema): PTransform[PCollection[String], _ <: POutput] = {
-    val jdbcAvroOptions = JdbcAvroOptions.create(
-      JdbcConnectionConfiguration.create(options.driverClass, options.connectionUrl)
-        .withUsername(options.username)
-        .withPassword(options.password),
-      options.fetchSize,
-      options.avroCodec)
     JdbcAvroIO.Write.createWrite(
       output,
       ".avro",
@@ -89,12 +83,12 @@ object JdbcAvroJob {
 
     val queries: Iterable[String] = args.buildQueries()
     queries.zipWithIndex.foreach { case (q: String, n: Int) =>
-      BeamHelper.saveStringOnSubPath(output, s"/_queries/query_${n}.sql", q)
+      BeamHelper.saveStringOnSubPath(output, s"/_queries/query_$n.sql", q)
     }
-    log.info(s"Running queries: $queries")
+    log.info("Running queries: {}", queries.toString())
 
     p.apply("JdbcQueries", Create.of(queries.asJava))
-      .apply("JdbcAvroSave", jdbcAvroTransform(output, args, generatedSchema))
+      .apply("JdbcAvroSave", jdbcAvroTransform(output, args.jdbcAvroOptions, generatedSchema))
   }
 
   def runExport(opts: PipelineOptions, args: JdbcExportArgs, output: String): Unit = {
