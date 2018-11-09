@@ -39,9 +39,6 @@ case class JdbcExportArgs(driverClass: String,
                           fetchSize: Int = 10000,
                           avroCodec: String = "deflate6") {
 
-  require(avroCodec.matches("snappy|deflate[1-9]"),
-    "Avro codec should be snappy or deflate1, .., deflate9")
-
   val jdbcAvroOptions: JdbcAvroOptions = JdbcAvroOptions.create(
     JdbcConnectionConfiguration.create(driverClass, connectionUrl)
       .withUsername(username)
@@ -52,7 +49,7 @@ case class JdbcExportArgs(driverClass: String,
   def buildQueries(): Iterable[String] = queryBuilderArgs.buildQueries().asScala
 
   def createConnection(): Connection =
-    jdbcAvroOptions.getJdbcConnectionConfiguration.createConnection
+    jdbcAvroOptions.jdbcConnectionConfiguration.createConnection
 
 }
 
@@ -62,6 +59,15 @@ object JdbcExportArgs {
   def fromPipelineOptions(options: PipelineOptions): JdbcExportArgs = {
     val exportOptions: JdbcExportPipelineOptions = options.as(classOf[JdbcExportPipelineOptions])
     require(exportOptions.getConnectionUrl != null, "'connectionUrl' must be defined")
+
+    val jdbcAvroOptions: JdbcAvroOptions = JdbcAvroOptions.create(
+      JdbcConnectionConfiguration.create(
+        JdbcConnectionUtil.getDriverClass(exportOptions.getConnectionUrl),
+        exportOptions.getConnectionUrl)
+        .withUsername(exportOptions.getUsername)
+        .withPassword(PasswordReader.readPassword(exportOptions).orElse(null)),
+      exportOptions.getFetchSize,
+      exportOptions.getAvroCodec)
 
     JdbcExportArgs(
       JdbcConnectionUtil.getDriverClass(exportOptions.getConnectionUrl),

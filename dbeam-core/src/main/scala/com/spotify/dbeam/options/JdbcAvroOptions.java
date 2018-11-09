@@ -17,6 +17,7 @@
 package com.spotify.dbeam.options;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.base.Preconditions;
 
 import org.apache.avro.file.CodecFactory;
 
@@ -27,20 +28,20 @@ import javax.annotation.Nullable;
 
 @AutoValue
 public abstract class JdbcAvroOptions implements Serializable {
-  public abstract JdbcConnectionConfiguration getJdbcConnectionConfiguration();
-  @Nullable public abstract StatementPreparator getStatementPreparator();
-  public abstract int getFetchSize();
-  public abstract String getAvroCodec();
+  public abstract JdbcConnectionConfiguration jdbcConnectionConfiguration();
+  @Nullable public abstract StatementPreparator statementPreparator();
+  public abstract int fetchSize();
+  public abstract String avroCodec();
 
   abstract Builder builder();
 
   public CodecFactory getCodecFactory() {
-    if (getAvroCodec().equals("snappy")) {
+    if (avroCodec().equals("snappy")) {
       return CodecFactory.snappyCodec();
-    } else if (getAvroCodec().startsWith("deflate")) {
-      return CodecFactory.deflateCodec(Integer.valueOf(getAvroCodec().replace("deflate", "")));
+    } else if (avroCodec().startsWith("deflate")) {
+      return CodecFactory.deflateCodec(Integer.valueOf(avroCodec().replace("deflate", "")));
     }
-    throw new IllegalArgumentException("Invalid avroCodec " + getAvroCodec());
+    throw new IllegalArgumentException("Invalid avroCodec " + avroCodec());
   }
 
   @AutoValue.Builder
@@ -54,6 +55,8 @@ public abstract class JdbcAvroOptions implements Serializable {
 
   public static JdbcAvroOptions create(JdbcConnectionConfiguration jdbcConnectionConfiguration,
                                        int fetchSize, String avroCodec) {
+    Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]"),
+                          "Avro codec should be snappy or deflate1, .., deflate9");
     return new AutoValue_JdbcAvroOptions.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionConfiguration)
         .setFetchSize(fetchSize)

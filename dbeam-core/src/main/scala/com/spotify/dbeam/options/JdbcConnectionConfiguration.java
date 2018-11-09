@@ -30,10 +30,10 @@ import javax.annotation.Nullable;
  */
 @AutoValue
 public abstract class JdbcConnectionConfiguration implements Serializable {
-  abstract String getDriverClassName();
-  abstract String getUrl();
-  @Nullable abstract String getUsername();
-  @Nullable abstract String getPassword();
+  abstract String driverClassName();
+  abstract String url();
+  @Nullable abstract String username();
+  @Nullable abstract String password();
 
   abstract Builder builder();
 
@@ -68,7 +68,7 @@ public abstract class JdbcConnectionConfiguration implements Serializable {
   }
 
   public Connection createConnection() throws Exception {
-    Class.forName(getDriverClassName());
-    return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
+    Class.forName(driverClassName());
+    return DriverManager.getConnection(url(), username(), password());
   }
 }

@@ -169,7 +169,7 @@ public class JdbcAvroIO {
     @Override
     protected void prepareWrite(WritableByteChannel channel) throws Exception {
       logger.info("jdbcavroio : Preparing write...");
-      connection = jdbcAvroOptions.getJdbcConnectionConfiguration().createConnection();
+      connection = jdbcAvroOptions.jdbcConnectionConfiguration().createConnection();
       Void destination = getDestination();
       CodecFactory codec = dynamicDestinations.getCodec(destination);
       Schema schema = dynamicDestinations.getSchema(destination);
@@ -190,9 +190,9 @@ public class JdbcAvroIO {
           query,
           ResultSet.TYPE_FORWARD_ONLY,
           ResultSet.CONCUR_READ_ONLY);
-      statement.setFetchSize(jdbcAvroOptions.getFetchSize());
-      if (jdbcAvroOptions.getStatementPreparator() != null) {
-        jdbcAvroOptions.getStatementPreparator().setParameters(statement);
+      statement.setFetchSize(jdbcAvroOptions.fetchSize());
+      if (jdbcAvroOptions.statementPreparator() != null) {
+        jdbcAvroOptions.statementPreparator().setParameters(statement);
       }
 
       long startTime = System.currentTimeMillis();
