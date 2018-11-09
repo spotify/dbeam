@@ -43,7 +43,7 @@ object PsqlAvroJob {
 
   def validateOptions(args: JdbcExportArgs): JdbcExportArgs = {
     require(args.driverClass.contains("postgres"), "Must be a PostgreSQL connection")
-    require(args.partition.isDefined, "Partition parameter must be defined")
+    require(args.queryBuilderArgs.partition().isPresent, "Partition parameter must be defined")
     args
   }
 
@@ -80,8 +80,8 @@ object PsqlAvroJob {
   @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
   def isReplicationDelayed(jdbcExportArgs: JdbcExportArgs): Boolean = {
     validateOptions(jdbcExportArgs)
-    val partition: DateTime = jdbcExportArgs.partition.get
-    val partitionPeriod: ReadablePeriod = jdbcExportArgs.partitionPeriod
+    val partition: DateTime = jdbcExportArgs.queryBuilderArgs.partition.get
+    val partitionPeriod: ReadablePeriod = jdbcExportArgs.queryBuilderArgs.partitionPeriod
     val lastReplication = queryReplication(jdbcExportArgs.createConnection())
 
     isReplicationDelayed(partition, lastReplication, partitionPeriod)

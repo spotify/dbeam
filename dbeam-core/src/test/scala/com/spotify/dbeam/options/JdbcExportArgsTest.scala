@@ -54,11 +54,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       null,
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      None
+      QueryBuilderArgs.create("some_table")
     ))
   }
   it should "fail to parse invalid table parameter" in {
@@ -111,11 +107,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      None
+      QueryBuilderArgs.create("some_table")
     ))
   }
   it should "parse correctly for mysql connection" in {
@@ -127,11 +119,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:mysql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      None
+      QueryBuilderArgs.create("some_table")
     ))
   }
   it should "configure username" in {
@@ -143,11 +131,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "some_user",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      None
+      QueryBuilderArgs.create("some_table")
     ))
   }
   it should "configure limit" in {
@@ -159,14 +143,11 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      Some(7),
-      None,
-      None
+      QueryBuilderArgs.create("some_table")
+        .builder().setLimit(7).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table LIMIT 7"))
+    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table LIMIT 7"))
   }
   it should "configure partition" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
@@ -177,14 +158,11 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      Some(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC))
+      QueryBuilderArgs.create("some_table")
+        .builder().setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -195,14 +173,11 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      Some(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC))
+      QueryBuilderArgs.create("some_table")
+        .builder().setPartition(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
@@ -213,14 +188,11 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      None,
-      Some(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC))
+      QueryBuilderArgs.create("some_table")
+        .builder().setPartition(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table"))
   }
   it should "configure partition column" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -231,14 +203,13 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      Some("col"),
-      Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
+      QueryBuilderArgs.create("some_table")
+        .builder()
+        .setPartitionColumn("col")
+        .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table " +
+    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table " +
       "WHERE col >= '2027-07-31' AND col < '2027-08-01'"))
   }
   it should "configure partition column and limit" in {
@@ -250,35 +221,34 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      Some(5),
-      Some("col"),
-      Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
+      QueryBuilderArgs.create("some_table")
+        .builder()
+        .setLimit(5)
+        .setPartitionColumn("col")
+        .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table WHERE col >= '2027-07-31'" +
+    actual.buildQueries().toSeq should be (
+      Seq("SELECT * FROM some_table WHERE col >= '2027-07-31'" +
       " AND col < '2027-08-01' LIMIT 5"))
   }
   it should "configure partition column and partition period" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --partition=2027-07-31 " +
       "--partitionColumn=col --partitionPeriod=P1M")
-
     val expected = JdbcExportArgs(
       "org.postgresql.Driver",
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      None,
-      Some("col"),
-      Some(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)),
-      Period.parse("P1M")
+      QueryBuilderArgs.create("some_table")
+        .builder()
+        .setPartitionColumn("col")
+        .setPartitionPeriod(Period.parse("P1M"))
+        .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries() should be (Seq("SELECT * FROM some_table " +
+    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table " +
       "WHERE col >= '2027-07-31' AND col < '2027-08-31'"))
   }
   it should "configure avro schema namespace" in {
@@ -290,11 +260,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "ns",
-      None,
-      None,
-      None
+      QueryBuilderArgs.create("some_table"),
+      "ns"
     ))
   }
   it should "configure avro doc" in {
@@ -306,8 +273,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
+      QueryBuilderArgs.create("some_table"),
       avroDoc=Some("doc")
     ))
   }
@@ -320,8 +286,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
+      QueryBuilderArgs.create("some_table"),
       fetchSize=1234
     ))
   }
@@ -334,8 +299,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
+      QueryBuilderArgs.create("some_table"),
       avroCodec = "deflate7"
     ))
   }
@@ -348,8 +312,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
+      QueryBuilderArgs.create("some_table"),
       avroCodec = "snappy"
     ))
   }

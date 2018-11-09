@@ -17,34 +17,28 @@
 
 package com.spotify.dbeam.options
 
+import java.sql.{Connection, DriverManager}
 import java.util.concurrent.ThreadLocalRandom
 
 import org.apache.beam.sdk.options.{ApplicationNameOptions, PipelineOptions, PipelineOptionsFactory}
+import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.{DateTime, Days, Period, ReadablePeriod}
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 case class JdbcExportArgs(driverClass: String,
                           connectionUrl: String,
                           username: String,
                           password: String,
-                          tableName: String,
-                          avroSchemaNamespace: String,
-                          limit: Option[Int] = None,
-                          partitionColumn: Option[String] = None,
-                          partition: Option[DateTime] = None,
-                          partitionPeriod: ReadablePeriod = Days.ONE,
+                          queryBuilderArgs: QueryBuilderArgs,
+                          avroSchemaNamespace: String = "dbeam_generated",
                           avroDoc: Option[String] = None,
                           useAvroLogicalTypes: Boolean = false,
                           fetchSize: Int = 10000,
-                          avroCodec: String = "deflate6")
-  extends JdbcConnectionArgs with QueryArgs {
+                          avroCodec: String = "deflate6") {
 
-  require(checkTableName(), s"Invalid SQL table name: $tableName")
-  require(partitionColumn.isEmpty || partition.isDefined,
-    "To use --partitionColumn the --partition parameter must also be configured")
   require(avroCodec.matches("snappy|deflate[1-9]"),
     "Avro codec should be snappy or deflate1, .., deflate9")
 
@@ -55,52 +49,29 @@ case class JdbcExportArgs(driverClass: String,
     fetchSize,
     avroCodec)
 
+  def buildQueries(): Iterable[String] = queryBuilderArgs.buildQueries().asScala
+
+  def createConnection(): Connection = {
+    Class.forName(driverClass)
+    DriverManager.getConnection(connectionUrl, username, password)
+  }
+
 }
 
 object JdbcExportArgs {
   val log: Logger = LoggerFactory.getLogger(JdbcExportArgs.getClass)
 
-  private def validatePartition(partitionDateTime: DateTime, minPartitionDateTime: DateTime)
-  : DateTime = {
-    require(partitionDateTime.isAfter(minPartitionDateTime),
-      "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check".format(
-        partitionDateTime, minPartitionDateTime
-      ))
-    partitionDateTime
-  }
-
-  private def parseDateTime(input: String): DateTime =
-    DateTime.parse(input.stripSuffix("Z"), ISODateTimeFormat.localDateOptionalTimeParser)
-
   def fromPipelineOptions(options: PipelineOptions): JdbcExportArgs = {
     val exportOptions: JdbcExportPipelineOptions = options.as(classOf[JdbcExportPipelineOptions])
-    val partitionPeriod: ReadablePeriod = Option(exportOptions.getPartitionPeriod)
-      .map(Period.parse).getOrElse(Days.ONE)
-    val partitionColumn: Option[String] = Option(exportOptions.getPartitionColumn)
-    val skipPartitionCheck: Boolean = exportOptions.isSkipPartitionCheck
-    val partition: Option[DateTime] = Option(exportOptions.getPartition).map(parseDateTime)
-
     require(exportOptions.getConnectionUrl != null, "'connectionUrl' must be defined")
-    require(exportOptions.getTable != null, "'table' must be defined")
-
-    if (!skipPartitionCheck && partitionColumn.isEmpty) {
-      val minPartitionDateTime = Option(exportOptions.getMinPartitionPeriod)
-        .map(parseDateTime)
-        .getOrElse(DateTime.now().minus(partitionPeriod.toPeriod.multipliedBy(2)))
-      partition.map(validatePartition(_, minPartitionDateTime))
-    }
 
     JdbcExportArgs(
       JdbcConnectionUtil.getDriverClass(exportOptions.getConnectionUrl),
       exportOptions.getConnectionUrl,
       exportOptions.getUsername,
       PasswordReader.readPassword(exportOptions).orElse(null),
-      exportOptions.getTable,
+      QueryBuilderArgs.create(exportOptions),
       exportOptions.getAvroSchemaNamespace,
-      Option(exportOptions.getLimit).map(_.toInt),
-      partitionColumn,
-      partition,
-      partitionPeriod,
       Option(exportOptions.getAvroDoc),
       exportOptions.isUseAvroLogicalTypes,
       exportOptions.getFetchSize,
@@ -113,7 +84,7 @@ object JdbcExportArgs {
     Try(options.as(classOf[ApplicationNameOptions])).foreach(_.setAppName("JdbcAvroJob"))
     if (options.getJobName == null) {
       val dbName = args.createConnection().getCatalog.toLowerCase().replaceAll("[^a-z0-9]", "")
-      val tableName = args.tableName.toLowerCase().replaceAll("[^a-z0-9]", "")
+      val tableName = args.queryBuilderArgs.tableName.toLowerCase().replaceAll("[^a-z0-9]", "")
       val randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt())
       options.setJobName(s"dbeam-${dbName}-${tableName}-${randomPart}")
     }

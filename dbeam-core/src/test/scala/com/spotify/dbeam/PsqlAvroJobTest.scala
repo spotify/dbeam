@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.JdbcExportArgs
+import com.spotify.dbeam.options.{JdbcExportArgs, QueryBuilderArgs}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
@@ -40,8 +40,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "jdbc:mysql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated"
+      QueryBuilderArgs.create("some_table")
     )
 
     a[IllegalArgumentException] should be thrownBy {
@@ -55,8 +54,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated"
+      QueryBuilderArgs.create("some_table")
     )
 
     a[IllegalArgumentException] should be thrownBy {
@@ -70,9 +68,9 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "jdbc:postgresql://nonsense",
       "dbeam-extractor",
       "secret",
-      "some_table",
-      "dbeam_generated",
-      partition = Some(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC))
+      QueryBuilderArgs.create("some_table")
+        .builder()
+        .setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
     )
 
     PsqlAvroJob.validateOptions(options)
