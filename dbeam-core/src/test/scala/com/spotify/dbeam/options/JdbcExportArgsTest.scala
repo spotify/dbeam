@@ -17,6 +17,8 @@
 
 package com.spotify.dbeam.options
 
+import java.util.Optional
+
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest._
@@ -29,7 +31,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
     val opts: PipelineOptions =
       PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "):_*).withValidation().create()
-    JdbcExportArgs.fromPipelineOptions(opts)
+    JdbcExportArgsFactory.fromPipelineOptions(opts)
   }
 
   it should "fail parse invalid arguments" in {
@@ -51,13 +53,17 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   it should "parse correctly with missing password parameter" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      null,
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+      ),
       QueryBuilderArgs.create("some_table")
-    ))
+    )
+
+    options should be (expected)
   }
   it should "fail to parse invalid table parameter" in {
     a[IllegalArgumentException] should be thrownBy {
@@ -104,221 +110,227 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table")
-    ))
+    )
+
+    options should be (expected)
   }
   it should "parse correctly for mysql connection" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:mysql://nonsense --table=some_table " +
       "--password=secret")
 
-    options should be (JdbcExportArgs(
-      "com.mysql.jdbc.Driver",
-      "jdbc:mysql://nonsense",
-      "dbeam-extractor",
-      "secret",
+
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "com.mysql.jdbc.Driver",
+          "jdbc:mysql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table")
-    ))
+    )
+    options should be (expected)
   }
   it should "configure username" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
       "--table=some_table --password=secret --username=some_user")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "some_user",
-      "secret",
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("some_user")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table")
-    ))
+    )
+
+    options should be (expected)
   }
   it should "configure limit" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
-      "--table=some_table --password=secret --limit=7")
+      "--table=some_table --password=secret --limit=7").queryBuilderArgs()
 
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+    val expected = QueryBuilderArgs.create("some_table")
         .builder().setLimit(7).build()
-    )
     actual should be (expected)
-    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table LIMIT 7")
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq("SELECT * FROM some_table LIMIT 7")
   }
   it should "configure partition" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
-      "--table=some_table --password=secret --partition=2027-07-31")
+      "--table=some_table --password=secret --partition=2027-07-31").queryBuilderArgs()
 
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+    val expected = QueryBuilderArgs.create("some_table")
         .builder().setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
-    )
     actual should be (expected)
-    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table")
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
-      "--password=secret --partition=2027-07-31T13:37:59Z")
+      "--password=secret --partition=2027-07-31T13:37:59Z").queryBuilderArgs()
 
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+    val expected = QueryBuilderArgs.create("some_table")
         .builder().setPartition(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC)).build()
-    )
     actual should be (expected)
-    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table")
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
-      "--table=some_table --password=secret --partition=2027-05")
+      "--table=some_table --password=secret --partition=2027-05").queryBuilderArgs()
 
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+    val expected = QueryBuilderArgs.create("some_table")
         .builder().setPartition(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC)).build()
-    )
     actual should be (expected)
-    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table")
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition column" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
-      "--password=secret --partition=2027-07-31 --partitionColumn=col")
+      "--password=secret --partition=2027-07-31 --partitionColumn=col").queryBuilderArgs()
 
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+    val expected = QueryBuilderArgs.create("some_table")
         .builder()
         .setPartitionColumn("col")
         .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
-    )
     actual should be (expected)
-
-    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table " +
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq("SELECT * FROM some_table " +
       "WHERE col >= '2027-07-31' AND col < '2027-08-01'")
   }
   it should "configure partition column and limit" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
-      "--password=secret --partition=2027-07-31 --partitionColumn=col --limit=5")
+      "--password=secret --partition=2027-07-31 --partitionColumn=col --limit=5").queryBuilderArgs()
 
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+    val expected = QueryBuilderArgs.create("some_table")
         .builder()
         .setLimit(5)
         .setPartitionColumn("col")
         .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
-    )
     actual should be (expected)
 
-    actual.buildQueries().asScala should contain theSameElementsAs Seq(
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq(
       "SELECT * FROM some_table WHERE col >= '2027-07-31'" +
       " AND col < '2027-08-01' LIMIT 5")
   }
   it should "configure partition column and partition period" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --partition=2027-07-31 " +
-      "--partitionColumn=col --partitionPeriod=P1M")
-    val expected = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table")
+      "--partitionColumn=col --partitionPeriod=P1M").queryBuilderArgs()
+    val expected = QueryBuilderArgs.create("some_table")
         .builder()
         .setPartitionColumn("col")
         .setPartitionPeriod(Period.parse("P1M"))
         .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
-    )
     actual should be (expected)
-    actual.buildQueries().asScala should contain theSameElementsAs Seq(
-    "SELECT * FROM some_table " +
-      "WHERE col >= '2027-07-31' AND col < '2027-08-31'")
+    actual.buildQueries().asScala should
+      contain theSameElementsAs Seq(
+      "SELECT * FROM some_table " +
+        "WHERE col >= '2027-07-31' AND col < '2027-08-31'")
   }
   it should "configure avro schema namespace" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroSchemaNamespace=ns")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table"),
-      "ns"
-    ))
+      "ns",
+      Optional.empty(),
+      false
+    )
+    options should be (expected)
   }
   it should "configure avro doc" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroDoc=doc")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table"),
-      avroDoc=Some("doc")
-    ))
+      "dbeam_generated",
+      Optional.of("doc"),
+      false
+    )
+    options should be (expected)
   }
   it should "configure fetch size" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --fetchSize=1234")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table"),
-      fetchSize=1234
-    ))
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret"),
+        1234,
+        "deflate6"
+      ),
+      QueryBuilderArgs.create("some_table")
+    )
+    options should be (expected)
   }
   it should "configure deflate compression level on avro codec" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroCodec=deflate7")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table"),
-      avroCodec = "deflate7"
-    ))
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret"),
+        10000,
+        "deflate7"
+      ),
+      QueryBuilderArgs.create("some_table")
+    )
+    options should be (expected)
   }
   it should "configure snappy as avro codec" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroCodec=snappy")
 
-    options should be (JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
-      QueryBuilderArgs.create("some_table"),
-      avroCodec = "snappy"
-    ))
+    val expected = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret"),
+        10000,
+        "snappy"
+      ),
+      QueryBuilderArgs.create("some_table")
+    )
+    options should be (expected)
   }
 }

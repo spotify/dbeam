@@ -64,6 +64,10 @@ public abstract class JdbcAvroOptions implements Serializable {
         .build();
   }
 
+  public static JdbcAvroOptions create(JdbcConnectionConfiguration jdbcConnectionConfiguration) {
+    return create(jdbcConnectionConfiguration, 10000, "deflate6");
+  }
+
   public interface StatementPreparator extends Serializable {
     void setParameters(PreparedStatement preparedStatement) throws Exception;
   }

@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.{JdbcExportArgs, OptionsParser}
+import com.spotify.dbeam.options.{JdbcExportArgs, JdbcExportArgsFactory, OptionsParser}
 import org.joda.time.{DateTime, Duration, ReadablePeriod}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -41,7 +41,9 @@ object PsqlAvroJob {
     """
 
   def validateOptions(args: JdbcExportArgs): JdbcExportArgs = {
-    require(args.driverClass.contains("postgres"), "Must be a PostgreSQL connection")
+    require(args.jdbcAvroOptions().jdbcConnectionConfiguration()
+      .driverClassName().contains("postgres"),
+      "Must be a PostgreSQL connection")
     require(args.queryBuilderArgs.partition().isPresent, "Partition parameter must be defined")
     args
   }
@@ -88,7 +90,7 @@ object PsqlAvroJob {
 
   def main(cmdlineArgs: Array[String]): Unit = {
     val opts = OptionsParser.buildPipelineOptions(cmdlineArgs)
-    val jdbcExportArgs = JdbcExportArgs.fromPipelineOptions(opts)
+    val jdbcExportArgs = JdbcExportArgsFactory.fromPipelineOptions(opts)
     val output = OptionsParser.getOutput(opts)
 
     if (isReplicationDelayed(jdbcExportArgs)) {

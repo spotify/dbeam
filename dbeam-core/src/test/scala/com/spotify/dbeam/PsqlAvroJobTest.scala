@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.{JdbcExportArgs, QueryBuilderArgs}
+import com.spotify.dbeam.options._
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
@@ -35,45 +35,54 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "fail with invalid driver" in {
-    val options = JdbcExportArgs(
-      "com.mysql.jdbc.Driver",
-      "jdbc:mysql://nonsense",
-      "dbeam-extractor",
-      "secret",
+    val args = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "com.mysql.jdbc.Driver",
+          "jdbc:mysql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table")
     )
 
     a[IllegalArgumentException] should be thrownBy {
-      PsqlAvroJob.validateOptions(options)
+      PsqlAvroJob.validateOptions(args)
     }
   }
 
   it should "fail with missing partition" in {
-    val options = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
+    val args = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table")
     )
 
     a[IllegalArgumentException] should be thrownBy {
-      PsqlAvroJob.validateOptions(options)
+      PsqlAvroJob.validateOptions(args)
     }
   }
 
   it should "validate" in {
-    val options = JdbcExportArgs(
-      "org.postgresql.Driver",
-      "jdbc:postgresql://nonsense",
-      "dbeam-extractor",
-      "secret",
+    val args = JdbcExportArgs.create(
+      JdbcAvroOptions.create(
+        JdbcConnectionConfiguration.create(
+          "org.postgresql.Driver",
+          "jdbc:postgresql://nonsense"
+        ).withUsername("dbeam-extractor")
+          .withPassword("secret")
+      ),
       QueryBuilderArgs.create("some_table")
         .builder()
         .setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
     )
 
-    PsqlAvroJob.validateOptions(options)
+    PsqlAvroJob.validateOptions(args)
   }
 
   it should "succeed replication state, replicated until end of partition" in {

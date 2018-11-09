@@ -17,7 +17,7 @@
 
 package com.spotify.dbeam
 
-import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs, OptionsParser}
+import com.spotify.dbeam.options._
 import org.apache.avro.Schema
 import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.sdk.transforms.{Create, PTransform}
@@ -49,7 +49,7 @@ object JdbcAvroJob {
     val generatedSchema: Schema = BeamJdbcAvroSchema.createSchema(p, args)
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true))
 
-    val queries: Iterable[String] = args.buildQueries().asScala
+    val queries: Iterable[String] = args.queryBuilderArgs().buildQueries().asScala
     queries.zipWithIndex.foreach { case (q: String, n: Int) =>
       BeamHelper.saveStringOnSubPath(output, s"/_queries/query_$n.sql", q)
     }
@@ -68,6 +68,6 @@ object JdbcAvroJob {
 
   def main(cmdlineArgs: Array[String]): Unit = {
     val opts = OptionsParser.buildPipelineOptions(cmdlineArgs)
-    runExport(opts, JdbcExportArgs.fromPipelineOptions(opts), OptionsParser.getOutput(opts))
+    runExport(opts, JdbcExportArgsFactory.fromPipelineOptions(opts), OptionsParser.getOutput(opts))
   }
 }

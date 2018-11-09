@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collections;
 
 public class BeamJdbcAvroSchema {
@@ -43,7 +42,7 @@ public class BeamJdbcAvroSchema {
     final long startTimeMillis = System.currentTimeMillis();
     try (Connection connection = args.createConnection()) {
       final String dbUrl = connection.getMetaData().getURL();
-      final String avroDoc = args.avroDoc().getOrElse(() ->
+      final String avroDoc = args.avroDoc().orElseGet(() ->
           String.format("Generate schema from JDBC ResultSet from %s %s",
                                              args.queryBuilderArgs().tableName(),
                                              dbUrl));
@@ -51,7 +50,7 @@ public class BeamJdbcAvroSchema {
       generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
           connection, args.queryBuilderArgs().tableName(),
           args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
-    } catch (SQLException e) {
+    } catch (Exception e) {
       throw new IllegalStateException("Could not create schema", e);
     }
     final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;
