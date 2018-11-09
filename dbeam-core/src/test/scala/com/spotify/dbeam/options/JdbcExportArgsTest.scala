@@ -21,6 +21,8 @@ import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest._
 
+import scala.collection.JavaConverters._
+
 class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
@@ -147,7 +149,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .builder().setLimit(7).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table LIMIT 7"))
+    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table LIMIT 7")
   }
   it should "configure partition" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
@@ -162,7 +164,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .builder().setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -177,7 +179,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .builder().setPartition(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
@@ -192,7 +194,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .builder().setPartition(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table"))
+    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition column" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -209,8 +211,9 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table " +
-      "WHERE col >= '2027-07-31' AND col < '2027-08-01'"))
+
+    actual.buildQueries().asScala should contain theSameElementsAs Seq("SELECT * FROM some_table " +
+      "WHERE col >= '2027-07-31' AND col < '2027-08-01'")
   }
   it should "configure partition column and limit" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -228,9 +231,10 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (
-      Seq("SELECT * FROM some_table WHERE col >= '2027-07-31'" +
-      " AND col < '2027-08-01' LIMIT 5"))
+
+    actual.buildQueries().asScala should contain theSameElementsAs Seq(
+      "SELECT * FROM some_table WHERE col >= '2027-07-31'" +
+      " AND col < '2027-08-01' LIMIT 5")
   }
   it should "configure partition column and partition period" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
@@ -248,8 +252,9 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     )
     actual should be (expected)
-    actual.buildQueries().toSeq should be (Seq("SELECT * FROM some_table " +
-      "WHERE col >= '2027-07-31' AND col < '2027-08-31'"))
+    actual.buildQueries().asScala should contain theSameElementsAs Seq(
+    "SELECT * FROM some_table " +
+      "WHERE col >= '2027-07-31' AND col < '2027-08-31'")
   }
   it should "configure avro schema namespace" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +

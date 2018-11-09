@@ -42,7 +42,7 @@ case class JdbcExportArgs(driverClass: String,
     fetchSize,
     avroCodec)
 
-  def buildQueries(): Iterable[String] = queryBuilderArgs.buildQueries().asScala
+  def buildQueries(): java.lang.Iterable[String] = queryBuilderArgs.buildQueries()
 
   def createConnection(): Connection =
     jdbcAvroOptions.jdbcConnectionConfiguration.createConnection

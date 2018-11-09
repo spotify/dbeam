@@ -49,7 +49,7 @@ object JdbcAvroJob {
     val generatedSchema: Schema = BeamJdbcAvroSchema.createSchema(p, args)
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true))
 
-    val queries: Iterable[String] = args.buildQueries()
+    val queries: Iterable[String] = args.buildQueries().asScala
     queries.zipWithIndex.foreach { case (q: String, n: Int) =>
       BeamHelper.saveStringOnSubPath(output, s"/_queries/query_$n.sql", q)
     }
