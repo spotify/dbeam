@@ -17,14 +17,11 @@
 
 package com.spotify.dbeam
 
-import java.sql.Connection
-
-import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs, JobNameConfiguration}
+import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs}
 import org.apache.avro.Schema
-import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
-import org.apache.beam.sdk.transforms.{Create, MapElements, PTransform, SerializableFunction}
-import org.apache.beam.sdk.values.{PCollection, POutput, TypeDescriptors}
+import org.apache.beam.sdk.transforms.{Create, PTransform}
+import org.apache.beam.sdk.values.{PCollection, POutput}
 import org.apache.beam.sdk.{Pipeline, PipelineResult}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -32,40 +29,6 @@ import scala.collection.JavaConverters._
 
 object JdbcAvroJob {
   val log: Logger = LoggerFactory.getLogger(JdbcAvroJob.getClass)
-
-  /**
-    * Generate Avro schema by reading one row
-    * Also save schema to output target and expose time to generate schema as a Beam counter
-    */
-  def createSchema(p: Pipeline, args: JdbcExportArgs): Schema = {
-    val startTimeMillis: Long = System.currentTimeMillis()
-    var connection: Connection = args.createConnection()
-    val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
-      s"${args.queryBuilderArgs.tableName} ${connection.getMetaData.getURL}")
-    val generatedSchema: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      connection, args.queryBuilderArgs.tableName,
-      args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
-    val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
-    log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
-
-    JobNameConfiguration.configureJobName(
-      p.getOptions, connection.getCatalog, args.queryBuilderArgs.tableName());
-    connection.close()
-
-    val cnt = Metrics.counter(this.getClass().getCanonicalName(), "schemaElapsedTimeMs");
-    p.apply("ExposeSchemaCountersSeed",
-      Create.of(Seq(Integer.valueOf(0)).asJava).withType(TypeDescriptors.integers()))
-      .apply("ExposeSchemaCounters",
-        MapElements.into(TypeDescriptors.integers()).via(
-          new SerializableFunction[Integer, Integer]() {
-            override def apply(input: Integer): Integer = {
-              cnt.inc(elapsedTimeSchema)
-              input
-            }
-          }
-        ))
-    generatedSchema
-  }
 
   /**
     * Creates Beam transform to read data from JDBC and save to Avro, in a single step
@@ -83,7 +46,7 @@ object JdbcAvroJob {
 
   def prepareExport(p: Pipeline, args: JdbcExportArgs, output: String): Unit = {
     require(output != null && output != "", "'output' must be defined")
-    val generatedSchema: Schema = createSchema(p, args)
+    val generatedSchema: Schema = BeamJdbcAvroSchema.createSchema(p, args)
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true))
 
     val queries: Iterable[String] = args.buildQueries()
