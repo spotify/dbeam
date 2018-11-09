@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs}
+import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs, JobNameConfiguration}
 import org.apache.avro.Schema
 import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
@@ -39,7 +39,7 @@ object JdbcAvroJob {
     */
   def createSchema(p: Pipeline, args: JdbcExportArgs): Schema = {
     val startTimeMillis: Long = System.currentTimeMillis()
-    val connection: Connection = args.createConnection()
+    var connection: Connection = args.createConnection()
     val avroDoc = args.avroDoc.getOrElse(s"Generate schema from JDBC ResultSet from " +
       s"${args.queryBuilderArgs.tableName} ${connection.getMetaData.getURL}")
     val generatedSchema: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
@@ -47,6 +47,10 @@ object JdbcAvroJob {
       args.avroSchemaNamespace, avroDoc, args.useAvroLogicalTypes)
     val elapsedTimeSchema: Long = System.currentTimeMillis() - startTimeMillis
     log.info(s"Elapsed time to schema ${elapsedTimeSchema / 1000.0} seconds")
+
+    JobNameConfiguration.configureJobName(
+      p.getOptions, connection.getCatalog, args.queryBuilderArgs.tableName());
+    connection.close()
 
     val cnt = Metrics.counter(this.getClass().getCanonicalName(), "schemaElapsedTimeMs");
     p.apply("ExposeSchemaCountersSeed",

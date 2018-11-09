@@ -69,13 +69,7 @@ public class JdbcAvroSchema {
           resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc, useLogicalTypes);
       LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
       return schema;
-    } finally {
-
-      if (connection != null) {
-        connection.close();
-      }
     }
-
   }
 
   public static Schema createAvroSchema(
@@ -97,7 +91,7 @@ public class JdbcAvroSchema {
     return createAvroFields(meta, builder, useLogicalTypes).endRecord();
   }
 
-  public static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
+  private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
       ResultSetMetaData meta, SchemaBuilder.FieldAssembler<Schema> builder, boolean useLogicalTypes)
       throws SQLException {
     for (int i = 1; i <= meta.getColumnCount(); i++) {
@@ -122,7 +116,7 @@ public class JdbcAvroSchema {
     return builder;
   }
 
-  public static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
+  private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
       int columnType, int precision, SchemaBuilder.FieldBuilder<Schema> fieldBuilder, boolean useLogicalTypes) {
 
     final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
