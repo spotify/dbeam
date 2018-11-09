@@ -19,8 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.JdbcExportArgs
-import org.apache.beam.sdk.options.PipelineOptions
+import com.spotify.dbeam.options.{JdbcExportArgs, OptionsParser}
 import org.joda.time.{DateTime, Duration, ReadablePeriod}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -88,8 +87,9 @@ object PsqlAvroJob {
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (opts: PipelineOptions, jdbcExportArgs: JdbcExportArgs, output: String) =
-      JdbcExportArgs.parseOptions(cmdlineArgs)
+    val opts = OptionsParser.buildPipelineOptions(cmdlineArgs)
+    val jdbcExportArgs = JdbcExportArgs.fromPipelineOptions(opts)
+    val output = OptionsParser.getOutput(opts)
 
     if (isReplicationDelayed(jdbcExportArgs)) {
       System.exit(20)

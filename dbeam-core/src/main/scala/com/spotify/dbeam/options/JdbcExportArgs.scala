@@ -19,10 +19,8 @@ package com.spotify.dbeam.options
 
 import java.sql.Connection
 
-import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
+import org.apache.beam.sdk.options.PipelineOptions
 import org.slf4j.{Logger, LoggerFactory}
-
-import scala.collection.JavaConverters._
 
 case class JdbcExportArgs(driverClass: String,
                           connectionUrl: String,
@@ -77,15 +75,6 @@ object JdbcExportArgs {
       exportOptions.getFetchSize,
       exportOptions.getAvroCodec
     )
-  }
-
-  def parseOptions(cmdlineArgs: Array[String]): (PipelineOptions, JdbcExportArgs, String) = {
-    PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
-    PipelineOptionsFactory.register(classOf[OutputOptions])
-    val opts = PipelineOptionsFactory.fromArgs(cmdlineArgs: _*).withValidation().create()
-    (opts,
-      JdbcExportArgs.fromPipelineOptions(opts),
-      opts.as(classOf[OutputOptions]).getOutput)
   }
 
 }

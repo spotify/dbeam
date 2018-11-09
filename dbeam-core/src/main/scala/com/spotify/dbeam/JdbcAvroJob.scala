@@ -17,7 +17,7 @@
 
 package com.spotify.dbeam
 
-import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs}
+import com.spotify.dbeam.options.{JdbcAvroOptions, JdbcExportArgs, OptionsParser}
 import org.apache.avro.Schema
 import org.apache.beam.sdk.options.PipelineOptions
 import org.apache.beam.sdk.transforms.{Create, PTransform}
@@ -67,8 +67,7 @@ object JdbcAvroJob {
   }
 
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (opts: PipelineOptions, jdbcExportArgs: JdbcExportArgs, output: String) =
-      JdbcExportArgs.parseOptions(cmdlineArgs)
-    runExport(opts, jdbcExportArgs, output)
+    val opts = OptionsParser.buildPipelineOptions(cmdlineArgs)
+    runExport(opts, JdbcExportArgs.fromPipelineOptions(opts), OptionsParser.getOutput(opts))
   }
 }
