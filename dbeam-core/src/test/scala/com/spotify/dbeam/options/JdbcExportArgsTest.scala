@@ -245,92 +245,36 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroSchemaNamespace=ns")
 
-    val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table"),
-      "ns",
-      Optional.empty(),
-      false
-    )
-    options should be (expected)
+    options.avroSchemaNamespace() should be ("ns")
   }
   it should "configure avro doc" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroDoc=doc")
 
-    val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table"),
-      "dbeam_generated",
-      Optional.of("doc"),
-      false
-    )
-    options should be (expected)
+    options.avroDoc() should be (Optional.of("doc"))
+  }
+  it should "configure use avro logical types" in {
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      "--password=secret --useAvroLogicalTypes=true")
+
+    options.useAvroLogicalTypes() shouldBe true
   }
   it should "configure fetch size" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --fetchSize=1234")
 
-    val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
-          .withPassword("secret"),
-        1234,
-        "deflate6"
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-    options should be (expected)
+    options.jdbcAvroOptions().fetchSize() should be (1234)
   }
   it should "configure deflate compression level on avro codec" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroCodec=deflate7")
 
-    val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
-          .withPassword("secret"),
-        10000,
-        "deflate7"
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-    options should be (expected)
+    options.jdbcAvroOptions().avroCodec() should be ("deflate7")
   }
   it should "configure snappy as avro codec" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroCodec=snappy")
 
-    val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
-          .withPassword("secret"),
-        10000,
-        "snappy"
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-    options should be (expected)
+    options.jdbcAvroOptions().avroCodec() should be ("snappy")
   }
 }

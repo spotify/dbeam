@@ -52,7 +52,7 @@ public abstract class JdbcExportArgs implements Serializable {
                                       String avroSchemaNamespace,
                                       Optional<String> avroDoc,
                                       Boolean useAvroLogicalTypes) {
-    return new AutoValue_JdbcExportArgs2.Builder()
+    return new AutoValue_JdbcExportArgs.Builder()
         .setJdbcAvroOptions(jdbcAvroOptions)
         .setQueryBuilderArgs(queryBuilderArgs)
         .setAvroSchemaNamespace(avroSchemaNamespace)
