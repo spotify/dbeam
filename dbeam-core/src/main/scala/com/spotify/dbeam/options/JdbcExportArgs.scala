@@ -51,10 +51,8 @@ case class JdbcExportArgs(driverClass: String,
 
   def buildQueries(): Iterable[String] = queryBuilderArgs.buildQueries().asScala
 
-  def createConnection(): Connection = {
-    Class.forName(driverClass)
-    DriverManager.getConnection(connectionUrl, username, password)
-  }
+  def createConnection(): Connection =
+    jdbcAvroOptions.getJdbcConnectionConfiguration.createConnection
 
 }
 

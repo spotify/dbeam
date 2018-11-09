@@ -169,7 +169,7 @@ public class JdbcAvroIO {
     @Override
     protected void prepareWrite(WritableByteChannel channel) throws Exception {
       logger.info("jdbcavroio : Preparing write...");
-      connection = jdbcAvroOptions.getJdbcConnectionConfiguration().getConnection();
+      connection = jdbcAvroOptions.getJdbcConnectionConfiguration().createConnection();
       Void destination = getDestination();
       CodecFactory codec = dynamicDestinations.getCodec(destination);
       Schema schema = dynamicDestinations.getSchema(destination);
