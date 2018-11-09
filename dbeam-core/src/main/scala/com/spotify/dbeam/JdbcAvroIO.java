@@ -17,10 +17,9 @@
 
 package com.spotify.dbeam;
 
-import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 
-import com.spotify.dbeam.options.JdbcConnectionConfiguration;
+import com.spotify.dbeam.options.JdbcAvroOptions;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
@@ -49,17 +48,12 @@ import org.apache.beam.sdk.values.PCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Map;
-
-import javax.annotation.Nullable;
-import javax.sql.DataSource;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -281,47 +275,6 @@ public class JdbcAvroIO {
       }
       logger.info("jdbcavroio : Write finished");
     }
-  }
-
-  @AutoValue
-  public abstract static class JdbcAvroOptions implements Serializable {
-    abstract JdbcConnectionConfiguration getJdbcConnectionConfiguration();
-    @Nullable abstract StatementPreparator getStatementPreparator();
-    abstract int getFetchSize();
-    abstract String getAvroCodec();
-
-    abstract Builder builder();
-
-    public CodecFactory getCodecFactory() {
-      if (getAvroCodec().equals("snappy")) {
-        return CodecFactory.snappyCodec();
-      } else if (getAvroCodec().startsWith("deflate")) {
-        return CodecFactory.deflateCodec(Integer.valueOf(getAvroCodec().replace("deflate", "")));
-      }
-      throw new IllegalArgumentException("Invalid avroCodec " + getAvroCodec());
-    }
-
-    @AutoValue.Builder
-    abstract static class Builder {
-      abstract Builder setJdbcConnectionConfiguration(JdbcConnectionConfiguration jdbcConnectionConfiguration);
-      abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
-      abstract Builder setFetchSize(int fetchSize);
-      abstract Builder setAvroCodec(String avroCodec);
-      abstract JdbcAvroOptions build();
-    }
-
-    public static JdbcAvroOptions create(JdbcConnectionConfiguration jdbcConnectionConfiguration,
-                                         int fetchSize, String avroCodec) {
-      return new AutoValue_JdbcAvroIO_JdbcAvroOptions.Builder()
-          .setJdbcConnectionConfiguration(jdbcConnectionConfiguration)
-          .setFetchSize(fetchSize)
-          .setAvroCodec(avroCodec)
-          .build();
-    }
-  }
-
-  public interface StatementPreparator extends Serializable {
-    void setParameters(PreparedStatement preparedStatement) throws Exception;
   }
 
 }
