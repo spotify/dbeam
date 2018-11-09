@@ -170,3 +170,7 @@ lazy val root = Project(
     }
   )
   .aggregate(dbeamCore, dbeamPack)
+
+
+// runs all build related tasks
+addCommandAlias("verify", "; scalastyle ; test:scalastyle ; coverage ; test ; coverageReport ; coverageAggregate")
