@@ -19,7 +19,7 @@ package com.spotify.dbeam
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options.JdbcExportArgs
+import com.spotify.dbeam.options.{JdbcConnectionConfiguration, JdbcExportArgs}
 import org.apache.avro.Schema
 import org.apache.beam.sdk.metrics.Metrics
 import org.apache.beam.sdk.options.PipelineOptions
@@ -69,7 +69,7 @@ object JdbcAvroJob {
                         options: JdbcExportArgs,
                         generatedSchema: Schema): PTransform[PCollection[String], _ <: POutput] = {
     val jdbcAvroOptions = JdbcAvroIO.JdbcAvroOptions.create(
-      JdbcAvroIO.DataSourceConfiguration.create(options.driverClass, options.connectionUrl)
+      JdbcConnectionConfiguration.create(options.driverClass, options.connectionUrl)
         .withUsername(options.username)
         .withPassword(options.password),
       options.fetchSize,

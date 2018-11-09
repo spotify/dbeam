@@ -20,6 +20,8 @@ package com.spotify.dbeam;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 
+import com.spotify.dbeam.options.JdbcConnectionConfiguration;
+
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -173,7 +175,7 @@ public class JdbcAvroIO {
     @Override
     protected void prepareWrite(WritableByteChannel channel) throws Exception {
       logger.info("jdbcavroio : Preparing write...");
-      connection = jdbcAvroOptions.getDataSourceConfiguration().getConnection();
+      connection = jdbcAvroOptions.getJdbcConnectionConfiguration().getConnection();
       Void destination = getDestination();
       CodecFactory codec = dynamicDestinations.getCodec(destination);
       Schema schema = dynamicDestinations.getSchema(destination);
@@ -283,7 +285,7 @@ public class JdbcAvroIO {
 
   @AutoValue
   public abstract static class JdbcAvroOptions implements Serializable {
-    abstract DataSourceConfiguration getDataSourceConfiguration();
+    abstract JdbcConnectionConfiguration getJdbcConnectionConfiguration();
     @Nullable abstract StatementPreparator getStatementPreparator();
     abstract int getFetchSize();
     abstract String getAvroCodec();
@@ -301,88 +303,20 @@ public class JdbcAvroIO {
 
     @AutoValue.Builder
     abstract static class Builder {
-      abstract Builder setDataSourceConfiguration(DataSourceConfiguration dataSourceConfiguration);
+      abstract Builder setJdbcConnectionConfiguration(JdbcConnectionConfiguration jdbcConnectionConfiguration);
       abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
       abstract Builder setFetchSize(int fetchSize);
       abstract Builder setAvroCodec(String avroCodec);
       abstract JdbcAvroOptions build();
     }
 
-    public static JdbcAvroOptions create(DataSourceConfiguration dataSourceConfiguration,
+    public static JdbcAvroOptions create(JdbcConnectionConfiguration jdbcConnectionConfiguration,
                                          int fetchSize, String avroCodec) {
       return new AutoValue_JdbcAvroIO_JdbcAvroOptions.Builder()
-          .setDataSourceConfiguration(dataSourceConfiguration)
+          .setJdbcConnectionConfiguration(jdbcConnectionConfiguration)
           .setFetchSize(fetchSize)
           .setAvroCodec(avroCodec)
           .build();
-    }
-  }
-
-  /**
-   * A POJO describing a {@link DataSource}, either providing directly a {@link DataSource} or all
-   * properties allowing to create a {@link DataSource}.
-   */
-  @AutoValue
-  public abstract static class DataSourceConfiguration implements Serializable {
-    @Nullable abstract String getDriverClassName();
-    @Nullable abstract String getUrl();
-    @Nullable abstract String getUsername();
-    @Nullable abstract String getPassword();
-    @Nullable abstract DataSource getDataSource();
-
-    abstract Builder builder();
-
-    @AutoValue.Builder
-    abstract static class Builder {
-      abstract Builder setDriverClassName(String driverClassName);
-      abstract Builder setUrl(String url);
-      abstract Builder setUsername(String username);
-      abstract Builder setPassword(String password);
-      abstract Builder setDataSource(DataSource dataSource);
-      abstract DataSourceConfiguration build();
-    }
-
-    public static DataSourceConfiguration create(DataSource dataSource) {
-      checkArgument(dataSource != null,
-          "DataSourceConfiguration.create(dataSource) called with null data source");
-      checkArgument(dataSource instanceof Serializable,
-          "DataSourceConfiguration.create(dataSource) called with "
-              + "a dataSource not Serializable");
-      return new AutoValue_JdbcAvroIO_DataSourceConfiguration.Builder()
-          .setDataSource(dataSource)
-          .build();
-    }
-
-    public static DataSourceConfiguration create(String driverClassName, String url) {
-      checkArgument(driverClassName != null,
-                    "DataSourceConfiguration.create(driverClassName, url) called "
-                        + "with null driverClassName");
-      checkArgument(url != null,
-                    "DataSourceConfiguration.create(driverClassName, url) called "
-                        + "with null url");
-      return new AutoValue_JdbcAvroIO_DataSourceConfiguration.Builder()
-          .setDriverClassName(driverClassName)
-          .setUrl(url)
-          .build();
-    }
-
-    public DataSourceConfiguration withUsername(String username) {
-      return builder().setUsername(username).build();
-    }
-
-    public DataSourceConfiguration withPassword(String password) {
-      return builder().setPassword(password).build();
-    }
-
-    Connection getConnection() throws Exception {
-      if (getDataSource() != null) {
-        return (getUsername() != null)
-               ? getDataSource().getConnection(getUsername(), getPassword())
-               : getDataSource().getConnection();
-      } else {
-        Class.forName(getDriverClassName());
-        return DriverManager.getConnection(getUrl(), getUsername(), getPassword());
-      }
     }
   }
 
