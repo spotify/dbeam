@@ -160,7 +160,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     record.get(7) should be (record1._8)
     record.get(8) should be (record1._9.getTime)
     record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
-    record.get(10) should be (record1._11.toInt)
+    record.get(10) should be (record1._11.map(_.toInt).map(x => x : java.lang.Integer).orNull)
     record.get(11) should be (toByteBuffer(record1._12))
   }
 
