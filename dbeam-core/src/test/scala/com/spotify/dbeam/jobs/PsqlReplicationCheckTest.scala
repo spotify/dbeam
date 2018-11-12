@@ -28,7 +28,7 @@ import slick.jdbc.H2Profile.api._
 
 
 @RunWith(classOf[JUnitRunner])
-class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:testpsql;MODE=postgresql;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
@@ -48,7 +48,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     )
 
     a[IllegalArgumentException] should be thrownBy {
-      PsqlAvroJob.validateOptions(args)
+      PsqlReplicationCheck.validateOptions(args)
     }
   }
 
@@ -63,7 +63,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     )
 
     a[IllegalArgumentException] should be thrownBy {
-      PsqlAvroJob.validateOptions(args)
+      PsqlReplicationCheck.validateOptions(args)
     }
   }
 
@@ -79,7 +79,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         .setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
     )
 
-    PsqlAvroJob.validateOptions(args)
+    PsqlReplicationCheck.validateOptions(args)
   }
 
   it should "succeed replication state, replicated until end of partition" in {
@@ -87,7 +87,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val lastReplication = new DateTime(2027, 8, 1, 0, 0, DateTimeZone.UTC)
     val partitionPeriod = Days.ONE
 
-    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe false
+    PsqlReplicationCheck.isReplicationDelayed(
+      partition, lastReplication, partitionPeriod) shouldBe false
   }
 
   it should "succeed replication state, replicated until the next day" in {
@@ -95,7 +96,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val lastReplication = new DateTime(2027, 8, 2, 0, 0, DateTimeZone.UTC)
     val partitionPeriod = Days.ONE
 
-    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe false
+    PsqlReplicationCheck.isReplicationDelayed(
+      partition, lastReplication, partitionPeriod) shouldBe false
   }
 
 
@@ -104,7 +106,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val lastReplication = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)
     val partitionPeriod = Days.ONE
 
-    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe true
+    PsqlReplicationCheck.isReplicationDelayed(
+      partition, lastReplication, partitionPeriod) shouldBe true
   }
 
   it should "fail on delayed replication, last replicated before partition start" in {
@@ -112,7 +115,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val lastReplication = new DateTime(2027, 7, 30, 22, 0, DateTimeZone.UTC)
     val partitionPeriod = Days.ONE
 
-    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe true
+    PsqlReplicationCheck.isReplicationDelayed(
+      partition, lastReplication, partitionPeriod) shouldBe true
   }
 
   it should "fail on delayed replication, last replicated inside the partition" in {
@@ -120,7 +124,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val lastReplication = new DateTime(2027, 7, 31, 23, 59, 59, DateTimeZone.UTC)
     val partitionPeriod = Days.ONE
 
-    PsqlAvroJob.isReplicationDelayed(partition, lastReplication, partitionPeriod) shouldBe true
+    PsqlReplicationCheck.isReplicationDelayed(
+      partition, lastReplication, partitionPeriod) shouldBe true
   }
 
   it should "run query" in {
@@ -128,21 +133,21 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
       " AS last_replication, " +
       "13 AS replication_delay"
-    val job = new PsqlAvroJob(
-      OptionsParser.buildPipelineOptions(Array(
-      "--partition=2025-02-28",
-        "--connectionUrl=" + connectionUrl,
-        "--username=",
-        "--table=coffees",
-        "--output=/tmp/foo")),
+    val replicationCheck = new PsqlReplicationCheck(
+      JdbcExportArgs.create(
+        JdbcAvroArgs.create(
+          JdbcConnectionArgs.create(connectionUrl)),
+        QueryBuilderArgs.create("coffees").builder()
+          .setPartition(DateTime.parse("2025-02-28T00:00:00"))
+          .build()),
       query
     )
     val lastReplication = new DateTime(2017, 2, 1, 23, 58, 57, DateTimeZone.UTC)
 
-    val actual = job.queryReplication()
+    val actual = replicationCheck.queryReplication()
 
     new DateTime(actual, DateTimeZone.UTC) should be (lastReplication)
-    job.isReplicationDelayed shouldBe true
+    replicationCheck.isReplicationDelayed shouldBe true
   }
 
 }
