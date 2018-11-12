@@ -23,11 +23,14 @@ import java.util.UUID
 import com.spotify.dbeam.JdbcTestFixtures
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
+import org.junit.runner.RunWith
 import org.scalatest._
+import org.scalatest.junit.JUnitRunner
 import slick.jdbc.H2Profile.api._
 
 import scala.collection.JavaConverters._
 
+@RunWith(classOf[JUnitRunner])
 class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"

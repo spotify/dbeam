@@ -32,11 +32,15 @@ import org.apache.beam.sdk.io.AvroSource
 import org.apache.beam.sdk.metrics.MetricResults
 import org.apache.beam.sdk.testing.SourceTestUtils
 import org.joda.time.Duration
+import org.junit.runner.RunWith
 import org.scalatest._
+import org.scalatest.junit.JUnitRunner
 import slick.jdbc.H2Profile.api._
 
 import scala.collection.JavaConverters._
 
+
+@RunWith(classOf[JUnitRunner])
 class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"

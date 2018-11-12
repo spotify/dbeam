@@ -23,10 +23,13 @@ import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptio
 import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
+import org.junit.runner.RunWith
 import org.scalatest._
+import org.scalatest.junit.JUnitRunner
 
 import scala.collection.JavaConverters._
 
+@RunWith(classOf[JUnitRunner])
 class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {

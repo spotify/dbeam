@@ -17,17 +17,17 @@
 
 package com.spotify.dbeam.jobs
 
-import java.sql.Connection
-
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.args.{JdbcAvroArgs, JdbcConnectionArgs, JdbcExportArgs, QueryBuilderArgs}
 import com.spotify.dbeam.options.OptionsParser
-import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Days}
+import org.junit.runner.RunWith
 import org.scalatest._
+import org.scalatest.junit.JUnitRunner
 import slick.jdbc.H2Profile.api._
 
 
+@RunWith(classOf[JUnitRunner])
 class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:testpsql;MODE=postgresql;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
