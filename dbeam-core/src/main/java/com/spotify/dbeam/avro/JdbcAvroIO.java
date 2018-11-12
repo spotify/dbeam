@@ -165,7 +165,7 @@ public class JdbcAvroIO {
           .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       dataFileWriter.create(schema, Channels.newOutputStream(channel));
-      this.metering = new JdbcAvroMetering();
+      this.metering = JdbcAvroMetering.create();
       logger.info("jdbcavroio : Write prepared");
     }
 
