@@ -106,7 +106,6 @@ public class JdbcAvroIO {
     }
   }
 
-
   private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<Void, String> {
 
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
@@ -204,6 +203,7 @@ public class JdbcAvroIO {
           this.dataFileWriter.append(genericRecord);
           this.metering.incrementRecordCount();
         }
+        this.dataFileWriter.sync();
         this.metering.finishIterate();
       }
     }
