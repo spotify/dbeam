@@ -47,18 +47,32 @@ public class JdbcAvroJob {
 
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroJob.class);
 
+  private final PipelineOptions pipelineOptions;
   private final Pipeline pipeline;
   private final JdbcExportArgs jdbcExportArgs;
   private final String output;
-  private final PipelineOptions pipelineOptions;
 
-  public JdbcAvroJob(PipelineOptions pipelineOptions) throws IOException, ClassNotFoundException {
+  public JdbcAvroJob(PipelineOptions pipelineOptions, Pipeline pipeline,
+                     JdbcExportArgs jdbcExportArgs, String output) {
     this.pipelineOptions = pipelineOptions;
-    this.pipeline = Pipeline.create(pipelineOptions);
-    this.jdbcExportArgs = JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions);
-    this.output =  OptionsParser.getOutput(pipelineOptions);
+    this.pipeline = pipeline;
+    this.jdbcExportArgs = jdbcExportArgs;
+    this.output = output;
     Preconditions.checkArgument(this.output != null && this.output.length() > 0,
                                 "'output' must be defined");
+  }
+
+  public static JdbcAvroJob create(PipelineOptions pipelineOptions)
+      throws IOException, ClassNotFoundException {
+    return new JdbcAvroJob(pipelineOptions,
+                           Pipeline.create(pipelineOptions),
+                           JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
+                           OptionsParser.getOutput(pipelineOptions));
+  }
+
+  public static JdbcAvroJob create(String[] cmdLineArgs)
+      throws IOException, ClassNotFoundException {
+    return create(OptionsParser.buildPipelineOptions(cmdLineArgs));
   }
 
   public void prepareExport() throws Exception {
@@ -111,9 +125,12 @@ public class JdbcAvroJob {
     return pipelineResult;
   }
 
-  public static void main(String[] cmdLineArgs) throws Exception {
-    final PipelineOptions pipelineOptions = OptionsParser.buildPipelineOptions(cmdLineArgs);
-    new JdbcAvroJob(pipelineOptions).runExport();
+  public static void main(String[] cmdLineArgs) {
+    try {
+      JdbcAvroJob.create(cmdLineArgs).runExport();
+    } catch (Exception e) {
+      ExceptionHandling.handleException(e);
+    }
   }
 
 }

@@ -105,4 +105,8 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     } should have message "java.lang.Exception: Job finished with state FAILED"
   }
 
+  "JdbcAvroJob" should "have a default exit code" in {
+    ExceptionHandling.exitCode(new IllegalStateException()) should be (49)
+  }
+
 }

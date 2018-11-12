@@ -148,6 +148,9 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
 
     new DateTime(actual, DateTimeZone.UTC) should be (lastReplication)
     replicationCheck.isReplicationDelayed shouldBe true
+    a[NotReadyException] should be thrownBy {
+      replicationCheck.checkReplication() shouldBe true
+    }
   }
 
 }

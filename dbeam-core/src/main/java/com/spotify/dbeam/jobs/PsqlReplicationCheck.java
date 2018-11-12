@@ -24,15 +24,15 @@ import com.google.api.client.util.Preconditions;
 
 import com.spotify.dbeam.args.JdbcExportArgs;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.ReadablePeriod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class PsqlReplicationCheck {
   private static final Logger LOGGER = LoggerFactory.getLogger(PsqlReplicationCheck.class);
@@ -64,7 +64,13 @@ public class PsqlReplicationCheck {
         "Partition parameter must be defined");
   }
 
-  boolean isReplicationDelayed() throws Exception {
+  public void checkReplication() throws Exception {
+    if (isReplicationDelayed()) {
+      throw new NotReadyException("PostgreSQL replication is late");
+    }
+  }
+
+  public boolean isReplicationDelayed() throws Exception {
     return isReplicationDelayed(
         this.jdbcExportArgs.queryBuilderArgs().partition().get(),
         queryReplication(),
