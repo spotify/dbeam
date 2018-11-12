@@ -19,6 +19,7 @@ package com.spotify.dbeam.options
 
 import java.util.Optional
 
+import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.scalatest._
@@ -33,7 +34,17 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "):_*).withValidation().create()
     JdbcExportArgsFactory.fromPipelineOptions(opts)
   }
-
+  it should "fail on missing table name" in {
+    a[IllegalArgumentException] should be thrownBy {
+      val tableName: String = null
+      QueryBuilderArgs.create(tableName)
+    }
+  }
+  it should "fail on invalid table name" in {
+    a[IllegalArgumentException] should be thrownBy {
+      QueryBuilderArgs.create("*invalid#name@!")
+    }
+  }
   it should "fail parse invalid arguments" in {
     a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("")
@@ -270,11 +281,21 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "--password=secret --avroCodec=deflate7")
 
     options.jdbcAvroOptions().avroCodec() should be ("deflate7")
+    options.jdbcAvroOptions().getCodecFactory.toString should
+      be (CodecFactory.deflateCodec(7).toString)
   }
   it should "configure snappy as avro codec" in {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
       "--password=secret --avroCodec=snappy")
 
     options.jdbcAvroOptions().avroCodec() should be ("snappy")
+    options.jdbcAvroOptions().getCodecFactory.toString should
+      be (CodecFactory.snappyCodec().toString)
+  }
+  it should "fail on invalid avro codec" in {
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+        "--table=some_table --password=secret --avroCodec=lzma")
+    }
   }
 }

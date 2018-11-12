@@ -35,7 +35,6 @@ public abstract class JdbcExportArgs implements Serializable {
     abstract Builder setJdbcAvroOptions(JdbcAvroOptions jdbcAvroOptions);
     abstract Builder setQueryBuilderArgs(QueryBuilderArgs queryBuilderArgs);
     abstract Builder setAvroSchemaNamespace(String avroSchemaNamespace);
-    abstract Builder setAvroDoc(String avroDoc);
     abstract Builder setAvroDoc(Optional<String> avroDoc);
     abstract Builder setUseAvroLogicalTypes(Boolean useAvroLogicalTypes);
     abstract JdbcExportArgs build();

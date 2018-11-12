@@ -185,7 +185,6 @@ public class JdbcAvroIO {
     private ResultSet executeQuery(String query) throws Exception {
       checkArgument(connection != null,
                     "JDBC connection was not properly created");
-      connection.setAutoCommit(false);
       PreparedStatement statement = connection.prepareStatement(
           query,
           ResultSet.TYPE_FORWARD_ONLY,

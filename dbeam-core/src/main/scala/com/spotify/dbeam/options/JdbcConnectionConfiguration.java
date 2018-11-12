@@ -69,6 +69,8 @@ public abstract class JdbcConnectionConfiguration implements Serializable {
 
   public Connection createConnection() throws Exception {
     Class.forName(driverClassName());
-    return DriverManager.getConnection(url(), username(), password());
+    Connection connection = DriverManager.getConnection(url(), username(), password());
+    connection.setAutoCommit(false);
+    return connection;
   }
 }
