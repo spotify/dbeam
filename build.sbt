@@ -173,4 +173,4 @@ lazy val root = Project(
 
 
 // runs all build related tasks
-addCommandAlias("verify", "; scalastyle ; test:scalastyle ; coverage ; test ; coverageReport ; coverageAggregate")
+addCommandAlias("verify", "; scalastyle ; test:scalastyle ; jacoco")
