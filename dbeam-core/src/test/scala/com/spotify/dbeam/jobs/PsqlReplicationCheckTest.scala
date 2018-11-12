@@ -128,7 +128,7 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
       partition, lastReplication, partitionPeriod) shouldBe true
   }
 
-  it should "run query" in {
+  it should "run query and return replication delayed" in {
     val query = "SELECT " +
       "parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
       " AS last_replication, " +
@@ -148,6 +148,34 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
 
     new DateTime(actual, DateTimeZone.UTC) should be (lastReplication)
     replicationCheck.isReplicationDelayed shouldBe true
+    a[NotReadyException] should be thrownBy {
+      replicationCheck.checkReplication()
+    }
+  }
+
+  it should "run query and return replication not delayed" in {
+    val query = "SELECT " +
+      "parsedatetime('2030-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
+      " AS last_replication, " +
+      "13 AS replication_delay"
+    val replicationCheck = new PsqlReplicationCheck(
+      JdbcExportArgs.create(
+        JdbcAvroArgs.create(
+          JdbcConnectionArgs.create(connectionUrl)),
+        QueryBuilderArgs.create("coffees").builder()
+          .setPartition(DateTime.parse("2025-02-28T00:00:00"))
+          .build()),
+      query
+    )
+    val lastReplication = new DateTime(2030, 2, 1, 23, 58, 57, DateTimeZone.UTC)
+
+    val actual = replicationCheck.queryReplication()
+
+    new DateTime(actual, DateTimeZone.UTC) should be (lastReplication)
+    replicationCheck.isReplicationDelayed shouldBe false
+    noException should be thrownBy {
+      replicationCheck.checkReplication()
+    }
   }
 
 }

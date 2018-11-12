@@ -20,17 +20,10 @@
 
 package com.spotify.dbeam.jobs;
 
-public class PsqlAvroJob {
+public class NotReadyException extends Exception {
 
-  public static void main(String[] cmdLineArgs) {
-    try {
-      JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
-      PsqlReplicationCheck.validateOptions(job.getJdbcExportArgs());
-      PsqlReplicationCheck.create(job.getJdbcExportArgs()).checkReplication();
-      job.runExport();
-    } catch (Exception e) {
-      ExceptionHandling.handleException(e);
-    }
+  public NotReadyException(String message) {
+    super(message);
   }
 
 }
