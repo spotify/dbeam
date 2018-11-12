@@ -46,13 +46,12 @@ public abstract class JdbcConnectionConfiguration implements Serializable {
     abstract JdbcConnectionConfiguration build();
   }
 
-  public static JdbcConnectionConfiguration create(String driverClassName, String url) {
-    Preconditions.checkArgument(driverClassName != null,
-                  "DataSourceConfiguration.create(driverClassName, url) called "
-                  + "with null driverClassName");
+  public static JdbcConnectionConfiguration create(String url)
+      throws ClassNotFoundException {
     Preconditions.checkArgument(url != null,
                   "DataSourceConfiguration.create(driverClassName, url) called "
                   + "with null url");
+    final String driverClassName = JdbcConnectionUtil.getDriverClass(url);
     return new AutoValue_JdbcConnectionConfiguration.Builder()
         .setDriverClassName(driverClassName)
         .setUrl(url)

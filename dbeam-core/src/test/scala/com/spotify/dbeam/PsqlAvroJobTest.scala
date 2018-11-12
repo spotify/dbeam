@@ -37,10 +37,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "fail with invalid driver" in {
     val args = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "com.mysql.jdbc.Driver",
-          "jdbc:mysql://nonsense"
-        ).withUsername("dbeam-extractor")
+        JdbcConnectionConfiguration.create("jdbc:mysql://some_db")
+          .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
       QueryBuilderArgs.create("some_table")
@@ -54,10 +52,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "fail with missing partition" in {
     val args = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
+        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+          .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
       QueryBuilderArgs.create("some_table")
@@ -71,10 +67,8 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "validate" in {
     val args = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
+        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+          .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
       QueryBuilderArgs.create("some_table")

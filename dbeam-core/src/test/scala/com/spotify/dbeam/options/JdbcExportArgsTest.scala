@@ -58,18 +58,16 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail to parse with missing table parameter" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense")
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db")
     }
   }
   it should "parse correctly with missing password parameter" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table")
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table")
 
     val expected = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
+        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+          .withUsername("dbeam-extractor")
       ),
       QueryBuilderArgs.create("some_table")
     )
@@ -78,7 +76,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail to parse invalid table parameter" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some-table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some-table " +
         "--password=secret")
     }
   }
@@ -95,38 +93,36 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail to parse missing partition parameter but partition column present" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
         "--password=secret --partitionColumn=col")
     }
   }
   it should "fail on too old partition parameter" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
         "--password=secret --partition=2015-01-01")
     }
   }
   it should "fail on old partition parameter with configured partition = min-partition-period" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
         "--password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-01")
     }
   }
   it should "fail on old partition parameter with configured partition < min-partition-period" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
         "--password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-02")
     }
   }
   it should "parse correctly for postgresql connection" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret")
 
     val expected = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("dbeam-extractor")
+        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+          .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
       QueryBuilderArgs.create("some_table")
@@ -135,16 +131,14 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     options should be (expected)
   }
   it should "parse correctly for mysql connection" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:mysql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:mysql://some_db --table=some_table " +
       "--password=secret")
 
 
     val expected = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "com.mysql.jdbc.Driver",
-          "jdbc:mysql://nonsense"
-        ).withUsername("dbeam-extractor")
+        JdbcConnectionConfiguration.create("jdbc:mysql://some_db")
+          .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
       QueryBuilderArgs.create("some_table")
@@ -152,15 +146,13 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     options should be (expected)
   }
   it should "configure username" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --password=secret --username=some_user")
 
     val expected = JdbcExportArgs.create(
       JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-          "org.postgresql.Driver",
-          "jdbc:postgresql://nonsense"
-        ).withUsername("some_user")
+        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+          .withUsername("some_user")
           .withPassword("secret")
       ),
       QueryBuilderArgs.create("some_table")
@@ -169,7 +161,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     options should be (expected)
   }
   it should "configure limit" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --password=secret --limit=7").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
@@ -179,7 +171,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq("SELECT * FROM some_table LIMIT 7")
   }
   it should "configure partition" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --password=secret --partition=2027-07-31").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
@@ -189,7 +181,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --partition=2027-07-31T13:37:59Z").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
@@ -199,7 +191,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --password=secret --partition=2027-05").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
@@ -209,7 +201,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq("SELECT * FROM some_table")
   }
   it should "configure partition column" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --partition=2027-07-31 --partitionColumn=col").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
@@ -222,7 +214,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "WHERE col >= '2027-07-31' AND col < '2027-08-01'")
   }
   it should "configure partition column and limit" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --partition=2027-07-31 --partitionColumn=col --limit=5").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
@@ -238,7 +230,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       " AND col < '2027-08-01' LIMIT 5")
   }
   it should "configure partition column and partition period" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --partition=2027-07-31 " +
       "--partitionColumn=col --partitionPeriod=P1M").queryBuilderArgs()
     val expected = QueryBuilderArgs.create("some_table")
@@ -253,31 +245,31 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         "WHERE col >= '2027-07-31' AND col < '2027-08-31'")
   }
   it should "configure avro schema namespace" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --avroSchemaNamespace=ns")
 
     options.avroSchemaNamespace() should be ("ns")
   }
   it should "configure avro doc" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --avroDoc=doc")
 
     options.avroDoc() should be (Optional.of("doc"))
   }
   it should "configure use avro logical types" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --useAvroLogicalTypes=true")
 
     options.useAvroLogicalTypes() shouldBe true
   }
   it should "configure fetch size" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --fetchSize=1234")
 
     options.jdbcAvroOptions().fetchSize() should be (1234)
   }
   it should "configure deflate compression level on avro codec" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --avroCodec=deflate7")
 
     options.jdbcAvroOptions().avroCodec() should be ("deflate7")
@@ -285,7 +277,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       be (CodecFactory.deflateCodec(7).toString)
   }
   it should "configure snappy as avro codec" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense --table=some_table " +
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --avroCodec=snappy")
 
     options.jdbcAvroOptions().avroCodec() should be ("snappy")
@@ -294,7 +286,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail on invalid avro codec" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://nonsense " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
         "--table=some_table --password=secret --avroCodec=lzma")
     }
   }

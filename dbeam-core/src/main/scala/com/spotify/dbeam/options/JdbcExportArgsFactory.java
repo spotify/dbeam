@@ -32,9 +32,7 @@ public class JdbcExportArgsFactory {
                                 "'connectionUrl' must be defined");
 
     final JdbcAvroOptions jdbcAvroOptions = JdbcAvroOptions.create(
-        JdbcConnectionConfiguration.create(
-            JdbcConnectionUtil.getDriverClass(exportOptions.getConnectionUrl()),
-            exportOptions.getConnectionUrl())
+        JdbcConnectionConfiguration.create(exportOptions.getConnectionUrl())
             .withUsername(exportOptions.getUsername())
             .withPassword(PasswordReader.readPassword(exportOptions).orElse(null)),
         exportOptions.getFetchSize(),
