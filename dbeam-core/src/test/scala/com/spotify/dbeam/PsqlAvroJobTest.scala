@@ -36,7 +36,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "fail with invalid driver" in {
     val args = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:mysql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
@@ -51,7 +51,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "fail with missing partition" in {
     val args = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
@@ -66,7 +66,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "validate" in {
     val args = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")

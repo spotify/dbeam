@@ -19,7 +19,7 @@ package com.spotify.dbeam;
 
 import com.google.common.collect.ImmutableMap;
 
-import com.spotify.dbeam.options.JdbcAvroOptions;
+import com.spotify.dbeam.options.JdbcAvroArgs;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
@@ -65,7 +65,7 @@ public class JdbcAvroIO {
 
     public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
         String filenamePrefix, String filenameSuffix, Schema schema,
-        JdbcAvroOptions jdbcAvroOptions) {
+        JdbcAvroArgs jdbcAvroArgs) {
       filenamePrefix = filenamePrefix.replaceAll("/+$", "") + "/part";
       ValueProvider<ResourceId> prefixProvider =
           StaticValueProvider.of(FileBasedSink.convertToFileResourceIfPossible(filenamePrefix));
@@ -79,12 +79,12 @@ public class JdbcAvroIO {
       final DynamicAvroDestinations<String, Void, String>
           destinations =
           AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                      jdbcAvroOptions.getCodecFactory(),
+                                      jdbcAvroArgs.getCodecFactory(),
                                       SerializableFunctions.identity());
       final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
           prefixProvider,
           destinations,
-          jdbcAvroOptions);
+          jdbcAvroArgs);
       return WriteFiles.to(sink);
     }
 
@@ -93,19 +93,19 @@ public class JdbcAvroIO {
   static class JdbcAvroSink<UserT> extends FileBasedSink<UserT, Void, String> {
 
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
-    private final JdbcAvroOptions jdbcAvroOptions;
+    private final JdbcAvroArgs jdbcAvroArgs;
 
     JdbcAvroSink(ValueProvider<ResourceId> filenamePrefix,
                             DynamicAvroDestinations<UserT, Void, String> dynamicDestinations,
-                            JdbcAvroOptions jdbcAvroOptions) {
+                            JdbcAvroArgs jdbcAvroArgs) {
       super(filenamePrefix, dynamicDestinations, Compression.UNCOMPRESSED);
       this.dynamicDestinations = dynamicDestinations;
-      this.jdbcAvroOptions = jdbcAvroOptions;
+      this.jdbcAvroArgs = jdbcAvroArgs;
     }
 
     @Override
     public WriteOperation<Void, String> createWriteOperation() {
-      return new JdbcAvroWriteOperation(this, dynamicDestinations, jdbcAvroOptions);
+      return new JdbcAvroWriteOperation(this, dynamicDestinations, jdbcAvroArgs);
     }
   }
 
@@ -113,20 +113,20 @@ public class JdbcAvroIO {
   private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<Void, String> {
 
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
-    private final JdbcAvroOptions jdbcAvroOptions;
+    private final JdbcAvroArgs jdbcAvroArgs;
 
     private JdbcAvroWriteOperation(FileBasedSink<?, Void, String> sink,
                                    DynamicAvroDestinations<?, Void, String> dynamicDestinations,
-                                   JdbcAvroOptions jdbcAvroOptions) {
+                                   JdbcAvroArgs jdbcAvroArgs) {
 
       super(sink);
       this.dynamicDestinations = dynamicDestinations;
-      this.jdbcAvroOptions = jdbcAvroOptions;
+      this.jdbcAvroArgs = jdbcAvroArgs;
     }
 
     @Override
     public FileBasedSink.Writer<Void, String> createWriter() {
-      return new JdbcAvroWriter(this, dynamicDestinations, jdbcAvroOptions);
+      return new JdbcAvroWriter(this, dynamicDestinations, jdbcAvroArgs);
     }
   }
 
@@ -135,7 +135,7 @@ public class JdbcAvroIO {
     private static final int LOG_EVERY = 100000;
     private final Logger logger = LoggerFactory.getLogger(JdbcAvroWriter.class);
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
-    private final JdbcAvroOptions jdbcAvroOptions;
+    private final JdbcAvroArgs jdbcAvroArgs;
     private final int syncInterval;
     private DataFileWriter<GenericRecord> dataFileWriter;
     private Connection connection;
@@ -154,10 +154,10 @@ public class JdbcAvroIO {
 
     JdbcAvroWriter(FileBasedSink.WriteOperation<Void, String> writeOperation,
                           DynamicAvroDestinations<?, Void, String> dynamicDestinations,
-                          JdbcAvroOptions jdbcAvroOptions) {
+                          JdbcAvroArgs jdbcAvroArgs) {
       super(writeOperation, MimeTypes.BINARY);
       this.dynamicDestinations = dynamicDestinations;
-      this.jdbcAvroOptions = jdbcAvroOptions;
+      this.jdbcAvroArgs = jdbcAvroArgs;
       this.syncInterval = DataFileConstants.DEFAULT_SYNC_INTERVAL * 16; // 1 MB
     }
 
@@ -169,7 +169,7 @@ public class JdbcAvroIO {
     @Override
     protected void prepareWrite(WritableByteChannel channel) throws Exception {
       logger.info("jdbcavroio : Preparing write...");
-      connection = jdbcAvroOptions.jdbcConnectionConfiguration().createConnection();
+      connection = jdbcAvroArgs.jdbcConnectionConfiguration().createConnection();
       Void destination = getDestination();
       CodecFactory codec = dynamicDestinations.getCodec(destination);
       Schema schema = dynamicDestinations.getSchema(destination);
@@ -189,9 +189,9 @@ public class JdbcAvroIO {
           query,
           ResultSet.TYPE_FORWARD_ONLY,
           ResultSet.CONCUR_READ_ONLY);
-      statement.setFetchSize(jdbcAvroOptions.fetchSize());
-      if (jdbcAvroOptions.statementPreparator() != null) {
-        jdbcAvroOptions.statementPreparator().setParameters(statement);
+      statement.setFetchSize(jdbcAvroArgs.fetchSize());
+      if (jdbcAvroArgs.statementPreparator() != null) {
+        jdbcAvroArgs.statementPreparator().setParameters(statement);
       }
 
       long startTime = System.currentTimeMillis();

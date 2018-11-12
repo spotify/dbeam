@@ -31,7 +31,7 @@ public class JdbcExportArgsFactory {
     Preconditions.checkArgument(exportOptions.getConnectionUrl() != null,
                                 "'connectionUrl' must be defined");
 
-    final JdbcAvroOptions jdbcAvroOptions = JdbcAvroOptions.create(
+    final JdbcAvroArgs jdbcAvroArgs = JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create(exportOptions.getConnectionUrl())
             .withUsername(exportOptions.getUsername())
             .withPassword(PasswordReader.readPassword(exportOptions).orElse(null)),
@@ -39,7 +39,7 @@ public class JdbcExportArgsFactory {
         exportOptions.getAvroCodec());
 
     return JdbcExportArgs.create(
-        jdbcAvroOptions,
+        jdbcAvroArgs,
         QueryBuilderArgs.create(exportOptions),
         exportOptions.getAvroSchemaNamespace(),
         Optional.ofNullable(exportOptions.getAvroDoc()),

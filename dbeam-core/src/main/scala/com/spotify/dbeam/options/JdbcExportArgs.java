@@ -24,7 +24,7 @@ import java.util.Optional;
 
 @AutoValue
 public abstract class JdbcExportArgs implements Serializable {
-  public abstract JdbcAvroOptions jdbcAvroOptions();
+  public abstract JdbcAvroArgs jdbcAvroOptions();
   public abstract QueryBuilderArgs queryBuilderArgs();
   public abstract String avroSchemaNamespace();
   public abstract Optional<String> avroDoc();
@@ -32,7 +32,7 @@ public abstract class JdbcExportArgs implements Serializable {
 
   @AutoValue.Builder
   abstract static class Builder {
-    abstract Builder setJdbcAvroOptions(JdbcAvroOptions jdbcAvroOptions);
+    abstract Builder setJdbcAvroOptions(JdbcAvroArgs jdbcAvroArgs);
     abstract Builder setQueryBuilderArgs(QueryBuilderArgs queryBuilderArgs);
     abstract Builder setAvroSchemaNamespace(String avroSchemaNamespace);
     abstract Builder setAvroDoc(Optional<String> avroDoc);
@@ -40,19 +40,19 @@ public abstract class JdbcExportArgs implements Serializable {
     abstract JdbcExportArgs build();
   }
 
-  public static JdbcExportArgs create(JdbcAvroOptions jdbcAvroOptions,
+  public static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,
                                       QueryBuilderArgs queryBuilderArgs) {
-    return create(jdbcAvroOptions, queryBuilderArgs,
-    "dbeam_generated", Optional.empty(), false);
+    return create(jdbcAvroArgs, queryBuilderArgs,
+                  "dbeam_generated", Optional.empty(), false);
   }
 
-  public static JdbcExportArgs create(JdbcAvroOptions jdbcAvroOptions,
+  public static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,
                                       QueryBuilderArgs queryBuilderArgs,
                                       String avroSchemaNamespace,
                                       Optional<String> avroDoc,
                                       Boolean useAvroLogicalTypes) {
     return new AutoValue_JdbcExportArgs.Builder()
-        .setJdbcAvroOptions(jdbcAvroOptions)
+        .setJdbcAvroOptions(jdbcAvroArgs)
         .setQueryBuilderArgs(queryBuilderArgs)
         .setAvroSchemaNamespace(avroSchemaNamespace)
         .setAvroDoc(avroDoc)

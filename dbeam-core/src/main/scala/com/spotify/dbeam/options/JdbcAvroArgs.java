@@ -27,7 +27,7 @@ import java.sql.PreparedStatement;
 import javax.annotation.Nullable;
 
 @AutoValue
-public abstract class JdbcAvroOptions implements Serializable {
+public abstract class JdbcAvroArgs implements Serializable {
   public abstract JdbcConnectionConfiguration jdbcConnectionConfiguration();
   @Nullable public abstract StatementPreparator statementPreparator();
   public abstract int fetchSize();
@@ -50,11 +50,11 @@ public abstract class JdbcAvroOptions implements Serializable {
     abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
     abstract Builder setFetchSize(int fetchSize);
     abstract Builder setAvroCodec(String avroCodec);
-    abstract JdbcAvroOptions build();
+    abstract JdbcAvroArgs build();
   }
 
-  public static JdbcAvroOptions create(JdbcConnectionConfiguration jdbcConnectionConfiguration,
-                                       int fetchSize, String avroCodec) {
+  public static JdbcAvroArgs create(JdbcConnectionConfiguration jdbcConnectionConfiguration,
+                                    int fetchSize, String avroCodec) {
     Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]"),
                           "Avro codec should be snappy or deflate1, .., deflate9");
     return new AutoValue_JdbcAvroOptions.Builder()
@@ -64,7 +64,7 @@ public abstract class JdbcAvroOptions implements Serializable {
         .build();
   }
 
-  public static JdbcAvroOptions create(JdbcConnectionConfiguration jdbcConnectionConfiguration) {
+  public static JdbcAvroArgs create(JdbcConnectionConfiguration jdbcConnectionConfiguration) {
     return create(jdbcConnectionConfiguration, 10000, "deflate6");
   }
 

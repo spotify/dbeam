@@ -65,7 +65,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table")
 
     val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
       ),
@@ -120,7 +120,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "--password=secret")
 
     val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
@@ -136,7 +136,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
 
     val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:mysql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
@@ -150,7 +150,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "--table=some_table --password=secret --username=some_user")
 
     val expected = JdbcExportArgs.create(
-      JdbcAvroOptions.create(
+      JdbcAvroArgs.create(
         JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
           .withUsername("some_user")
           .withPassword("secret")
