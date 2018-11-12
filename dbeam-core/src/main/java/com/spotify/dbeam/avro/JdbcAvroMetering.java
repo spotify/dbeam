@@ -27,8 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JdbcAvroMetering {
-  private static final int COUNTER_REPORT_EVERY = 100000;
-  private static final int LOG_EVERY = 100000;
+
+  private final int countReportEvery;
+  private final int logEvery;
   private final Logger logger = LoggerFactory.getLogger(JdbcAvroMetering.class);
   private Counter recordCount =
       Metrics.counter(this.getClass().getCanonicalName(), "recordCount");
@@ -43,6 +44,15 @@ public class JdbcAvroMetering {
   private int rowCount = 0;
   private long writeIterateStartTime;
 
+  public JdbcAvroMetering(int countReportEvery, int logEvery) {
+    this.countReportEvery = countReportEvery;
+    this.logEvery = logEvery;
+  }
+
+  public static JdbcAvroMetering create() {
+    return new JdbcAvroMetering(100000, 100000);
+  }
+
   /**
    * Increment and report counters to Beam SDK and logs.
    * To avoid slowing down the writes, counts are reported every x 1000s of rows.
@@ -50,14 +60,14 @@ public class JdbcAvroMetering {
    */
   public void incrementRecordCount() {
     this.rowCount++;
-    if ((this.rowCount % COUNTER_REPORT_EVERY) == 0) {
-      this.recordCount.inc(COUNTER_REPORT_EVERY);
+    if ((this.rowCount % countReportEvery) == 0) {
+      this.recordCount.inc(countReportEvery);
       long elapsedMs = System.currentTimeMillis() - this.writeIterateStartTime;
       long msPerMillionRows = 1000000L * elapsedMs / rowCount;
       long rowsPerMinute = (60 * 1000L) * rowCount / elapsedMs;
       this.msPerMillionRows.set(msPerMillionRows);
       this.rowsPerMinute.set(rowsPerMinute);
-      if ((this.rowCount % LOG_EVERY) == 0) {
+      if ((this.rowCount % logEvery) == 0) {
         logger.info(String.format(
             "jdbcavroio : Fetched # %08d rows at %08d rows per minute and %08d ms per M rows",
             rowCount, rowsPerMinute, msPerMillionRows));
@@ -70,7 +80,7 @@ public class JdbcAvroMetering {
                               rowCount, elapsedMs / 1000.0));
     this.writeElapsedMs.inc(elapsedMs);
     if (rowCount > 0) {
-      this.recordCount.inc((this.rowCount % COUNTER_REPORT_EVERY));
+      this.recordCount.inc((this.rowCount % countReportEvery));
       this.msPerMillionRows.set(1000000L * elapsedMs / rowCount);
       if (elapsedMs != 0) {
         this.rowsPerMinute.set((60 * 1000L) * rowCount / elapsedMs);

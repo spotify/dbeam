@@ -23,6 +23,7 @@ import java.util
 import java.util.{Comparator, UUID}
 
 import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.avro.JdbcAvroMetering
 import com.spotify.dbeam.beam.BeamHelper
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
@@ -107,6 +108,13 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "JdbcAvroJob" should "have a default exit code" in {
     ExceptionHandling.exitCode(new IllegalStateException()) should be (49)
+  }
+
+  "JdbcAvroJob" should "increment counter metrics" in {
+    val metering = new JdbcAvroMetering(1, 1)
+    metering.exposeMetrics(0)
+    metering.incrementRecordCount()
+    metering.exposeMetrics(0)
   }
 
 }
