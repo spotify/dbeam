@@ -17,12 +17,12 @@
 
 package com.spotify.dbeam.options;
 
-
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 
 @Description("Configure dbeam SQL export")
 public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
+
   @Description("The date of the current partition.")
   String getPartition();
 
@@ -33,15 +33,16 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setPartitionColumn(String value);
 
-  @Description("By default, when partition column is not specified, " +
-    "fails if partition is too old. Set this flag to ignore this check.")
+  @Description("By default, when partition column is not specified, "
+               + "fails if partition is too old. Set this flag to ignore this check.")
   @Default.Boolean(false)
   Boolean isSkipPartitionCheck();
 
   void setSkipPartitionCheck(Boolean value);
 
-  @Description("The minimum partition required for the job not to fail " +
-    "(when partition column is not specified), by default `now() - 2*partitionPeriod`.")
+  @Description("The minimum partition required for the job not to fail "
+               + "(when partition column is not specified),"
+               + "by default `now() - 2*partitionPeriod`.")
   String getPartitionPeriod();
 
   void setPartitionPeriod(String value);
@@ -68,21 +69,21 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   @Default.Boolean(false)
   @Description(
-    "Controls whether generated Avro schema will contain logicalTypes or not.")
+      "Controls whether generated Avro schema will contain logicalTypes or not.")
   Boolean isUseAvroLogicalTypes();
 
   void setUseAvroLogicalTypes(Boolean value);
 
   @Default.Integer(10000)
   @Description(
-    "Jdbc result set fetch size.")
+      "Jdbc result set fetch size.")
   Integer getFetchSize();
 
   void setFetchSize(Integer value);
 
   @Default.String("deflate6")
   @Description(
-    "Avro codec (e.g. deflate6, deflate9, snappy).")
+      "Avro codec (e.g. deflate6, deflate9, snappy).")
   String getAvroCodec();
 
   void setAvroCodec(String value);

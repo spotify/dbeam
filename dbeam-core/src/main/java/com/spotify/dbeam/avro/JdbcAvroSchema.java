@@ -14,19 +14,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.avro;
-
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.sql.Connection;
-import java.sql.JDBCType;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
@@ -53,6 +42,18 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import java.sql.Connection;
+import java.sql.JDBCType;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class JdbcAvroSchema {
 
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
@@ -63,10 +64,13 @@ public class JdbcAvroSchema {
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
-      final ResultSet resultSet = statement.executeQuery(String.format("SELECT * FROM %s LIMIT 1", tableName));
+      final ResultSet
+          resultSet =
+          statement.executeQuery(String.format("SELECT * FROM %s LIMIT 1", tableName));
 
       Schema schema = JdbcAvroSchema.createAvroSchema(
-          resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc, useLogicalTypes);
+          resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,
+          useLogicalTypes);
       LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
       return schema;
     }
@@ -82,7 +86,7 @@ public class JdbcAvroSchema {
     if (meta.getColumnCount() > 0) {
       tableName = normalizeForAvro(meta.getTableName(1));
     }
-    SchemaBuilder.FieldAssembler<Schema> builder  = SchemaBuilder.record(tableName)
+    SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record(tableName)
         .namespace(avroSchemaNamespace)
         .doc(avroDoc)
         .prop("tableName", tableName)
@@ -105,7 +109,7 @@ public class JdbcAvroSchema {
 
       int columnType = meta.getColumnType(i);
       String typeName = JDBCType.valueOf(columnType).getName();
-      SchemaBuilder.FieldBuilder<Schema> field  = builder
+      SchemaBuilder.FieldBuilder<Schema> field = builder
           .name(normalizeForAvro(columnName))
           .doc(String.format("From sqlType %d %s", columnType, typeName))
           .prop("columnName", columnName)
@@ -117,15 +121,21 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
-      int columnType, int precision, SchemaBuilder.FieldBuilder<Schema> fieldBuilder, boolean useLogicalTypes) {
+      int columnType, int precision, SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
+      boolean useLogicalTypes) {
 
-    final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+    final SchemaBuilder.BaseTypeBuilder<
+        SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
         field =
         fieldBuilder.type().unionOf().nullBuilder().endNull().and();
 
     switch (columnType) {
-      case VARCHAR: case CHAR: case CLOB:
-      case LONGNVARCHAR: case LONGVARCHAR: case NCHAR:
+      case VARCHAR:
+      case CHAR:
+      case CLOB:
+      case LONGNVARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
         return field.stringType().endUnion().nullDefault();
       case BIGINT:
         if (precision > 0 && precision <= JdbcAvroRecord.MAX_DIGITS_BIGINT) {
@@ -133,10 +143,14 @@ public class JdbcAvroSchema {
         } else {
           return field.stringType().endUnion().nullDefault();
         }
-      case INTEGER: case SMALLINT: case TINYINT:
+      case INTEGER:
+      case SMALLINT:
+      case TINYINT:
         return field.intType().endUnion().nullDefault();
-      case TIMESTAMP: case DATE:
-      case TIME: case TIME_WITH_TIMEZONE:
+      case TIMESTAMP:
+      case DATE:
+      case TIME:
+      case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
           return field.longBuilder().prop("logicalType", "timestamp-millis")
               .endLong().endUnion().nullDefault();
@@ -151,13 +165,16 @@ public class JdbcAvroSchema {
         } else {
           return field.bytesType().endUnion().nullDefault();
         }
-      case BINARY: case VARBINARY:
-      case LONGVARBINARY: case ARRAY:
+      case BINARY:
+      case VARBINARY:
+      case LONGVARBINARY:
+      case ARRAY:
       case BLOB:
         return field.bytesType().endUnion().nullDefault();
       case DOUBLE:
         return field.doubleType().endUnion().nullDefault();
-      case FLOAT: case REAL:
+      case FLOAT:
+      case REAL:
         return field.floatType().endUnion().nullDefault();
       default:
         return field.stringType().endUnion().nullDefault();

@@ -17,9 +17,18 @@
 
 package com.spotify.dbeam.avro;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMap;
 
 import com.spotify.dbeam.args.JdbcAvroArgs;
+
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
@@ -45,15 +54,7 @@ import org.apache.beam.sdk.values.PCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class JdbcAvroIO {
 
   public abstract static class Write {
@@ -106,7 +107,8 @@ public class JdbcAvroIO {
     }
   }
 
-  private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<Void, String> {
+  private static class JdbcAvroWriteOperation
+      extends FileBasedSink.WriteOperation<Void, String> {
 
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroArgs jdbcAvroArgs;
@@ -177,8 +179,9 @@ public class JdbcAvroIO {
       }
 
       long startTime = System.currentTimeMillis();
-      logger.info("jdbcavroio : Executing query with fetchSize={} (this might take a few minutes) ...",
-                  statement.getFetchSize());
+      logger.info(
+          "jdbcavroio : Executing query with fetchSize={} (this might take a few minutes) ...",
+          statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
       this.metering.finishExecuteQuery(System.currentTimeMillis() - startTime);
       return resultSet;
@@ -193,7 +196,7 @@ public class JdbcAvroIO {
       try (ResultSet resultSet = executeQuery(query)) {
         checkArgument(resultSet != null,
                       "JDBC resultSet was not properly created");
-        final Map<Integer, JdbcAvroRecord.SQLFunction<ResultSet, Object>>
+        final Map<Integer, JdbcAvroRecord.SqlFunction<ResultSet, Object>>
             mappings = JdbcAvroRecord.computeAllMappings(resultSet);
         final int columnCount = resultSet.getMetaData().getColumnCount();
         this.metering.startIterate();

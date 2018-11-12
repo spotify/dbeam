@@ -14,6 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.options;
 
 import org.apache.beam.sdk.options.PipelineOptions;

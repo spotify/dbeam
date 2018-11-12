@@ -14,17 +14,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.jobs;
 
 import com.google.common.base.Preconditions;
 
-import com.spotify.dbeam.beam.BeamHelper;
+import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
+import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
-import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.OptionsParser;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.avro.Schema;
 import org.apache.beam.sdk.Pipeline;
@@ -33,12 +39,6 @@ import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.transforms.Create;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class JdbcAvroJob {
 
@@ -54,14 +54,17 @@ public class JdbcAvroJob {
     this.pipeline = Pipeline.create(pipelineOptions);
     this.jdbcExportArgs = JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions);
     this.output =  OptionsParser.getOutput(pipelineOptions);
-    Preconditions.checkArgument(this.output != null && this.output.length()>0, "'output' must be defined");
+    Preconditions.checkArgument(this.output != null && this.output.length() > 0,
+                                "'output' must be defined");
   }
 
   public void prepareExport() throws Exception {
-    final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs);
+    final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(
+        this.pipeline, jdbcExportArgs);
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
     final List<String> queries = StreamSupport.stream(
-        jdbcExportArgs.queryBuilderArgs().buildQueries().spliterator(), false).collect(Collectors.toList());
+        jdbcExportArgs.queryBuilderArgs().buildQueries().spliterator(), false)
+        .collect(Collectors.toList());
 
     for (int i = 0; i < queries.size(); i++) {
       BeamHelper.saveStringOnSubPath(output, String.format("/_queries/query_%d.sql", i),

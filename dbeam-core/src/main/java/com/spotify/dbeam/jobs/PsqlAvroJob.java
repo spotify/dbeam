@@ -14,12 +14,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.jobs;
 
 import com.google.api.client.util.Preconditions;
 
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.OptionsParser;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.joda.time.DateTime;
@@ -28,19 +34,14 @@ import org.joda.time.ReadablePeriod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 public class PsqlAvroJob extends JdbcAvroJob {
   private static final Logger LOGGER = LoggerFactory.getLogger(PsqlAvroJob.class);
   private static final String REPLICATION_QUERY =
-      "SELECT now() AS current_timestamp, " +
-      "pg_last_xact_replay_timestamp() AS last_replication, " +
-      "ROUND (( EXTRACT (EPOCH FROM now()) - " +
-      "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) " +
-      ") * 1000) AS replication_delay;";
+      "SELECT now() AS current_timestamp, "
+      + "pg_last_xact_replay_timestamp() AS last_replication, "
+      + "ROUND (( EXTRACT (EPOCH FROM now()) - "
+      + "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) "
+      + ") * 1000) AS replication_delay;";
   private final String replicationQuery;
 
   public PsqlAvroJob(PipelineOptions pipelineOptions, String replicationQuery)
@@ -69,8 +70,8 @@ public class PsqlAvroJob extends JdbcAvroJob {
   static boolean isReplicationDelayed(DateTime partition, DateTime lastReplication,
                                               ReadablePeriod partitionPeriod) {
     if (lastReplication.isBefore(partition.plus(partitionPeriod))) {
-      LOGGER.error("Replication was not completed for partition, " +
-                   "expected >= {}, actual = {}",
+      LOGGER.error("Replication was not completed for partition, "
+                   + "expected >= {}, actual = {}",
                    partition.plus(partitionPeriod), lastReplication);
       return true;
     }

@@ -14,48 +14,59 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import com.spotify.dbeam.options.JdbcExportPipelineOptions;
+import java.io.Serializable;
+import java.sql.Connection;
+import java.util.Optional;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
-import org.joda.time.Period;
 import org.joda.time.ReadablePeriod;
-import org.joda.time.format.ISODateTimeFormat;
-
-import java.io.Serializable;
-import java.sql.Connection;
-import java.util.Optional;
 
 /**
  * A POJO describing a how to create a JDBC {@link Connection}.
  */
 @AutoValue
 public abstract class QueryBuilderArgs implements Serializable {
+
   public abstract String tableName();
+
   public abstract Optional<Integer> limit();
+
   public abstract Optional<String> partitionColumn();
+
   public abstract Optional<DateTime> partition();
+
   public abstract ReadablePeriod partitionPeriod();
 
   public abstract Builder builder();
 
   @AutoValue.Builder
   public abstract static class Builder {
+
     public abstract Builder setTableName(String tableName);
+
     public abstract Builder setLimit(Integer limit);
+
     public abstract Builder setLimit(Optional<Integer> limit);
+
     public abstract Builder setPartitionColumn(String partitionColumn);
+
     public abstract Builder setPartitionColumn(Optional<String> partitionColumn);
+
     public abstract Builder setPartition(DateTime partition);
+
     public abstract Builder setPartition(Optional<DateTime> partition);
+
     public abstract Builder setPartitionPeriod(ReadablePeriod partitionPeriod);
+
     public abstract QueryBuilderArgs build();
   }
 
@@ -74,7 +85,6 @@ public abstract class QueryBuilderArgs implements Serializable {
         .build();
   }
 
-
   public Iterable<String> buildQueries() {
     final String limit = this.limit().map(l -> String.format(" LIMIT %d", l)).orElse("");
     final String where = this.partitionColumn().flatMap(
@@ -86,7 +96,8 @@ public abstract class QueryBuilderArgs implements Serializable {
                                    partitionColumn, datePartition, partitionColumn, nextPartition);
             })
     ).orElse("");
-    return Lists.newArrayList(String.format("SELECT * FROM %s%s%s", this.tableName(), where, limit));
+    return Lists.newArrayList(
+        String.format("SELECT * FROM %s%s%s", this.tableName(), where, limit));
   }
 
 }

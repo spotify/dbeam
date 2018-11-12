@@ -14,9 +14,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.beam;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.WritableByteChannel;
+import java.nio.charset.Charset;
+import java.util.Map;
 
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
@@ -25,12 +32,6 @@ import org.apache.beam.sdk.io.fs.ResourceId;
 import org.apache.beam.sdk.util.MimeTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.WritableByteChannel;
-import java.nio.charset.Charset;
-import java.util.Map;
 
 public class BeamHelper {
   private static Logger LOGGER = LoggerFactory.getLogger(BeamHelper.class);
@@ -51,7 +52,8 @@ public class BeamHelper {
     }
   }
 
-  public static void saveStringOnSubPath(String path, String subPath, String contents) throws IOException {
+  public static void saveStringOnSubPath(String path, String subPath, String contents)
+      throws IOException {
     String filename = path.replaceAll("/+$", "") + subPath;
     writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())));
   }

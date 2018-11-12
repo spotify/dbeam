@@ -14,23 +14,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
-
-import org.apache.avro.file.CodecFactory;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
 
 import javax.annotation.Nullable;
 
+import org.apache.avro.file.CodecFactory;
+
 @AutoValue
 public abstract class JdbcAvroArgs implements Serializable {
+
   public abstract JdbcConnectionArgs jdbcConnectionConfiguration();
+
   @Nullable public abstract StatementPreparator statementPreparator();
+
   public abstract int fetchSize();
+
   public abstract String avroCodec();
 
   abstract Builder builder();
@@ -46,10 +51,15 @@ public abstract class JdbcAvroArgs implements Serializable {
 
   @AutoValue.Builder
   abstract static class Builder {
+
     abstract Builder setJdbcConnectionConfiguration(JdbcConnectionArgs jdbcConnectionArgs);
+
     abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
+
     abstract Builder setFetchSize(int fetchSize);
+
     abstract Builder setAvroCodec(String avroCodec);
+
     abstract JdbcAvroArgs build();
   }
 

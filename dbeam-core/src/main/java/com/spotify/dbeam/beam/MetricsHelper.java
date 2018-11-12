@@ -14,13 +14,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam.beam;
 
-import org.apache.beam.sdk.PipelineResult;
-import org.apache.beam.sdk.metrics.GaugeResult;
-import org.apache.beam.sdk.metrics.MetricQueryResults;
-import org.apache.beam.sdk.metrics.MetricResult;
-import org.apache.beam.sdk.metrics.MetricsFilter;
+package com.spotify.dbeam.beam;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,6 +26,12 @@ import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import org.apache.beam.sdk.PipelineResult;
+import org.apache.beam.sdk.metrics.GaugeResult;
+import org.apache.beam.sdk.metrics.MetricQueryResults;
+import org.apache.beam.sdk.metrics.MetricResult;
+import org.apache.beam.sdk.metrics.MetricsFilter;
 
 public class MetricsHelper {
 
@@ -63,7 +64,8 @@ public class MetricsHelper {
             .collect(Collectors.groupingBy(
                 MetricResult::getName,
                 Collectors.reducing(GaugeResult.empty(), GET_COMMITTED_GAUGE,
-                                    BinaryOperator.maxBy(Comparator.comparing(GaugeResult::getTimestamp)))))
+                                    BinaryOperator.maxBy(
+                                        Comparator.comparing(GaugeResult::getTimestamp)))))
             .entrySet().stream()
             .collect(Collectors.toMap(e -> e.getKey().getName(), e -> e.getValue().getValue()));
 

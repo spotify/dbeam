@@ -14,24 +14,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.avro;
-
-import com.google.common.collect.ImmutableMap;
-
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
-
-import java.nio.ByteBuffer;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TimeZone;
 
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
@@ -58,17 +42,34 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import com.google.common.collect.ImmutableMap;
+
+import java.nio.ByteBuffer;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+
 public class JdbcAvroRecord {
 
   static final int MAX_DIGITS_BIGINT = 19;
   private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
 
   public static GenericRecord convertResultSetIntoAvroRecord(
-      Schema schema, ResultSet resultSet, Map<Integer, SQLFunction<ResultSet, Object>> mappings,
+      Schema schema, ResultSet resultSet, Map<Integer, SqlFunction<ResultSet, Object>> mappings,
       int columnCount)
       throws SQLException {
     final GenericRecord record = new GenericData.Record(schema);
-    for (int i=1; i <= columnCount; i++) {
+    for (int i = 1; i <= columnCount; i++) {
       final Object value = mappings.get(i).apply(resultSet);
       if (!(value == null || resultSet.wasNull())) {
         record.put(i - 1, value);
@@ -77,11 +78,11 @@ public class JdbcAvroRecord {
     return record;
   }
 
-  public static Map<Integer, SQLFunction<ResultSet, Object>> computeAllMappings(ResultSet resultSet)
+  public static Map<Integer, SqlFunction<ResultSet, Object>> computeAllMappings(ResultSet resultSet)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
-    final Map<Integer, SQLFunction<ResultSet, Object>> mappings = new HashMap<>(columnCount);
+    final Map<Integer, SqlFunction<ResultSet, Object>> mappings = new HashMap<>(columnCount);
 
     for (int i = 1; i <= columnCount; i++) {
       mappings.put(i, computeMapping(meta, i));
@@ -90,7 +91,8 @@ public class JdbcAvroRecord {
   }
 
   @FunctionalInterface
-  public interface SQLFunction<T, R> {
+  public interface SqlFunction<T, R> {
+
     R apply(T t) throws SQLException;
   }
 
@@ -102,11 +104,16 @@ public class JdbcAvroRecord {
     }
   }
 
-  static SQLFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta, final int column)
+  static SqlFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta,
+                                                       final int column)
       throws SQLException {
     switch (meta.getColumnType(column)) {
-      case VARCHAR: case CHAR: case CLOB:
-      case LONGNVARCHAR: case LONGVARCHAR: case NCHAR:
+      case VARCHAR:
+      case CHAR:
+      case CLOB:
+      case LONGNVARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
         return resultSet -> resultSet.getString(column);
       case BIGINT:
         final int precision = meta.getPrecision(column);
@@ -114,11 +121,15 @@ public class JdbcAvroRecord {
           return resultSet -> resultSet.getLong(column);
         }
         // otherwise return as string
-        break;
-      case INTEGER: case SMALLINT: case TINYINT:
+        return resultSet -> resultSet.getString(column);
+      case INTEGER:
+      case SMALLINT:
+      case TINYINT:
         return resultSet -> resultSet.getInt(column);
-      case TIMESTAMP: case DATE:
-      case TIME: case TIME_WITH_TIMEZONE:
+      case TIMESTAMP:
+      case DATE:
+      case TIME:
+      case TIME_WITH_TIMEZONE:
         return resultSet -> {
           final Timestamp timestamp = resultSet.getTimestamp(column, CALENDAR);
           if (timestamp != null) {
@@ -135,16 +146,20 @@ public class JdbcAvroRecord {
         } else {
           return resultSet -> nullableBytes(resultSet.getBytes(column));
         }
-      case BINARY: case VARBINARY:
-      case LONGVARBINARY: case ARRAY:
+      case BINARY:
+      case VARBINARY:
+      case LONGVARBINARY:
+      case ARRAY:
       case BLOB:
         return resultSet -> nullableBytes(resultSet.getBytes(column));
       case DOUBLE:
         return resultSet -> resultSet.getDouble(column);
-      case FLOAT: case REAL:
+      case FLOAT:
+      case REAL:
         return resultSet -> resultSet.getFloat(column);
+      default:
+        return resultSet -> resultSet.getString(column);
     }
-    return resultSet -> resultSet.getString(column);
   }
 
 }

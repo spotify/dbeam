@@ -14,6 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
@@ -24,19 +25,30 @@ import java.util.Optional;
 
 @AutoValue
 public abstract class JdbcExportArgs implements Serializable {
+
   public abstract JdbcAvroArgs jdbcAvroOptions();
+
   public abstract QueryBuilderArgs queryBuilderArgs();
+
   public abstract String avroSchemaNamespace();
+
   public abstract Optional<String> avroDoc();
+
   public abstract Boolean useAvroLogicalTypes();
 
   @AutoValue.Builder
   abstract static class Builder {
+
     abstract Builder setJdbcAvroOptions(JdbcAvroArgs jdbcAvroArgs);
+
     abstract Builder setQueryBuilderArgs(QueryBuilderArgs queryBuilderArgs);
+
     abstract Builder setAvroSchemaNamespace(String avroSchemaNamespace);
+
     abstract Builder setAvroDoc(Optional<String> avroDoc);
+
     abstract Builder setUseAvroLogicalTypes(Boolean useAvroLogicalTypes);
+
     abstract JdbcExportArgs build();
   }
 

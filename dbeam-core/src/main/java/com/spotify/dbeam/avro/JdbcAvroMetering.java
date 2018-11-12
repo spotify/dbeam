@@ -1,3 +1,20 @@
+/*
+ * Copyright 2018 Spotify AB.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.spotify.dbeam.avro;
 
 import org.apache.beam.sdk.metrics.Counter;
@@ -24,17 +41,17 @@ public class JdbcAvroMetering {
   private long writeIterateStartTime;
 
   /**
-   * Increment and report counters to Beam SDK and logs
-   * To avoid slowing down the writes, counts are reported every x 1000s of rows
-   * This exposes the job progress
+   * Increment and report counters to Beam SDK and logs.
+   * To avoid slowing down the writes, counts are reported every x 1000s of rows.
+   * This exposes the job progress.
    */
   public void incrementRecordCount() {
     this.rowCount++;
     if ((this.rowCount % COUNTER_REPORT_EVERY) == 0) {
       this.recordCount.inc(COUNTER_REPORT_EVERY);
       long elapsedMs = System.currentTimeMillis() - this.writeIterateStartTime;
-      long msPerMillionRows = 1000000L * elapsedMs / rowCount,
-          rowsPerMinute = (60*1000L) * rowCount / elapsedMs;
+      long msPerMillionRows = 1000000L * elapsedMs / rowCount;
+      long rowsPerMinute = (60 * 1000L) * rowCount / elapsedMs;
       this.msPerMillionRows.set(msPerMillionRows);
       this.rowsPerMinute.set(rowsPerMinute);
       if ((this.rowCount % LOG_EVERY) == 0) {
@@ -47,7 +64,7 @@ public class JdbcAvroMetering {
 
   public void exposeMetrics(long elapsedMs) {
     logger.info(String.format("jdbcavroio : Read %d rows, took %5.2f seconds",
-                              rowCount, elapsedMs/1000.0));
+                              rowCount, elapsedMs / 1000.0));
     this.writeElapsedMs.inc(elapsedMs);
     if (rowCount > 0) {
       this.recordCount.inc((this.rowCount % COUNTER_REPORT_EVERY));
@@ -68,7 +85,7 @@ public class JdbcAvroMetering {
 
   public void finishExecuteQuery(long elapsed) {
     logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
-                              elapsed/1000.0));
+                              elapsed / 1000.0));
     this.executeQueryElapsedMs.inc(elapsed);
   }
 }

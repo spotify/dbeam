@@ -14,10 +14,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.avro;
 
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.JobNameConfiguration;
+
+import java.sql.Connection;
+import java.util.Collections;
 
 import org.apache.avro.Schema;
 import org.apache.beam.sdk.Pipeline;
@@ -28,9 +32,6 @@ import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.values.TypeDescriptors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.sql.Connection;
-import java.util.Collections;
 
 public class BeamJdbcAvroSchema {
 
@@ -52,21 +53,22 @@ public class BeamJdbcAvroSchema {
           args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
     }
     final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;
-    LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema/1000.0);
+    LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
     JobNameConfiguration.configureJobName(
         pipeline.getOptions(), dbName, args.queryBuilderArgs().tableName());
     final Counter cnt =
-        Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(), "schemaElapsedTimeMs");
-    pipeline.apply("ExposeSchemaCountersSeed",
-                   Create.of(Collections.singletonList(0))
-                       .withType(TypeDescriptors.integers()))
+        Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
+                        "schemaElapsedTimeMs");
+    pipeline
+        .apply("ExposeSchemaCountersSeed",
+               Create.of(Collections.singletonList(0))
+                   .withType(TypeDescriptors.integers()))
         .apply("ExposeSchemaCounters",
                MapElements.into(TypeDescriptors.integers()).via(v -> {
                  cnt.inc(elapsedTimeSchema);
                  return v;
-               })
-        );
+               }));
     return generatedSchema;
   }
 

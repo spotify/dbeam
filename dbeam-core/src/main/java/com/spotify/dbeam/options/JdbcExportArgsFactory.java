@@ -14,6 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.options;
 
 import com.google.common.base.Preconditions;
@@ -23,15 +24,15 @@ import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 
+import java.io.IOException;
+import java.util.Optional;
+
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Period;
 import org.joda.time.ReadablePeriod;
 import org.joda.time.format.ISODateTimeFormat;
-
-import java.io.IOException;
-import java.util.Optional;
 
 public class JdbcExportArgsFactory {
 
@@ -63,8 +64,9 @@ public class JdbcExportArgsFactory {
     Optional<DateTime> partition = Optional.ofNullable(options.getPartition())
         .map(JdbcExportArgsFactory::parseDateTime);
     Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
-    Preconditions.checkArgument(!partitionColumn.isPresent() || partition.isPresent(),
-                                "To use --partitionColumn the --partition parameter must also be configured");
+    Preconditions.checkArgument(
+        !partitionColumn.isPresent() || partition.isPresent(),
+        "To use --partitionColumn the --partition parameter must also be configured");
 
     if (!(options.isSkipPartitionCheck() || partitionColumn.isPresent())) {
       DateTime minPartitionDateTime = Optional.ofNullable(options.getMinPartitionPeriod())
@@ -83,12 +85,13 @@ public class JdbcExportArgsFactory {
 
   private static DateTime parseDateTime(String input) {
     if (input.endsWith("Z")) {
-      input = input.substring(0, input.length() -1);
+      input = input.substring(0, input.length() - 1);
     }
     return DateTime.parse(input, ISODateTimeFormat.localDateOptionalTimeParser());
   }
 
-  private static DateTime validatePartition(DateTime partitionDateTime, DateTime minPartitionDateTime) {
+  private static DateTime validatePartition(
+      DateTime partitionDateTime, DateTime minPartitionDateTime) {
     Preconditions.checkArgument(
         partitionDateTime.isAfter(minPartitionDateTime),
         "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check",

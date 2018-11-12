@@ -14,14 +14,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam.options;
 
-import org.apache.beam.sdk.options.ApplicationNameOptions;
-import org.apache.beam.sdk.options.PipelineOptions;
+package com.spotify.dbeam.options;
 
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.beam.sdk.options.ApplicationNameOptions;
+import org.apache.beam.sdk.options.PipelineOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class JobNameConfiguration {
+
+  private static Logger LOGGER = LoggerFactory.getLogger(JobNameConfiguration.class);
 
   private static String normalizeString(String str) {
     return str.toLowerCase().replaceAll("[^a-z0-9]", "");
@@ -31,7 +36,7 @@ public class JobNameConfiguration {
     try {
       options.as(ApplicationNameOptions.class).setAppName("JdbcAvroJob");
     } catch (Exception e) {
-
+      LOGGER.warn("Unable to configure ApplicationName", e);
     }
     if (options.getJobName() == null) {
       String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());

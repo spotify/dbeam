@@ -14,6 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
@@ -30,19 +31,28 @@ import javax.annotation.Nullable;
  */
 @AutoValue
 public abstract class JdbcConnectionArgs implements Serializable {
+
   public abstract String driverClassName();
+
   public abstract String url();
+
   @Nullable abstract String username();
+
   @Nullable abstract String password();
 
   abstract Builder builder();
 
   @AutoValue.Builder
   abstract static class Builder {
+
     abstract Builder setDriverClassName(String driverClassName);
+
     abstract Builder setUrl(String url);
+
     abstract Builder setUsername(String username);
+
     abstract Builder setPassword(String password);
+
     abstract JdbcConnectionArgs build();
   }
 

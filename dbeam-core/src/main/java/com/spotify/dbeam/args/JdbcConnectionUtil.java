@@ -14,6 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package com.spotify.dbeam.args;
 
 import com.google.common.base.Preconditions;
@@ -33,9 +34,9 @@ public class JdbcConnectionUtil {
   public static String getDriverClass(String url) throws ClassNotFoundException {
     final String[] parts = url.split(":", 3);
     Preconditions.checkArgument(
-        parts.length > 1 &&
-        "jdbc".equals(parts[0]) &&
-        driverMapping.get(parts[1]) != null,
+        parts.length > 1
+        && "jdbc".equals(parts[0])
+        && driverMapping.get(parts[1]) != null,
         "Invalid jdbc connection URL: %s. Expect jdbc:postgresql or jdbc:mysql as prefix.",
         url
     );
