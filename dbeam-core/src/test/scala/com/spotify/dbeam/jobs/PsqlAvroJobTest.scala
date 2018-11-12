@@ -21,6 +21,8 @@ import java.sql.Connection
 
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.args.{JdbcAvroArgs, JdbcConnectionArgs, JdbcExportArgs, QueryBuilderArgs}
+import com.spotify.dbeam.options.OptionsParser
+import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
@@ -28,7 +30,7 @@ import slick.jdbc.H2Profile.api._
 
 class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
-    "jdbc:h2:mem:testpsql;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
+    "jdbc:h2:mem:testpsql;MODE=postgresql;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
 
   override def beforeAll(): Unit = {
@@ -126,12 +128,21 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
       " AS last_replication, " +
       "13 AS replication_delay"
+    val job = new PsqlAvroJob(
+      OptionsParser.buildPipelineOptions(Array(
+      "--partition=2025-02-28",
+        "--connectionUrl=" + connectionUrl,
+        "--username=",
+        "--table=coffees",
+        "--output=/tmp/foo")),
+      query
+    )
     val lastReplication = new DateTime(2017, 2, 1, 23, 58, 57, DateTimeZone.UTC)
-    val connection: Connection = db.source.createConnection()
 
-    val actual = PsqlAvroJob.queryReplication(connection, query)
+    val actual = job.queryReplication()
 
     new DateTime(actual, DateTimeZone.UTC) should be (lastReplication)
+    job.isReplicationDelayed shouldBe true
   }
 
 }

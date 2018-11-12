@@ -36,7 +36,7 @@ public class BeamJdbcAvroSchema {
 
   private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
-  public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args) {
+  public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args) throws Exception {
     Schema generatedSchema;
     String dbName;
     final long startTimeMillis = System.currentTimeMillis();
@@ -50,8 +50,6 @@ public class BeamJdbcAvroSchema {
       generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
           connection, args.queryBuilderArgs().tableName(),
           args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
-    } catch (Exception e) {
-      throw new IllegalStateException("Could not create schema", e);
     }
     final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema/1000.0);

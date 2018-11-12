@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -56,7 +57,7 @@ public class JdbcAvroJob {
     Preconditions.checkArgument(this.output != null && this.output.length()>0, "'output' must be defined");
   }
 
-  public void prepareExport() throws IOException {
+  public void prepareExport() throws Exception {
     final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs);
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
     final List<String> queries = StreamSupport.stream(
@@ -97,14 +98,14 @@ public class JdbcAvroJob {
     return BeamHelper.waitUntilDone(this.pipeline.run());
   }
 
-  public PipelineResult runExport() throws IOException {
+  public PipelineResult runExport() throws Exception {
     prepareExport();
     final PipelineResult pipelineResult = runAndWait();
     BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
     return pipelineResult;
   }
 
-  public static void main(String[] cmdLineArgs) throws IOException, ClassNotFoundException {
+  public static void main(String[] cmdLineArgs) throws Exception {
     final PipelineOptions pipelineOptions = OptionsParser.buildPipelineOptions(cmdLineArgs);
     new JdbcAvroJob(pipelineOptions).runExport();
   }

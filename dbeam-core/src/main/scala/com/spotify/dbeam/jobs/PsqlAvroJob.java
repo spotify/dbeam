@@ -41,11 +41,12 @@ public class PsqlAvroJob extends JdbcAvroJob {
       "ROUND (( EXTRACT (EPOCH FROM now()) - " +
       "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) " +
       ") * 1000) AS replication_delay;";
+  private final String replicationQuery;
 
-  public PsqlAvroJob(PipelineOptions pipelineOptions)
+  public PsqlAvroJob(PipelineOptions pipelineOptions, String replicationQuery)
       throws IOException, ClassNotFoundException {
     super(pipelineOptions);
-    validateOptions(this.getJdbcExportArgs());
+    this.replicationQuery = replicationQuery;
   }
 
   static void validateOptions(JdbcExportArgs jdbcExportArgs) {
@@ -58,12 +59,11 @@ public class PsqlAvroJob extends JdbcAvroJob {
         "Partition parameter must be defined");
   }
 
-  boolean isReplicationDelayed() {
-    final DateTime partition = this.getJdbcExportArgs().queryBuilderArgs().partition().get();
-    final DateTime lastReplication = queryReplication();
-    final ReadablePeriod partitionPeriod =
-        this.getJdbcExportArgs().queryBuilderArgs().partitionPeriod();
-    return isReplicationDelayed(partition, lastReplication, partitionPeriod);
+  boolean isReplicationDelayed() throws Exception {
+    return isReplicationDelayed(
+        this.getJdbcExportArgs().queryBuilderArgs().partition().get(),
+        queryReplication(),
+        this.getJdbcExportArgs().queryBuilderArgs().partitionPeriod());
   }
 
   static boolean isReplicationDelayed(DateTime partition, DateTime lastReplication,
@@ -87,18 +87,17 @@ public class PsqlAvroJob extends JdbcAvroJob {
     return lastReplication;
   }
 
-  private DateTime queryReplication() {
+  DateTime queryReplication() throws Exception {
     LOGGER.info("Checking PostgreSQL replication lag...");
     try (Connection connection = this.getJdbcExportArgs().createConnection()) {
-      return queryReplication(connection, REPLICATION_QUERY);
-    } catch (Exception e) {
-      throw new IllegalStateException("Could not fetch replication lag", e);
+      return queryReplication(connection, replicationQuery);
     }
   }
 
-  public static void main(String[] cmdLineArgs) throws IOException, ClassNotFoundException {
+  public static void main(String[] cmdLineArgs) throws Exception {
     final PipelineOptions pipelineOptions = OptionsParser.buildPipelineOptions(cmdLineArgs);
-    PsqlAvroJob job = new PsqlAvroJob(pipelineOptions);
+    PsqlAvroJob job = new PsqlAvroJob(pipelineOptions, REPLICATION_QUERY);
+    validateOptions(job.getJdbcExportArgs());
 
     if (job.isReplicationDelayed()) {
       System.exit(20);
