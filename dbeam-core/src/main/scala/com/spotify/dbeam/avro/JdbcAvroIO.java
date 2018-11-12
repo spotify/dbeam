@@ -36,9 +36,6 @@ import org.apache.beam.sdk.io.ShardNameTemplate;
 import org.apache.beam.sdk.io.WriteFiles;
 import org.apache.beam.sdk.io.WriteFilesResult;
 import org.apache.beam.sdk.io.fs.ResourceId;
-import org.apache.beam.sdk.metrics.Counter;
-import org.apache.beam.sdk.metrics.Gauge;
-import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -131,26 +128,13 @@ public class JdbcAvroIO {
   }
 
   private static class JdbcAvroWriter extends FileBasedSink.Writer<Void, String> {
-    private static final int COUNTER_REPORT_EVERY = 100000;
-    private static final int LOG_EVERY = 100000;
     private final Logger logger = LoggerFactory.getLogger(JdbcAvroWriter.class);
+    private final int syncInterval = DataFileConstants.DEFAULT_SYNC_INTERVAL * 16; // 1 MB
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroArgs jdbcAvroArgs;
-    private final int syncInterval;
     private DataFileWriter<GenericRecord> dataFileWriter;
     private Connection connection;
-    private Counter recordCount =
-        Metrics.counter(this.getClass().getCanonicalName(),"recordCount");
-    private Counter executeQueryElapsedMs =
-        Metrics.counter(this.getClass().getCanonicalName(), "executeQueryElapsedMs");
-    private Counter writeElapsedMs =
-        Metrics.counter(this.getClass().getCanonicalName(), "writeElapsedMs");
-    private Gauge msPerMillionRows =
-        Metrics.gauge(this.getClass().getCanonicalName(), "msPerMillionRows");
-    private Gauge rowsPerMinute =
-        Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
-    private int rowCount;
-    private long writeIterateStartTime;
+    private JdbcAvroMetering metering;
 
     JdbcAvroWriter(FileBasedSink.WriteOperation<Void, String> writeOperation,
                           DynamicAvroDestinations<?, Void, String> dynamicDestinations,
@@ -158,7 +142,6 @@ public class JdbcAvroIO {
       super(writeOperation, MimeTypes.BINARY);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
-      this.syncInterval = DataFileConstants.DEFAULT_SYNC_INTERVAL * 16; // 1 MB
     }
 
     public Void getDestination() {
@@ -178,7 +161,7 @@ public class JdbcAvroIO {
           .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       dataFileWriter.create(schema, Channels.newOutputStream(channel));
-      rowCount = 0;
+      this.metering = new JdbcAvroMetering();
       logger.info("jdbcavroio : Write prepared");
     }
 
@@ -195,13 +178,10 @@ public class JdbcAvroIO {
       }
 
       long startTime = System.currentTimeMillis();
-      logger.info("jdbcavroio : Executing query with fetchSize={} (this can take a few minutes) ...",
+      logger.info("jdbcavroio : Executing query with fetchSize={} (this might take a few minutes) ...",
                   statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
-      long elapsed1 = System.currentTimeMillis() - startTime;
-      logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
-                                elapsed1/1000.0));
-      this.executeQueryElapsedMs.inc(elapsed1);
+      this.metering.finishExecuteQuery(System.currentTimeMillis() - startTime);
       return resultSet;
     }
 
@@ -217,50 +197,15 @@ public class JdbcAvroIO {
         final Map<Integer, JdbcAvroRecord.SQLFunction<ResultSet, Object>>
             mappings = JdbcAvroRecord.computeAllMappings(resultSet);
         final int columnCount = resultSet.getMetaData().getColumnCount();
-        this.writeIterateStartTime = System.currentTimeMillis();
+        this.metering.startIterate();
         while (resultSet.next()) {
           final GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
               schema, resultSet, mappings, columnCount);
           this.dataFileWriter.append(genericRecord);
-          incrementRecordCount();
+          this.metering.incrementRecordCount();
         }
-        exposeMetrics(System.currentTimeMillis() - this.writeIterateStartTime);
+        this.metering.finishIterate();
       }
-    }
-
-    /**
-     * Increment and report counters to Beam SDK and logs
-     * To avoid slowing down the writes, counts are reported every x 1000s of rows
-     * This exposes the job progress
-     */
-    private void incrementRecordCount() {
-      this.rowCount++;
-      if ((this.rowCount % COUNTER_REPORT_EVERY) == 0) {
-        this.recordCount.inc(COUNTER_REPORT_EVERY);
-        long elapsedMs = System.currentTimeMillis() - this.writeIterateStartTime;
-        long msPerMillionRows = 1000000L * elapsedMs / rowCount,
-             rowsPerMinute = (60*1000L) * rowCount / elapsedMs;
-        this.msPerMillionRows.set(msPerMillionRows);
-        this.rowsPerMinute.set(rowsPerMinute);
-        if ((this.rowCount % LOG_EVERY) == 0) {
-          logger.info(String.format(
-              "jdbcavroio : Fetched # %08d rows at %08d rows per minute and %08d ms per M rows",
-              rowCount, rowsPerMinute, msPerMillionRows));
-        }
-      }
-    }
-
-    private void exposeMetrics(long elapsedMs) {
-      logger.info(String.format("jdbcavroio : Read %d rows, took %5.2f seconds",
-                                rowCount, elapsedMs/1000.0));
-      this.writeElapsedMs.inc(elapsedMs);
-      if (rowCount > 0) {
-        this.recordCount.inc((this.rowCount % COUNTER_REPORT_EVERY));
-        this.msPerMillionRows.set(1000000L * elapsedMs / rowCount);
-        if (elapsedMs != 0) {
-          this.rowsPerMinute.set((60 * 1000L) * rowCount / elapsedMs);
-        }
-     }
     }
 
     @Override
