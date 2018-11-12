@@ -15,11 +15,11 @@
  * under the License.
  */
 
-package com.spotify.dbeam;
+package com.spotify.dbeam.avro;
 
 import com.google.common.collect.ImmutableMap;
 
-import com.spotify.dbeam.options.JdbcAvroArgs;
+import com.spotify.dbeam.args.JdbcAvroArgs;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;

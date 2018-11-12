@@ -14,7 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam;
+package com.spotify.dbeam.avro;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;

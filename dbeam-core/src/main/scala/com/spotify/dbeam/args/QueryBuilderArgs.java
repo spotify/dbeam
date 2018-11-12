@@ -14,11 +14,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam.options;
+package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
+import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -29,10 +31,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.Serializable;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 /**
  * A POJO describing a how to create a JDBC {@link Connection}.
@@ -60,52 +59,8 @@ public abstract class QueryBuilderArgs implements Serializable {
     public abstract QueryBuilderArgs build();
   }
 
-  private static DateTime parseDateTime(String input) {
-    if (input.endsWith("Z")) {
-      input = input.substring(0, input.length() -1);
-    }
-    return DateTime.parse(input, ISODateTimeFormat.localDateOptionalTimeParser());
-  }
-
-  private static DateTime validatePartition(DateTime partitionDateTime, DateTime minPartitionDateTime) {
-    Preconditions.checkArgument(
-        partitionDateTime.isAfter(minPartitionDateTime),
-        "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check",
-        partitionDateTime, minPartitionDateTime
-    );
-    return partitionDateTime;
-  }
-
   private static Boolean checkTableName(String tableName) {
     return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
-  }
-
-  public static QueryBuilderArgs create(JdbcExportPipelineOptions options) {
-    Preconditions.checkArgument(options.getTable() != null,
-                                "TableName cannot be null");
-    Preconditions.checkArgument(checkTableName(options.getTable()),
-                                "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
-    final ReadablePeriod partitionPeriod = Optional.ofNullable(options.getPartitionPeriod())
-        .map(v -> (ReadablePeriod) Period.parse(v)).orElse(Days.ONE);
-    Optional<DateTime> partition = Optional.ofNullable(options.getPartition())
-        .map(QueryBuilderArgs::parseDateTime);
-    Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
-    Preconditions.checkArgument(!partitionColumn.isPresent() || partition.isPresent(),
-                                "To use --partitionColumn the --partition parameter must also be configured");
-
-    if (!(options.isSkipPartitionCheck() || partitionColumn.isPresent())) {
-      DateTime minPartitionDateTime = Optional.ofNullable(options.getMinPartitionPeriod())
-          .map(QueryBuilderArgs::parseDateTime)
-          .orElse(DateTime.now().minus(partitionPeriod.toPeriod().multipliedBy(2)));
-      partition.map(p -> validatePartition(p, minPartitionDateTime));
-    }
-    return new AutoValue_QueryBuilderArgs.Builder()
-        .setTableName(options.getTable())
-        .setLimit(Optional.ofNullable(options.getLimit()))
-        .setPartitionColumn(partitionColumn)
-        .setPartition(partition)
-        .setPartitionPeriod(partitionPeriod)
-        .build();
   }
 
   public static QueryBuilderArgs create(String tableName) {

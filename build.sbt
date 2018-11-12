@@ -146,8 +146,8 @@ val dbeamPack = project
           )
       ),
     packMain := Map(
-      "jdbc-avro-job" -> "com.spotify.dbeam.JdbcAvroJob",
-      "psql-avro-job" -> "com.spotify.dbeam.PsqlAvroJob"
+      "jdbc-avro-job" -> "com.spotify.dbeam.jobs.JdbcAvroJob",
+      "psql-avro-job" -> "com.spotify.dbeam.jobs.PsqlAvroJob"
     ),
     packJvmOpts := Map(
       "jdbc-avro-job" -> Seq("-Xmx512m"),

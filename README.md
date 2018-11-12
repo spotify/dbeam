@@ -80,7 +80,7 @@ TODO: We will be improving the packaging and releasing process shortly.
 Using java from the command line:
 
 ```
-java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
+java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
   --username=my_database_username \
   --password=secret \
@@ -91,7 +91,7 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
 For CloudSQL:
 
 ```
-java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
+java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
   --username=my_database_username \
   --password=secret \
@@ -105,7 +105,7 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
 To validate a data extraction one can run:
 
 ```sh
-java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.JdbcAvroJob \
+java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
   --username=my_database_username \
   --password=secret \

@@ -14,9 +14,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam;
+package com.spotify.dbeam.avro;
 
-import com.spotify.dbeam.options.JdbcExportArgs;
+import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.JobNameConfiguration;
 
 import org.apache.avro.Schema;

@@ -14,7 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam.options;
+package com.spotify.dbeam.args;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;

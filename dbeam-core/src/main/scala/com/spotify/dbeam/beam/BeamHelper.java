@@ -14,7 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam;
+package com.spotify.dbeam.beam;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

@@ -23,7 +23,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class JobNameConfiguration {
 
-
   private static String normalizeString(String str) {
     return str.toLowerCase().replaceAll("[^a-z0-9]", "");
   }

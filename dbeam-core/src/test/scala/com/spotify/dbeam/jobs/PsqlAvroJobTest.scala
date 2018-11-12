@@ -15,11 +15,12 @@
  * under the License.
  */
 
-package com.spotify.dbeam
+package com.spotify.dbeam.jobs
 
 import java.sql.Connection
 
-import com.spotify.dbeam.options._
+import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.args.{JdbcAvroArgs, JdbcConnectionArgs, JdbcExportArgs, QueryBuilderArgs}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.scalatest._
 import slick.jdbc.H2Profile.api._
@@ -37,7 +38,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "fail with invalid driver" in {
     val args = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:mysql://some_db")
+        JdbcConnectionArgs.create("jdbc:mysql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
@@ -52,7 +53,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "fail with missing partition" in {
     val args = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
@@ -67,7 +68,7 @@ class PsqlAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "validate" in {
     val args = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),

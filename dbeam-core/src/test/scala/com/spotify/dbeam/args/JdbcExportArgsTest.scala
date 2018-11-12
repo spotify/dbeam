@@ -15,10 +15,11 @@
  * under the License.
  */
 
-package com.spotify.dbeam.options
+package com.spotify.dbeam.args
 
 import java.util.Optional
 
+import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
 import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
@@ -66,7 +67,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
     val expected = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
       ),
       QueryBuilderArgs.create("some_table")
@@ -121,7 +122,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
     val expected = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
@@ -137,7 +138,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
     val expected = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:mysql://some_db")
+        JdbcConnectionArgs.create("jdbc:mysql://some_db")
           .withUsername("dbeam-extractor")
           .withPassword("secret")
       ),
@@ -151,7 +152,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
     val expected = JdbcExportArgs.create(
       JdbcAvroArgs.create(
-        JdbcConnectionConfiguration.create("jdbc:postgresql://some_db")
+        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
           .withUsername("some_user")
           .withPassword("secret")
       ),

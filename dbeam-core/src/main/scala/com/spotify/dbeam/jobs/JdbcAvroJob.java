@@ -14,11 +14,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam;
+package com.spotify.dbeam.jobs;
 
 import com.google.common.base.Preconditions;
 
-import com.spotify.dbeam.options.JdbcExportArgs;
+import com.spotify.dbeam.beam.BeamHelper;
+import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
+import com.spotify.dbeam.avro.JdbcAvroIO;
+import com.spotify.dbeam.beam.MetricsHelper;
+import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.OptionsParser;
 

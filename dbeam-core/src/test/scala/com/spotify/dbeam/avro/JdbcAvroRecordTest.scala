@@ -15,11 +15,12 @@
  * under the License.
  */
 
-package com.spotify.dbeam
+package com.spotify.dbeam.avro
 
 import java.nio.ByteBuffer
 import java.util.UUID
 
+import com.spotify.dbeam.JdbcTestFixtures
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.scalatest._

@@ -15,13 +15,15 @@
  * under the License.
  */
 
-package com.spotify.dbeam
+package com.spotify.dbeam.jobs
 
 import java.io.File
 import java.nio.file.{Files, Path}
 import java.util
 import java.util.{Comparator, UUID}
 
+import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.beam.BeamHelper
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.Pipeline.PipelineExecutionException

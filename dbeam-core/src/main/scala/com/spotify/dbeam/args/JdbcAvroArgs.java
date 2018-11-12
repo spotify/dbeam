@@ -14,7 +14,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.spotify.dbeam.options;
+package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
 
 @AutoValue
 public abstract class JdbcAvroArgs implements Serializable {
-  public abstract JdbcConnectionConfiguration jdbcConnectionConfiguration();
+  public abstract JdbcConnectionArgs jdbcConnectionConfiguration();
   @Nullable public abstract StatementPreparator statementPreparator();
   public abstract int fetchSize();
   public abstract String avroCodec();
@@ -46,26 +46,26 @@ public abstract class JdbcAvroArgs implements Serializable {
 
   @AutoValue.Builder
   abstract static class Builder {
-    abstract Builder setJdbcConnectionConfiguration(JdbcConnectionConfiguration jdbcConnectionConfiguration);
+    abstract Builder setJdbcConnectionConfiguration(JdbcConnectionArgs jdbcConnectionArgs);
     abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
     abstract Builder setFetchSize(int fetchSize);
     abstract Builder setAvroCodec(String avroCodec);
     abstract JdbcAvroArgs build();
   }
 
-  public static JdbcAvroArgs create(JdbcConnectionConfiguration jdbcConnectionConfiguration,
+  public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs,
                                     int fetchSize, String avroCodec) {
     Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]"),
                           "Avro codec should be snappy or deflate1, .., deflate9");
-    return new AutoValue_JdbcAvroOptions.Builder()
-        .setJdbcConnectionConfiguration(jdbcConnectionConfiguration)
+    return new AutoValue_JdbcAvroArgs.Builder()
+        .setJdbcConnectionConfiguration(jdbcConnectionArgs)
         .setFetchSize(fetchSize)
         .setAvroCodec(avroCodec)
         .build();
   }
 
-  public static JdbcAvroArgs create(JdbcConnectionConfiguration jdbcConnectionConfiguration) {
-    return create(jdbcConnectionConfiguration, 10000, "deflate6");
+  public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs) {
+    return create(jdbcConnectionArgs, 10000, "deflate6");
   }
 
   public interface StatementPreparator extends Serializable {
