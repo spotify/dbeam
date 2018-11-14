@@ -48,7 +48,7 @@ public class JdbcExportArgsFactory {
     final JdbcAvroArgs jdbcAvroArgs = JdbcAvroArgs.create(
         JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
             .withUsername(exportOptions.getUsername())
-            .withPassword(PasswordReader.readPassword(exportOptions).orElse(null)),
+            .withPassword(PasswordReader.INSTANCE.readPassword(exportOptions).orElse(null)),
         exportOptions.getFetchSize(),
         exportOptions.getAvroCodec());
 

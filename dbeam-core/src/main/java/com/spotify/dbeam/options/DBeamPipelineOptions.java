@@ -44,10 +44,16 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setUsername(String value);
 
-  @Description("A path to a local file containing the database password.")
+  @Description("A path to a file containing the database password.")
   String getPasswordFile();
 
   void setPasswordFile(String value);
+
+  @Description("A path to a file containing the database password, "
+               + "KMS encrypted and base64 encoded.")
+  String getPasswordFileKmsEncrypted();
+
+  void setPasswordFileKmsEncrypted(String value);
 
   @Description("Database password")
   String getPassword();
