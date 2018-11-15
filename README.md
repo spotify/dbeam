@@ -5,7 +5,7 @@ DBeam
 [![Build Status](https://travis-ci.org/spotify/dbeam.svg?branch=master)](https://travis-ci.org/spotify/dbeam)
 [![codecov.io](https://codecov.io/github/spotify/dbeam/coverage.svg?branch=master)](https://codecov.io/github/spotify/dbeam?branch=master)
 [![GitHub license](https://img.shields.io/github/license/spotify/dbeam.svg)](./LICENSE)
-[![Maven Central](https://img.shields.io/maven-central/v/com.spotify/dbeam-core_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/dbeam-core_2.12)
+[![Maven Central](https://img.shields.io/maven-central/v/com.spotify/dbeam-core.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/dbeam-core)
 
 A connector tool to extract data from SQL databases and import into [GCS](https://cloud.google.com/storage/) using [Apache Beam](https://beam.apache.org/).
 
@@ -25,7 +25,7 @@ to store the extracted data into. DBeam first makes a single select into the tar
 limit one to infer the table schema. After the schema is created the job will be launched which
 simply streams the table contents via JDBC into target location as Avro.
 
-## `dbeam` Java/Scala package features
+## dbeam-core package features
 
 - Support both PostgreSQL and MySQL JDBC connectors
 - Supports CloudSQL managed databases
@@ -35,7 +35,7 @@ simply streams the table contents via JDBC into target location as Avro.
 - Check and fail on too old partition dates. Snapshot dumps are not filtered by a given date/partition, when running for a too old partition, the job fails to avoid new data in old partitions. (can be disabled with `--skipPartitionCheck`)
 - It has dependency on Apache Beam SDK.
 
-### `dbeam` arguments
+### dbeam command line arguments
 
 - `--connectionUrl`: the JDBC connection url to perform the dump
 - `--table`: the database table to query and perform the dump
@@ -53,34 +53,25 @@ simply streams the table contents via JDBC into target location as Avro.
 
 ## Building
 
-Build with SBT package to get a jar that you can run with `java -cp`. Notice that this won't
-create a fat jar, which means that you need to include dependencies on the class path.
+Building and testing can be achieved with `mvn`:
 
 ```sh
-sbt package
+mvn validate
 ```
 
-You can also build the project with SBT pack, which will create a `dbeam-pack/target/pack`
-directory with all the dependencies, and also a shell script to run DBeam.
+In order to create a jar with all dependencies under `./dbeam-core/target/dbeam-core-shaded.jar` run the following:
 
 ```sh
-sbt pack
+mvn clean package -Ppack
 ```
-
-Now you can run the script directly from created dbeam-pack directory:
-
-```sh
-./dbeam-pack/target/pack/bin/jdbc-avro-job
-```
-
-TODO: We will be improving the packaging and releasing process shortly.
 
 ## Usage examples
 
 Using java from the command line:
 
-```
-java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
+```sh
+java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
+  com.spotify.dbeam.jobs.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
   --username=my_database_username \
   --password=secret \
@@ -90,8 +81,9 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
 
 For CloudSQL:
 
-```
-java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
+```sh
+java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
+  com.spotify.dbeam.jobs.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
   --username=my_database_username \
   --password=secret \
@@ -102,10 +94,11 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
 - Replace postgres with mysql if you are using MySQL.
 - More details can be found at [CloudSQL JDBC SocketFactory](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory)
 
-To validate a data extraction one can run:
+To run a cheap data extraction, as a way to validate, one can run:
 
 ```sh
-java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
+java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
+  com.spotify.dbeam.jobs.JdbcAvroJob \
   --output=gs://my-testing-bucket-name/ \
   --username=my_database_username \
   --password=secret \
@@ -115,26 +108,44 @@ java -cp CLASS_PATH dbeam-core_2.12.jar com.spotify.dbeam.jobs.JdbcAvroJob \
   --skipPartitionCheck
 ```
 
-## Requirements
+## Using as a library
 
-DBeam is built on top of [Apache Beam SDK](https://beam.apache.org/) and supports both Scala 2.12 and 2.11.
 
-To include DBeam library in a SBT project add the following in build.sbt:
+To include DBeam library in a mvn project add the following dependency in `pom.xml`:
+
+```xml
+<dependency>
+  <groupId>com.spotify</groupId>
+  <artifactId>dbeam-core</artifactId>
+  <version>${dbeam.version}</version>
+</dependency>
+```
+
+
+To include DBeam library in a SBT project add the following dependency in `build.sbt`:
 
 ```sbt
   libraryDependencies ++= Seq(
-   "com.spotify" %% "dbeam-core" % dbeamVersion
+   "com.spotify" % "dbeam-core" % dbeamVersion
   )
 ```
 
 ## Development
 
-Make sure you have [sbt][sbt] installed. For editor, [IntelliJ IDEA][idea] with [scala plugin][scala-plugin] is recommended.
+Make sure you have [mvn](https://maven.apache.org/) installed.
+For editor, [IntelliJ IDEA][idea] is recommended.
 
-To test and verify during development, run:
+To test and verify changes during development, run:
 
+```sh
+mvn validate
 ```
-sbt clean scalastyle test:scalastyle coverage test coverageReport coverageAggregate
+
+Or:
+
+
+```sh
+mvn validate -Pcoverage
 ```
 
 This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are
@@ -151,7 +162,5 @@ Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/L
 ---
 
 [code-of-conduct]: https://github.com/spotify/code-of-conduct/blob/master/code-of-conduct.md
-[sbt]: http://www.scala-sbt.org/
 [idea]: https://www.jetbrains.com/idea/download/
-[scala-plugin]: https://plugins.jetbrains.com/plugin/1347-scala
 [beam]: https://beam.apache.org/
