@@ -41,7 +41,7 @@ public class JobNameConfiguration {
     } catch (Exception e) {
       LOGGER.warn("Unable to configure ApplicationName", e);
     }
-    if (options.getJobName() == null) {
+    if (options.getJobName() == null || "auto".equals(options.getJobName())) {
       String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());
       options.setJobName(
           String.join("-",
