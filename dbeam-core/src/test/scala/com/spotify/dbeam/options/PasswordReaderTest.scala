@@ -21,6 +21,7 @@ import java.io.File
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.{Optional, UUID}
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.json.Json
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.testing.http.{MockHttpTransport, MockLowLevelHttpResponse}
@@ -62,7 +63,11 @@ class PasswordReaderTest extends FlatSpec with Matchers with BeforeAndAfterAll {
             )
         ))
       .build()
-    val passwordReader = new PasswordReader(KmsSecrets.decrypter().transport(mockHttpTransport).build())
+    val passwordReader = new PasswordReader(KmsSecrets.decrypter()
+      .project(Optional.of("fake_project"))
+      .credentials(Optional.of(new GoogleCredential.Builder().build()))
+      .transport(mockHttpTransport)
+      .build())
 
     val options = PipelineOptionsFactory.create().as(classOf[DBeamPipelineOptions])
     options.setPasswordFileKmsEncrypted(passwordPath.toString)

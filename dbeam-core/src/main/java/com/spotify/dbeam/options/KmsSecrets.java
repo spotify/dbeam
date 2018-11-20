@@ -39,21 +39,19 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class KmsSecrets {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PasswordReader.class);
   private static final String KEYRING;
   private static final String KEY;
   private static final String LOCATION;
+  private static final String PROJECT;
 
   static {
     Properties p = System.getProperties();
     KEYRING = p.getProperty("KMS_KEYRING", "dbeam");
     KEY = p.getProperty("KMS_KEY", "default");
     LOCATION = p.getProperty("KMS_LOCATION", "global");
+    PROJECT = p.getProperty("KMS_PROJECT");
   }
 
   /**
@@ -64,7 +62,7 @@ public class KmsSecrets {
         .location(LOCATION)
         .key(KEY)
         .keyring(KEYRING)
-        .project(ServiceOptions.getDefaultProjectId());
+        .project(Optional.ofNullable(PROJECT));
   }
 
   @AutoValue
@@ -89,7 +87,7 @@ public class KmsSecrets {
      * The GCP project KMS key to use for decryption. Will be detected from credentials
      * or gcloud sdk if not set.
      */
-    abstract String project();
+    abstract Optional<String> project();
 
     /**
      * The {@link HttpTransport} to use for the default credentials and KMS client.
@@ -118,7 +116,7 @@ public class KmsSecrets {
 
       public abstract Builder key(String keyring);
 
-      public abstract Builder project(String project);
+      public abstract Builder project(Optional<String> project);
 
       public abstract Builder transport(HttpTransport transport);
 
@@ -142,14 +140,15 @@ public class KmsSecrets {
      * @return A {@link ByteBuffer} with the raw contents.
      */
     ByteBuffer decryptBinary(String base64Ciphertext) throws IOException {
+      final String project = project().orElseGet(ServiceOptions::getDefaultProjectId);
       final String keyName = String.format(
           "projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s",
-          project(), location(), keyring(), key());
+          project, location(), keyring(), key());
 
       final DecryptResponse response = kms()
           .projects().locations().keyRings().cryptoKeys()
           .decrypt(keyName, new DecryptRequest()
-              .setCiphertext(CharMatcher.WHITESPACE.removeFrom(base64Ciphertext)))
+              .setCiphertext(CharMatcher.whitespace().removeFrom(base64Ciphertext)))
           .execute();
       return ByteBuffer.wrap(Base64.getDecoder().decode(response.getPlaintext()));
     }
@@ -158,8 +157,9 @@ public class KmsSecrets {
       final HttpTransport transport = transport().orElseGet(Utils::getDefaultTransport);
       final JsonFactory jsonFactory = jsonFactory().orElseGet(Utils::getDefaultJsonFactory);
       final GoogleCredential googleCredential =
-          credentials().isPresent() ? credentials().get()
-                                    : GoogleCredential.getApplicationDefault();
+          credentials().isPresent()
+          ? credentials().get()
+          : GoogleCredential.getApplicationDefault(transport, jsonFactory);
       return KmsSecrets.kms(transport, jsonFactory, googleCredential);
     }
 

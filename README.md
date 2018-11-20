@@ -139,6 +139,7 @@ java \
   -DKMS_KEYRING=dbeam \
   -DKMS_KEY=default \
   -DKMS_LOCATION=global \
+  -DKMS_PROJECT=default_gcp_project \
   -cp ./dbeam-core/target/dbeam-core-shaded.jar \
   com.spotify.dbeam.jobs.JdbcAvroJob \
   ...
