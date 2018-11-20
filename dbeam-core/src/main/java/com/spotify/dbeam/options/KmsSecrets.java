@@ -39,21 +39,19 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class KmsSecrets {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PasswordReader.class);
   private static final String KEYRING;
   private static final String KEY;
   private static final String LOCATION;
+  private static final String PROJECT;
 
   static {
     Properties p = System.getProperties();
     KEYRING = p.getProperty("KMS_KEYRING", "dbeam");
     KEY = p.getProperty("KMS_KEY", "default");
     LOCATION = p.getProperty("KMS_LOCATION", "global");
+    PROJECT = p.getProperty("KMS_PROJECT", null);
   }
 
   /**
@@ -64,7 +62,7 @@ public class KmsSecrets {
         .location(LOCATION)
         .key(KEY)
         .keyring(KEYRING)
-        .project(ServiceOptions.getDefaultProjectId());
+        .project(Optional.ofNullable(PROJECT).orElseGet(ServiceOptions::getDefaultProjectId));
   }
 
   @AutoValue
