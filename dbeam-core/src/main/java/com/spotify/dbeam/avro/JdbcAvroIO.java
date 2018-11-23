@@ -60,36 +60,33 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class JdbcAvroIO {
 
-  public abstract static class Write {
+  private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
 
-    private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
+  public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
+      String filenamePrefix, String filenameSuffix, Schema schema,
+      JdbcAvroArgs jdbcAvroArgs) {
+    filenamePrefix = filenamePrefix.replaceAll("/+$", "") + "/part";
+    ValueProvider<ResourceId> prefixProvider =
+        StaticValueProvider.of(FileBasedSink.convertToFileResourceIfPossible(filenamePrefix));
+    FileBasedSink.FilenamePolicy filenamePolicy =
+        DefaultFilenamePolicy.fromStandardParameters(
+            prefixProvider,
+            DEFAULT_SHARD_TEMPLATE,
+            filenameSuffix,
+            false);
 
-    public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
-        String filenamePrefix, String filenameSuffix, Schema schema,
-        JdbcAvroArgs jdbcAvroArgs) {
-      filenamePrefix = filenamePrefix.replaceAll("/+$", "") + "/part";
-      ValueProvider<ResourceId> prefixProvider =
-          StaticValueProvider.of(FileBasedSink.convertToFileResourceIfPossible(filenamePrefix));
-      FileBasedSink.FilenamePolicy filenamePolicy =
-          DefaultFilenamePolicy.fromStandardParameters(
-              prefixProvider,
-              DEFAULT_SHARD_TEMPLATE,
-              filenameSuffix,
-              false);
-
-      final DynamicAvroDestinations<String, Void, String>
-          destinations =
-          AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                      jdbcAvroArgs.getCodecFactory(),
-                                      SerializableFunctions.identity());
-      final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
-          prefixProvider,
-          destinations,
-          jdbcAvroArgs);
-      return WriteFiles.to(sink);
-    }
-
+    final DynamicAvroDestinations<String, Void, String>
+        destinations =
+        AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
+                                    jdbcAvroArgs.getCodecFactory(),
+                                    SerializableFunctions.identity());
+    final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
+        prefixProvider,
+        destinations,
+        jdbcAvroArgs);
+    return WriteFiles.to(sink);
   }
+
 
   static class JdbcAvroSink<UserT> extends FileBasedSink<UserT, Void, String> {
 

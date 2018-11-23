@@ -98,7 +98,7 @@ public class JdbcAvroJob {
     LOGGER.info("Running queries: {}", queries.toString());
 
     pipeline.apply("JdbcQueries", Create.of(queries))
-        .apply("JdbcAvroSave", JdbcAvroIO.Write.createWrite(
+        .apply("JdbcAvroSave", JdbcAvroIO.createWrite(
             output,
             ".avro",
             generatedSchema,
