@@ -108,6 +108,43 @@ java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
   --skipPartitionCheck
 ```
 
+### Password configuration
+
+Database password can be configured by simply passing `--password=writepasswordhere`, `--passwordFile=/path/to/file/containing/password` or `--passwordFile=gs://gcs-bucket/path/to/file/containing/password`.
+
+A more robust configuration is to point to a [Google KMS](https://cloud.google.com/kms/) encrypted file.
+DBeam will try to decrypt using KMS if the file ends with `.encrypted` (e.g. `--passwordFileKmsEncrypted=gs://gcs-bucket/path/to/db-password.encrypted`).
+
+The file should contain a base64 encoded encrypted content.
+It can be generated using [`gcloud`](https://cloud.google.com/sdk/gcloud/) like the following:
+
+```sh
+echo "super_secret_password" \
+  | gcloud kms encrypt \
+      --location "global" \
+      --keyring "dbeam" \
+      --key "default" \
+      --project "mygcpproject" \
+      --plaintext-file - \
+      --ciphertext-file - \
+  | base64 \
+  | gsutil cp - gs://gcs-bucket/path/to/db-password.encrypted
+```
+
+KMS location, keyring, and key can be configured via Java Properties, defaults are:
+
+
+```sh
+java \
+  -DKMS_KEYRING=dbeam \
+  -DKMS_KEY=default \
+  -DKMS_LOCATION=global \
+  -DKMS_PROJECT=default_gcp_project \
+  -cp ./dbeam-core/target/dbeam-core-shaded.jar \
+  com.spotify.dbeam.jobs.JdbcAvroJob \
+  ...
+```
+
 ## Using as a library
 
 

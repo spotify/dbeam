@@ -34,24 +34,36 @@ import org.apache.beam.sdk.io.fs.MatchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PasswordReader {
+class PasswordReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PasswordReader.class);
+  private final KmsSecrets.Decrypter decrypter;
 
-  public static Optional<String> readPassword(DBeamPipelineOptions options) throws IOException {
+  PasswordReader(KmsSecrets.Decrypter decrypter) {
+    this.decrypter = decrypter;
+  }
+
+  static final PasswordReader INSTANCE = new PasswordReader(KmsSecrets.decrypter().build());
+
+  Optional<String> readPassword(DBeamPipelineOptions options) throws IOException {
     FileSystems.setDefaultPipelineOptions(options);
-    MatchResult.Metadata m;
-    if (options.getPasswordFile() != null) {
-      m = FileSystems.matchSingleFileSpec(options.getPasswordFile());
-      LOGGER.info("Reading password from file: {}", m.resourceId().toString());
-      InputStream
-          inputStream =
-          Channels.newInputStream(FileSystems.open(m.resourceId()));
-      return Optional.of(CharStreams.toString(new InputStreamReader(
-          inputStream, Charsets.UTF_8)));
+    if (options.getPasswordFileKmsEncrypted() != null) {
+      LOGGER.info("Decrypting password using KMS...");
+      return Optional.of(decrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted())));
+    } else if (options.getPasswordFile() != null) {
+      return Optional.of(readFromFile(options.getPasswordFile()));
     } else {
       return Optional.ofNullable(options.getPassword());
     }
+  }
+
+  String readFromFile(String passwordFile) throws IOException {
+    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(passwordFile);
+    LOGGER.info("Reading password from file: {}", m.resourceId().toString());
+    InputStream
+        inputStream =
+        Channels.newInputStream(FileSystems.open(m.resourceId()));
+    return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }
 
 }

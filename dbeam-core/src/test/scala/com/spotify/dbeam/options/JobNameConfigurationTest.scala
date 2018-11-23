@@ -35,4 +35,14 @@ class JobNameConfigurationTest extends FlatSpec with Matchers with BeforeAndAfte
     pipelineOptions.getJobName should startWith ("dbeam-somedb-sometable-")
   }
 
+  it should "configure job name when jobName = auto" in {
+    val pipelineOptions = PipelineOptionsFactory.create()
+    pipelineOptions.setJobName("auto")
+
+    JobNameConfiguration.configureJobName(pipelineOptions, "some_db", "some_table")
+
+    pipelineOptions.as(classOf[ApplicationNameOptions]).getAppName should be ("JdbcAvroJob")
+    pipelineOptions.getJobName should startWith ("dbeam-somedb-sometable-")
+  }
+
 }

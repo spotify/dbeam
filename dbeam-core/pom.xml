@@ -134,7 +134,11 @@
         <version>3.2.0</version>
         <scope>test</scope>
       </dependency>
-
+      <dependency>
+        <groupId>com.google.http-client</groupId>
+        <artifactId>google-http-client-test</artifactId>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
 
 
