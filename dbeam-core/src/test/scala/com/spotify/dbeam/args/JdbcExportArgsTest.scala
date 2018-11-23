@@ -88,6 +88,9 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=bar --table=some_table --password=secret")
     }
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=some:foo:bar --table=some_table --password=secret")
+    }
   }
   it should "fail to parse unsupported jdbc connection parameter" in {
     a[IllegalArgumentException] should be thrownBy {
