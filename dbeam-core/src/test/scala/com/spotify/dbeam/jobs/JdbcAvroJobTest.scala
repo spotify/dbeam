@@ -25,12 +25,14 @@ import java.util.{Comparator, UUID}
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.avro.JdbcAvroMetering
 import com.spotify.dbeam.beam.BeamHelper
+import com.spotify.dbeam.options.OutputOptions
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.beam.sdk.Pipeline.PipelineExecutionException
 import org.apache.beam.sdk.PipelineResult
 import org.apache.beam.sdk.io.AvroSource
 import org.apache.beam.sdk.metrics.MetricResults
+import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.testing.SourceTestUtils
 import org.joda.time.Duration
 import org.junit.runner.RunWith
@@ -108,6 +110,21 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "JdbcAvroJob" should "have a default exit code" in {
     ExceptionHandling.exitCode(new IllegalStateException()) should be (49)
+  }
+
+  "JdbcAvroJob" should "fail on missing input" in {
+    val pipelineOptions = PipelineOptionsFactory.create()
+    a[IllegalArgumentException] should be thrownBy {
+      JdbcAvroJob.create(pipelineOptions)
+    }
+  }
+
+  "JdbcAvroJob" should "fail on empty input" in {
+    val pipelineOptions = PipelineOptionsFactory.create()
+    pipelineOptions.as(classOf[OutputOptions]).setOutput("")
+    a[IllegalArgumentException] should be thrownBy {
+      JdbcAvroJob.create(pipelineOptions)
+    }
   }
 
   "JdbcAvroJob" should "increment counter metrics" in {
