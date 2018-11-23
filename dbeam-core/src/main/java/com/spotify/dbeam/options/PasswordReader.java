@@ -37,19 +37,19 @@ import org.slf4j.LoggerFactory;
 class PasswordReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PasswordReader.class);
-  private final KmsSecrets.Decrypter decrypter;
+  private final KmsDecrypter kmsDecrypter;
 
-  PasswordReader(KmsSecrets.Decrypter decrypter) {
-    this.decrypter = decrypter;
+  PasswordReader(KmsDecrypter kmsDecrypter) {
+    this.kmsDecrypter = kmsDecrypter;
   }
 
-  static final PasswordReader INSTANCE = new PasswordReader(KmsSecrets.decrypter().build());
+  static final PasswordReader INSTANCE = new PasswordReader(KmsDecrypter.decrypter().build());
 
   Optional<String> readPassword(DBeamPipelineOptions options) throws IOException {
     FileSystems.setDefaultPipelineOptions(options);
     if (options.getPasswordFileKmsEncrypted() != null) {
       LOGGER.info("Decrypting password using KMS...");
-      return Optional.of(decrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted())));
+      return Optional.of(kmsDecrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted())));
     } else if (options.getPasswordFile() != null) {
       return Optional.of(readFromFile(options.getPasswordFile()));
     } else {

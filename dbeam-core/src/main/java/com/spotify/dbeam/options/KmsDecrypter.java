@@ -39,7 +39,8 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
 
-public class KmsSecrets {
+@AutoValue
+public abstract class KmsDecrypter {
 
   private static final String KEYRING;
   private static final String KEY;
@@ -55,18 +56,15 @@ public class KmsSecrets {
   }
 
   /**
-   * Create a new {@link Decrypter.Builder} for customizing the {@link Decrypter} configuration.
+   * Create a new {@link Builder} for customizing the {@link KmsDecrypter} configuration.
    */
-  public static Decrypter.Builder decrypter() {
-    return new AutoValue_KmsSecrets_Decrypter.Builder()
+  public static Builder decrypter() {
+    return new AutoValue_KmsDecrypter.Builder()
         .location(LOCATION)
         .key(KEY)
         .keyring(KEYRING)
         .project(Optional.ofNullable(PROJECT));
   }
-
-  @AutoValue
-  public abstract static class Decrypter {
 
     /**
      * The location of the KMS key to use for decryption.
@@ -124,7 +122,7 @@ public class KmsSecrets {
 
       public abstract Builder credentials(Optional<GoogleCredential> credentials);
 
-      public abstract Decrypter build();
+      public abstract KmsDecrypter build();
     }
 
     /**
@@ -160,10 +158,8 @@ public class KmsSecrets {
           credentials().isPresent()
           ? credentials().get()
           : GoogleCredential.getApplicationDefault(transport, jsonFactory);
-      return KmsSecrets.kms(transport, jsonFactory, googleCredential);
+      return KmsDecrypter.kms(transport, jsonFactory, googleCredential);
     }
-
-  }
 
   private static CloudKMS kms(HttpTransport transport,
                               JsonFactory jsonFactory, GoogleCredential credential) {

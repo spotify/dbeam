@@ -63,7 +63,7 @@ class PasswordReaderTest extends FlatSpec with Matchers with BeforeAndAfterAll {
             )
         ))
       .build()
-    val passwordReader = new PasswordReader(KmsSecrets.decrypter()
+    val passwordReader = new PasswordReader(KmsDecrypter.decrypter()
       .project(Optional.of("fake_project"))
       .credentials(Optional.of(new GoogleCredential.Builder().build()))
       .transport(mockHttpTransport)
