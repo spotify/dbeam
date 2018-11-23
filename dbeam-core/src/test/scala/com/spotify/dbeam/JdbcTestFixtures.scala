@@ -30,13 +30,15 @@ object JdbcTestFixtures {
   TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
 
   type recordType = (String, Option[Int], BigDecimal, Float, Double,
-    Boolean, Int, Long, Timestamp, Option[Timestamp], Byte, UUID)
+    Boolean, Int, Long, Timestamp, Option[Timestamp], Option[Byte], UUID)
 
   val record1: recordType = ("costa rica caffee", None, BigDecimal("7.20"), (82.5).toFloat,
-    (320.7).toDouble, true, 17, 200L, new java.sql.Timestamp(1488300933000L), None, 168.toByte,
+    (320.7).toDouble, true, 17, 200L, new java.sql.Timestamp(1488300933000L),
+     None, Option(168.toByte),
     UUID.fromString("123e4567-e89b-12d3-a456-426655440000"))
   val record2: recordType = ("colombian caffee", None, BigDecimal("9.20"), (87.5).toFloat,
-    (230.7).toDouble, true, 13, 201L, new java.sql.Timestamp(1488300723000L), None, 133.toByte,
+    (230.7).toDouble, true, 13, 201L, new java.sql.Timestamp(1488300723000L),
+    None, None,
     UUID.fromString("123e4567-e89b-a456-12d3-426655440000"))
 
   def createFixtures(db: Database, records: Seq[recordType]): Unit = {
@@ -52,7 +54,7 @@ object JdbcTestFixtures {
       def total = column[Long]("TOTAL", O.Default(0))
       def created = column[java.sql.Timestamp]("CREATED")
       def updated = column[Option[java.sql.Timestamp]]("UPDATED")
-      def bt = column[Byte]("BT")
+      def bt = column[Option[Byte]]("BT")
       def uid = column[UUID]("UID")
       def * = (name, supID, price, temperature, size,
         isArabic, sales, total, created, updated, bt, uid)

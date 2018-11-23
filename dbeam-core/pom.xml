@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+      <artifactId>dbeam-parent</artifactId>
+      <groupId>com.spotify</groupId>
+      <version>0.7.0-SNAPSHOT</version>
+    </parent>
+
+    <name>DBeam Core</name>
+    <artifactId>dbeam-core</artifactId>
+    <description>
+      Top level core implementation
+    </description>
+
+    <properties>
+        <scala.baseVersion>2.12</scala.baseVersion>
+        <scala.version>2.12.7</scala.version>
+    </properties>
+
+    <dependencies>
+
+      <!-- SDK -->
+      <dependency>
+        <groupId>org.apache.beam</groupId>
+        <artifactId>beam-sdks-java-core</artifactId>
+      </dependency>
+
+      <!-- Log -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+      </dependency>
+
+      <!-- Runners -->
+
+      <dependency>
+        <groupId>org.apache.beam</groupId>
+        <artifactId>beam-runners-direct-java</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.beam</groupId>
+        <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto.value</groupId>
+        <artifactId>auto-value</artifactId>
+        <scope>provided</scope>
+      </dependency>
+
+      <!-- DB Deps -->
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud.sql</groupId>
+        <artifactId>postgres-socket-factory</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud.sql</groupId>
+        <artifactId>mysql-socket-factory</artifactId>
+      </dependency>
+
+      <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>io.grpc</groupId>
+          <artifactId>grpc-protobuf</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>io.grpc</groupId>
+          <artifactId>grpc-core</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>com.google.errorprone</groupId>
+          <artifactId>error_prone_annotations</artifactId>
+      </dependency>
+
+      <dependency>
+          <groupId>com.google.apis</groupId>
+          <artifactId>google-api-services-cloudkms</artifactId>
+      </dependency>
+
+      <!-- Test Deps -->
+
+      <dependency>
+          <groupId>org.scala-lang</groupId>
+          <artifactId>scala-library</artifactId>
+          <version>${scala.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.scalatest</groupId>
+          <artifactId>scalatest_${scala.baseVersion}</artifactId>
+          <version>3.0.5</version>
+          <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest-all</artifactId>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.typesafe.slick</groupId>
+        <artifactId>slick_${scala.baseVersion}</artifactId>
+        <version>3.2.0</version>
+        <scope>test</scope>
+      </dependency>
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.4.4</version>
+                <executions>
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                    <sendJavaToScalac>false</sendJavaToScalac>
+                    <addScalacArgs>-Xexperimental|-target:jvm-1.8</addScalacArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

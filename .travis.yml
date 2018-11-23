@@ -1,25 +1,33 @@
-language: scala
-matrix:
-  include:
-    - scala: 2.11.12
-      jdk: oraclejdk8
-    - scala: 2.12.7
-      jdk: oraclejdk8
+language: java
+
+jdk:
+  - oraclejdk8
 
 cache:
   directories:
-    - $HOME/.sbt/boot
-    - $HOME/.ivy2/cache
+    - $HOME/.m2/
+
+env:
+  global:
+    # SONATYPE_USERNAME
+    - secure: "O3CMNLZD+4gSBVtNDY/oiXqioCtMUOGn94b1aiDQyTVRXnz275t0ccKeKHgfAk/zCN7sS6JkZqmkOr25i47N/yuee3ZMi8VmFI+Jw7thTFjuOZEK1LY3kVOMYteEkG61Omb/BkIje8lR6fNLIY3HPBoBg3WuDlubWGYxIkAWtXr5T6Hajf97mw1O4ca8tlGf17Zd0scC2a20nE2FRN3TZame7QG0hvdkD0xDoFUDe3dUFHkE5XPYaltL3iqEMudi72NuGUXRzaOAfKdsISrN1PP1DfHbeX+BziJIGue2kPvLoaa9ClUyX/ZO6wz/p2dv+kkAuA8UWzYcCG9Xyh+pVvOmnCqzf9qFFJoOotbs6aVv0WW8tLtWnsURgvfUqgPPm/ZpjrSIyLMcujmdkX6NJ4z8TRCjVToMusdSBNzm4yx8hx+sHoRsvrdsN3Zg3Or5yR/ys4FACKIVjSsOZUflsgqw3PT1OAT3Kx6VfcP5Ge3A7A1FJNUAvIcP28isaVF2qPsxzwOLBjuoVNpG6MTmHFskDWTYSdTQ9uhXz5gsXBtpfBXDqXTI3EfHkXjt6iDRZREyJTOWi0I2bZXcVXVqvNVl6U6jU8sOMD1/BBis8wp08Umo+gUQpaQ+H0gtHLhHBLIT2wk9C5SUciBSYILKXLGWaLfzFUUzYgqF/YEi8xQ="
+    # SONATYPE_PASSWORD
+    - secure: "euZtNDFq5hdoNEx2ZGzoh6jpobBtAKuJ9DhQ2PVv9dVwVwMfkxRl93mdKlOzIAq6VZb+UCoXOPimXzZ3SPxfsA4kdruJcT0RlKoe5F0jkV+eKzLwqHC84Arn4X4EeOHbwViuNCg41j5J6/Zhm3PtUCIEiQ08l3PV8YakMmJDmEANnY8xU1R8TlzqFUoXJfwaOnS9/nDFctj38Ff67C9lA7JKxAaeBxgt4vX3AUOZanbBmCU98Fw3BF5I9zi2BkxuC75zHZs3o/1GG3zyB/MfAwZ8R5KR83pdfKF8AjSIYK2pRxjCvs1qn5OzglpGbHJSHFbPkfEUlrGTQGN3lP3er2Nm3scblRzJP3nOPZbRiGpXYjoQqt4ZtbxxB4FJSlxs7l0rlxXi8iFQd39BTyOz4m4JsGQ1JjSXSdQ4ApvZAs6qoyJGk66BMU9QP92OHrv2N6rOZYUsw/Wfe+dZFDcFoPWm9F+tHSTcKtw0zbkOAXV50vhO5jweveUuzw5h792vlUmfjeqwyazpdiEDgaw3Ol015wAyv0q4GnsrOyrYnpPEtoXumzJQG8cm/1LRHht7gkSLfmDVpTqDobt1/78TZM7DaBsu9nZmkyHgcttJ+P1fn8ppMMEC7nIni2z+ha2K9+9MCtm3Omw6ScUTXEa4u/aObH+KrktWG3MlLkd+YO0="
+    # GPG_KEY_NAME
+    - secure: "a8ochZt99zZeaCqmhb4d1ReMfXg6535Vz90zitgdvsXEyP6G4mcahMt83lbwgFF56tRg3czZyQKTBGrf8WTX4Fj8xZcr+ulEBCSQhi2lh4avORJQAJsSrN8Oay3GLwt2BoXYFFw8zTc2A3xAtYfEe9u/NIPyO0sBJ3U+qGobL+rLmr7COeAUnY4iLndDMe77gH1M3tqgTf53mop/E5x0bpYFryLAZB6QjxzUHroPHJ4ec0KJWF76gUC2auUtieL+gkodE7MuK5wElBtP/qWZyRf9hwGVWp3AfgSD4RiykfhXDD/idQHVNYjZzivVnfhGmP5KEywagQGJDgvp1CaywSq+nNHpdT6vPaT8aNkz/yIShMz33JdWScUq0xMshOhrhMJMW1jhJ4SZ0om4b6L5HvS4JLyoSMvVNL3FQAlwP+dJgwN5xWz2qfoPrOqXQnkfxReYnZ8Zptz0SwIDC5kWcg4eGDiPuG2WRx6TACFEGoiywmtOeOWxruoTMkKt0x9SxvGH8tmzqUGlxjcJ++CrE1r16iTOSWvGELssQk/oyd6giPn6at3S6vd6a0vNmJJ0YSdG50ENv9KjL7nQyq2AEueV0gqH/MaEIz+Es+BfnTs1m6ECJSNySMvcz0uQ9pZtlcegOESB2JwXt9NeoJjGcml8WQdK3uiUZIw/0YhXFyQ="
+    # GPG_PASSPHRASE
+    - secure: "LMpgkaKMuJdz0eyWaLREP0dHNPh9l3cT9VBgDui3W+UUs7Z49BAvPsOk6llE3sKCOcwTPUsxoAweH0wy2XdVvqZVlArUzq8S3yyGPvW8oaZf0U1ESz+4xY6ko1iAwWG22ZKFrwr8qd8A+RvuJOkvztCNzLleXNrH4mqnIZNtVvRj6MW8yJ3cO2D9ryLMd7OVjdqkOSF3pFamvnhHm9hvbFIZu+U7aRuuVGwp/+oLYqQfBDefdU3ZJ2bsw2/aUHMbZk2yXiXe4rLwQv3Snvnj/y6nFUSxcgXkqSs0LuI/Okgpbu8eHOZRAvqs6Oz3NNmL6gDZ7y1HAa2jvirE4h7aoiCo5LZk8S2y9XP0yKXY5jgoMo8fe6NiujX5tBktj7fhXb3RpP7s1jAEj/WtBMj19Iy3K4/wmKx6M3r4PI0cNyfWTo4GwKs/OFtUItWLCL95XxaRe5o0SSjDRy7nYrys2dajILtF9lBKYHezK5ZQIU+omzoyD8VPw/PaSh/vCGtIRgnLdzonWAnp9fgy24V3/dk6UrvkNuQxDvHiWqF6KVlbUVv/cbgU0JFzKcjqBwZHRRu2Fg3E9yCjt9452uAtvBXFkm/8dfJ+c/zlu2HiQROEhD9xMI/saodR9pLmO+f9ICO0n8wbKgWUG/esCN7w8GkXaU7EtyoHP9tOTom/2+Q="
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean scalastyle test:scalastyle coverage test coverageReport coverageAggregate
-
-  # Tricks to avoid unnecessary cache updates
-  - find $HOME/.sbt -name "*.lock" -delete
-  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - mvn clean verify -Pcoverage
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - ./scripts/deploy.sh
+
+branches:
+  only:
+    - master
 
 notifications:
   email:
