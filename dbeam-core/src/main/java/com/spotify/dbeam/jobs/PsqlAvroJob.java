@@ -20,14 +20,33 @@
 
 package com.spotify.dbeam.jobs;
 
+import java.io.IOException;
+
 public class PsqlAvroJob {
+
+  private final JdbcAvroJob job;
+  private final PsqlReplicationCheck psqlReplicationCheck;
+
+  public PsqlAvroJob(JdbcAvroJob job,
+                     PsqlReplicationCheck psqlReplicationCheck) {
+    this.job = job;
+    this.psqlReplicationCheck = psqlReplicationCheck;
+  }
+
+  public static PsqlAvroJob create(String[] cmdLineArgs)
+      throws IOException, ClassNotFoundException {
+    JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
+    PsqlReplicationCheck.validateOptions(job.getJdbcExportArgs());
+    final PsqlReplicationCheck psqlReplicationCheck =
+        PsqlReplicationCheck.create(job.getJdbcExportArgs());
+    return new PsqlAvroJob(job, psqlReplicationCheck);
+  }
 
   public static void main(String[] cmdLineArgs) {
     try {
-      JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
-      PsqlReplicationCheck.validateOptions(job.getJdbcExportArgs());
-      PsqlReplicationCheck.create(job.getJdbcExportArgs()).checkReplication();
-      job.runExport();
+      final PsqlAvroJob psqlAvroJob = create(cmdLineArgs);
+      psqlAvroJob.psqlReplicationCheck.checkReplication();
+      psqlAvroJob.job.runExport();
     } catch (Exception e) {
       ExceptionHandling.handleException(e);
     }
