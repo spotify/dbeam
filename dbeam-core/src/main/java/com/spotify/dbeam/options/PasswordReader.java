@@ -60,9 +60,7 @@ class PasswordReader {
   String readFromFile(String passwordFile) throws IOException {
     MatchResult.Metadata m = FileSystems.matchSingleFileSpec(passwordFile);
     LOGGER.info("Reading password from file: {}", m.resourceId().toString());
-    InputStream
-        inputStream =
-        Channels.newInputStream(FileSystems.open(m.resourceId()));
+    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
     return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }
 

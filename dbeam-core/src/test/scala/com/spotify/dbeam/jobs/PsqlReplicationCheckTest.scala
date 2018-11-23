@@ -19,7 +19,6 @@ package com.spotify.dbeam.jobs
 
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.args.{JdbcAvroArgs, JdbcConnectionArgs, JdbcExportArgs, QueryBuilderArgs}
-import com.spotify.dbeam.options.OptionsParser
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.junit.runner.RunWith
 import org.scalatest._

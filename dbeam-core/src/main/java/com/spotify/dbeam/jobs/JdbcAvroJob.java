@@ -28,7 +28,8 @@ import com.spotify.dbeam.avro.JdbcAvroIO;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
-import com.spotify.dbeam.options.OptionsParser;
+import com.spotify.dbeam.options.JdbcExportPipelineOptions;
+import com.spotify.dbeam.options.OutputOptions;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.apache.avro.Schema;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptions;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Create;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,12 +69,18 @@ public class JdbcAvroJob {
     return new JdbcAvroJob(pipelineOptions,
                            Pipeline.create(pipelineOptions),
                            JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
-                           OptionsParser.getOutput(pipelineOptions));
+                           pipelineOptions.as(OutputOptions.class).getOutput());
   }
 
   public static JdbcAvroJob create(String[] cmdLineArgs)
       throws IOException, ClassNotFoundException {
-    return create(OptionsParser.buildPipelineOptions(cmdLineArgs));
+    return create(buildPipelineOptions(cmdLineArgs));
+  }
+
+  public static PipelineOptions buildPipelineOptions(String[] cmdLineArgs) {
+    PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
+    PipelineOptionsFactory.register(OutputOptions.class);
+    return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
   }
 
   public void prepareExport() throws Exception {

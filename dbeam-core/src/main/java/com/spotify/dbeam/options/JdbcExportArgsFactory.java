@@ -42,9 +42,6 @@ public class JdbcExportArgsFactory {
   public static JdbcExportArgs fromPipelineOptions(PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
-    Preconditions.checkArgument(exportOptions.getConnectionUrl() != null,
-                                "'connectionUrl' must be defined");
-
     final JdbcAvroArgs jdbcAvroArgs = JdbcAvroArgs.create(
         JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
             .withUsername(exportOptions.getUsername())
