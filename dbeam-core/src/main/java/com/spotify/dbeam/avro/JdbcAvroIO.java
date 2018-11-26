@@ -32,10 +32,8 @@ import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Map;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -145,6 +143,7 @@ public class JdbcAvroIO {
       super(writeOperation, MimeTypes.BINARY);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
+      this.metering = JdbcAvroMetering.create();
     }
 
     public Void getDestination() {
@@ -157,15 +156,13 @@ public class JdbcAvroIO {
       logger.info("jdbcavroio : Preparing write...");
       connection = jdbcAvroArgs.jdbcConnectionConfiguration().createConnection();
       Void destination = getDestination();
-      CodecFactory codec = dynamicDestinations.getCodec(destination);
       Schema schema = dynamicDestinations.getSchema(destination);
       dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema))
-          .setCodec(codec)
+          .setCodec(dynamicDestinations.getCodec(destination))
           .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       this.countingOutputStream = new CountingOutputStream(Channels.newOutputStream(channel));
       dataFileWriter.create(schema, this.countingOutputStream);
-      this.metering = JdbcAvroMetering.create();
       logger.info("jdbcavroio : Write prepared");
     }
 
@@ -187,6 +184,8 @@ public class JdbcAvroIO {
           statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
       this.metering.exposeExecuteQueryMs(System.currentTimeMillis() - startTime);
+      checkArgument(resultSet != null,
+                    "JDBC resultSet was not properly created");
       return resultSet;
     }
 
@@ -195,18 +194,11 @@ public class JdbcAvroIO {
       checkArgument(dataFileWriter != null,
                     "Avro DataFileWriter was not properly created");
       logger.info("jdbcavroio : Starting write...");
-      Schema schema = dynamicDestinations.getSchema(getDestination());
       try (ResultSet resultSet = executeQuery(query)) {
-        checkArgument(resultSet != null,
-                      "JDBC resultSet was not properly created");
-        final Map<Integer, JdbcAvroRecord.SqlFunction<ResultSet, Object>>
-            mappings = JdbcAvroRecord.computeAllMappings(resultSet);
-        final int columnCount = resultSet.getMetaData().getColumnCount();
         long startMs = metering.startWriteMeter();
+        final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet);
         while (resultSet.next()) {
-          final GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
-              schema, resultSet, mappings, columnCount);
-          this.dataFileWriter.append(genericRecord);
+          dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
           this.metering.incrementRecordCount();
         }
         this.dataFileWriter.sync();

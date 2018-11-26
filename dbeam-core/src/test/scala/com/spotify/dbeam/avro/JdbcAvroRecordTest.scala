@@ -152,10 +152,9 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
     record shouldNot be (null)
     record.getSchema should be (schema)
-    record.getSchema.getFields.size() should be (12)
-    record.get(0) should be (record1._1)
+    record.get(0).toString should be (record1._1)
     record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
-    record.get(2) should be (record1._3.toString)
+    record.get(2).toString should be (record1._3.toString)
     record.get(3) should be (record1._4)
     record.get(4) should be (record1._5)
     record.get(5) should be (new java.lang.Boolean(record1._6))
