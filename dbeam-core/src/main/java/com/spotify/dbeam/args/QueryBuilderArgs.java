@@ -74,14 +74,14 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   private static Boolean checkTableName(String tableName) {
-    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_\\.]*$");
+    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_\\\\.]*$");
   }
 
   public static QueryBuilderArgs create(String tableName) {
     Preconditions.checkArgument(tableName != null,
                                 "TableName cannot be null");
     Preconditions.checkArgument(checkTableName(tableName),
-                                "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+                                "'table' must follow [a-zA-Z_][a-zA-Z0-9_\\\\.]*");
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
         .setPartitionPeriod(Days.ONE)
