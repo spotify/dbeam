@@ -74,7 +74,7 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   private static Boolean checkTableName(String tableName) {
-    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_\\.]*$");
   }
 
   public static QueryBuilderArgs create(String tableName) {
