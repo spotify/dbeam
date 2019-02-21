@@ -118,12 +118,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <beam.version>2.9.0</beam.version>
+        <beam.version>2.10.0</beam.version>
         <postgresql.version>42.2.5</postgresql.version>
         <mysql.version>5.1.47</mysql.version>
         <socket-factory.version>1.0.11</socket-factory.version>
 
-        <jackson.version>2.9.5</jackson.version>
+        <jackson.version>2.9.8</jackson.version>
         <slf4j.version>1.7.25</slf4j.version>
         <auto-value.version>1.5.3</auto-value.version>
         <guava.version>20.0</guava.version>
@@ -239,6 +239,10 @@
                         <groupId>com.fasterxml.jackson.core</groupId>
                         <artifactId>jackson-core</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.google.apis</groupId>
+                        <artifactId>google-api-services-storage</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -273,9 +277,9 @@
                 <version>${findbugs.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
+                <groupId>com.google.apis</groupId>
+                <artifactId>google-api-services-storage</artifactId>
+                <version>v1-rev20181109-1.27.0</version>
             </dependency>
 
             <dependency>
@@ -376,10 +380,6 @@
         <dependency>
             <groupId>com.google.auto.value</groupId>
             <artifactId>auto-value</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
         </dependency>
     </dependencies>
 
