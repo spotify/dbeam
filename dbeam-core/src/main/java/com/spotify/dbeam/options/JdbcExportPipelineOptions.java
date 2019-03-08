@@ -90,4 +90,16 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   String getAvroCodec();
 
   void setAvroCodec(String value);
+
+  @Description(
+      "Column used to create splits in case of parallel exports. Should be used with parallelism")
+  String getSplitColumn();
+
+  void setSplitColumn(String value);
+
+  @Description(
+      "Number of queries to run in parallel for exports. Should be used with splitColumn")
+  Integer getParallelism();
+
+  void setParallelism(Integer value);
 }
