@@ -21,6 +21,7 @@
 package com.spotify.dbeam.args;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.Lists;
@@ -106,6 +107,13 @@ public abstract class QueryBuilderArgs implements Serializable {
         .build();
   }
 
+  /**
+   * Create queries to be executed for the export job.
+   *
+   * @param connection A connection which is used to determine limits for parallel queries.
+   * @return A list of queries to be executed.
+   * @throws SQLException when it fails to find out limits for splits.
+   */
   public Iterable<String> buildQueries(Connection connection)
       throws SQLException {
     checkArgument(parallelism().isPresent() || !splitColumn().isPresent(),
@@ -116,7 +124,6 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     final String limit = this.limit().map(l -> String.format(" LIMIT %d", l)).orElse("");
 
-    final String where = " WHERE 1=1";
     final String partitionCondition = this.partitionColumn().flatMap(
         partitionColumn ->
             this.partition().map(partition -> {
@@ -128,69 +135,99 @@ public abstract class QueryBuilderArgs implements Serializable {
     ).orElse("");
 
     if (parallelism().isPresent() && splitColumn().isPresent()) {
-      // Generate queries to get limits of split column.
-      String query = String.format(
-          "SELECT min(%s) as min_s, max(%s) as max_s FROM %s%s%s",
-          splitColumn().get(),
-          splitColumn().get(),
-          this.tableName(),
-          where,
-          partitionCondition);
-      long min;
-      long max;
-      try (Statement statement = connection.createStatement()) {
-        final ResultSet
-            resultSet =
-            statement.executeQuery(query);
-        resultSet.first();
 
-        // min_s and max_s would both of the same type
-        switch (resultSet.getMetaData().getColumnType(1)) {
-          case Types.LONGVARBINARY:
-          case Types.BIGINT:
-            min = resultSet.getLong("min_s");
-            max = resultSet.getLong("max_s");
-            break;
-          case Types.INTEGER:
-            min = resultSet.getInt("min_s");
-            max = resultSet.getInt("max_s");
-            break;
-          default:
-            throw new IllegalArgumentException("splitColumn should be of type Integer / Long");
-        }
-      }
+      long[] minMax = findSplitLimits(connection, this.tableName(), partitionCondition,
+          splitColumn().get());
+      long min = minMax[0];
+      long max = minMax[1];
 
-      long bucketSize = (max - min) / parallelism().get();
-      bucketSize =
-          bucketSize == 0 ? 1 : bucketSize; // If parallelism is too high, this would result in 0
-      String limitWithParallelism = this.limit()
-          .map(l -> String.format(" LIMIT %d", l / parallelism().get())).orElse("");
-      List<String> queries = new ArrayList<>(parallelism().get());
+      String queryPrefix = String
+          .format("SELECT * FROM %s WHERE 1=1%s", this.tableName(), partitionCondition);
 
-      max++; // We would use < maxL in our queries.
-      long i = min;
-      while (i < max) {
-        String parallelismCondtion = String
-            .format(" AND %s >= %s AND %s < %s",
-                splitColumn().get(),
-                i,
-                splitColumn().get(),
-                i + bucketSize);
-
-        queries.add(String
-            .format("SELECT * FROM %s%s%s%s%s", this.tableName(),
-                where,
-                partitionCondition,
-                parallelismCondtion,
-                limitWithParallelism));
-        i = i + bucketSize;
-      }
-      return queries;
+      return queriesForBounds(min, max, parallelism().get(), queryPrefix);
     } else {
       return Lists.newArrayList(
-          String.format("SELECT * FROM %s%s%s%s", this.tableName(), where, partitionCondition,
+          String.format("SELECT * FROM %s WHERE 1=1%s%s", this.tableName(), partitionCondition,
               limit));
     }
+  }
+
+  /**
+   * Helper function which finds the min and max limits for the given split column with the
+   * partition conditions.
+   *
+   * @return A long array of two elements, with [0] being min and [1] being max.
+   * @throws SQLException when there is an exception retrieving the max and min fails.
+   */
+  private long[] findSplitLimits(Connection connection, String tableName, String partitionCondition,
+      String splitColumn)
+      throws SQLException {
+    // Generate queries to get limits of split column.
+    String query = String.format(
+        "SELECT min(%s) as min_s, max(%s) as max_s FROM %s WHERE 1=1%s",
+        splitColumn,
+        splitColumn,
+        tableName,
+        partitionCondition);
+    long min;
+    long max;
+    try (Statement statement = connection.createStatement()) {
+      final ResultSet
+          resultSet =
+          statement.executeQuery(query);
+      resultSet.first();
+
+      // min_s and max_s would both of the same type
+      switch (resultSet.getMetaData().getColumnType(1)) {
+        case Types.LONGVARBINARY:
+        case Types.BIGINT:
+        case Types.INTEGER:
+          min = resultSet.getLong("min_s");
+          max = resultSet.getLong("max_s");
+          break;
+        default:
+          throw new IllegalArgumentException("splitColumn should be of type Integer / Long");
+      }
+    }
+
+    return new long[]{min, max};
+  }
+
+  /**
+   * Given a min, max and expected parallelism, generate all required queries that should be
+   * executed.
+   */
+  protected Iterable<String> queriesForBounds(long min, long max, final int parallelism,
+      String queryPrefix) {
+    long bucketSize = (max - min) / parallelism;
+    bucketSize =
+        bucketSize == 0 ? 1 : bucketSize; // If parallelism is too high, this would result in 0
+    String limitWithParallelism = this.limit()
+        .map(l -> String.format(" LIMIT %d", l / parallelism)).orElse("");
+    List<String> queries = new ArrayList<>(parallelism);
+
+    max++; // We would use < maxL in our queries.
+    long i = min;
+    while (i < max) {
+      String parallelismCondition = String
+          .format(" AND %s >= %s AND %s < %s",
+              splitColumn().get(),
+              i,
+              splitColumn().get(),
+              i + bucketSize);
+
+      queries.add(String
+          .format("%s%s%s", queryPrefix,
+              parallelismCondition,
+              limitWithParallelism));
+      i = i + bucketSize;
+    }
+
+    // If parallelism is higher than max-min, this will generate less queries.
+    // But lets never generate more queries.
+    checkState(queries.size() <= parallelism, "Unable to generate expected number of queries.");
+
+    return queries;
   }
 
 }
