@@ -40,7 +40,7 @@ import org.joda.time.LocalDate;
 import org.joda.time.ReadablePeriod;
 
 /**
- * A POJO describing a how to create a JDBC {@link Connection}.
+ * A POJO describing how to create queries for DBeam exports.
  */
 @AutoValue
 public abstract class QueryBuilderArgs implements Serializable {
