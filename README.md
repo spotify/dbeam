@@ -188,11 +188,19 @@ mvn validate -Pcoverage
 This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are
 expected to honor this code.
 
+## Release
+
+Every push to master will deploy a snapshot version to Sonatype.
+You can check the deployment in the following links:
+
+- https://travis-ci.org/spotify/dbeam/builds
+- https://oss.sonatype.org/#nexus-search;quick~dbeam-core
+
 ---
 
 ## License
 
-Copyright 2016-2017 Spotify AB.
+Copyright 2016-2019 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
 
