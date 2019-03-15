@@ -121,6 +121,8 @@ public abstract class QueryBuilderArgs implements Serializable {
             + "Please specify column to use for splitting using --splitColumn");
     checkArgument(!parallelism().isPresent() || splitColumn().isPresent(),
         "argument splitColumn has no effect since --parallelism is not specified");
+    parallelism().ifPresent(p -> checkArgument(p > 0,
+        "Parallelism must be a positive number. Specified parallelism was %s", p));
 
     final String limit = this.limit().map(l -> String.format(" LIMIT %d", l)).orElse("");
 

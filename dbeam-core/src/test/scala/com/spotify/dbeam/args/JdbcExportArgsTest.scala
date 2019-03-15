@@ -365,4 +365,20 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         .queryBuilderArgs().buildQueries(connection)
     }
   }
+
+  it should "not accept 0 parallelism" in {
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
+        "--table=some_table --password=secret --parallelism=0 --splitColumn=id")
+        .queryBuilderArgs().buildQueries(connection)
+    }
+  }
+
+  it should "not accept -ve parallelism" in {
+    a[IllegalArgumentException] should be thrownBy {
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
+        "--table=some_table --password=secret --parallelism=-5 --splitColumn=id")
+        .queryBuilderArgs().buildQueries(connection)
+    }
+  }
 }
