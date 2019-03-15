@@ -3,6 +3,9 @@ language: java
 jdk:
   - oraclejdk8
 
+services:
+  - docker
+
 cache:
   directories:
     - $HOME/.m2/
@@ -20,6 +23,7 @@ env:
 
 script:
   - mvn clean verify -Pcoverage
+  - (cd e2e && ./e2e.sh)
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
