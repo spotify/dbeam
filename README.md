@@ -50,6 +50,16 @@ simply streams the table contents via JDBC into target location as Avro.
 - `--partitionPeriod`: the period in which dbeam runs, used to filter based on current partition and also to check if executions are being run for a too old partition
 - `--skipPartitionCheck`: when partition column is not specified, by default fail when the partition parameter is not too old; use this avoid this behavior
 - `--minPartitionPeriod`: the minimum partition required for the job not to fail (when partition column is not specified), by default `now() - 2*partitionPeriod`
+- `--parallelism`: number of queries to generate to extract in parallel. Generates one query if nothing is specified. Must be used split column defined.
+- `--splitColumn`: a long / integer column which is used to determine bounds for generating parallel queries. Must be used with parallelism defined.
+
+#### dbeam Parallel Mode
+Read queries used by dbeam to extract data generally don't place any locks, and hence multiple read queries
+can run in parallel. When running in parallel mode with `--parallelism` specified, dbeam looks for
+`--splitColumn` argument to find the max and min values in that column. The max and min are then used
+as range bounds for generating `parallelism` number of queries which are then run in parallel to read data.
+Since the splitColumn is used to calculate the query bounds, and dbeam needs to calculate intermediate
+bounds for each query, the type of the column must be long / int.
 
 ## Building
 
