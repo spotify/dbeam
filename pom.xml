@@ -118,19 +118,20 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <beam.version>2.9.0</beam.version>
+        <beam.version>2.11.0</beam.version>
         <postgresql.version>42.2.5</postgresql.version>
         <mysql.version>5.1.47</mysql.version>
         <socket-factory.version>1.0.11</socket-factory.version>
 
-        <jackson.version>2.9.5</jackson.version>
+        <jackson.version>2.9.8</jackson.version>
         <slf4j.version>1.7.25</slf4j.version>
         <auto-value.version>1.5.3</auto-value.version>
         <guava.version>20.0</guava.version>
         <protobuf-util.version>3.3.1</protobuf-util.version>
-        <protobuf.version>3.6.0</protobuf.version>
-        <findbugs.version>3.0.1</findbugs.version>
-        <google.cloud.core>1.36.0</google.cloud.core>
+        <protobuf.version>3.6.1</protobuf.version>
+        <findbugs.version>3.0.2</findbugs.version>
+        <google.cloud.core.version>1.61.0</google.cloud.core.version>
+        <grpc.version>1.17.1</grpc.version>
         <joda.version>2.4</joda.version>
         <google-http-client.version>1.27.0</google-http-client.version>
 
@@ -239,17 +240,21 @@
                         <groupId>com.fasterxml.jackson.core</groupId>
                         <artifactId>jackson-core</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.google.apis</groupId>
+                        <artifactId>google-api-services-storage</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-cloudkms</artifactId>
-                <version>v1-rev71-1.25.0</version>
+                <version>v1-rev81-1.25.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-core</artifactId>
-                <version>${google.cloud.core}</version>
+                <version>${google.cloud.core.version}</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
@@ -273,31 +278,30 @@
                 <version>${findbugs.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
+                <groupId>com.google.apis</groupId>
+                <artifactId>google-api-services-storage</artifactId>
+                <version>v1-rev20181109-1.27.0</version>
             </dependency>
 
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>
-                <version>1.13.1</version>
+                <version>${grpc.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-protobuf</artifactId>
-                <version>1.13.1</version>
+                <version>${grpc.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-core</artifactId>
-                <version>1.13.1</version>
+                <version>${grpc.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_annotations</artifactId>
-                <!--<version>2.0.15</version>-->
-                <version>2.1.2</version>
+                <version>2.2.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.api.grpc</groupId>
@@ -376,10 +380,6 @@
         <dependency>
             <groupId>com.google.auto.value</groupId>
             <artifactId>auto-value</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
         </dependency>
     </dependencies>
 
