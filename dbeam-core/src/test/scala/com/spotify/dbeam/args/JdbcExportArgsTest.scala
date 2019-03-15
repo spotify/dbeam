@@ -278,9 +278,29 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     actual.buildQueries(connection).asScala should
       contain theSameElementsAs Seq(
       s"$baseCoffeesQueryNoConditions " +
-        "AND ROWNUM >= 1 AND ROWNUM < 2",
+        "AND ROWNUM >= 1 AND ROWNUM <= 2")
+  }
+
+  it should "create queries with partition column and split column with parallelism" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
+      "--password=secret --partitionColumn=created --partition=2027-07-31 --partitionPeriod=P1M " +
+      "--splitColumn=ROWNUM --parallelism=5").queryBuilderArgs()
+    val baseCoffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1 " +
+      "AND created >= '2027-07-31' AND created < '2027-08-31'"
+    val expected = QueryBuilderArgs.create("COFFEES")
+      .builder()
+      .setPartitionColumn("created")
+      .setPartitionPeriod(Period.parse("P1M"))
+      .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
+      .setSplitColumn("ROWNUM")
+      .setParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
+      .build()
+    actual should be(expected)
+    val q = actual.buildQueries(connection).asScala
+    actual.buildQueries(connection).asScala should
+      contain theSameElementsAs Seq(
       s"$baseCoffeesQueryNoConditions " +
-        "AND ROWNUM >= 2 AND ROWNUM < 3")
+        "AND ROWNUM >= 0 AND ROWNUM <= 0")
   }
 
   it should "configure avro schema namespace" in {
