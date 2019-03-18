@@ -129,9 +129,9 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "JdbcAvroJob" should "increment counter metrics" in {
     val metering = new JdbcAvroMetering(1, 1)
-    metering.exposeMetrics(0)
+    metering.exposeWriteElapsedMs(0)
     metering.incrementRecordCount()
-    metering.exposeMetrics(0)
+    metering.exposeWriteElapsedMs(0)
   }
 
 }

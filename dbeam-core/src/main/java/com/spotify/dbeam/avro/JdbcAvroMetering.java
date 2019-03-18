@@ -75,7 +75,7 @@ public class JdbcAvroMetering {
     }
   }
 
-  public void exposeMetrics(long elapsedMs) {
+  public void exposeWriteElapsedMs(long elapsedMs) {
     logger.info(String.format("jdbcavroio : Read %d rows, took %5.2f seconds",
                               rowCount, elapsedMs / 1000.0));
     this.writeElapsedMs.inc(elapsedMs);
@@ -88,17 +88,10 @@ public class JdbcAvroMetering {
     }
   }
 
-  public void startIterate() {
-    this.writeIterateStartTime = System.currentTimeMillis();
-  }
 
-  public void finishIterate() {
-    exposeMetrics(System.currentTimeMillis() - this.writeIterateStartTime);
-  }
-
-  public void finishExecuteQuery(long elapsed) {
+  public void exposeExecuteQueryMs(long elapsedMs) {
     logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
-                              elapsed / 1000.0));
-    this.executeQueryElapsedMs.inc(elapsed);
+                              elapsedMs / 1000.0));
+    this.executeQueryElapsedMs.inc(elapsedMs);
   }
 }
