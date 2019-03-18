@@ -53,7 +53,8 @@ simply streams the table contents via JDBC into target location as Avro.
 - `--parallelism`: number of queries to generate to extract in parallel. Generates one query if nothing is specified. Must be used split column defined.
 - `--splitColumn`: a long / integer column which is used to determine bounds for generating parallel queries. Must be used with parallelism defined.
 
-#### dbeam Parallel Mode
+#### DBeam Parallel Mode
+
 Read queries used by dbeam to extract data generally don't place any locks, and hence multiple read queries
 can run in parallel. When running in parallel mode with `--parallelism` specified, dbeam looks for
 `--splitColumn` argument to find the max and min values in that column. The max and min are then used
