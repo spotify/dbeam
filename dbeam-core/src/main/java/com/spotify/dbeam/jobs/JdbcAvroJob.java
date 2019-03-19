@@ -84,6 +84,10 @@ public class JdbcAvroJob {
   }
 
   public void prepareExport() throws Exception {
+    LOGGER.info("{} {} version {}",
+        this.getClass().getPackage().getImplementationTitle(),
+        this.getClass().getSimpleName(),
+        this.getClass().getPackage().getImplementationVersion());
     final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(
         this.pipeline, jdbcExportArgs);
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
