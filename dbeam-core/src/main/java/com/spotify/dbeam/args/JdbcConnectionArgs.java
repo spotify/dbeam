@@ -29,11 +29,16 @@ import java.sql.DriverManager;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A POJO describing a how to create a JDBC {@link Connection}.
  */
 @AutoValue
 public abstract class JdbcConnectionArgs implements Serializable {
+
+  private static Logger LOGGER = LoggerFactory.getLogger(JdbcConnectionArgs.class);
 
   public abstract String driverClassName();
 
@@ -81,6 +86,9 @@ public abstract class JdbcConnectionArgs implements Serializable {
 
   public Connection createConnection() throws Exception {
     Class.forName(driverClassName());
+    LOGGER.info("Creating JDBC connection to {} with user {}",
+        url(),
+        username());
     Connection connection = DriverManager.getConnection(url(), username(), password());
     connection.setAutoCommit(false);
     return connection;
