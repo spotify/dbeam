@@ -78,7 +78,7 @@ public class JdbcExportArgsFactory {
         .setPartition(partition)
         .setPartitionPeriod(partitionPeriod)
         .setSplitColumn(Optional.ofNullable(options.getSplitColumn()))
-        .setParallelism(Optional.ofNullable(options.getParallelism()))
+        .setQueryParallelism(Optional.ofNullable(options.getQueryParallelism()))
         .build();
   }
 

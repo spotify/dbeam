@@ -57,7 +57,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract Optional<String> splitColumn();
 
-  public abstract Optional<Integer> parallelism();
+  public abstract Optional<Integer> queryParallelism();
 
   public abstract Builder builder();
 
@@ -84,9 +84,9 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setSplitColumn(Optional<String> splitColumn);
 
-    public abstract Builder setParallelism(Integer parallelism);
+    public abstract Builder setQueryParallelism(Integer parallelism);
 
-    public abstract Builder setParallelism(Optional<Integer> parallelism);
+    public abstract Builder setQueryParallelism(Optional<Integer> queryParallelism);
 
 
     public abstract QueryBuilderArgs build();
@@ -116,13 +116,13 @@ public abstract class QueryBuilderArgs implements Serializable {
    */
   public Iterable<String> buildQueries(Connection connection)
       throws SQLException {
-    checkArgument(parallelism().isPresent() || !splitColumn().isPresent(),
-        "Cannot use parallelism because no column to split is specified. "
+    checkArgument(!queryParallelism().isPresent() || splitColumn().isPresent(),
+        "Cannot use queryParallelism because no column to split is specified. "
             + "Please specify column to use for splitting using --splitColumn");
-    checkArgument(!parallelism().isPresent() || splitColumn().isPresent(),
-        "argument splitColumn has no effect since --parallelism is not specified");
-    parallelism().ifPresent(p -> checkArgument(p > 0,
-        "Parallelism must be a positive number. Specified parallelism was %s", p));
+    checkArgument(queryParallelism().isPresent() || !splitColumn().isPresent(),
+        "argument splitColumn has no effect since --queryParallelism is not specified");
+    queryParallelism().ifPresent(p -> checkArgument(p > 0,
+        "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
 
     final String limit = this.limit().map(l -> String.format(" LIMIT %d", l)).orElse("");
 
@@ -136,7 +136,7 @@ public abstract class QueryBuilderArgs implements Serializable {
             })
     ).orElse("");
 
-    if (parallelism().isPresent() && splitColumn().isPresent()) {
+    if (queryParallelism().isPresent() && splitColumn().isPresent()) {
 
       long[] minMax = findInputBounds(connection, this.tableName(), partitionCondition,
           splitColumn().get());
@@ -146,7 +146,7 @@ public abstract class QueryBuilderArgs implements Serializable {
       String queryPrefix = String
           .format("SELECT * FROM %s WHERE 1=1%s", this.tableName(), partitionCondition);
 
-      return queriesForBounds(min, max, parallelism().get(), queryPrefix);
+      return queriesForBounds(min, max, queryParallelism().get(), queryPrefix);
     } else {
       return Lists.newArrayList(
           String.format("SELECT * FROM %s WHERE 1=1%s%s", this.tableName(), partitionCondition,
@@ -197,13 +197,13 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   /**
-   * Given a min, max and expected parallelism, generate all required queries that should be
+   * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
    */
   protected Iterable<String> queriesForBounds(long min, long max, final int parallelism,
       String queryPrefix) {
-    // We try not to generate more than parallelism. Hence we don't want to loose number
-    // by rounding down. Also when parallelism is higher than max - min, we don't want 0 queries
+    // We try not to generate more than queryParallelism. Hence we don't want to loose number by
+    // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 queries
     long bucketSize = (long) Math.ceil((double) (max - min) / (double) parallelism);
     bucketSize =
         bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
@@ -245,7 +245,7 @@ public abstract class QueryBuilderArgs implements Serializable {
               limitWithParallelism));
     }
 
-    // If parallelism is higher than max-min, this will generate less queries.
+    // If queryParallelism is higher than max-min, this will generate less queries.
     // But lets never generate more queries.
     checkState(queries.size() <= parallelism,
         "Unable to generate expected number of queries for given min max.");

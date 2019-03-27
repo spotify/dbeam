@@ -266,12 +266,12 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   it should "create queries for split column of integer type" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
-      "--password=secret --splitColumn=ROWNUM --parallelism=5").queryBuilderArgs()
+      "--password=secret --splitColumn=ROWNUM --queryParallelism=5").queryBuilderArgs()
     val baseCoffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1"
     val expected = QueryBuilderArgs.create("COFFEES")
       .builder()
       .setSplitColumn("ROWNUM")
-      .setParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
+      .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
       .build()
     actual should be(expected)
     actual.buildQueries(connection).asScala should
@@ -280,10 +280,10 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
         "AND ROWNUM >= 1 AND ROWNUM <= 2")
   }
 
-  it should "create queries with partition column and split column with parallelism" in {
+  it should "create queries with partition column and split column with queryParallelism" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
       "--password=secret --partitionColumn=created --partition=2027-07-31 --partitionPeriod=P1M " +
-      "--splitColumn=ROWNUM --parallelism=5").queryBuilderArgs()
+      "--splitColumn=ROWNUM --queryParallelism=5").queryBuilderArgs()
     val baseCoffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1 " +
       "AND created >= '2027-07-31' AND created < '2027-08-31'"
     val expected = QueryBuilderArgs.create("COFFEES")
@@ -292,7 +292,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setPartitionPeriod(Period.parse("P1M"))
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
       .setSplitColumn("ROWNUM")
-      .setParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
+      .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
       .build()
     actual should be(expected)
     actual.buildQueries(connection).asScala should
@@ -348,15 +348,15 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     }
   }
 
-  it should "fail on parallelism with no split column" in {
+  it should "fail on queryParallelism with no split column" in {
     a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-        "--table=some_table --password=secret --parallelism=10")
+        "--table=some_table --password=secret --queryParallelism=10")
         .queryBuilderArgs().buildQueries(connection)
     }
   }
 
-  it should "fail on split column is specified with no parallelism" in {
+  it should "fail on split column is specified with no queryParallelism" in {
     a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
         "--table=some_table --password=secret --splitColumn=id")
@@ -364,18 +364,18 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     }
   }
 
-  it should "not accept 0 parallelism" in {
+  it should "not accept 0 queryParallelism" in {
     a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-        "--table=some_table --password=secret --parallelism=0 --splitColumn=id")
+        "--table=some_table --password=secret --queryParallelism=0 --splitColumn=id")
         .queryBuilderArgs().buildQueries(connection)
     }
   }
 
-  it should "not accept -ve parallelism" in {
+  it should "not accept -ve queryParallelism" in {
     a[IllegalArgumentException] should be thrownBy {
       optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-        "--table=some_table --password=secret --parallelism=-5 --splitColumn=id")
+        "--table=some_table --password=secret --queryParallelism=-5 --splitColumn=id")
         .queryBuilderArgs().buildQueries(connection)
     }
   }

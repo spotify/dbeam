@@ -25,7 +25,7 @@ import scala.collection.JavaConverters._
 
 /**
  * Additional tests for building parallel queries when splitColumn
- * and parallelism is specified.
+ * and queryParallelism is specified.
  */
 @RunWith(classOf[JUnitRunner])
 class ParallelQueriesTest extends FlatSpec with Matchers {
@@ -74,7 +74,7 @@ class ParallelQueriesTest extends FlatSpec with Matchers {
     actual.asScala should contain theSameElementsAs expected
   }
 
-  it should "build 1 query if parallelism is more than max-min" in {
+  it should "build 1 query if queryParallelism is more than max-min" in {
     val actual = queryBuilder.queriesForBounds(1, 2, 5, queryPrefix)
     val expected = splitPointsToRanges(Seq(1, 2))
 
@@ -88,14 +88,14 @@ class ParallelQueriesTest extends FlatSpec with Matchers {
     actual.asScala should contain theSameElementsAs expected
   }
 
-  it should "build 1 query when max and min are same and parallelism is 1" in {
+  it should "build 1 query when max and min are same and queryParallelism is 1" in {
     val actual = queryBuilder.queriesForBounds(1, 1, 1, queryPrefix)
     val expected = splitPointsToRanges(Seq(1, 1))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
-  it should "build 1 query when parallelism is 1" in {
+  it should "build 1 query when queryParallelism is 1" in {
     val actual = queryBuilder.queriesForBounds(2, 345, 1, queryPrefix)
     val expected = splitPointsToRanges(Seq(2, 345))
 
