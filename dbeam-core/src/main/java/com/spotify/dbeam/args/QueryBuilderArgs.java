@@ -177,7 +177,8 @@ public abstract class QueryBuilderArgs implements Serializable {
       final ResultSet
           resultSet =
           statement.executeQuery(query);
-      resultSet.first();
+      // Check and make sure we have a record. This should ideally succeed always.
+      checkState(resultSet.next(), "Result Set for Min/Max returned zero records");
 
       // min_s and max_s would both of the same type
       switch (resultSet.getMetaData().getColumnType(1)) {

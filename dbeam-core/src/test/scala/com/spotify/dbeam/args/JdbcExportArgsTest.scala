@@ -274,7 +274,6 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
       .build()
     actual should be(expected)
-    val q = actual.buildQueries(connection).asScala
     actual.buildQueries(connection).asScala should
       contain theSameElementsAs Seq(
       s"$baseCoffeesQueryNoConditions " +
@@ -296,7 +295,6 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
       .build()
     actual should be(expected)
-    val q = actual.buildQueries(connection).asScala
     actual.buildQueries(connection).asScala should
       contain theSameElementsAs Seq(
       s"$baseCoffeesQueryNoConditions " +
