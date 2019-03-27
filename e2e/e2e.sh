@@ -90,6 +90,7 @@ runSuite() {
   printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\n' >> ./bench_dbeam_results
   table=demo_table
   BINARY_TRANSFER='false' runScenario "deflate1t5" --avroCodec=deflate1
+  BINARY_TRANSFER='false' runScenario "||query" --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
 }
 
 
