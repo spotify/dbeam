@@ -33,14 +33,16 @@ import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.io.fs.ResourceId;
 import org.apache.beam.sdk.util.MimeTypes;
+import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BeamHelper {
   private static Logger LOGGER = LoggerFactory.getLogger(BeamHelper.class);
 
-  public static PipelineResult waitUntilDone(PipelineResult result) {
-    PipelineResult.State state  = result.waitUntilFinish();
+  public static PipelineResult waitUntilDone(PipelineResult result,
+                                             Duration exportTimeout) {
+    PipelineResult.State state = result.waitUntilFinish(exportTimeout);
     if (!state.equals(PipelineResult.State.DONE)) {
       throw new Pipeline.PipelineExecutionException(
           new Exception("Job finished with state " + state.toString()));

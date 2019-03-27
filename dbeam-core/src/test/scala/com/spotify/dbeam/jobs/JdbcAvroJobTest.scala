@@ -74,6 +74,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         "--targetParallelism=1",  // no need for more threads when testing
         "--partition=2025-02-28",
         "--skipPartitionCheck",
+        "--exportTimeout=PT1M",
         "--connectionUrl=" + connectionUrl,
         "--username=",
         "--passwordFile=" + passwordFile.getAbsolutePath,
@@ -96,15 +97,15 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "JdbcAvroJob" should "throw exception in case pipeline result finish with state FAILED" in {
     val mockResult = new PipelineResult {
-      override def waitUntilFinish(): PipelineResult.State = PipelineResult.State.FAILED
+      override def waitUntilFinish(): PipelineResult.State = null
       override def getState: PipelineResult.State = null
       override def cancel(): PipelineResult.State = null
-      override def waitUntilFinish(duration: Duration): PipelineResult.State = null
+      override def waitUntilFinish(duration: Duration): PipelineResult.State = PipelineResult.State.FAILED
       override def metrics(): MetricResults = null
     }
 
     the[PipelineExecutionException] thrownBy {
-      BeamHelper.waitUntilDone(mockResult)
+      BeamHelper.waitUntilDone(mockResult, Duration.standardMinutes(1))
     } should have message "java.lang.Exception: Job finished with state FAILED"
   }
 
