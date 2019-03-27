@@ -82,12 +82,12 @@ runDBeamDockerCon() {
 runScenario() {
   for ((i=1;i<=3;i++)); do
     runDBeamDockerCon "${@:2}"
-    jq -r "[\"$1\", .recordCount, .bytesWritten?, .writeElapsedMs, .msPerMillionRows] | @tsv" < "$OUTPUT/_METRICS.json" >> ./bench_dbeam_results
+    jq -r "[\"$1\", .recordCount, .writeElapsedMs, .msPerMillionRows, .bytesWritten?] | @tsv" < "$OUTPUT/_METRICS.json" >> ./bench_dbeam_results
   done
 }
 
 runSuite() {
-  printf 'scenario\trecords\tbytesWritten\twriteElapsedMs\tmsPerMillionRows\n' >> ./bench_dbeam_results
+  printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\n' >> ./bench_dbeam_results
   table=demo_table
   BINARY_TRANSFER='false' runScenario "deflate1t5" --avroCodec=deflate1
 }
