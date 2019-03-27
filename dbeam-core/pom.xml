@@ -6,7 +6,7 @@
     <parent>
       <artifactId>dbeam-parent</artifactId>
       <groupId>com.spotify</groupId>
-      <version>0.7.5-SNAPSHOT</version>
+      <version>0.8.1-SNAPSHOT</version>
     </parent>
 
     <name>DBeam Core</name>
@@ -69,10 +69,6 @@
       </dependency>
 
       <dependency>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-      </dependency>
-      <dependency>
           <groupId>joda-time</groupId>
           <artifactId>joda-time</artifactId>
       </dependency>
@@ -91,6 +87,10 @@
       <dependency>
           <groupId>com.fasterxml.jackson.core</groupId>
           <artifactId>jackson-core</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>com.google.apis</groupId>
+          <artifactId>google-api-services-storage</artifactId>
       </dependency>
 
       <dependency>
