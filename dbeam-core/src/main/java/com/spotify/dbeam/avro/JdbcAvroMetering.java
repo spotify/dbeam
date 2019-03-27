@@ -88,6 +88,9 @@ public class JdbcAvroMetering {
     }
   }
 
+  public void setWriteIterateStartTime(long writeIterateStartTime) {
+    this.writeIterateStartTime = writeIterateStartTime;
+  }
 
   public void exposeExecuteQueryMs(long elapsedMs) {
     logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
