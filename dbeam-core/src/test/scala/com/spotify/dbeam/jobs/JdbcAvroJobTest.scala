@@ -95,20 +95,6 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     records should have size 2
   }
 
-  "JdbcAvroJob" should "throw exception in case pipeline result finish with state FAILED" in {
-    val mockResult = new PipelineResult {
-      override def waitUntilFinish(): PipelineResult.State = null
-      override def getState: PipelineResult.State = null
-      override def cancel(): PipelineResult.State = null
-      override def waitUntilFinish(duration: Duration): PipelineResult.State = PipelineResult.State.FAILED
-      override def metrics(): MetricResults = null
-    }
-
-    the[PipelineExecutionException] thrownBy {
-      BeamHelper.waitUntilDone(mockResult, Duration.standardMinutes(1))
-    } should have message "java.lang.Exception: Job finished with state FAILED"
-  }
-
   "JdbcAvroJob" should "have a default exit code" in {
     ExceptionHandling.exitCode(new IllegalStateException()) should be (49)
   }

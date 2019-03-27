@@ -43,6 +43,15 @@ public class BeamHelper {
   public static PipelineResult waitUntilDone(PipelineResult result,
                                              Duration exportTimeout) {
     PipelineResult.State state = result.waitUntilFinish(exportTimeout);
+    if (!state.isTerminal()) {
+      try {
+        result.cancel();
+      } catch (IOException e) {
+        LOGGER.warn("Job is a state {} and was not possible to cancel", state.toString(), e);
+      }
+      throw new Pipeline.PipelineExecutionException(
+          new Exception("Job cancelled after exceeding timeout " + exportTimeout.toString()));
+    }
     if (!state.equals(PipelineResult.State.DONE)) {
       throw new Pipeline.PipelineExecutionException(
           new Exception("Job finished with state " + state.toString()));
