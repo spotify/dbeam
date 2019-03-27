@@ -88,8 +88,11 @@ public class JdbcAvroMetering {
     }
   }
 
-  public void setWriteIterateStartTime(long writeIterateStartTime) {
-    this.writeIterateStartTime = writeIterateStartTime;
+  public long startWriteMeter() {
+    long startTs = System.currentTimeMillis();
+    this.writeIterateStartTime = startTs;
+    this.rowCount = 0;
+    return startTs;
   }
 
   public void exposeExecuteQueryMs(long elapsedMs) {

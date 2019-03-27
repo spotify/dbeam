@@ -199,8 +199,7 @@ public class JdbcAvroIO {
         final Map<Integer, JdbcAvroRecord.SqlFunction<ResultSet, Object>>
             mappings = JdbcAvroRecord.computeAllMappings(resultSet);
         final int columnCount = resultSet.getMetaData().getColumnCount();
-        long startMs = System.currentTimeMillis();
-        this.metering.setWriteIterateStartTime(startMs);
+        long startMs = metering.startWriteMeter();
         while (resultSet.next()) {
           final GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
               schema, resultSet, mappings, columnCount);
