@@ -45,6 +45,7 @@ simply streams the table contents via JDBC into target location as Avro.
 - `--passwordFile`: a path to a local file containing the database password
 - `--limit`: limit the output number of rows, indefinite by default
 - `--avroSchemaNamespace`: the namespace of the generated avro schema, `"dbeam_generated"` by default
+- `--exportTimeout`: maximum time the export can take, after this timeout the job is cancelled. Default is `PT23H`.
 - `--partitionColumn`: the name of a date/timestamp column to filter data based on current partition
 - `--partition`: the date of the current partition, parsed using [ISODateTimeFormat.localDateOptionalTimeParser](http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#localDateOptionalTimeParser--)
 - `--partitionPeriod`: the period in which dbeam runs, used to filter based on current partition and also to check if executions are being run for a too old partition
