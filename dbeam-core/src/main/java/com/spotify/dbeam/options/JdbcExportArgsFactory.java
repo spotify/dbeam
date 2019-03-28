@@ -2,7 +2,7 @@
  * -\-\-
  * DBeam Core
  * --
- * Copyright (C) 2016 - 2018 Spotify AB
+ * Copyright (C) 2016 - 2019 Spotify AB
  * --
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,12 @@
 package com.spotify.dbeam.options;
 
 import com.google.common.base.Preconditions;
-
 import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
-
 import java.io.IOException;
 import java.util.Optional;
-
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -80,6 +77,8 @@ public class JdbcExportArgsFactory {
         .setPartitionColumn(partitionColumn)
         .setPartition(partition)
         .setPartitionPeriod(partitionPeriod)
+        .setSplitColumn(Optional.ofNullable(options.getSplitColumn()))
+        .setQueryParallelism(Optional.ofNullable(options.getQueryParallelism()))
         .build();
   }
 

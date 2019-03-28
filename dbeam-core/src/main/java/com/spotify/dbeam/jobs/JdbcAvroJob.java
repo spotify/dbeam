@@ -92,7 +92,11 @@ public class JdbcAvroJob {
         this.pipeline, jdbcExportArgs);
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
     final List<String> queries = StreamSupport.stream(
-        jdbcExportArgs.queryBuilderArgs().buildQueries().spliterator(), false)
+        jdbcExportArgs
+            .queryBuilderArgs()
+            .buildQueries(jdbcExportArgs.createConnection())
+            .spliterator(),
+        false)
         .collect(Collectors.toList());
 
     for (int i = 0; i < queries.size(); i++) {

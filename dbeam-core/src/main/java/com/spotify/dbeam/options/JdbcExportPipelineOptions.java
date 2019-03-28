@@ -37,15 +37,15 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setPartitionColumn(String value);
 
   @Description("By default, when partition column is not specified, "
-               + "fails if partition is too old. Set this flag to ignore this check.")
+      + "fails if partition is too old. Set this flag to ignore this check.")
   @Default.Boolean(false)
   Boolean isSkipPartitionCheck();
 
   void setSkipPartitionCheck(Boolean value);
 
   @Description("The minimum partition required for the job not to fail "
-               + "(when partition column is not specified),"
-               + "by default `now() - 2*partitionPeriod`.")
+      + "(when partition column is not specified),"
+      + "by default `now() - 2*partitionPeriod`.")
   String getPartitionPeriod();
 
   void setPartitionPeriod(String value);
@@ -90,4 +90,17 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   String getAvroCodec();
 
   void setAvroCodec(String value);
+
+  @Description(
+      "Column used to create splits in case of parallel exports. "
+          + "Should be used with queryParallelism")
+  String getSplitColumn();
+
+  void setSplitColumn(String value);
+
+  @Description(
+      "Number of queries to run in parallel for exports. Should be used with splitColumn")
+  Integer getQueryParallelism();
+
+  void setQueryParallelism(Integer value);
 }

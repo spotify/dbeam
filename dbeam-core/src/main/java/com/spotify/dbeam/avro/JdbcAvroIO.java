@@ -183,7 +183,7 @@ public class JdbcAvroIO {
           "jdbcavroio : Executing query with fetchSize={} (this might take a few minutes) ...",
           statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
-      this.metering.finishExecuteQuery(System.currentTimeMillis() - startTime);
+      this.metering.exposeExecuteQueryMs(System.currentTimeMillis() - startTime);
       return resultSet;
     }
 
@@ -199,7 +199,7 @@ public class JdbcAvroIO {
         final Map<Integer, JdbcAvroRecord.SqlFunction<ResultSet, Object>>
             mappings = JdbcAvroRecord.computeAllMappings(resultSet);
         final int columnCount = resultSet.getMetaData().getColumnCount();
-        this.metering.startIterate();
+        long startMs = metering.startWriteMeter();
         while (resultSet.next()) {
           final GenericRecord genericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
               schema, resultSet, mappings, columnCount);
@@ -207,7 +207,7 @@ public class JdbcAvroIO {
           this.metering.incrementRecordCount();
         }
         this.dataFileWriter.sync();
-        this.metering.finishIterate();
+        this.metering.exposeWriteElapsedMs(System.currentTimeMillis() - startMs);
       }
     }
 

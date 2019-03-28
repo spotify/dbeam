@@ -4,3 +4,4 @@ target
 .repl
 *.swp
 .DS_Store
+e2e/results/*
