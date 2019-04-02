@@ -18,10 +18,12 @@
 package com.spotify.dbeam.jobs
 
 import com.spotify.dbeam.beam.BeamHelper
+
+import java.time.Duration
+
 import org.apache.beam.sdk.Pipeline.PipelineExecutionException
 import org.apache.beam.sdk.PipelineResult
 import org.apache.beam.sdk.metrics.MetricResults
-import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -35,12 +37,13 @@ class BeamHelperTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       override def waitUntilFinish(): PipelineResult.State = null
       override def getState: PipelineResult.State = null
       override def cancel(): PipelineResult.State = null
-      override def waitUntilFinish(duration: Duration): PipelineResult.State = PipelineResult.State.FAILED
+      override def waitUntilFinish(duration: org.joda.time.Duration): PipelineResult.State =
+        PipelineResult.State.FAILED
       override def metrics(): MetricResults = null
     }
 
     the[PipelineExecutionException] thrownBy {
-      BeamHelper.waitUntilDone(mockResult, Duration.standardMinutes(1))
+      BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1))
     } should have message "java.lang.Exception: Job finished with state FAILED"
   }
 
@@ -49,13 +52,14 @@ class BeamHelperTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       override def waitUntilFinish(): PipelineResult.State = null
       override def getState: PipelineResult.State = null
       override def cancel(): PipelineResult.State = null
-      override def waitUntilFinish(duration: Duration): PipelineResult.State = PipelineResult.State.RUNNING
+      override def waitUntilFinish(duration: org.joda.time.Duration): PipelineResult.State =
+        PipelineResult.State.RUNNING
       override def metrics(): MetricResults = null
     }
 
     the[PipelineExecutionException] thrownBy {
-      BeamHelper.waitUntilDone(mockResult, Duration.standardMinutes(1))
-    } should have message "java.lang.Exception: Job cancelled after exceeding timeout PT60S"
+      BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1))
+    } should have message "java.lang.Exception: Job cancelled after exceeding timeout PT1M"
   }
 
 }

@@ -64,7 +64,7 @@ public abstract class JdbcExportArgs implements Serializable {
                                       QueryBuilderArgs queryBuilderArgs) {
     return create(jdbcAvroArgs, queryBuilderArgs,
                   "dbeam_generated", Optional.empty(), false,
-                  Duration.ofHours(23));
+                  Duration.ZERO);
   }
 
   public static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,

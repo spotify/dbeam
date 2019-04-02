@@ -132,8 +132,7 @@ public class JdbcAvroJob {
 
   public PipelineResult runAndWait() {
     return BeamHelper.waitUntilDone(this.pipeline.run(),
-                                    org.joda.time.Duration.millis(
-                                        jdbcExportArgs.exportTimeout().toMillis()));
+                                    jdbcExportArgs.exportTimeout());
   }
 
   public PipelineResult runExport() throws Exception {

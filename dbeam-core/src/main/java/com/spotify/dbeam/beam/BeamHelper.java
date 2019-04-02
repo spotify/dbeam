@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.beam.sdk.Pipeline;
@@ -33,7 +34,6 @@ import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.io.fs.ResourceId;
 import org.apache.beam.sdk.util.MimeTypes;
-import org.joda.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,9 @@ public class BeamHelper {
 
   public static PipelineResult waitUntilDone(PipelineResult result,
                                              Duration exportTimeout) {
-    PipelineResult.State state = result.waitUntilFinish(exportTimeout);
+    PipelineResult.State state = result.waitUntilFinish(
+        org.joda.time.Duration.millis(
+            exportTimeout.toMillis()));
     if (!state.isTerminal()) {
       try {
         result.cancel();
