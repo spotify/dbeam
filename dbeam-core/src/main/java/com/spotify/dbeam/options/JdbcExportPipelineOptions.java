@@ -36,20 +36,22 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setPartitionColumn(String value);
 
-  @Description("By default, when partition column is not specified, "
-      + "fails if partition is too old. Set this flag to ignore this check.")
   @Default.Boolean(false)
+  @Description("When partition column is not specified, "
+      + "fails if partition is too old; set this flag to ignore this check.")
   Boolean isSkipPartitionCheck();
 
   void setSkipPartitionCheck(Boolean value);
 
-  @Description("The minimum partition required for the job not to fail "
-      + "(when partition column is not specified),"
-      + "by default `now() - 2*partitionPeriod`.")
+  @Description("The period frequency which the export runs, used to filder based"
+             + "on current partition and also to fail exports for too old partitions.")
   String getPartitionPeriod();
 
   void setPartitionPeriod(String value);
 
+  @Description("The minimum partition required for the job not to fail "
+      + "(when partition column is not specified),"
+      + "by default `now() - 2*partitionPeriod`.")
   String getMinPartitionPeriod();
 
   void setMinPartitionPeriod(String value);
@@ -59,13 +61,13 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setLimit(Integer value);
 
-  @Description("The namespace of the generated avro schema.")
   @Default.String("dbeam_generated")
+  @Description("The namespace of the generated avro schema.")
   String getAvroSchemaNamespace();
 
   void setAvroSchemaNamespace(String value);
 
-  @Description("The top-level doc string of the generated avro schema.")
+  @Description("The top-level record doc string of the generated avro schema.")
   String getAvroDoc();
 
   void setAvroDoc(String value);
@@ -78,15 +80,13 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setUseAvroLogicalTypes(Boolean value);
 
   @Default.Integer(10000)
-  @Description(
-      "Jdbc result set fetch size.")
+  @Description("Configures JDBC Statement fetch size.")
   Integer getFetchSize();
 
   void setFetchSize(Integer value);
 
   @Default.String("deflate6")
-  @Description(
-      "Avro codec (e.g. deflate6, deflate9, snappy).")
+  @Description("Avro codec (e.g. deflate6, deflate9, snappy).")
   String getAvroCodec();
 
   void setAvroCodec(String value);

@@ -26,13 +26,13 @@ import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.Validation;
 
 public interface DBeamPipelineOptions extends PipelineOptions {
-  @Description("The JDBC connection url to perform the extraction on.")
+  @Description("The JDBC connection url to perform the export.")
   @Validation.Required
   String getConnectionUrl();
 
   void setConnectionUrl(String value);
 
-  @Description("The database table to query and perform the extraction on.")
+  @Description("The database table to query and perform the export.")
   @Validation.Required
   String getTable();
 
@@ -55,7 +55,7 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setPasswordFileKmsEncrypted(String value);
 
-  @Description("Database password")
+  @Description("Plaintext password used by JDBC connection.")
   String getPassword();
 
   void setPassword(String value);
