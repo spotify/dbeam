@@ -49,7 +49,11 @@ public class BeamHelper {
       try {
         result.cancel();
       } catch (IOException e) {
-        LOGGER.warn("Job is a state {} and was not possible to cancel", state.toString(), e);
+        throw new Pipeline.PipelineExecutionException(
+            new Exception(String.format(
+                "Job exceeded timeout of %s, but was not possible to cancel, "
+                + "finished with state %s",
+                exportTimeout.toString(), state.toString()), e));
       }
       throw new Pipeline.PipelineExecutionException(
           new Exception("Job cancelled after exceeding timeout " + exportTimeout.toString()));

@@ -17,8 +17,9 @@
 
 package com.spotify.dbeam.jobs
 
-import com.spotify.dbeam.beam.BeamHelper
+import java.io.IOException
 
+import com.spotify.dbeam.beam.BeamHelper
 import java.time.Duration
 
 import org.apache.beam.sdk.Pipeline.PipelineExecutionException
@@ -60,6 +61,23 @@ class BeamHelperTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     the[PipelineExecutionException] thrownBy {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1))
     } should have message "java.lang.Exception: Job cancelled after exceeding timeout PT1M"
+  }
+
+  "BeamHelper" should "fail after failure to cancel in case of timeout" in {
+    val mockResult = new PipelineResult {
+      override def waitUntilFinish(): PipelineResult.State = null
+      override def getState: PipelineResult.State = null
+      override def cancel(): PipelineResult.State =
+        throw new IOException("something wrong")
+      override def waitUntilFinish(duration: org.joda.time.Duration): PipelineResult.State =
+        PipelineResult.State.RUNNING
+      override def metrics(): MetricResults = null
+    }
+
+    the[PipelineExecutionException] thrownBy {
+      BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1))
+    } should have message
+      "java.lang.Exception: Job exceeded timeout of PT1M, but was not possible to cancel, finished with state RUNNING"
   }
 
 }
