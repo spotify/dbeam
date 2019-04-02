@@ -24,17 +24,12 @@ import java.util.{Comparator, UUID}
 
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.avro.JdbcAvroMetering
-import com.spotify.dbeam.beam.BeamHelper
 import com.spotify.dbeam.options.OutputOptions
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.Pipeline.PipelineExecutionException
-import org.apache.beam.sdk.PipelineResult
 import org.apache.beam.sdk.io.AvroSource
-import org.apache.beam.sdk.metrics.MetricResults
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.testing.SourceTestUtils
-import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
