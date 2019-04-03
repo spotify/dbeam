@@ -27,10 +27,10 @@ import com.spotify.dbeam.args.JdbcExportArgs;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.Period;
 
-import org.joda.time.DateTime;
-import org.joda.time.Duration;
-import org.joda.time.ReadablePeriod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,8 +77,8 @@ public class PsqlReplicationCheck {
         this.jdbcExportArgs.queryBuilderArgs().partitionPeriod());
   }
 
-  static boolean isReplicationDelayed(DateTime partition, DateTime lastReplication,
-                                              ReadablePeriod partitionPeriod) {
+  static boolean isReplicationDelayed(Instant partition, Instant lastReplication,
+                                      Period partitionPeriod) {
     if (lastReplication.isBefore(partition.plus(partitionPeriod))) {
       LOGGER.error("Replication was not completed for partition, "
                    + "expected >= {}, actual = {}",
@@ -88,17 +88,17 @@ public class PsqlReplicationCheck {
     return false;
   }
 
-  static DateTime queryReplication(Connection connection, String query) throws SQLException {
+  static Instant queryReplication(Connection connection, String query) throws SQLException {
     final ResultSet resultSet = connection.createStatement().executeQuery(query);
     Preconditions.checkState(resultSet.next(), "Replication query returned empty results");
-    DateTime lastReplication = new DateTime(resultSet.getTimestamp("last_replication"));
-    Duration replicationDelay = new Duration(resultSet.getLong("replication_delay"));
+    Instant lastReplication = resultSet.getTimestamp("last_replication").toInstant();
+    Duration replicationDelay = Duration.ofSeconds(resultSet.getLong("replication_delay"));
     LOGGER.info("Psql replication check lastReplication={} replicationDelay={}",
                 lastReplication, replicationDelay);
     return lastReplication;
   }
 
-  DateTime queryReplication() throws Exception {
+  Instant queryReplication() throws Exception {
     LOGGER.info("Checking PostgreSQL replication lag...");
     try (Connection connection = this.jdbcExportArgs.createConnection()) {
       return queryReplication(connection, replicationQuery);

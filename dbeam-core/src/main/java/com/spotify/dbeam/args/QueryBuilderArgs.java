@@ -29,12 +29,12 @@ import com.google.common.collect.Lists;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.joda.time.LocalDate;
-import org.joda.time.ReadablePeriod;
 
 /**
  * A POJO describing how to create queries for DBeam exports.
@@ -50,9 +50,9 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract Optional<String> partitionColumn();
 
-  public abstract Optional<DateTime> partition();
+  public abstract Optional<Instant> partition();
 
-  public abstract ReadablePeriod partitionPeriod();
+  public abstract Period partitionPeriod();
 
   public abstract Optional<String> splitColumn();
 
@@ -75,11 +75,11 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setPartitionColumn(Optional<String> partitionColumn);
 
-    public abstract Builder setPartition(DateTime partition);
+    public abstract Builder setPartition(Instant partition);
 
-    public abstract Builder setPartition(Optional<DateTime> partition);
+    public abstract Builder setPartition(Optional<Instant> partition);
 
-    public abstract Builder setPartitionPeriod(ReadablePeriod partitionPeriod);
+    public abstract Builder setPartitionPeriod(Period partitionPeriod);
 
     public abstract Builder setSplitColumn(String splitColumn);
 
@@ -103,7 +103,7 @@ public abstract class QueryBuilderArgs implements Serializable {
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
         .setBaseSqlQuery(QueryBuilder.fromTablename(tableName))
-        .setPartitionPeriod(Days.ONE);
+        .setPartitionPeriod(Period.ofDays(1));
   }
 
   public static QueryBuilderArgs create(String tableName) {
@@ -131,7 +131,8 @@ public abstract class QueryBuilderArgs implements Serializable {
                 this.partition()
                     .ifPresent(
                         partition -> {
-                          final LocalDate datePartition = partition.toLocalDate();
+                          final LocalDate datePartition =
+                              partition.atZone(ZoneOffset.UTC).toLocalDate();
                           final String nextPartition =
                               datePartition.plus(partitionPeriod()).toString();
                           this.baseSqlQuery()

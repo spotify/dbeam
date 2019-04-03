@@ -26,17 +26,34 @@ import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
+
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.Period;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Optional;
+
 import org.apache.beam.sdk.options.PipelineOptions;
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.joda.time.Period;
-import org.joda.time.ReadablePeriod;
-import org.joda.time.format.ISODateTimeFormat;
 
 public class JdbcExportArgsFactory {
+
+  private static DateTimeFormatter INSTANT_PARSER_WITH_ZONE =
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .appendPattern("yyyy[-MM][-dd['T'HH[:mm[:ss]]]]")
+          .parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
+          .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
+          .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+          .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+          .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+          .optionalStart() // optionally support offset id
+          .appendOffsetId()
+          .toFormatter()
+          .withZone(ZoneId.of("UTC"));
 
   public static JdbcExportArgs fromPipelineOptions(PipelineOptions options)
       throws ClassNotFoundException, IOException {
@@ -60,19 +77,19 @@ public class JdbcExportArgsFactory {
 
   public static QueryBuilderArgs createQueryArgs(JdbcExportPipelineOptions options)
       throws IOException {
-    final ReadablePeriod partitionPeriod = Optional.ofNullable(options.getPartitionPeriod())
-        .map(v -> (ReadablePeriod) Period.parse(v)).orElse(Days.ONE);
-    Optional<DateTime> partition = Optional.ofNullable(options.getPartition())
-        .map(JdbcExportArgsFactory::parseDateTime);
+    final Period partitionPeriod = Optional.ofNullable(options.getPartitionPeriod())
+        .map(Period::parse).orElse(Period.ofDays(1));
+    Optional<Instant> partition = Optional.ofNullable(options.getPartition())
+        .map(JdbcExportArgsFactory::parseInstant);
     Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
     checkArgument(
         !partitionColumn.isPresent() || partition.isPresent(),
         "To use --partitionColumn the --partition parameter must also be configured");
 
     if (!(options.isSkipPartitionCheck() || partitionColumn.isPresent())) {
-      DateTime minPartitionDateTime = Optional.ofNullable(options.getMinPartitionPeriod())
-          .map(JdbcExportArgsFactory::parseDateTime)
-          .orElse(DateTime.now().minus(partitionPeriod.toPeriod().multipliedBy(2)));
+      Instant minPartitionDateTime = Optional.ofNullable(options.getMinPartitionPeriod())
+          .map(JdbcExportArgsFactory::parseInstant)
+          .orElse(Instant.now().minus(partitionPeriod.multipliedBy(2)));
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
 
@@ -106,15 +123,12 @@ public class JdbcExportArgsFactory {
     }
   }
 
-  private static DateTime parseDateTime(String input) {
-    if (input.endsWith("Z")) {
-      input = input.substring(0, input.length() - 1);
-    }
-    return DateTime.parse(input, ISODateTimeFormat.localDateOptionalTimeParser());
+  public static Instant parseInstant(String v) {
+    return Instant.from(INSTANT_PARSER_WITH_ZONE.parse(v));
   }
 
-  private static DateTime validatePartition(
-      DateTime partitionDateTime, DateTime minPartitionDateTime) {
+  private static Instant validatePartition(
+      Instant partitionDateTime, Instant minPartitionDateTime) {
     checkArgument(
         partitionDateTime.isAfter(minPartitionDateTime),
         "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check",

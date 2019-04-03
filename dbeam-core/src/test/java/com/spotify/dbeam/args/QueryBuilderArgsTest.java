@@ -34,12 +34,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.Optional;
 
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.joda.time.Instant;
-import org.joda.time.chrono.ISOChronology;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -119,8 +118,7 @@ public class QueryBuilderArgsTest {
         + "--partition=2027-07-31");
 
     Assert.assertEquals(
-        Optional.of(Instant.parse("2027-07-31T00:00:00Z")
-                        .toDateTime().withChronology(ISOChronology.getInstanceUTC())),
+        Optional.of(Instant.parse("2027-07-31T00:00:00Z")),
         actual.partition()
     );
     Assert.assertEquals(
@@ -135,8 +133,7 @@ public class QueryBuilderArgsTest {
         + "--partition=2027-07-31T13:37:59Z");
 
     Assert.assertEquals(
-        Optional.of(Instant.parse("2027-07-31T13:37:59Z")
-                        .toDateTime().withChronology(ISOChronology.getInstanceUTC())),
+        Optional.of(Instant.parse("2027-07-31T13:37:59Z")),
         actual.partition()
     );
   }
@@ -148,8 +145,7 @@ public class QueryBuilderArgsTest {
         + "--partition=2027-05");
 
     Assert.assertEquals(
-        Optional.of(Instant.parse("2027-05-01T00:00:00Z")
-                        .toDateTime().withChronology(ISOChronology.getInstanceUTC())),
+        Optional.of(Instant.parse("2027-05-01T00:00:00Z")),
         actual.partition()
     );
   }
@@ -161,8 +157,7 @@ public class QueryBuilderArgsTest {
         + "--partition=2027-05-02T23");
 
     Assert.assertEquals(
-        Optional.of(Instant.parse("2027-05-02T23:00:00Z")
-                        .toDateTime().withChronology(ISOChronology.getInstanceUTC())),
+        Optional.of(Instant.parse("2027-05-02T23:00:00Z")),
         actual.partition()
     );
   }

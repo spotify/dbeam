@@ -135,7 +135,6 @@
         <findbugs.version>3.0.2</findbugs.version>
         <google.cloud.core.version>1.61.0</google.cloud.core.version>
         <grpc.version>1.17.1</grpc.version>
-        <joda.version>2.10.3</joda.version>
         <google-http-client.version>1.27.0</google-http-client.version>
         <google-api-client.version>1.27.0</google-api-client.version>
 
@@ -212,10 +211,6 @@
                         <artifactId>guava</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>joda-time</groupId>
-                        <artifactId>joda-time</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>com.google.errorprone</groupId>
                         <artifactId>error_prone_annotations</artifactId>
                     </exclusion>
@@ -254,11 +249,6 @@
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-core</artifactId>
                 <version>${google.cloud.core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>joda-time</groupId>
-                <artifactId>joda-time</artifactId>
-                <version>${joda.version}</version>
             </dependency>
 
             <dependency>

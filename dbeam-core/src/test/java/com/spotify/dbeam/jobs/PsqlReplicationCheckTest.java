@@ -26,11 +26,10 @@ import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.Period;
 import java.util.Optional;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.Days;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -70,16 +69,16 @@ public class PsqlReplicationCheckTest {
     final JdbcExportArgs args = createArgs("jdbc:postgresql://some_db",
                                               QueryBuilderArgs.create("coffees").builder()
                                                   .setPartition(
-                                                      DateTime.parse("2025-02-28T00:00:00"))
+                                                      Instant.parse("2025-02-28T00:00:00Z"))
                                                   .build());
     PsqlReplicationCheck.validateOptions(args);
   }
 
   @Test
   public void shouldBeNotReplicationDelayedWhenReplicatedUntilEndOfPartition() {
-    DateTime partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC);
-    DateTime lastReplication = new DateTime(2027, 8, 1, 0, 0, DateTimeZone.UTC);
-    Days partitionPeriod = Days.ONE;
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-08-01T00:00:00Z");
+    Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertFalse(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -87,9 +86,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeNotReplicationDelayedWhenReplicatedUntilEndTheNextDay() {
-    DateTime partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC);
-    DateTime lastReplication = new DateTime(2027, 8, 2, 0, 0, DateTimeZone.UTC);
-    Days partitionPeriod = Days.ONE;
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-08-02T00:00:00Z");
+    Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertFalse(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -97,9 +96,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeReplicationDelayedWhenReplicatedUpToPartitionStart() {
-    DateTime partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC);
-    DateTime lastReplication = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC);
-    Days partitionPeriod = Days.ONE;
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-07-31T00:00:00Z");
+    Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -107,9 +106,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeReplicationDelayedWhenReplicatedBeforePartitionStart() {
-    DateTime partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC);
-    DateTime lastReplication = new DateTime(2027, 7, 30, 22, 0, DateTimeZone.UTC);
-    Days partitionPeriod = Days.ONE;
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-07-30T22:00:00Z");
+    Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -117,9 +116,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeReplicationDelayedWhenReplicatedInsidePartition() {
-    DateTime partition = new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC);
-    DateTime lastReplication = new DateTime(2027, 7, 31, 23, 59, 59, DateTimeZone.UTC);
-    Days partitionPeriod = Days.ONE;
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
+    Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -134,16 +133,13 @@ public class PsqlReplicationCheckTest {
     PsqlReplicationCheck replicationCheck = new PsqlReplicationCheck(
         createArgs(CONNECTION_URL,
                          QueryBuilderArgs.create("coffees").builder()
-                                             .setPartition(DateTime.parse("2025-02-28T00:00:00"))
+                                             .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
                                              .build()), query);
-    DateTime expectedLastReplication = new DateTime(2017, 2, 1, 23, 58, 57, DateTimeZone.UTC);
+    Instant expectedLastReplication = Instant.parse("2017-02-01T23:58:57Z");
 
-    DateTime actual = replicationCheck.queryReplication();
+    Instant actual = replicationCheck.queryReplication();
 
-    Assert.assertEquals(
-        expectedLastReplication,
-        new DateTime(actual, DateTimeZone.UTC)
-    );
+    Assert.assertEquals(expectedLastReplication, actual);
     Assert.assertTrue(replicationCheck.isReplicationDelayed());
     replicationCheck.checkReplication();
   }
@@ -157,16 +153,13 @@ public class PsqlReplicationCheckTest {
     PsqlReplicationCheck replicationCheck = new PsqlReplicationCheck(
         createArgs(CONNECTION_URL,
                          QueryBuilderArgs.create("coffees").builder()
-                                             .setPartition(DateTime.parse("2025-02-28T00:00:00"))
+                                             .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
                                              .build()), query);
-    DateTime expectedLastReplication = new DateTime(2030, 2, 1, 23, 58, 57, DateTimeZone.UTC);
+    Instant expectedLastReplication = Instant.parse("2030-02-01T23:58:57Z");
 
-    DateTime actual = replicationCheck.queryReplication();
+    Instant actual = replicationCheck.queryReplication();
 
-    Assert.assertEquals(
-        expectedLastReplication,
-        new DateTime(actual, DateTimeZone.UTC)
-    );
+    Assert.assertEquals(expectedLastReplication, actual);
     Assert.assertFalse(replicationCheck.isReplicationDelayed());
     replicationCheck.checkReplication();
   }
