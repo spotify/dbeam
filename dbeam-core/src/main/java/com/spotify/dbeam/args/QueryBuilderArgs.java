@@ -143,10 +143,17 @@ public abstract class QueryBuilderArgs implements Serializable {
       long min = minMax[0];
       long max = minMax[1];
 
-      String queryPrefix = String
-          .format("SELECT * FROM %s WHERE 1=1%s", this.tableName(), partitionCondition);
 
-      return queriesForBounds(min, max, queryParallelism().get(), queryPrefix);
+      String limitWithParallelism = this.limit()
+          .map(l -> String.format(" LIMIT %d", l / queryParallelism().get())).orElse("");
+      String queryFormat = String
+          .format("SELECT * FROM %s WHERE 1=1%s%s%s",
+                  this.tableName(),
+                  partitionCondition,
+                  "%s", // the split conditions
+                  limitWithParallelism);
+
+      return queriesForBounds(min, max, queryParallelism().get(), splitColumn().get(), queryFormat);
     } else {
       return Lists.newArrayList(
           String.format("SELECT * FROM %s WHERE 1=1%s%s", this.tableName(), partitionCondition,
@@ -200,15 +207,14 @@ public abstract class QueryBuilderArgs implements Serializable {
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
    */
-  protected Iterable<String> queriesForBounds(long min, long max, final int parallelism,
-      String queryPrefix) {
+  protected static Iterable<String> queriesForBounds(long min, long max, int parallelism,
+      String splitColumn,
+      String queryFormat) {
     // We try not to generate more than queryParallelism. Hence we don't want to loose number by
     // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 queries
     long bucketSize = (long) Math.ceil((double) (max - min) / (double) parallelism);
     bucketSize =
         bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
-    String limitWithParallelism = this.limit()
-        .map(l -> String.format(" LIMIT %d", l / parallelism)).orElse("");
     List<String> queries = new ArrayList<>(parallelism);
 
     String parallelismCondition;
@@ -218,14 +224,12 @@ public abstract class QueryBuilderArgs implements Serializable {
       // Include lower bound and exclude the upper bound.
       parallelismCondition =
           String.format(" AND %s >= %s AND %s < %s",
-              splitColumn().get(),
+              splitColumn,
               i,
-              splitColumn().get(),
+              splitColumn,
               i + bucketSize);
       queries.add(String
-          .format("%s%s%s", queryPrefix,
-              parallelismCondition,
-              limitWithParallelism));
+          .format(queryFormat, parallelismCondition));
       i = i + bucketSize;
     }
 
@@ -235,14 +239,12 @@ public abstract class QueryBuilderArgs implements Serializable {
       // should include upper bound.
       parallelismCondition =
           String.format(" AND %s >= %s AND %s <= %s",
-              splitColumn().get(),
+              splitColumn,
               i,
-              splitColumn().get(),
+              splitColumn,
               max);
       queries.add(String
-          .format("%s%s%s", queryPrefix,
-              parallelismCondition,
-              limitWithParallelism));
+          .format(queryFormat, parallelismCondition));
     }
 
     // If queryParallelism is higher than max-min, this will generate less queries.
