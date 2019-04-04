@@ -28,12 +28,12 @@ simply streams the table contents via JDBC into target location as Avro.
 ## dbeam-core package features
 
 - Support both PostgreSQL and MySQL JDBC connectors
-- Supports CloudSQL managed databases
-- Currently output only in Avro format
-- Read password from a mounted password file (`--passwordFile`)
+- Supports [Google CloudSQL](https://cloud.google.com/sql/) managed databases
+- Currently output only to Avro format
+- Reads database from an external password file (`--passwordFile`) or an external [KMS](https://cloud.google.com/kms/) encrypted password file (`--passwordFileKmsEncrypted`)
 - Can filter only records of the current day with the `--partitionColumn` parameter
 - Check and fail on too old partition dates. Snapshot dumps are not filtered by a given date/partition, when running for a too old partition, the job fails to avoid new data in old partitions. (can be disabled with `--skipPartitionCheck`)
-- It has dependency on Apache Beam SDK.
+- Implemented as [Apache Beam SDK](https://beam.apache.org/) pipeline, supporting any of its [runners](https://beam.apache.org/documentation/runners/capability-matrix/) (tested with `DirectRunner` and `DataflowRunner`)
 
 ### dbeam command line arguments
 
