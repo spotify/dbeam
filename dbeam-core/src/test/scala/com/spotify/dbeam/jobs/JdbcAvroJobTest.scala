@@ -24,17 +24,12 @@ import java.util.{Comparator, UUID}
 
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.avro.JdbcAvroMetering
-import com.spotify.dbeam.beam.BeamHelper
 import com.spotify.dbeam.options.OutputOptions
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.Pipeline.PipelineExecutionException
-import org.apache.beam.sdk.PipelineResult
 import org.apache.beam.sdk.io.AvroSource
-import org.apache.beam.sdk.metrics.MetricResults
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.apache.beam.sdk.testing.SourceTestUtils
-import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -74,6 +69,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         "--targetParallelism=1",  // no need for more threads when testing
         "--partition=2025-02-28",
         "--skipPartitionCheck",
+        "--exportTimeout=PT1M",
         "--connectionUrl=" + connectionUrl,
         "--username=",
         "--passwordFile=" + passwordFile.getAbsolutePath,
@@ -92,20 +88,6 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       .withSchema(schema)
     val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
     records should have size 2
-  }
-
-  "JdbcAvroJob" should "throw exception in case pipeline result finish with state FAILED" in {
-    val mockResult = new PipelineResult {
-      override def waitUntilFinish(): PipelineResult.State = PipelineResult.State.FAILED
-      override def getState: PipelineResult.State = null
-      override def cancel(): PipelineResult.State = null
-      override def waitUntilFinish(duration: Duration): PipelineResult.State = null
-      override def metrics(): MetricResults = null
-    }
-
-    the[PipelineExecutionException] thrownBy {
-      BeamHelper.waitUntilDone(mockResult)
-    } should have message "java.lang.Exception: Job finished with state FAILED"
   }
 
   "JdbcAvroJob" should "have a default exit code" in {

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.beam.sdk.Pipeline;
@@ -39,8 +40,24 @@ import org.slf4j.LoggerFactory;
 public class BeamHelper {
   private static Logger LOGGER = LoggerFactory.getLogger(BeamHelper.class);
 
-  public static PipelineResult waitUntilDone(PipelineResult result) {
-    PipelineResult.State state  = result.waitUntilFinish();
+  public static PipelineResult waitUntilDone(PipelineResult result,
+                                             Duration exportTimeout) {
+    PipelineResult.State state = result.waitUntilFinish(
+        org.joda.time.Duration.millis(
+            exportTimeout.toMillis()));
+    if (!state.isTerminal()) {
+      try {
+        result.cancel();
+      } catch (IOException e) {
+        throw new Pipeline.PipelineExecutionException(
+            new Exception(String.format(
+                "Job exceeded timeout of %s, but was not possible to cancel, "
+                + "finished with state %s",
+                exportTimeout.toString(), state.toString()), e));
+      }
+      throw new Pipeline.PipelineExecutionException(
+          new Exception("Job cancelled after exceeding timeout " + exportTimeout.toString()));
+    }
     if (!state.equals(PipelineResult.State.DONE)) {
       throw new Pipeline.PipelineExecutionException(
           new Exception("Job finished with state " + state.toString()));

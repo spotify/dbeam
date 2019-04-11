@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.avro.Schema;
+import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptions;
@@ -66,6 +67,9 @@ public class JdbcAvroJob {
 
   public static JdbcAvroJob create(PipelineOptions pipelineOptions)
       throws IOException, ClassNotFoundException {
+    // make sure pipeline.run() does not call waitUntilFinish
+    // instead we call with an explicit duration/exportTimeout configuration
+    pipelineOptions.as(DirectOptions.class).setBlockOnRun(false);
     return new JdbcAvroJob(pipelineOptions,
                            Pipeline.create(pipelineOptions),
                            JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
@@ -131,7 +135,8 @@ public class JdbcAvroJob {
   }
 
   public PipelineResult runAndWait() {
-    return BeamHelper.waitUntilDone(this.pipeline.run());
+    return BeamHelper.waitUntilDone(this.pipeline.run(),
+                                    jdbcExportArgs.exportTimeout());
   }
 
   public PipelineResult runExport() throws Exception {
