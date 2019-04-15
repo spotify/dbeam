@@ -141,17 +141,27 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     bf
   }
 
-  it should "convert jdbc result set to avro generic record" in {
+  it should "encode jdbc result set to valid avro" in {
     val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM COFFEES")
     val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
     rs.next()
 
-    val mappings = JdbcAvroRecord.computeAllMappings(rs)
-    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
-      schema, rs, mappings, rs.getMetaData.getColumnCount)
+    val converter = JdbcAvroRecordConverter.create(rs)
+    val dataFileWriter = new DataFileWriter(new GenericDatumWriter[GenericRecord](schema))
+    val outputStream = new ByteArrayOutputStream()
+    dataFileWriter.create(schema, outputStream)
+    // convert and write
+    dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes())
+    dataFileWriter.flush()
+    // transform to generic record
+    val inputStream = new SeekableByteArrayInput(outputStream.toByteArray)
+    val dataFileReader = new DataFileReader[GenericRecord](inputStream,
+      new GenericDatumReader[GenericRecord](schema))
+    val record: GenericRecord = dataFileReader.iterator().next()
 
     record shouldNot be (null)
     record.getSchema should be (schema)
+    record.getSchema.getFields.size() should be (12)
     record.get(0).toString should be (record1._1)
     record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
     record.get(2).toString should be (record1._3.toString)
