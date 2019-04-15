@@ -138,33 +138,6 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     bf
   }
 
-  it should "convert jdbc result set to avro generic record" in {
-    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
-    rs.next()
-
-    val mappings = JdbcAvroRecord.computeAllMappings(rs)
-    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
-      schema, rs, mappings, rs.getMetaData.getColumnCount)
-
-    record shouldNot be (null)
-    record.getSchema should be (schema)
-    record.getSchema.getFields.size() should be (13)
-    record.get(0).toString should be (record1._1)
-    record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
-    record.get(2).toString should be (record1._3.toString)
-    record.get(3) should be (record1._4)
-    record.get(4) should be (record1._5)
-    record.get(5) should be (new java.lang.Boolean(record1._6))
-    record.get(6) should be (record1._7)
-    record.get(7) should be (record1._8)
-    record.get(8) should be (record1._9.getTime)
-    record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
-    record.get(10) should be (record1._11.map(_.toInt).map(x => x : java.lang.Integer).orNull)
-    record.get(11) should be (toByteBuffer(record1._12))
-    record.get(12) should be (record1._13)
-  }
-
   it should "encode jdbc result set to valid avro" in {
     val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
     val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
