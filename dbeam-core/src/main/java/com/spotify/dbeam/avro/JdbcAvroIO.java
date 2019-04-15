@@ -23,6 +23,7 @@ package com.spotify.dbeam.avro;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.CountingOutputStream;
 
 import com.spotify.dbeam.args.JdbcAvroArgs;
 
@@ -136,6 +137,7 @@ public class JdbcAvroIO {
     private DataFileWriter<GenericRecord> dataFileWriter;
     private Connection connection;
     private JdbcAvroMetering metering;
+    private CountingOutputStream countingOutputStream;
 
     JdbcAvroWriter(FileBasedSink.WriteOperation<Void, String> writeOperation,
                           DynamicAvroDestinations<?, Void, String> dynamicDestinations,
@@ -161,7 +163,8 @@ public class JdbcAvroIO {
           .setCodec(codec)
           .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
-      dataFileWriter.create(schema, Channels.newOutputStream(channel));
+      this.countingOutputStream = new CountingOutputStream(Channels.newOutputStream(channel));
+      dataFileWriter.create(schema, this.countingOutputStream);
       this.metering = JdbcAvroMetering.create();
       logger.info("jdbcavroio : Write prepared");
     }
@@ -208,6 +211,7 @@ public class JdbcAvroIO {
         }
         this.dataFileWriter.sync();
         this.metering.exposeWriteElapsedMs(System.currentTimeMillis() - startMs);
+        this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());
       }
     }
 
