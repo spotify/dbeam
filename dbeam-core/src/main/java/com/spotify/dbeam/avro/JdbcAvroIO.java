@@ -213,12 +213,15 @@ public class JdbcAvroIO {
       LOGGER.info("jdbcavroio : Starting write...");
       final ExecutorService executorService = Executors.newSingleThreadExecutor();
       try (ResultSet resultSet = executeQuery(query)) {
-        final Future<?> future = executorService.submit(new AvroWriter(dataFileWriter, metering, queue));
-        final long startMs = metering.startWriteMeter();
+        final Future<?> future = executorService.submit(new AvroWriter(dataFileWriter, queue));
+        metering.startWriteMeter();
         convertAllResultSet(resultSet, JdbcAvroRecordConverter.create(resultSet));
         queue.put(ByteBuffer.allocate(0)); // write final record, so that consumer stops
+        final long startTime2 = System.nanoTime();
         future.get();
         executorService.shutdown();
+        LOGGER.info(String.format("jdbcavroio : Waited %5.2f seconds for finishing write operation",
+                                  (System.nanoTime() - startTime2) / (1000000000.0)));
         this.dataFileWriter.flush();
         this.metering.exposeWriteElapsed();
         this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());

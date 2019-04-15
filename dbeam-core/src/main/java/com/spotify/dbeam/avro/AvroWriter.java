@@ -26,9 +26,15 @@ import java.util.concurrent.BlockingQueue;
 
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Takes ByteBuffer datums from a BlockingQueue and writes to a DataFileWriter.
+ */
 public class AvroWriter implements Runnable {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(AvroWriter.class);
   private final DataFileWriter<GenericRecord> dataFileWriter;
   private final JdbcAvroMetering metering;
   private final BlockingQueue<ByteBuffer> queue;
