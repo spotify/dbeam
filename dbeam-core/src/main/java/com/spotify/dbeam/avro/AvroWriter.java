@@ -36,20 +36,18 @@ public class AvroWriter implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AvroWriter.class);
   private final DataFileWriter<GenericRecord> dataFileWriter;
-  private final JdbcAvroMetering metering;
   private final BlockingQueue<ByteBuffer> queue;
 
   public AvroWriter(
       DataFileWriter<GenericRecord> dataFileWriter,
-      JdbcAvroMetering metering,
       BlockingQueue<ByteBuffer> queue) {
     this.dataFileWriter = dataFileWriter;
-    this.metering = metering;
     this.queue = queue;
   }
 
   @Override
   public void run() {
+    LOGGER.debug("AvroWriter started");
     try {
       while (true) {
         final ByteBuffer datum = queue.take();
@@ -61,10 +59,9 @@ public class AvroWriter implements Runnable {
         }
       }
     } catch (InterruptedException ex) {
-      System.out.println("CONSUMER INTERRUPTED");
+      LOGGER.warn("AvroWriter interrupted");
     } catch (IOException e) {
-      e.printStackTrace();
+      LOGGER.error("Error on AvroWriter", e);
     }
-
   }
 }

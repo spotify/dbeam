@@ -166,7 +166,7 @@ public class JdbcAvroIO {
     @SuppressWarnings("deprecation") // uses internal test functionality.
     @Override
     protected void prepareWrite(final WritableByteChannel channel) throws Exception {
-      LOGGER.info("jdbcavroio : Preparing write...");
+      LOGGER.debug("jdbcavroio : Preparing write...");
       connection = jdbcAvroArgs.jdbcConnectionConfiguration().createConnection();
       final Void destination = getDestination();
       final Schema schema = dynamicDestinations.getSchema(destination);
@@ -177,7 +177,7 @@ public class JdbcAvroIO {
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       this.countingOutputStream = new CountingOutputStream(Channels.newOutputStream(channel));
       dataFileWriter.create(schema, this.countingOutputStream);
-      LOGGER.info("jdbcavroio : Write prepared");
+      LOGGER.debug("jdbcavroio : Write prepared");
     }
 
     private ResultSet executeQuery(final String query) throws Exception {
@@ -238,7 +238,7 @@ public class JdbcAvroIO {
 
     @Override
     protected void finishWrite() throws Exception {
-      LOGGER.info("jdbcavroio : Closing connection, flushing writer...");
+      LOGGER.debug("jdbcavroio : Closing connection, flushing writer...");
       if (connection != null) {
         connection.close();
       }
