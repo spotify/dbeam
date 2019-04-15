@@ -25,12 +25,22 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CountingOutputStream;
 import com.spotify.dbeam.args.JdbcAvroArgs;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -136,6 +146,7 @@ public class JdbcAvroIO {
     private Connection connection;
     private JdbcAvroMetering metering;
     private CountingOutputStream countingOutputStream;
+    private BlockingQueue<ByteBuffer> queue;
 
     JdbcAvroWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -145,6 +156,7 @@ public class JdbcAvroIO {
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
       this.metering = JdbcAvroMetering.create();
+      this.queue = new LinkedBlockingDeque<>(jdbcAvroArgs.fetchSize() * 4);
     }
 
     public Void getDestination() {
@@ -199,16 +211,25 @@ public class JdbcAvroIO {
     public void write(final String query) throws Exception {
       checkArgument(dataFileWriter != null, "Avro DataFileWriter was not properly created");
       LOGGER.info("jdbcavroio : Starting write...");
+      final ExecutorService executorService = Executors.newSingleThreadExecutor();
       try (ResultSet resultSet = executeQuery(query)) {
-        metering.startWriteMeter();
-        final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet);
-        while (resultSet.next()) {
-          dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
-          this.metering.incrementRecordCount();
-        }
+        final Future<?> future = executorService.submit(new AvroWriter(dataFileWriter, metering, queue));
+        final long startMs = metering.startWriteMeter();
+        convertAllResultSet(resultSet, JdbcAvroRecordConverter.create(resultSet));
+        queue.put(ByteBuffer.allocate(0)); // write final record, so that consumer stops
+        future.get();
+        executorService.shutdown();
         this.dataFileWriter.flush();
         this.metering.exposeWriteElapsed();
         this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());
+      }
+    }
+
+    private void convertAllResultSet(ResultSet resultSet, JdbcAvroRecordConverter converter)
+        throws SQLException, InterruptedException, IOException {
+      while (resultSet.next()) {
+        queue.put(converter.convertResultSetIntoAvroBytes());
+        this.metering.incrementRecordCount();
       }
     }
 
