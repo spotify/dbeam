@@ -41,6 +41,8 @@ public class JdbcAvroMetering {
       Metrics.gauge(this.getClass().getCanonicalName(), "msPerMillionRows");
   private Gauge rowsPerMinute =
       Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
+  private Counter bytesWritten =
+      Metrics.counter(this.getClass().getCanonicalName(), "bytesWritten");
   private int rowCount = 0;
   private long writeIterateStartTime;
 
@@ -99,5 +101,9 @@ public class JdbcAvroMetering {
     logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
                               elapsedMs / 1000.0));
     this.executeQueryElapsedMs.inc(elapsedMs);
+  }
+
+  public void exposeWrittenBytes(long count) {
+    this.bytesWritten.inc(count);
   }
 }
