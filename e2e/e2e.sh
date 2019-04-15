@@ -18,7 +18,7 @@ startPostgres() {
     -v /tmp/pgdata:/var/lib/postgresql/data \
     -p 54321:5432/tcp -d postgres:10 || true
   # https://stackoverflow.com/questions/35069027/docker-wait-for-postgresql-to-be-running
-  docker run -it --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10.7 timeout 15s bash -ic 'until psql -h postgres -U postgres dbeam_test -c "select 1"; do sleep 1; done; echo "psql up and running.."'
+  docker run -it --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10.7 timeout 45s bash -ic 'until psql -h postgres -U postgres dbeam_test -c "select 1"; do sleep 1; done; echo "psql up and running.."'
   sleep 3
   cat ./ddl.sql \
     | docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10 psql -h postgres -U postgres dbeam_test
@@ -48,7 +48,7 @@ export JAVA_OPTS="
 
 pack() {
   # create a fat jar
-  (cd ..; mvn clean package -Ppack -DskipTests)
+  (cd ..; mvn clean package -Ppack -DskipTests -Dmaven.test.skip=true -Dmaven.site.skip=true -Dmaven.javadoc.skip=true)
 }
 
 runFromJar() {
@@ -82,15 +82,23 @@ runDBeamDockerCon() {
 runScenario() {
   for ((i=1;i<=3;i++)); do
     runDBeamDockerCon "${@:2}"
-    jq -r "[\"$1\", .recordCount, .writeElapsedMs, .msPerMillionRows, .bytesWritten?] | @tsv" < "$OUTPUT/_METRICS.json" >> ./bench_dbeam_results
+    jq -r "[\"$1\", .recordCount, .writeElapsedMs, .msPerMillionRows, .bytesWritten?, (.bytesWritten? / .writeElapsedMs | . * 1000 | floor | . / 1000)] | @tsv" < "$OUTPUT/_METRICS.json" >> ./bench_dbeam_results
   done
 }
 
 runSuite() {
-  printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\n' >> ./bench_dbeam_results
+  printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\tkBps\n' >> ./bench_dbeam_results
   table=demo_table
   BINARY_TRANSFER='false' runScenario "deflate1t5" --avroCodec=deflate1
   BINARY_TRANSFER='false' runScenario "||query" --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
+}
+
+light() {
+  pack
+  printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\n' >> ./bench_dbeam_results
+  table=demo_table
+  BINARY_TRANSFER='false' runScenario "deflate1t5" --avroCodec=deflate1
+  printResults
 }
 
 
