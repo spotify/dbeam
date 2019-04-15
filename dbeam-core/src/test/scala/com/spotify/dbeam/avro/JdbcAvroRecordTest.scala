@@ -17,12 +17,14 @@
 
 package com.spotify.dbeam.avro
 
+import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.spotify.dbeam.JdbcTestFixtures
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayInput}
+import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -117,19 +119,12 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
   }
 
-  it should "create schema under specified namespace" in {
+  it should "create schema with specified namespace and doc string" in {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(), "COFFEES", "ns", "doc", false)
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
-  }
-
-  it should "create schema with specified doc string" in {
-    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "COFFEES", "ns", "doc", false)
-
-    actual shouldNot be (null)
     actual.getDoc should be ("doc")
   }
 
