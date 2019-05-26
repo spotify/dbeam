@@ -62,14 +62,14 @@ public class JdbcAvroSchema {
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
-      Connection connection, String tableName, String avroSchemaNamespace,
+      Connection connection, String baseSqlQuery, String avroSchemaNamespace,
       String avroDoc, boolean useLogicalTypes)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(String.format("SELECT * FROM %s LIMIT 1", tableName));
+          statement.executeQuery(String.format("%s LIMIT 1", baseSqlQuery));
 
       Schema schema = JdbcAvroSchema.createAvroSchema(
           resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,

@@ -5,3 +5,5 @@ target
 *.swp
 .DS_Store
 e2e/results/*
+*.iml
+

@@ -38,6 +38,12 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setTable(String value);
 
+  @Description("The SQL query to execute and perform the export.")
+  @Validation.Required
+  String getSqlQuery();
+
+  void setSqlQuery(String value);
+
   @Description("The database user name used by JDBC to authenticate.")
   @Default.String("dbeam-extractor")
   String getUsername();

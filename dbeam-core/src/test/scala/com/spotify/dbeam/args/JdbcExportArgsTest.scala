@@ -53,7 +53,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   it should "fail on missing table name" in {
     a[IllegalArgumentException] should be thrownBy {
       val tableName: String = null
-      QueryBuilderArgs.create(tableName)
+      QueryBuilderArgs.create(tableName, null)
     }
   }
   it should "fail on invalid table name" in {

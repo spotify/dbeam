@@ -73,7 +73,7 @@ public class JdbcExportArgsFactory {
           .orElse(DateTime.now().minus(partitionPeriod.toPeriod().multipliedBy(2)));
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
-    return QueryBuilderArgs.create(options.getTable())
+    return QueryBuilderArgs.create(options.getTable(), options.getSqlQuery())
         .builder()
         .setLimit(Optional.ofNullable(options.getLimit()))
         .setPartitionColumn(partitionColumn)

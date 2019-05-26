@@ -47,6 +47,8 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract String tableName();
 
+  public abstract String baseSqlQuery();
+
   public abstract Optional<Integer> limit();
 
   public abstract Optional<String> partitionColumn();
@@ -65,6 +67,8 @@ public abstract class QueryBuilderArgs implements Serializable {
   public abstract static class Builder {
 
     public abstract Builder setTableName(String tableName);
+
+    public abstract Builder setBaseSqlQuery(String baseSqlQuery);
 
     public abstract Builder setLimit(Integer limit);
 
@@ -96,15 +100,35 @@ public abstract class QueryBuilderArgs implements Serializable {
     return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
   }
 
-  public static QueryBuilderArgs create(String tableName) {
+  private static Boolean checkSqlQuery(String sqlQuery) {
+    String uppSql = sqlQuery.toUpperCase();
+    // some 'light' checks applied
+    return uppSql.contains("SELECT") && uppSql.contains("FROM");
+  }
+
+  public static QueryBuilderArgs create(String tableName, final String sqlQuery) {
     checkArgument(tableName != null,
-        "TableName cannot be null");
-    checkArgument(checkTableName(tableName),
-        "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+            "TableName cannot be null");
+    String baseSqlQuery = getBaseSqlQuery(tableName, sqlQuery);
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
+        .setBaseSqlQuery(baseSqlQuery)
         .setPartitionPeriod(Days.ONE)
         .build();
+  }
+
+  private static String getBaseSqlQuery(String tableName, String sqlQuery) {
+    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+    if (sqlQuery == null) {
+      return String.format("SELECT * FROM %s WHERE 1=1", tableName);
+    } else {
+      checkArgument(checkSqlQuery(sqlQuery), "Invalid SQL query");
+      if (sqlQuery.toUpperCase().contains("WHERE ")) {
+        return sqlQuery;
+      } else {
+        return String.format("%s WHERE 1=1", sqlQuery);
+      }
+    }
   }
 
   /**
@@ -138,7 +162,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     if (queryParallelism().isPresent() && splitColumn().isPresent()) {
 
-      long[] minMax = findInputBounds(connection, this.tableName(), partitionCondition,
+      long[] minMax = findInputBounds(connection, this.baseSqlQuery(), partitionCondition,
           splitColumn().get());
       long min = minMax[0];
       long max = minMax[1];
@@ -147,8 +171,8 @@ public abstract class QueryBuilderArgs implements Serializable {
       String limitWithParallelism = this.limit()
           .map(l -> String.format(" LIMIT %d", l / queryParallelism().get())).orElse("");
       String queryFormat = String
-          .format("SELECT * FROM %s WHERE 1=1%s%s%s",
-                  this.tableName(),
+          .format("%s%s%s%s",
+                  this.baseSqlQuery(),
                   partitionCondition,
                   "%s", // the split conditions
                   limitWithParallelism);
@@ -156,8 +180,7 @@ public abstract class QueryBuilderArgs implements Serializable {
       return queriesForBounds(min, max, queryParallelism().get(), splitColumn().get(), queryFormat);
     } else {
       return Lists.newArrayList(
-          String.format("SELECT * FROM %s WHERE 1=1%s%s", this.tableName(), partitionCondition,
-              limit));
+          String.format("%s%s%s", this.baseSqlQuery(), partitionCondition, limit));
     }
   }
 
@@ -168,16 +191,11 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A long array of two elements, with [0] being min and [1] being max.
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
-  private long[] findInputBounds(Connection connection, String tableName, String partitionCondition,
-      String splitColumn)
+  private long[] findInputBounds(
+      Connection connection, String baseSqlQuery, String partitionCondition, String splitColumn)
       throws SQLException {
-    // Generate queries to get limits of split column.
-    String query = String.format(
-        "SELECT min(%s) as min_s, max(%s) as max_s FROM %s WHERE 1=1%s",
-        splitColumn,
-        splitColumn,
-        tableName,
-        partitionCondition);
+    String query = generateQueryToGetLimitsOfSplitColumn(
+        baseSqlQuery, partitionCondition, splitColumn);
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
@@ -201,6 +219,19 @@ public abstract class QueryBuilderArgs implements Serializable {
     }
 
     return new long[]{min, max};
+  }
+
+  private String generateQueryToGetLimitsOfSplitColumn(
+      String baseSqlQuery, String partitionCondition, String splitColumn) {
+    int fromIdx = baseSqlQuery.toUpperCase().indexOf("FROM");
+    //cannot return -1, we have already checked/ensured that.
+
+    return String.format(
+        "SELECT min(%s) as min_s, max(%s) as max_s %s%s",
+        splitColumn,
+        splitColumn,
+        baseSqlQuery.substring(fromIdx),
+        partitionCondition);
   }
 
   /**
