@@ -37,7 +37,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 ### dbeam command line arguments
 
-- `--connectionUrl`: the JDBC connection url to perform the dump. Note that while working with MySql, --fetchSize should be set to -2147483648 (MIN_INT) to signal to the driver to use streaming.
+- `--connectionUrl`: the JDBC connection url to perform the dump. Note that while working with MySql, --fetchSize would need to be set to -2147483648 (MIN_INT) to signal to the driver to use streaming.
 - `--table`: the database table to query and perform the dump
 - `--output`: the path to store the output
 - `--username`: the database user name
