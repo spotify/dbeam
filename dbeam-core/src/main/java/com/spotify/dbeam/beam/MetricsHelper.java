@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,21 +40,21 @@ public class MetricsHelper {
 
   private static final Function<MetricResult<GaugeResult>, GaugeResult>
       GET_COMMITTED_GAUGE = metricResult -> {
-        try {
-          return metricResult.getCommitted();
-        } catch (UnsupportedOperationException e) {
-          return GaugeResult.empty();
-        }
-      };
+    try {
+      return metricResult.getCommitted();
+    } catch (UnsupportedOperationException e) {
+      return GaugeResult.empty();
+    }
+  };
 
   public static final ToLongFunction<MetricResult<Long>>
       GET_COMMITTED_COUNTER = metricResult -> {
-        try {
-          return metricResult.getCommitted();
-        } catch (UnsupportedOperationException e) {
-          return 0L;
-        }
-      };
+    try {
+      return metricResult.getCommitted();
+    } catch (UnsupportedOperationException e) {
+      return 0L;
+    }
+  };
 
 
   public static Map<String, Long> getMetrics(PipelineResult result) {
@@ -67,8 +67,8 @@ public class MetricsHelper {
             .collect(Collectors.groupingBy(
                 MetricResult::getName,
                 Collectors.reducing(GaugeResult.empty(), GET_COMMITTED_GAUGE,
-                                    BinaryOperator.maxBy(
-                                        Comparator.comparing(GaugeResult::getTimestamp)))))
+                    BinaryOperator.maxBy(
+                        Comparator.comparing(GaugeResult::getTimestamp)))))
             .entrySet().stream()
             .collect(Collectors.toMap(e -> e.getKey().getName(), e -> e.getValue().getValue()));
 
@@ -76,7 +76,7 @@ public class MetricsHelper {
         StreamSupport.stream(
             metricQueryResults.getCounters().spliterator(), false)
             .collect(Collectors.groupingBy(m -> m.getName().getName(),
-                                               Collectors.summingLong(GET_COMMITTED_COUNTER)));
+                Collectors.summingLong(GET_COMMITTED_COUNTER)));
     Map<String, Long> ret = new HashMap<>();
     ret.putAll(gauges);
     ret.putAll(counters);

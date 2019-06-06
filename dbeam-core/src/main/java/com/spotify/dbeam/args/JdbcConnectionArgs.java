@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 @AutoValue
 public abstract class JdbcConnectionArgs implements Serializable {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(JdbcConnectionArgs.class);
+  private static Logger logger = LoggerFactory.getLogger(JdbcConnectionArgs.class);
 
   public abstract String driverClassName();
 
@@ -67,9 +67,10 @@ public abstract class JdbcConnectionArgs implements Serializable {
   public static JdbcConnectionArgs create(String url)
       throws ClassNotFoundException {
     Preconditions.checkArgument(url != null,
-                  "DataSourceConfiguration.create(driverClassName, url) called "
-                  + "with null url");
+        "DataSourceConfiguration.create(driverClassName, url) called "
+            + "with null url");
     final String driverClassName = JdbcConnectionUtil.getDriverClass(url);
+    logger.info("Retrieved driver class: {}", driverClassName);
     return new AutoValue_JdbcConnectionArgs.Builder()
         .setDriverClassName(driverClassName)
         .setUrl(url)
@@ -86,7 +87,7 @@ public abstract class JdbcConnectionArgs implements Serializable {
 
   public Connection createConnection() throws Exception {
     Class.forName(driverClassName());
-    LOGGER.info("Creating JDBC connection to {} with user {}",
+    logger.info("Creating JDBC connection to {} with user {}",
         url(),
         username());
     Connection connection = DriverManager.getConnection(url(), username(), password());

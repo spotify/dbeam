@@ -24,9 +24,9 @@ import org.scalatest.{FlatSpec, Matchers}
 import scala.collection.JavaConverters._
 
 /**
- * Additional tests for building parallel queries when splitColumn
- * and queryParallelism is specified.
- */
+  * Additional tests for building parallel queries when splitColumn
+  * and queryParallelism is specified.
+  */
 @RunWith(classOf[JUnitRunner])
 class ParallelQueriesTest extends FlatSpec with Matchers {
 

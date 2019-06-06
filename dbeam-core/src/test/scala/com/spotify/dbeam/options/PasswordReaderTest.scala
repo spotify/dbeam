@@ -58,10 +58,10 @@ class PasswordReaderTest extends FlatSpec with Matchers with BeforeAndAfterAll {
           .setContentType(Json.MEDIA_TYPE)
           .setContent(
             JacksonFactory.getDefaultInstance().toByteArray(
-            new DecryptResponse()
-              .encodePlaintext("something_decrypted".getBytes)
+              new DecryptResponse()
+                .encodePlaintext("something_decrypted".getBytes)
             )
-        ))
+          ))
       .build()
     val passwordReader = new PasswordReader(KmsDecrypter.decrypter()
       .project(Optional.of("fake_project"))

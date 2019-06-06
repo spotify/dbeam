@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,10 +38,10 @@ public class PsqlReplicationCheck {
   private static final Logger LOGGER = LoggerFactory.getLogger(PsqlReplicationCheck.class);
   static final String REPLICATION_QUERY =
       "SELECT now() AS current_timestamp, "
-      + "pg_last_xact_replay_timestamp() AS last_replication, "
-      + "ROUND (( EXTRACT (EPOCH FROM now()) - "
-      + "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) "
-      + ") * 1000) AS replication_delay;";
+          + "pg_last_xact_replay_timestamp() AS last_replication, "
+          + "ROUND (( EXTRACT (EPOCH FROM now()) - "
+          + "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) "
+          + ") * 1000) AS replication_delay;";
   private final String replicationQuery;
   private final JdbcExportArgs jdbcExportArgs;
 
@@ -78,11 +78,11 @@ public class PsqlReplicationCheck {
   }
 
   static boolean isReplicationDelayed(DateTime partition, DateTime lastReplication,
-                                              ReadablePeriod partitionPeriod) {
+                                      ReadablePeriod partitionPeriod) {
     if (lastReplication.isBefore(partition.plus(partitionPeriod))) {
       LOGGER.error("Replication was not completed for partition, "
-                   + "expected >= {}, actual = {}",
-                   partition.plus(partitionPeriod), lastReplication);
+              + "expected >= {}, actual = {}",
+          partition.plus(partitionPeriod), lastReplication);
       return true;
     }
     return false;
@@ -94,7 +94,7 @@ public class PsqlReplicationCheck {
     DateTime lastReplication = new DateTime(resultSet.getTimestamp("last_replication"));
     Duration replicationDelay = new Duration(resultSet.getLong("replication_delay"));
     LOGGER.info("Psql replication check lastReplication={} replicationDelay={}",
-                lastReplication, replicationDelay);
+        lastReplication, replicationDelay);
     return lastReplication;
   }
 

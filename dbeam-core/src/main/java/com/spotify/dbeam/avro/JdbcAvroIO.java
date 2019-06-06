@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -78,8 +78,8 @@ public class JdbcAvroIO {
     final DynamicAvroDestinations<String, Void, String>
         destinations =
         AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                    jdbcAvroArgs.getCodecFactory(),
-                                    SerializableFunctions.identity());
+            jdbcAvroArgs.getCodecFactory(),
+            SerializableFunctions.identity());
     final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
         prefixProvider,
         destinations,
@@ -94,8 +94,8 @@ public class JdbcAvroIO {
     private final JdbcAvroArgs jdbcAvroArgs;
 
     JdbcAvroSink(ValueProvider<ResourceId> filenamePrefix,
-                            DynamicAvroDestinations<UserT, Void, String> dynamicDestinations,
-                            JdbcAvroArgs jdbcAvroArgs) {
+                 DynamicAvroDestinations<UserT, Void, String> dynamicDestinations,
+                 JdbcAvroArgs jdbcAvroArgs) {
       super(filenamePrefix, dynamicDestinations, Compression.UNCOMPRESSED);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
@@ -138,8 +138,8 @@ public class JdbcAvroIO {
     private JdbcAvroMetering metering;
 
     JdbcAvroWriter(FileBasedSink.WriteOperation<Void, String> writeOperation,
-                          DynamicAvroDestinations<?, Void, String> dynamicDestinations,
-                          JdbcAvroArgs jdbcAvroArgs) {
+                   DynamicAvroDestinations<?, Void, String> dynamicDestinations,
+                   JdbcAvroArgs jdbcAvroArgs) {
       super(writeOperation, MimeTypes.BINARY);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
@@ -168,7 +168,7 @@ public class JdbcAvroIO {
 
     private ResultSet executeQuery(String query) throws Exception {
       checkArgument(connection != null,
-                    "JDBC connection was not properly created");
+          "JDBC connection was not properly created");
       PreparedStatement statement = connection.prepareStatement(
           query,
           ResultSet.TYPE_FORWARD_ONLY,
@@ -190,12 +190,12 @@ public class JdbcAvroIO {
     @Override
     public void write(String query) throws Exception {
       checkArgument(dataFileWriter != null,
-                    "Avro DataFileWriter was not properly created");
+          "Avro DataFileWriter was not properly created");
       logger.info("jdbcavroio : Starting write...");
       Schema schema = dynamicDestinations.getSchema(getDestination());
       try (ResultSet resultSet = executeQuery(query)) {
         checkArgument(resultSet != null,
-                      "JDBC resultSet was not properly created");
+            "JDBC resultSet was not properly created");
         final Map<Integer, JdbcAvroRecord.SqlFunction<ResultSet, Object>>
             mappings = JdbcAvroRecord.computeAllMappings(resultSet);
         final int columnCount = resultSet.getMetaData().getColumnCount();

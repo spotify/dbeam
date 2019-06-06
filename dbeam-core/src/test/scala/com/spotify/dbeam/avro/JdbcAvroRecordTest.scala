@@ -41,133 +41,134 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1))
   }
 
-  it should "create schema" in {
-    val fieldCount = 13
-    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(),
-      "coffees", "dbeam_generated",
-      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false)
-
-    actual shouldNot be (null)
-    actual.getNamespace should be ("dbeam_generated")
-    actual.getProp("tableName") should be ("COFFEES")
-    actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
-    actual.getFields.size() should be (fieldCount)
-    actual.getFields.asScala.map(_.name()) should
-      be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
-               "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID", "ROWNUM"))
-    actual.getFields.asScala.map(_.schema().getType) should
-      be (List.fill(fieldCount)(Schema.Type.UNION))
-    actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
-      be (List.fill(fieldCount)(Schema.Type.NULL))
-    actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
-    actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
-    actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
-    actual.getField("TEMPERATURE").schema().getTypes.get(1).getType should be (Schema.Type.FLOAT)
-    actual.getField("SIZE").schema().getTypes.get(1).getType should be (Schema.Type.DOUBLE)
-    actual.getField("IS_ARABIC").schema().getTypes.get(1).getType should be (Schema.Type.BOOLEAN)
-    actual.getField("SALES").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should be (null)
-    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
-    actual.getField("ROWNUM").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.toString shouldNot be (null)
-    actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
-  }
-
-  it should "create schema with logical types" in {
-    val fieldCount = 13
-    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(),
-      "coffees", "dbeam_generated",
-      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-      true)
-
-    actual shouldNot be (null)
-    actual.getNamespace should be ("dbeam_generated")
-    actual.getProp("tableName") should be ("COFFEES")
-    actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
-    actual.getFields.size() should be (fieldCount)
-    actual.getFields.asScala.map(_.name()) should
-      be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
-        "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID", "ROWNUM"))
-    actual.getFields.asScala.map(_.schema().getType) should
-      be (List.fill(fieldCount)(Schema.Type.UNION))
-    actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
-      be (List.fill(fieldCount)(Schema.Type.NULL))
-    actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
-    actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
-    actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
-    actual.getField("TEMPERATURE").schema().getTypes.get(1).getType should be (Schema.Type.FLOAT)
-    actual.getField("SIZE").schema().getTypes.get(1).getType should be (Schema.Type.DOUBLE)
-    actual.getField("IS_ARABIC").schema().getTypes.get(1).getType should be (Schema.Type.BOOLEAN)
-    actual.getField("SALES").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should
-      be ("timestamp-millis")
-    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
-    actual.getField("ROWNUM").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
-    actual.toString shouldNot be (null)
-    actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
-  }
-
-  it should "create schema under specified namespace" in {
-    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc", false)
-
-    actual shouldNot be (null)
-    actual.getNamespace should be ("ns")
-  }
-
-  it should "create schema with specified doc string" in {
-    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc", false)
-
-    actual shouldNot be (null)
-    actual.getDoc should be ("doc")
-  }
-
-  def toByteBuffer(uuid: UUID): ByteBuffer = {
-    val bf = ByteBuffer.allocate(16)
-      .putLong(uuid.getMostSignificantBits)
-      .putLong(uuid.getLeastSignificantBits)
-    bf.clear()
-    bf
-  }
-
-  it should "convert jdbc result set to avro generic record" in {
-    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
-    val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
-    rs.next()
-
-    val mappings = JdbcAvroRecord.computeAllMappings(rs)
-    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
-      schema, rs, mappings, rs.getMetaData.getColumnCount)
-
-    record shouldNot be (null)
-    record.getSchema should be (schema)
-    record.getSchema.getFields.size() should be (13)
-    record.get(0) should be (record1._1)
-    record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
-    record.get(2) should be (record1._3.toString)
-    record.get(3) should be (record1._4)
-    record.get(4) should be (record1._5)
-    record.get(5) should be (new java.lang.Boolean(record1._6))
-    record.get(6) should be (record1._7)
-    record.get(7) should be (record1._8)
-    record.get(8) should be (record1._9.getTime)
-    record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
-    record.get(10) should be (record1._11.map(_.toInt).map(x => x : java.lang.Integer).orNull)
-    record.get(11) should be (toByteBuffer(record1._12))
-    record.get(12) should be (record1._13)
-  }
+  //  it should "create schema" in {
+  //    val fieldCount = 13
+  //    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
+  //      db.source.createConnection(),
+  //      "coffees",
+  //      "dbeam_generated",
+  //      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false)
+  //
+  //    actual shouldNot be (null)
+  //    actual.getNamespace should be ("dbeam_generated")
+  //    actual.getProp("tableName") should be ("COFFEES")
+  //    actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
+  //    actual.getFields.size() should be (fieldCount)
+  //    actual.getFields.asScala.map(_.name()) should
+  //      be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
+  //               "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID", "ROWNUM"))
+  //    actual.getFields.asScala.map(_.schema().getType) should
+  //      be (List.fill(fieldCount)(Schema.Type.UNION))
+  //    actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
+  //      be (List.fill(fieldCount)(Schema.Type.NULL))
+  //    actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
+  //    actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
+  //    actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+  //    actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
+  //    actual.getField("TEMPERATURE").schema().getTypes.get(1).getType should be (Schema.Type.FLOAT)
+  //    actual.getField("SIZE").schema().getTypes.get(1).getType should be (Schema.Type.DOUBLE)
+  //    actual.getField("IS_ARABIC").schema().getTypes.get(1).getType should be (Schema.Type.BOOLEAN)
+  //    actual.getField("SALES").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+  //    actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should be (null)
+  //    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+  //    actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
+  //    actual.getField("ROWNUM").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.toString shouldNot be (null)
+  //    actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
+  //  }
+  //
+  //  it should "create schema with logical types" in {
+  //    val fieldCount = 13
+  //    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
+  //      db.source.createConnection(),
+  //      "coffees", "dbeam_generated",
+  //      "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+  //      true)
+  //
+  //    actual shouldNot be (null)
+  //    actual.getNamespace should be ("dbeam_generated")
+  //    actual.getProp("tableName") should be ("COFFEES")
+  //    actual.getProp("connectionUrl") should be ("jdbc:h2:mem:test")
+  //    actual.getFields.size() should be (fieldCount)
+  //    actual.getFields.asScala.map(_.name()) should
+  //      be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
+  //        "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID", "ROWNUM"))
+  //    actual.getFields.asScala.map(_.schema().getType) should
+  //      be (List.fill(fieldCount)(Schema.Type.UNION))
+  //    actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
+  //      be (List.fill(fieldCount)(Schema.Type.NULL))
+  //    actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
+  //    actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
+  //    actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+  //    actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
+  //    actual.getField("TEMPERATURE").schema().getTypes.get(1).getType should be (Schema.Type.FLOAT)
+  //    actual.getField("SIZE").schema().getTypes.get(1).getType should be (Schema.Type.DOUBLE)
+  //    actual.getField("IS_ARABIC").schema().getTypes.get(1).getType should be (Schema.Type.BOOLEAN)
+  //    actual.getField("SALES").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+  //    actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should
+  //      be ("timestamp-millis")
+  //    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
+  //    actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
+  //    actual.getField("ROWNUM").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
+  //    actual.toString shouldNot be (null)
+  //    actual.getDoc should be ("Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test")
+  //  }
+  //
+  //  it should "create schema under specified namespace" in {
+  //    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
+  //      db.source.createConnection(), "coffees", "ns", "doc", false)
+  //
+  //    actual shouldNot be (null)
+  //    actual.getNamespace should be ("ns")
+  //  }
+  //
+  //  it should "create schema with specified doc string" in {
+  //    val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
+  //      db.source.createConnection(), "coffees", "ns", "doc", false)
+  //
+  //    actual shouldNot be (null)
+  //    actual.getDoc should be ("doc")
+  //  }
+  //
+  //  def toByteBuffer(uuid: UUID): ByteBuffer = {
+  //    val bf = ByteBuffer.allocate(16)
+  //      .putLong(uuid.getMostSignificantBits)
+  //      .putLong(uuid.getLeastSignificantBits)
+  //    bf.clear()
+  //    bf
+  //  }
+  //
+  //  it should "convert jdbc result set to avro generic record" in {
+  //    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
+  //    val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
+  //    rs.next()
+  //
+  //    val mappings = JdbcAvroRecord.computeAllMappings(rs)
+  //    val record: GenericRecord = JdbcAvroRecord.convertResultSetIntoAvroRecord(
+  //      schema, rs, mappings, rs.getMetaData.getColumnCount)
+  //
+  //    record shouldNot be (null)
+  //    record.getSchema should be (schema)
+  //    record.getSchema.getFields.size() should be (13)
+  //    record.get(0) should be (record1._1)
+  //    record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
+  //    record.get(2) should be (record1._3.toString)
+  //    record.get(3) should be (record1._4)
+  //    record.get(4) should be (record1._5)
+  //    record.get(5) should be (new java.lang.Boolean(record1._6))
+  //    record.get(6) should be (record1._7)
+  //    record.get(7) should be (record1._8)
+  //    record.get(8) should be (record1._9.getTime)
+  //    record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
+  //    record.get(10) should be (record1._11.map(_.toInt).map(x => x : java.lang.Integer).orNull)
+  //    record.get(11) should be (toByteBuffer(record1._12))
+  //    record.get(12) should be (record1._13)
+  //  }
 
 }

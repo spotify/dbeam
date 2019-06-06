@@ -34,7 +34,7 @@ object JdbcTestFixtures {
 
   val record1: recordType = ("costa rica caffee", None, BigDecimal("7.20"), (82.5).toFloat,
     (320.7).toDouble, true, 17, 200L, new java.sql.Timestamp(1488300933000L),
-     None, Option(168.toByte),
+    None, Option(168.toByte),
     UUID.fromString("123e4567-e89b-12d3-a456-426655440000"), 1)
   val record2: recordType = ("colombian caffee", None, BigDecimal("9.20"), (87.5).toFloat,
     (230.7).toDouble, true, 13, 201L, new java.sql.Timestamp(1488300723000L),

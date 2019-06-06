@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,40 +38,53 @@ import org.slf4j.LoggerFactory;
 
 public class BeamJdbcAvroSchema {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
+  private static Logger logger = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
-  public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args) throws Exception {
+  public static Schema createSchema(
+      Pipeline pipeline,
+      JdbcExportArgs jdbcExportArgs) throws Exception {
     Schema generatedSchema;
     String dbName;
+    String fullTableName;
+
+    if (jdbcExportArgs.queryBuilderArgs().tableSchema().isPresent()) {
+      fullTableName = jdbcExportArgs.queryBuilderArgs().tableSchema().get()
+          + "." + jdbcExportArgs.queryBuilderArgs().tableName();
+    } else {
+      fullTableName = jdbcExportArgs.queryBuilderArgs().tableName();
+    }
+
     final long startTimeMillis = System.currentTimeMillis();
-    try (Connection connection = args.createConnection()) {
+    try (Connection connection = jdbcExportArgs.createConnection()) {
       final String dbUrl = connection.getMetaData().getURL();
-      final String avroDoc = args.avroDoc().orElseGet(() ->
+      final String avroDoc = jdbcExportArgs.avroDoc().orElseGet(() ->
           String.format("Generate schema from JDBC ResultSet from %s %s",
-                                             args.queryBuilderArgs().tableName(),
-                                             dbUrl));
+              fullTableName, dbUrl));
       dbName = connection.getCatalog();
       generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
-          connection, args.queryBuilderArgs().tableName(),
-          args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
+          connection,
+          jdbcExportArgs,
+          avroDoc);
     }
     final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;
-    LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
+    logger.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
     JobNameConfiguration.configureJobName(
-        pipeline.getOptions(), dbName, args.queryBuilderArgs().tableName());
+        pipeline.getOptions(),
+        dbName,
+        fullTableName);
     final Counter cnt =
         Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
-                        "schemaElapsedTimeMs");
+            "schemaElapsedTimeMs");
     pipeline
         .apply("ExposeSchemaCountersSeed",
-               Create.of(Collections.singletonList(0))
-                   .withType(TypeDescriptors.integers()))
+            Create.of(Collections.singletonList(0))
+                .withType(TypeDescriptors.integers()))
         .apply("ExposeSchemaCounters",
-               MapElements.into(TypeDescriptors.integers()).via(v -> {
-                 cnt.inc(elapsedTimeSchema);
-                 return v;
-               }));
+            MapElements.into(TypeDescriptors.integers()).via(v -> {
+              cnt.inc(elapsedTimeSchema);
+              return v;
+            }));
     return generatedSchema;
   }
 

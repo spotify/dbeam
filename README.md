@@ -2,7 +2,6 @@
 DBeam
 =======
 
-
 [![Build Status](https://travis-ci.org/spotify/dbeam.svg?branch=master)](https://travis-ci.org/spotify/dbeam)
 [![codecov.io](https://codecov.io/github/spotify/dbeam/coverage.svg?branch=master)](https://codecov.io/github/spotify/dbeam?branch=master)
 [![GitHub license](https://img.shields.io/github/license/spotify/dbeam.svg)](./LICENSE)
@@ -85,6 +84,47 @@ In order to create a jar with all dependencies under `./dbeam-core/target/dbeam-
 mvn clean package -Ppack
 ```
 
+Build must include settings.xml that includes credentials to the Oracle OTN network:
+Instructions can be found here: [Build requirements](https://blogs.oracle.com/dev2dev/get-oracle-jdbc-drivers-and-ucp-from-oracle-maven-repository-without-ides--)
+```sh
+<settings>
+  <proxies>
+    <proxy>
+      <active>true</active>
+      <protocol>http</protocol>
+      <host>proxy.mycompany.com</host>
+      <nonProxyHosts>mycompany.com</nonProxyHosts>
+   </proxy>
+  </proxies>
+
+<servers>
+  <server>
+    <id>maven.oracle.com </id>
+    <username>firstname.lastname@test.com</username>
+    <password>{pnwmhVnzdM8H3UAneUKLmaHGZCoaprbMQ/Ac5UktvsM=}</password>
+  <configuration>
+    <basicAuthScope>
+      <host>ANY </host>
+      <port>ANY </port>
+      <realm>OAM 11g </realm>
+    </basicAuthScope>
+    <httpConfiguration>
+      <all>
+      <params>
+        <property>
+          <name>http.protocol.allow-circular-redirects </name>
+          <value>%b,true </value>
+        </property>
+      </params>
+      </all>
+    </httpConfiguration>
+  </configuration>
+  </server>
+  </servers>
+</settings>
+```
+
+
 ## Usage examples
 
 Using java from the command line:
@@ -124,6 +164,20 @@ java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
   --password=secret \
   --connectionUrl=jdbc:postgresql://some.database.uri.example.org:5432/my_database \
   --table=my_table \
+  --limit=10 \
+  --skipPartitionCheck
+```
+
+Example using oracle:
+```sh
+java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
+  com.spotify.dbeam.jobs.JdbcAvroJob \
+  --output=output-dir/ \
+  --username=my_database_username \
+  --password=secret \
+  --connectionUrl=jdbc:oracle:thin:@<hostname>:<port>/<service name> \
+  --table=my_table \
+  --tableSchema=my_table_schema \
   --limit=10 \
   --skipPartitionCheck
 ```

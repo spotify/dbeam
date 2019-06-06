@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,6 +47,10 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract String tableName();
 
+  public abstract Optional<String> tableSchema();
+
+  //public abstract Optional<Integer> delta();
+
   public abstract Optional<Integer> limit();
 
   public abstract Optional<String> partitionColumn();
@@ -65,6 +69,10 @@ public abstract class QueryBuilderArgs implements Serializable {
   public abstract static class Builder {
 
     public abstract Builder setTableName(String tableName);
+
+    public abstract Builder setTableSchema(Optional<String> tableSchema);
+
+    //public abstract Builder setDelta(Optional<Integer> delta);
 
     public abstract Builder setLimit(Integer limit);
 
@@ -93,8 +101,13 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   private static Boolean checkTableName(String tableName) {
-    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+    return tableName.matches("[a-zA-Z_][a-zA-Z0-9_]*$");
   }
+
+  private static Boolean checkTableSchema(String tableSchema) {
+    return tableSchema.matches("[a-zA-Z0-9_]");
+  }
+  //    return tableName.matches("[a-zA-Z0-9_\\.]*$");
 
   public static QueryBuilderArgs create(String tableName) {
     checkArgument(tableName != null,
@@ -105,6 +118,19 @@ public abstract class QueryBuilderArgs implements Serializable {
         .setTableName(tableName)
         .setPartitionPeriod(Days.ONE)
         .build();
+  }
+
+  /**
+   * Create full name of table with schema if given.
+   *
+   * @return A String of the table name.
+   */
+  private String buildTableName() {
+    if (tableSchema().isPresent()) {
+      return tableSchema().get() + '.' + tableName();
+    } else {
+      return tableName();
+    }
   }
 
   /**
@@ -121,43 +147,74 @@ public abstract class QueryBuilderArgs implements Serializable {
             + "Please specify column to use for splitting using --splitColumn");
     checkArgument(queryParallelism().isPresent() || !splitColumn().isPresent(),
         "argument splitColumn has no effect since --queryParallelism is not specified");
+
+    final String limitWithParallelism;
+    final String limitNumber;
+
     queryParallelism().ifPresent(p -> checkArgument(p > 0,
         "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
 
-    final String limit = this.limit().map(l -> String.format(" LIMIT %d", l)).orElse("");
+    if (connection.getMetaData().getURL().contains("oracle")) {
+      limitNumber = this.limit().map(
+          l -> String.format(" OFFSET 1 ROWS FETCH NEXT %d ROWS ONLY", l))
+          .orElse("");
+    } else {
+      limitNumber = this.limit().map(
+          l -> String.format(" LIMIT %d", l))
+          .orElse("");
+    }
 
-    final String partitionCondition = this.partitionColumn().flatMap(
-        partitionColumn ->
-            this.partition().map(partition -> {
-              final LocalDate datePartition = partition.toLocalDate();
-              final String nextPartition = datePartition.plus(partitionPeriod()).toString();
-              return String.format(" AND %s >= '%s' AND %s < '%s'",
-                  partitionColumn, datePartition, partitionColumn, nextPartition);
-            })
-    ).orElse("");
+    final String partitionCondition = this.partitionColumn()
+        .flatMap(
+            partitionColumn ->
+                this.partition().map(partition -> {
+                  final LocalDate datePartition = partition.toLocalDate();
+                  final String nextPartition = datePartition.plus(partitionPeriod()).toString();
+                  return String.format(" AND %s >= '%s' AND %s < '%s'",
+                      partitionColumn,
+                      datePartition,
+                      partitionColumn,
+                      nextPartition);
+                }))
+        .orElse("");
 
     if (queryParallelism().isPresent() && splitColumn().isPresent()) {
 
-      long[] minMax = findInputBounds(connection, this.tableName(), partitionCondition,
+      long[] minMax = findInputBounds(connection,
+          this.tableName(),
+          partitionCondition,
           splitColumn().get());
+
       long min = minMax[0];
       long max = minMax[1];
 
+      if (connection.getMetaData().getURL().contains("oracle")) {
+        limitWithParallelism = this.limit()
+            .map(l -> String.format(" OFFSET 1 ROWS FETCH NEXT %d ROWS ONLY",
+                l / queryParallelism().get()))
+            .orElse("");
+      } else {
+        limitWithParallelism = this.limit()
+            .map(l -> String.format(" LIMIT %d",
+                l / queryParallelism().get()))
+            .orElse("");
+      }
 
-      String limitWithParallelism = this.limit()
-          .map(l -> String.format(" LIMIT %d", l / queryParallelism().get())).orElse("");
       String queryFormat = String
           .format("SELECT * FROM %s WHERE 1=1%s%s%s",
-                  this.tableName(),
-                  partitionCondition,
-                  "%s", // the split conditions
-                  limitWithParallelism);
+              buildTableName(),
+              partitionCondition,
+              "%s", // the split conditions
+              limitWithParallelism);
+      System.out.println("queryFormat : " + queryFormat);
 
       return queriesForBounds(min, max, queryParallelism().get(), splitColumn().get(), queryFormat);
     } else {
       return Lists.newArrayList(
-          String.format("SELECT * FROM %s WHERE 1=1%s%s", this.tableName(), partitionCondition,
-              limit));
+          String.format("SELECT * FROM %s WHERE 1=1%s%s",
+              buildTableName(),
+              partitionCondition,
+              limitNumber));
     }
   }
 
@@ -168,16 +225,19 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A long array of two elements, with [0] being min and [1] being max.
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
-  private long[] findInputBounds(Connection connection, String tableName, String partitionCondition,
-      String splitColumn)
-      throws SQLException {
+  private long[] findInputBounds(
+      Connection connection, String tableName,
+      String partitionCondition, String splitColumn) throws SQLException {
     // Generate queries to get limits of split column.
     String query = String.format(
         "SELECT min(%s) as min_s, max(%s) as max_s FROM %s WHERE 1=1%s",
         splitColumn,
         splitColumn,
+        buildTableName(),
         tableName,
         partitionCondition);
+
+
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
@@ -208,8 +268,8 @@ public abstract class QueryBuilderArgs implements Serializable {
    * executed.
    */
   protected static Iterable<String> queriesForBounds(long min, long max, int parallelism,
-      String splitColumn,
-      String queryFormat) {
+                                                     String splitColumn,
+                                                     String queryFormat) {
     // We try not to generate more than queryParallelism. Hence we don't want to loose number by
     // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 queries
     long bucketSize = (long) Math.ceil((double) (max - min) / (double) parallelism);

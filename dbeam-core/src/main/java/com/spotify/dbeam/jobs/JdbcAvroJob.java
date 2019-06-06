@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -62,7 +62,7 @@ public class JdbcAvroJob {
     this.jdbcExportArgs = jdbcExportArgs;
     this.output = output;
     Preconditions.checkArgument(this.output != null && this.output.length() > 0,
-                                "'output' must be defined");
+        "'output' must be defined");
   }
 
   public static JdbcAvroJob create(PipelineOptions pipelineOptions)
@@ -71,9 +71,9 @@ public class JdbcAvroJob {
     // instead we call with an explicit duration/exportTimeout configuration
     pipelineOptions.as(DirectOptions.class).setBlockOnRun(false);
     return new JdbcAvroJob(pipelineOptions,
-                           Pipeline.create(pipelineOptions),
-                           JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
-                           pipelineOptions.as(OutputOptions.class).getOutput());
+        Pipeline.create(pipelineOptions),
+        JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
+        pipelineOptions.as(OutputOptions.class).getOutput());
   }
 
   public static JdbcAvroJob create(String[] cmdLineArgs)
@@ -94,6 +94,7 @@ public class JdbcAvroJob {
         this.getClass().getPackage().getImplementationVersion());
     final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(
         this.pipeline, jdbcExportArgs);
+    System.out.println(generatedSchema.toString(true));
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
     final List<String> queries = StreamSupport.stream(
         jdbcExportArgs
@@ -105,7 +106,7 @@ public class JdbcAvroJob {
 
     for (int i = 0; i < queries.size(); i++) {
       BeamHelper.saveStringOnSubPath(output, String.format("/_queries/query_%d.sql", i),
-                                     queries.get(i));
+          queries.get(i));
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
@@ -136,7 +137,7 @@ public class JdbcAvroJob {
 
   public PipelineResult runAndWait() {
     return BeamHelper.waitUntilDone(this.pipeline.run(),
-                                    jdbcExportArgs.exportTimeout());
+        jdbcExportArgs.exportTimeout());
   }
 
   public PipelineResult runExport() throws Exception {

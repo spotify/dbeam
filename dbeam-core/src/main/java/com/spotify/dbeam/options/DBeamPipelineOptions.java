@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,6 +38,12 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setTable(String value);
 
+  @Description("The database table schema to query and perform the export.")
+  @Validation.Required
+  String getTableSchema();
+
+  void setTableSchema(String value);
+
   @Description("The database user name used by JDBC to authenticate.")
   @Default.String("dbeam-extractor")
   String getUsername();
@@ -50,7 +56,7 @@ public interface DBeamPipelineOptions extends PipelineOptions {
   void setPasswordFile(String value);
 
   @Description("A path to a file containing the database password, "
-               + "KMS encrypted and base64 encoded.")
+      + "KMS encrypted and base64 encoded.")
   String getPasswordFileKmsEncrypted();
 
   void setPasswordFileKmsEncrypted(String value);

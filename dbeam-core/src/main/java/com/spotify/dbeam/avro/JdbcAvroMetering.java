@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,7 +77,7 @@ public class JdbcAvroMetering {
 
   public void exposeWriteElapsedMs(long elapsedMs) {
     logger.info(String.format("jdbcavroio : Read %d rows, took %5.2f seconds",
-                              rowCount, elapsedMs / 1000.0));
+        rowCount, elapsedMs / 1000.0));
     this.writeElapsedMs.inc(elapsedMs);
     if (rowCount > 0) {
       this.recordCount.inc((this.rowCount % countReportEvery));
@@ -97,7 +97,7 @@ public class JdbcAvroMetering {
 
   public void exposeExecuteQueryMs(long elapsedMs) {
     logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
-                              elapsedMs / 1000.0));
+        elapsedMs / 1000.0));
     this.executeQueryElapsedMs.inc(elapsedMs);
   }
 }

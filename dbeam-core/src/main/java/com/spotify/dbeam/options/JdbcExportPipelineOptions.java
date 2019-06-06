@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,7 +44,7 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setSkipPartitionCheck(Boolean value);
 
   @Description("The period frequency which the export runs, used to filder based"
-             + "on current partition and also to fail exports for too old partitions.")
+      + "on current partition and also to fail exports for too old partitions.")
   String getPartitionPeriod();
 
   void setPartitionPeriod(String value);

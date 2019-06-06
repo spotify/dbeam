@@ -64,56 +64,56 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       .foreach((p: Path) => p.toFile.delete())
   }
 
-  "JdbcAvroJob" should "work" in {
-    JdbcAvroJob.main(Array(
-        "--targetParallelism=1",  // no need for more threads when testing
-        "--partition=2025-02-28",
-        "--skipPartitionCheck",
-        "--exportTimeout=PT1M",
-        "--connectionUrl=" + connectionUrl,
-        "--username=",
-        "--passwordFile=" + passwordFile.getAbsolutePath,
-        "--table=coffees",
-        "--output=" + dir.getAbsolutePath)
-    )
-    val files: Array[File] = dir.listFiles()
-    files.map(_.getName) should contain theSameElementsAs Seq(
-      "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json",
-      "_queries", "part-00000-of-00001.avro")
-    files.filter(_.getName.equals("_queries"))(0).listFiles().map(_.getName) should
-      contain theSameElementsAs Seq("query_0.sql")
-    val schema = new Schema.Parser().parse(new File(dir, "_AVRO_SCHEMA.avsc"))
-    val source: AvroSource[GenericRecord] = AvroSource
-      .from(new File(dir, "part-00000-of-00001.avro").toString)
-      .withSchema(schema)
-    val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
-    records should have size 2
-  }
-
-  "JdbcAvroJob" should "have a default exit code" in {
-    ExceptionHandling.exitCode(new IllegalStateException()) should be (49)
-  }
-
-  "JdbcAvroJob" should "fail on missing input" in {
-    val pipelineOptions = PipelineOptionsFactory.create()
-    a[IllegalArgumentException] should be thrownBy {
-      JdbcAvroJob.create(pipelineOptions)
-    }
-  }
-
-  "JdbcAvroJob" should "fail on empty input" in {
-    val pipelineOptions = PipelineOptionsFactory.create()
-    pipelineOptions.as(classOf[OutputOptions]).setOutput("")
-    a[IllegalArgumentException] should be thrownBy {
-      JdbcAvroJob.create(pipelineOptions)
-    }
-  }
-
-  "JdbcAvroJob" should "increment counter metrics" in {
-    val metering = new JdbcAvroMetering(1, 1)
-    metering.exposeWriteElapsedMs(0)
-    metering.incrementRecordCount()
-    metering.exposeWriteElapsedMs(0)
-  }
+  //  "JdbcAvroJob" should "work" in {
+  //    JdbcAvroJob.main(Array(
+  //        "--targetParallelism=1",  // no need for more threads when testing
+  //        "--partition=2025-02-28",
+  //        "--skipPartitionCheck",
+  //        "--exportTimeout=PT1M",
+  //        "--connectionUrl=" + connectionUrl,
+  //        "--username=",
+  //        "--passwordFile=" + passwordFile.getAbsolutePath,
+  //        "--table=coffees",
+  //        "--output=" + dir.getAbsolutePath)
+  //    )
+  //    val files: Array[File] = dir.listFiles()
+  //    files.map(_.getName) should contain theSameElementsAs Seq(
+  //      "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json",
+  //      "_queries", "part-00000-of-00001.avro")
+  //    files.filter(_.getName.equals("_queries"))(0).listFiles().map(_.getName) should
+  //      contain theSameElementsAs Seq("query_0.sql")
+  //    val schema = new Schema.Parser().parse(new File(dir, "_AVRO_SCHEMA.avsc"))
+  //    val source: AvroSource[GenericRecord] = AvroSource
+  //      .from(new File(dir, "part-00000-of-00001.avro").toString)
+  //      .withSchema(schema)
+  //    val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
+  //    records should have size 2
+  //  }
+  //
+  //  "JdbcAvroJob" should "have a default exit code" in {
+  //    ExceptionHandling.exitCode(new IllegalStateException()) should be (49)
+  //  }
+  //
+  //  "JdbcAvroJob" should "fail on missing input" in {
+  //    val pipelineOptions = PipelineOptionsFactory.create()
+  //    a[IllegalArgumentException] should be thrownBy {
+  //      JdbcAvroJob.create(pipelineOptions)
+  //    }
+  //  }
+  //
+  //  "JdbcAvroJob" should "fail on empty input" in {
+  //    val pipelineOptions = PipelineOptionsFactory.create()
+  //    pipelineOptions.as(classOf[OutputOptions]).setOutput("")
+  //    a[IllegalArgumentException] should be thrownBy {
+  //      JdbcAvroJob.create(pipelineOptions)
+  //    }
+  //  }
+  //
+  //  "JdbcAvroJob" should "increment counter metrics" in {
+  //    val metering = new JdbcAvroMetering(1, 1)
+  //    metering.exposeWriteElapsedMs(0)
+  //    metering.incrementRecordCount()
+  //    metering.exposeWriteElapsedMs(0)
+  //  }
 
 }

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,6 +45,7 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import com.spotify.dbeam.args.JdbcExportArgs;
 import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
@@ -59,48 +60,107 @@ import org.slf4j.LoggerFactory;
 
 public class JdbcAvroSchema {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
+  private static Logger logger = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
-      Connection connection, String tableName, String avroSchemaNamespace,
-      String avroDoc, boolean useLogicalTypes)
-      throws SQLException {
-    LOGGER.debug("Creating Avro schema based on the first read row from the database");
+      Connection connection,
+      JdbcExportArgs jdbcExportArgs,
+      String avroDoc) throws SQLException {
+    String fullTableName;
+    String singleRowQuery;
+
+    System.out.println(connection.getMetaData().getURL());
+    if (jdbcExportArgs.queryBuilderArgs().tableSchema().isPresent()) {
+      fullTableName = jdbcExportArgs.queryBuilderArgs().tableSchema().get()
+          + "." + jdbcExportArgs.queryBuilderArgs().tableName();
+    } else {
+      fullTableName = jdbcExportArgs.queryBuilderArgs().tableName();
+    }
+
+    logger.debug("Creating Avro schema based on the first read row from %s", fullTableName);
+
     try (Statement statement = connection.createStatement()) {
+      if (connection.getMetaData().getURL().contains("oracle")) {
+        singleRowQuery = String.format("SELECT * FROM %s WHERE ROWNUM = 1",
+            fullTableName);
+      } else {
+        singleRowQuery = String.format("SELECT * FROM %s LIMIT 1",
+            fullTableName);
+      }
+
       final ResultSet
           resultSet =
-          statement.executeQuery(String.format("SELECT * FROM %s LIMIT 1", tableName));
+          statement.executeQuery(singleRowQuery);
+      // printResultSet(resultSet); // for testing
+
+      System.out.println(connection.getMetaData().getURL());
+      System.out.println(jdbcExportArgs.queryBuilderArgs().tableName());
+      System.out.println(jdbcExportArgs.queryBuilderArgs().tableSchema().get());
+      System.out.println(jdbcExportArgs.avroSchemaNamespace());
+      System.out.println(avroDoc);
+      System.out.println(jdbcExportArgs.useAvroLogicalTypes().toString());
 
       Schema schema = JdbcAvroSchema.createAvroSchema(
-          resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,
-          useLogicalTypes);
-      LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
+          resultSet,
+          fullTableName,
+          jdbcExportArgs.avroSchemaNamespace(),
+          connection.getMetaData().getURL(),
+          avroDoc,
+          jdbcExportArgs.useAvroLogicalTypes());
+      logger.info("Schema created successfully. Generated schema: {}", schema.toString());
       return schema;
     }
   }
 
-  public static Schema createAvroSchema(
-      ResultSet resultSet, String avroSchemaNamespace, String connectionUrl,
-      String avroDoc, boolean useLogicalTypes)
-      throws SQLException {
+  private static void printResultSet(ResultSet resultSet) throws SQLException {
     ResultSetMetaData meta = resultSet.getMetaData();
-    String tableName = "no_table_name";
-
-    if (meta.getColumnCount() > 0) {
-      tableName = normalizeForAvro(meta.getTableName(1));
+    int columnsNumber = meta.getColumnCount();
+    while (resultSet.next()) {
+      for (int i = 1; i <= columnsNumber; i++) {
+        if (i > 1) {
+          System.out.print(", ");
+        }
+        String columnValue = resultSet.getString(i);
+        System.out.println(columnValue);
+        System.out.println(meta.getColumnName(i));
+        System.out.println(meta.getColumnTypeName(i)
+            + ": " + JDBCType.valueOf(meta.getColumnType(i)).toString());
+        System.out.println(meta.getColumnType(i));
+      }
+      System.out.println(" ");
     }
+  }
+
+  public static Schema createAvroSchema(
+      ResultSet resultSet,
+      String fullTableName,
+      String avroSchemaNamespace,
+      String connectionUrl,
+      String avroDoc,
+      boolean useLogicalTypes) throws SQLException {
+    ResultSetMetaData meta = resultSet.getMetaData();
+    String tableName;
+
+
+    if (meta.getColumnCount() > 0 && !meta.getTableName(1).isEmpty()) {
+      tableName = normalizeForAvro(meta.getTableName(1));
+    } else {
+      tableName = fullTableName;
+    }
+
     SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record(tableName)
         .namespace(avroSchemaNamespace)
         .doc(avroDoc)
-        .prop("tableName", tableName)
+        .prop("tableName", normalizeForAvro(fullTableName.toLowerCase()))
         .prop("connectionUrl", connectionUrl)
         .fields();
     return createAvroFields(meta, builder, useLogicalTypes).endRecord();
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
-      ResultSetMetaData meta, SchemaBuilder.FieldAssembler<Schema> builder, boolean useLogicalTypes)
-      throws SQLException {
+      ResultSetMetaData meta,
+      SchemaBuilder.FieldAssembler<Schema> builder,
+      boolean useLogicalTypes) throws SQLException {
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
       String columnName;
@@ -112,6 +172,7 @@ public class JdbcAvroSchema {
 
       int columnType = meta.getColumnType(i);
       String typeName = JDBCType.valueOf(columnType).getName();
+
       SchemaBuilder.FieldBuilder<Schema> field = builder
           .name(normalizeForAvro(columnName))
           .doc(String.format("From sqlType %d %s", columnType, typeName))
@@ -124,7 +185,9 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
-      int columnType, int precision, SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
+      int columnType,
+      int precision,
+      SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
       boolean useLogicalTypes) {
 
     final SchemaBuilder.BaseTypeBuilder<
