@@ -37,7 +37,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 ### dbeam command line arguments
 
-- `--connectionUrl`: the JDBC connection url to perform the dump.
+- `--connectionUrl`: the JDBC connection url to perform the dump
 - `--table`: the database table to query and perform the dump
 - `--output`: the path to store the output
 - `--username`: the database user name
