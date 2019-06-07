@@ -37,7 +37,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 ### dbeam command line arguments
 
-- `--connectionUrl`: the JDBC connection url to perform the dump. Note that while working with MySql, --fetchSize would need to be set to -2147483648 (MIN_INT) to signal to the driver to use streaming.
+- `--connectionUrl`: the JDBC connection url to perform the dump.
 - `--table`: the database table to query and perform the dump
 - `--output`: the path to store the output
 - `--username`: the database user name
@@ -112,6 +112,8 @@ java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
 
 - Replace postgres with mysql if you are using MySQL.
 - More details can be found at [CloudSQL JDBC SocketFactory](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory)
+
+For MySQL, set `--fetchSize=-2147483648` (`java.lang.Integer.MIN_INT`) to signal to the driver to stream result sets row-by-row, avoiding Out of Memory issues. Read more about MySQL JDBC driver [here](https://dev.mysql.com/doc/connector-j/5.1/en/connector-j-reference-implementation-notes.html).
 
 To run a cheap data extraction, as a way to validate, one can run:
 
