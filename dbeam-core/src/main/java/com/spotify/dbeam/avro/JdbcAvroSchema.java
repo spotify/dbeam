@@ -66,6 +66,7 @@ public class JdbcAvroSchema {
       Connection connection,
       JdbcExportArgs jdbcExportArgs,
       String avroDoc) throws SQLException {
+
     String fullTableName;
     String singleRowQuery;
 
@@ -91,7 +92,6 @@ public class JdbcAvroSchema {
       final ResultSet
           resultSet =
           statement.executeQuery(singleRowQuery);
-      // printResultSet(resultSet); // for testing
 
       System.out.println(connection.getMetaData().getURL());
       System.out.println(jdbcExportArgs.queryBuilderArgs().tableName());

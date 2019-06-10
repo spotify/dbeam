@@ -43,7 +43,7 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setSkipPartitionCheck(Boolean value);
 
-  @Description("The period frequency which the export runs, used to filder based"
+  @Description("The period frequency which the export runs, used to build based"
       + "on current partition and also to fail exports for too old partitions.")
   String getPartitionPeriod();
 
@@ -66,6 +66,12 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   String getAvroSchemaNamespace();
 
   void setAvroSchemaNamespace(String value);
+
+  @Description("The name and path of predefined the Avro Schema "
+      + ".avsc file to use to build the schema.")
+  String getAvroSchemaFile();
+
+  void setAvroSchemaFile(String value);
 
   @Description("The top-level record doc string of the generated avro schema.")
   String getAvroDoc();

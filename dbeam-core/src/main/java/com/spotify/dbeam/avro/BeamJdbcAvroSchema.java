@@ -23,6 +23,7 @@ package com.spotify.dbeam.avro;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.JobNameConfiguration;
 
+import java.io.File;
 import java.sql.Connection;
 import java.util.Collections;
 
@@ -43,9 +44,19 @@ public class BeamJdbcAvroSchema {
   public static Schema createSchema(
       Pipeline pipeline,
       JdbcExportArgs jdbcExportArgs) throws Exception {
+
     Schema generatedSchema;
     String dbName;
     String fullTableName;
+
+    if (jdbcExportArgs.avroSchemaFile().isPresent()
+        && !jdbcExportArgs.avroSchemaFile().get().isEmpty()) {
+      logger.info("Reading Predefined Avro Schema File: {}", jdbcExportArgs.avroSchemaFile().get());
+      Schema schema = new Schema.Parser().parse(new File(jdbcExportArgs.avroSchemaFile().get()));
+      return schema;
+    } else {
+      logger.info("No Predefined Avro Schema File - creating one");
+    }
 
     if (jdbcExportArgs.queryBuilderArgs().tableSchema().isPresent()) {
       fullTableName = jdbcExportArgs.queryBuilderArgs().tableSchema().get()

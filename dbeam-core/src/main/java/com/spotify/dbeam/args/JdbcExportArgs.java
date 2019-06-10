@@ -2,7 +2,7 @@
  * -\-\-
  * DBeam Core
  * --
- * Copyright (C) 2016 - 2018 Spotify AB
+ * Copyright (C) 2016 - 2019 Spotify AB
  * --
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,8 @@ public abstract class JdbcExportArgs implements Serializable {
 
   public abstract String avroSchemaNamespace();
 
+  public abstract Optional<String> avroSchemaFile();
+
   public abstract Optional<String> avroDoc();
 
   public abstract Boolean useAvroLogicalTypes();
@@ -50,6 +52,8 @@ public abstract class JdbcExportArgs implements Serializable {
     abstract Builder setQueryBuilderArgs(QueryBuilderArgs queryBuilderArgs);
 
     abstract Builder setAvroSchemaNamespace(String avroSchemaNamespace);
+
+    abstract Builder setAvroSchemaFile(Optional<String> avroSchemaFile);
 
     abstract Builder setAvroDoc(Optional<String> avroDoc);
 
@@ -66,6 +70,7 @@ public abstract class JdbcExportArgs implements Serializable {
         queryBuilderArgs,
         "dbeam_generated",
         Optional.empty(),
+        Optional.empty(),
         false,
         Duration.ZERO);
   }
@@ -73,6 +78,7 @@ public abstract class JdbcExportArgs implements Serializable {
   public static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,
                                       QueryBuilderArgs queryBuilderArgs,
                                       String avroSchemaNamespace,
+                                      Optional<String> avroSchemaFile,
                                       Optional<String> avroDoc,
                                       Boolean useAvroLogicalTypes,
                                       Duration exportTimeout) {
@@ -80,6 +86,7 @@ public abstract class JdbcExportArgs implements Serializable {
         .setJdbcAvroOptions(jdbcAvroArgs)
         .setQueryBuilderArgs(queryBuilderArgs)
         .setAvroSchemaNamespace(avroSchemaNamespace)
+        .setAvroSchemaFile(avroSchemaFile)
         .setAvroDoc(avroDoc)
         .setUseAvroLogicalTypes(useAvroLogicalTypes)
         .setExportTimeout(exportTimeout)

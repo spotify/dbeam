@@ -2,7 +2,7 @@
  * -\-\-
  * DBeam Core
  * --
- * Copyright (C) 2016 - 2018 Spotify AB
+ * Copyright (C) 2016 - 2019 Spotify AB
  * --
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -33,43 +32,6 @@ import org.apache.avro.file.CodecFactory;
 
 @AutoValue
 public abstract class JdbcAvroArgs implements Serializable {
-
-  public abstract JdbcConnectionArgs jdbcConnectionConfiguration();
-
-  @Nullable public abstract StatementPreparator statementPreparator();
-
-  public abstract int fetchSize();
-
-  public abstract String avroCodec();
-
-  public abstract Optional<String> avroSchemaFile();
-
-  abstract Builder builder();
-
-  public CodecFactory getCodecFactory() {
-    if (avroCodec().equals("snappy")) {
-      return CodecFactory.snappyCodec();
-    } else if (avroCodec().startsWith("deflate")) {
-      return CodecFactory.deflateCodec(Integer.valueOf(avroCodec().replace("deflate", "")));
-    }
-    throw new IllegalArgumentException("Invalid avroCodec " + avroCodec());
-  }
-
-  @AutoValue.Builder
-  abstract static class Builder {
-
-    abstract Builder setJdbcConnectionConfiguration(JdbcConnectionArgs jdbcConnectionArgs);
-
-    abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
-
-    abstract Builder setFetchSize(int fetchSize);
-
-    abstract Builder setAvroCodec(String avroCodec);
-
-    abstract Builder setAvroSchemaFile(Optional<String> avroSchemaFile);
-
-    abstract JdbcAvroArgs build();
-  }
 
   public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs,
                                     int fetchSize,
@@ -87,7 +49,41 @@ public abstract class JdbcAvroArgs implements Serializable {
     return create(jdbcConnectionArgs, 10000, "deflate6");
   }
 
+  public abstract JdbcConnectionArgs jdbcConnectionConfiguration();
+
+  @Nullable
+  public abstract StatementPreparator statementPreparator();
+
+  public abstract int fetchSize();
+
+  public abstract String avroCodec();
+
+  abstract Builder builder();
+
+  public CodecFactory getCodecFactory() {
+    if (avroCodec().equals("snappy")) {
+      return CodecFactory.snappyCodec();
+    } else if (avroCodec().startsWith("deflate")) {
+      return CodecFactory.deflateCodec(Integer.valueOf(avroCodec().replace("deflate", "")));
+    }
+    throw new IllegalArgumentException("Invalid avroCodec " + avroCodec());
+  }
+
   public interface StatementPreparator extends Serializable {
     void setParameters(PreparedStatement preparedStatement) throws Exception;
+  }
+
+  @AutoValue.Builder
+  abstract static class Builder {
+
+    abstract Builder setJdbcConnectionConfiguration(JdbcConnectionArgs jdbcConnectionArgs);
+
+    abstract Builder setStatementPreparator(StatementPreparator statementPreparator);
+
+    abstract Builder setFetchSize(int fetchSize);
+
+    abstract Builder setAvroCodec(String avroCodec);
+
+    abstract JdbcAvroArgs build();
   }
 }
