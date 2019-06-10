@@ -47,7 +47,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract String tableName();
 
-  public abstract String baseSqlQuery();
+  public abstract SqlQueryWrapper baseSqlQuery();
 
   public abstract Optional<Integer> limit();
 
@@ -68,7 +68,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setTableName(String tableName);
 
-    public abstract Builder setBaseSqlQuery(String baseSqlQuery);
+    public abstract Builder setBaseSqlQuery(SqlQueryWrapper baseSqlQuery);
 
     public abstract Builder setLimit(Integer limit);
 
@@ -100,16 +100,21 @@ public abstract class QueryBuilderArgs implements Serializable {
     return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
   }
 
-  private static Boolean checkSqlQuery(String sqlQuery) {
-    String uppSql = sqlQuery.toUpperCase();
-    // some 'light' checks applied
-    return uppSql.contains("SELECT") && uppSql.contains("FROM");
-  }
-
-  public static QueryBuilderArgs create(String tableName, final String sqlQuery) {
+  public static QueryBuilderArgs create(String tableName) {
     checkArgument(tableName != null,
             "TableName cannot be null");
-    String baseSqlQuery = getBaseSqlQuery(tableName, sqlQuery);
+    SqlQueryWrapper baseSqlQuery = getBaseSqlQuery(tableName, Optional.empty());
+    return new AutoValue_QueryBuilderArgs.Builder()
+            .setTableName(tableName)
+            .setBaseSqlQuery(baseSqlQuery)
+            .setPartitionPeriod(Days.ONE)
+            .build();
+  }
+
+  public static QueryBuilderArgs create(String tableName, final Optional<String> sqlQueryOpt) {
+    checkArgument(tableName != null,
+            "TableName cannot be null");
+    SqlQueryWrapper baseSqlQuery = getBaseSqlQuery(tableName, sqlQueryOpt);
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
         .setBaseSqlQuery(baseSqlQuery)
@@ -117,17 +122,14 @@ public abstract class QueryBuilderArgs implements Serializable {
         .build();
   }
 
-  private static String getBaseSqlQuery(String tableName, String sqlQuery) {
+  private static SqlQueryWrapper getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
-    if (sqlQuery == null) {
-      return String.format("SELECT * FROM %s WHERE 1=1", tableName);
+    if (!sqlQueryOpt.isPresent()) {
+      return SqlQueryWrapper.ofTablename(tableName);
     } else {
-      checkArgument(checkSqlQuery(sqlQuery), "Invalid SQL query");
-      if (sqlQuery.toUpperCase().contains("WHERE ")) {
-        return sqlQuery;
-      } else {
-        return String.format("%s WHERE 1=1", sqlQuery);
-      }
+      String sqlQuery = sqlQueryOpt.get();
+      checkArgument(SqlQueryWrapper.checkSqlQuery(sqlQuery), "Invalid SQL query");
+      return SqlQueryWrapper.ofRawSql(sqlQuery);
     }
   }
 
@@ -192,26 +194,29 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
   private long[] findInputBounds(
-      Connection connection, String baseSqlQuery, String partitionCondition, String splitColumn)
+      Connection connection, SqlQueryWrapper baseSqlQuery,
+      String partitionCondition, String splitColumn)
       throws SQLException {
-    String query = generateQueryToGetLimitsOfSplitColumn(
-        baseSqlQuery, partitionCondition, splitColumn);
+    String minColumnName = "min_s";
+    String maxColumnName = "max_s";
+    SqlQueryWrapper queryWrapper = baseSqlQuery.generateQueryToGetLimitsOfSplitColumn(
+        partitionCondition, splitColumn, minColumnName, maxColumnName);
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(query);
+          statement.executeQuery(queryWrapper.getSqlQuery());
       // Check and make sure we have a record. This should ideally succeed always.
       checkState(resultSet.next(), "Result Set for Min/Max returned zero records");
 
-      // min_s and max_s would both of the same type
+      // minColumnName and maxColumnName would be both of the same type
       switch (resultSet.getMetaData().getColumnType(1)) {
         case Types.LONGVARBINARY:
         case Types.BIGINT:
         case Types.INTEGER:
-          min = resultSet.getLong("min_s");
-          max = resultSet.getLong("max_s");
+          min = resultSet.getLong(minColumnName);
+          max = resultSet.getLong(maxColumnName);
           break;
         default:
           throw new IllegalArgumentException("splitColumn should be of type Integer / Long");
@@ -219,19 +224,6 @@ public abstract class QueryBuilderArgs implements Serializable {
     }
 
     return new long[]{min, max};
-  }
-
-  private String generateQueryToGetLimitsOfSplitColumn(
-      String baseSqlQuery, String partitionCondition, String splitColumn) {
-    int fromIdx = baseSqlQuery.toUpperCase().indexOf("FROM");
-    //cannot return -1, we have already checked/ensured that.
-
-    return String.format(
-        "SELECT min(%s) as min_s, max(%s) as max_s %s%s",
-        splitColumn,
-        splitColumn,
-        baseSqlQuery.substring(fromIdx),
-        partitionCondition);
   }
 
   /**

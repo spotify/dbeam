@@ -1,0 +1,1 @@
+SELECT * FROM some_table WHERE column_id > 100

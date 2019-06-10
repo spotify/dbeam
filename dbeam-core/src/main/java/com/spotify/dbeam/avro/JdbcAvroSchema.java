@@ -45,6 +45,8 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import com.spotify.dbeam.args.SqlQueryWrapper;
+
 import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
@@ -62,14 +64,23 @@ public class JdbcAvroSchema {
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
-      Connection connection, String baseSqlQuery, String avroSchemaNamespace,
-      String avroDoc, boolean useLogicalTypes)
+          Connection connection, String tablename, String avroSchemaNamespace,
+          String avroDoc, boolean useLogicalTypes)
+      throws SQLException {
+    return createSchemaByReadingOneRow(
+            connection, SqlQueryWrapper.ofTablename(tablename),
+            avroSchemaNamespace, avroDoc, useLogicalTypes);
+  }
+
+  public static Schema createSchemaByReadingOneRow(
+          Connection connection, SqlQueryWrapper baseSqlQuery, String avroSchemaNamespace,
+          String avroDoc, boolean useLogicalTypes)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(String.format("%s LIMIT 1", baseSqlQuery));
+          statement.executeQuery(baseSqlQuery.addLimit());
 
       Schema schema = JdbcAvroSchema.createAvroSchema(
           resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,

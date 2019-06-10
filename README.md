@@ -39,6 +39,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 - `--connectionUrl`: the JDBC connection url to perform the dump
 - `--table`: the database table to query and perform the dump
+- `--sqlFile`: a path to a local file containing the SQL SELECT query (used instead a generated query based on `table` parameter)  
 - `--output`: the path to store the output
 - `--username`: the database user name
 - `--password`: the database password
