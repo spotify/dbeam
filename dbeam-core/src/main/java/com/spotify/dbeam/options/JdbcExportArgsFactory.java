@@ -91,7 +91,6 @@ public class JdbcExportArgsFactory {
   private static Optional<String> resolveSqlQueryParameter(JdbcExportPipelineOptions options)
       throws IOException {
     if (options.getSqlFile() != null) {
-      // return Optional.ofNullable(ParameterFileReader.readFromFile(options.getSqlFile()));
       return Optional.ofNullable(new ParameterFileReader().readAsResource(options.getSqlFile()));
     } else {
       return Optional.empty();

@@ -44,6 +44,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   val baseTable = "some_table"
   private val baseQueryNoConditions = "SELECT * FROM " + baseTable + " WHERE 1=1"
   private val baseQueryWithConditions = "SELECT * FROM " + baseTable + " WHERE column_id > 100"
+  private val coffeesQueryWithConditions = "SELECT * FROM coffees WHERE size > 10"
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
@@ -65,19 +66,19 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail on invalid SQL query format" in {
     a[IllegalArgumentException] should be thrownBy {
-      val tableName: String = null
+      val tableName: String = baseTable
       QueryBuilderArgs.create(tableName, Optional.of("NonSql String"))
     }
   }
   it should "fail on invalid SQL query format (missing SELECT)" in {
     a[IllegalArgumentException] should be thrownBy {
-      val tableName: String = null
+      val tableName: String = baseTable
       QueryBuilderArgs.create(tableName, Optional.of("SELLLECT * FROM nowhere"))
     }
   }
   it should "fail on invalid SQL query format (missing FROM)" in {
     a[IllegalArgumentException] should be thrownBy {
-      val tableName: String = null
+      val tableName: String = baseTable
       QueryBuilderArgs.create(tableName, Optional.of("SELECT * FRAMME nowhere"))
     }
   }
@@ -118,7 +119,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail to parse invalid table parameter" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some-table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some-table-with-dash " +
         "--password=secret")
     }
   }
@@ -268,6 +269,19 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq(s"$baseQueryNoConditions " +
       "AND col >= '2027-07-31' AND col < '2027-08-01'")
   }
+  it should "configure partition column for sqlQuery" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
+      "--password=secret --sqlFile=test_query_1.sql --partition=2027-07-31 --partitionColumn=col").queryBuilderArgs()
+
+    val expected = QueryBuilderArgs.create(baseTable, Optional.of(baseQueryWithConditions))
+      .builder()
+      .setPartitionColumn("col")
+      .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
+    actual should be(expected)
+    actual.buildQueries(connection).asScala should
+      contain theSameElementsAs Seq(s"$baseQueryWithConditions" +
+      " AND col >= '2027-07-31' AND col < '2027-08-01'")
+  }
   it should "configure partition column and limit" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --partition=2027-07-31 --partitionColumn=col --limit=5").queryBuilderArgs()
@@ -281,8 +295,22 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
     actual.buildQueries(connection).asScala should
       contain theSameElementsAs Seq(
-      s"$baseQueryNoConditions AND col >= '2027-07-31'" +
-        " AND col < '2027-08-01' LIMIT 5")
+      s"$baseQueryNoConditions AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5")
+  }
+  it should "configure partition column and limit for sqlQuery" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
+      "--password=secret --sqlFile=test_query_1.sql --partition=2027-07-31 --partitionColumn=col --limit=5").queryBuilderArgs()
+
+    val expected = QueryBuilderArgs.create(baseTable, Optional.of(baseQueryWithConditions))
+      .builder()
+      .setLimit(5)
+      .setPartitionColumn("col")
+      .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
+    actual should be(expected)
+
+    actual.buildQueries(connection).asScala should
+      contain theSameElementsAs Seq(
+      s"$baseQueryWithConditions AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5")
   }
   it should "configure partition column and partition period" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
@@ -314,6 +342,22 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq(
       s"$baseCoffeesQueryNoConditions " +
         "AND ROWNUM >= 1 AND ROWNUM <= 2")
+  }
+
+  it should "create queries for split column of integer type for sqlQuery" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
+      "--password=secret --sqlFile=coffees_query_1.sql --splitColumn=ROWNUM --queryParallelism=5")
+      .queryBuilderArgs()
+    val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
+      .builder()
+      .setSplitColumn("ROWNUM")
+      .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
+      .build()
+    actual should be(expected)
+    actual.buildQueries(connection).asScala should
+      contain theSameElementsAs Seq(
+      s"$coffeesQueryWithConditions" +
+        " AND ROWNUM >= 1 AND ROWNUM <= 2")
   }
 
   it should "create queries with partition column and split column with queryParallelism" in {

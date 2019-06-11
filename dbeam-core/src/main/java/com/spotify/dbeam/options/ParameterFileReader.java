@@ -27,10 +27,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.io.fs.MatchResult;
 import org.slf4j.Logger;
@@ -49,17 +48,11 @@ public class ParameterFileReader {
   }
 
   public String readAsResource(String filename) throws IOException {
-    // ClassLoader classLoader = getClass().getClassLoader();
-    // URL resource = classLoader.getResource(filename);
-    // File file = new File(resource.getFile());
-    // LOGGER.info("Reading data from file: {}", file.getAbsolutePath());
-    //  return CharStreams.toString(
-    //          new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET_UTF_8));
-    Path testPath = Paths.get("src", "test", "resources");
-    Path resolve = testPath.resolve(filename);
-    File resolvedFileName = resolve.toFile();
-    LOGGER.info("Reading data from file: {}", resolvedFileName);
+    ClassLoader classLoader = getClass().getClassLoader();
+    URL resource = classLoader.getResource(filename);
+    File file = new File(resource.getFile());
+    LOGGER.info("Reading data from file: {}", file.getAbsolutePath());
     return CharStreams.toString(
-        new InputStreamReader(new FileInputStream(resolvedFileName), DEFAULT_CHARSET_UTF_8));
+        new InputStreamReader(new FileInputStream(file), DEFAULT_CHARSET_UTF_8));
   }
 }

@@ -30,7 +30,6 @@ public class SqlQueryWrapper implements Serializable {
   private final String sqlQuery;
 
   private SqlQueryWrapper(final String sqlQuery) {
-
     this.sqlQuery = sqlQuery;
   }
   
@@ -42,24 +41,50 @@ public class SqlQueryWrapper implements Serializable {
     return uppSql.contains("SELECT") && uppSql.contains("FROM");
   }
 
+  // TODO It is assumed now that partitionColumn is not numeric type 
+  public static String createSqlPartitionCondition(
+      String partitionColumn, String startPointIncl, String endPointExcl) {
+    return String.format(
+        " AND %s >= '%s' AND %s < '%s'",
+        partitionColumn, startPointIncl, partitionColumn, endPointExcl);
+  }
+
+  public static String createSqlSplitCondition(
+          String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
+    
+    String upperBoundOperation = isEndPointExcl ? "<" : "<=";
+    return String.format(
+            " AND %s >= %s AND %s %s %s",
+            partitionColumn, startPointIncl, partitionColumn, upperBoundOperation, endPoint);
+  }
+
   public String getSqlQuery() {
     return sqlQuery;
   }
 
   public static SqlQueryWrapper ofRawSql(final String sqlQuery) {
-    if (sqlQuery.toUpperCase().contains("WHERE ")) {
-      return new SqlQueryWrapper(sqlQuery);
+    String s = removeTrailingSymbols(sqlQuery);
+    if (s.toUpperCase().contains("WHERE ")) {
+      return new SqlQueryWrapper(s);
     } else {
-      return new SqlQueryWrapper(String.format("%s WHERE 1=1", sqlQuery));
+      return new SqlQueryWrapper(String.format("%s WHERE 1=1", s));
     }
+  }
+
+  private static String removeTrailingSymbols(String sqlQuery) {
+    return sqlQuery.replaceAll("[\\s|;]+$", "");
   }
 
   public static SqlQueryWrapper ofTablename(final String tableName) {
     return new SqlQueryWrapper(String.format("SELECT * FROM %s WHERE 1=1", tableName));
   }
 
+  public static String createSqlLimitCondition(long limit) {
+    return String.format(" LIMIT %d", limit);
+  }
+
   public String addLimit() {
-    return String.format("%s LIMIT 1", sqlQuery);
+    return String.format("%s%s", sqlQuery, createSqlLimitCondition(1L));
   }
 
   @Override
@@ -84,16 +109,21 @@ public class SqlQueryWrapper implements Serializable {
   }
 
   public SqlQueryWrapper generateQueryToGetLimitsOfSplitColumn(
-      String partitionCondition,
       String splitColumn,
       String minSplitColumnName,
-      String maxSplitColumnName) {
+      String maxSplitColumnName,
+      String partitionCondition) {
     int fromIdx = sqlQuery.toUpperCase().indexOf("FROM");
     // cannot return -1, we have already checked/ensured that.
 
     return SqlQueryWrapper.ofRawSql(
         String.format(
-            "SELECT min(%s) as min_s, max(%s) as max_s %s%s",
-            splitColumn, splitColumn, sqlQuery.substring(fromIdx), partitionCondition));
+            "SELECT MIN(%s) as %s, MAX(%s) as %s %s %s",
+            splitColumn,
+            minSplitColumnName,
+            splitColumn,
+            maxSplitColumnName,
+            sqlQuery.substring(fromIdx),
+            partitionCondition));
   }
 }
