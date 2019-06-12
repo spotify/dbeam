@@ -49,7 +49,8 @@ class PasswordReader {
     FileSystems.setDefaultPipelineOptions(options);
     if (options.getPasswordFileKmsEncrypted() != null) {
       LOGGER.info("Decrypting password using KMS...");
-      return Optional.of(kmsDecrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted())));
+      return Optional.of(kmsDecrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted()))
+          .trim());
     } else if (options.getPasswordFile() != null) {
       return Optional.of(readFromFile(options.getPasswordFile()));
     } else {
