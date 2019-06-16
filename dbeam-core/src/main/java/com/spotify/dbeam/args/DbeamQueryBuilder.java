@@ -161,10 +161,10 @@ public class DbeamQueryBuilder implements Serializable {
   /**
    * Generates a new query to get MIN/MAX values for splitColumn.  
    * 
-   * @param splitColumn
-   * @param minSplitColumnName
-   * @param maxSplitColumnName
-   * @return a new query
+   * @param splitColumn column to use
+   * @param minSplitColumnName MIN() column value alias
+   * @param maxSplitColumnName MAX() column value alias
+   * @return a new query builder
    */
   public DbeamQueryBuilder generateQueryToGetLimitsOfSplitColumn(
       String splitColumn,
