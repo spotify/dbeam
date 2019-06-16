@@ -21,35 +21,64 @@
 package com.spotify.dbeam.args;
 
 import java.io.Serializable;
+import java.util.Optional;
 
 /**
  * Wrapper class for raw SQL query (SELECT statement).
  */
 public class SqlQueryWrapper implements Serializable {
 
-  private final String sqlQuery;
+  private final StringBuilder sqlBuilder;
+  private final int fromIdx;
+  private Optional<String> limitStr = Optional.empty();
 
   private SqlQueryWrapper(final String sqlQuery) {
-    this.sqlQuery = sqlQuery;
-  }
-  
-  // TODO: move to a constructor ?
-  public static Boolean checkSqlQuery(String sqlQuery) {
     String uppSql = sqlQuery.toUpperCase();
-    // some 'light' checks applied
+    if (!uppSql.startsWith("SELECT")) {
+      throw new IllegalArgumentException("Sql query should start with SELECT");
+    }
+    fromIdx = uppSql.indexOf("FROM");
+    if (fromIdx < 0) {
+      throw new IllegalArgumentException("Sql query missing FROM clause");
+    }
     // TODO: may be check that LIMIT is not present
-    return uppSql.contains("SELECT") && uppSql.contains("FROM");
+
+    this.sqlBuilder = new StringBuilder(sqlQuery);
   }
 
+  private SqlQueryWrapper(SqlQueryWrapper that) {
+    this.sqlBuilder = new StringBuilder(that.sqlBuilder);
+    this.fromIdx = that.fromIdx;
+    this.limitStr = that.limitStr;
+  }
+
+  public SqlQueryWrapper copy() {
+    return new SqlQueryWrapper(this);
+  }
+  
+  public SqlQueryWrapper withPartitionCondition(
+          String partitionColumn, String startPointIncl, String endPointExcl) {
+    sqlBuilder.append(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
+    return this;
+  }
+          
+          
   // TODO It is assumed now that partitionColumn is not numeric type 
-  public static String createSqlPartitionCondition(
+  private static String createSqlPartitionCondition(
       String partitionColumn, String startPointIncl, String endPointExcl) {
     return String.format(
         " AND %s >= '%s' AND %s < '%s'",
         partitionColumn, startPointIncl, partitionColumn, endPointExcl);
   }
 
-  public static String createSqlSplitCondition(
+  public SqlQueryWrapper withParallelizationCondition(
+      String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
+    sqlBuilder.append(
+        createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl));
+    return this;
+  }
+
+  private static String createSqlSplitCondition(
           String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
     
     String upperBoundOperation = isEndPointExcl ? "<" : "<=";
@@ -58,8 +87,14 @@ public class SqlQueryWrapper implements Serializable {
             partitionColumn, startPointIncl, partitionColumn, upperBoundOperation, endPoint);
   }
 
-  public String getSqlQuery() {
-    return sqlQuery;
+  public String getSqlString() {
+    return build();
+  }
+  
+  public String build() {
+    limitStr.map(x -> sqlBuilder.append(x));
+    limitStr = Optional.empty();
+    return sqlBuilder.toString();
   }
 
   public static SqlQueryWrapper ofRawSql(final String sqlQuery) {
@@ -79,17 +114,22 @@ public class SqlQueryWrapper implements Serializable {
     return new SqlQueryWrapper(String.format("SELECT * FROM %s WHERE 1=1", tableName));
   }
 
-  public static String createSqlLimitCondition(long limit) {
-    return String.format(" LIMIT %d", limit);
+  public SqlQueryWrapper withLimit(Optional<Integer> limitOpt) {
+    return limitOpt.map(l -> this.withLimit(l)).orElse(this);
+  }
+  
+  public SqlQueryWrapper withLimit(long limit) {
+    limitStr = Optional.of(String.format(" LIMIT %d", limit));
+    return this;
   }
 
-  public String addLimit() {
-    return String.format("%s%s", sqlQuery, createSqlLimitCondition(1L));
+  public SqlQueryWrapper withLimitOne() {
+    return withLimit(1L);
   }
 
   @Override
   public String toString() {
-    return sqlQuery;
+    return build();
   }
 
   @Override
@@ -98,32 +138,30 @@ public class SqlQueryWrapper implements Serializable {
       return true;
     }
     if (obj instanceof SqlQueryWrapper) {
-      return getSqlQuery().equals((((SqlQueryWrapper) obj).getSqlQuery()));
+      SqlQueryWrapper that = (SqlQueryWrapper) obj;
+      return build().equals((that.build())) && limitStr.equals(that.limitStr);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return sqlQuery.hashCode();
+    return sqlBuilder.hashCode();
   }
 
   public SqlQueryWrapper generateQueryToGetLimitsOfSplitColumn(
       String splitColumn,
       String minSplitColumnName,
-      String maxSplitColumnName,
-      String partitionCondition) {
-    int fromIdx = sqlQuery.toUpperCase().indexOf("FROM");
-    // cannot return -1, we have already checked/ensured that.
+      String maxSplitColumnName) {
 
     return SqlQueryWrapper.ofRawSql(
         String.format(
-            "SELECT MIN(%s) as %s, MAX(%s) as %s %s %s",
+            "SELECT MIN(%s) as %s, MAX(%s) as %s %s",
             splitColumn,
             minSplitColumnName,
             splitColumn,
             maxSplitColumnName,
-            sqlQuery.substring(fromIdx),
-            partitionCondition));
+            sqlBuilder.substring(fromIdx)));
   }
+
 }

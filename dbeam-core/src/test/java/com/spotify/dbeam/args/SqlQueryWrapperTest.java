@@ -28,6 +28,78 @@ import org.junit.Test;
 public class SqlQueryWrapperTest {
 
   @Test
+  public void testCtorFromTable() {
+    SqlQueryWrapper wrapper = SqlQueryWrapper.ofTablename("abc");
+
+    String expected = "SELECT * FROM abc WHERE 1=1";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
+  public void testCtorRawSqlWithoutWhere() {
+    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+
+    String expected = "SELECT * FROM t1 WHERE 1=1";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
+  public void testCtorRawSqlWithWhere() {
+    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1 WHERE a > 100");
+
+    String expected = "SELECT * FROM t1 WHERE a > 100";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCtorRawSqlFailedNoSelect() {
+    SqlQueryWrapper.ofRawSql("SELE * FROM t1");
+    
+    Assert.fail("Should not be reached");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCtorRawSqlFailedNoFrom() {
+    SqlQueryWrapper.ofRawSql("SELECT * FRAMME t1");
+
+    Assert.fail("Should not be reached");
+  }
+
+  @Test
+  public void testCtorRawSqlWithLimit() {
+    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+    wrapper.withLimit(102L);
+
+    String expected = "SELECT * FROM t1 WHERE 1=1 LIMIT 102";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
+  public void testCtorRawSqlwithParallelization() {
+    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+    wrapper.withParallelizationCondition("bucket", 10, 20, true);
+
+    String expected = "SELECT * FROM t1 WHERE 1=1 AND bucket >= 10 AND bucket < 20";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
+  public void testCtorRawSqlWithPartition() {
+    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+    wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
+
+    String expected =
+        "SELECT * FROM t1 WHERE 1=1 AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
   public void testItRemovesTrailingSymbols() {
     List<String> rawInput =
         Arrays.asList(
@@ -53,15 +125,15 @@ public class SqlQueryWrapperTest {
                 + " WHERE size > 10 AND partition >= 'a' AND partition < 'd'";
 
     String actual =
-        SqlQueryWrapper.ofRawSql(input)
+        SqlQueryWrapper.ofRawSql(input).withPartitionCondition("partition", "a", "d")
             .generateQueryToGetLimitsOfSplitColumn(
-                "splitCol", "mixy", "maxy", "AND partition >= 'a' AND partition < 'd'")
-            .getSqlQuery();
+                "splitCol", "mixy", "maxy")
+            .build();
     Assert.assertEquals(expected, actual);
   }
 
   private void execAndCompare(String rawInput, String expected) {
-    String actual = SqlQueryWrapper.ofRawSql(rawInput).getSqlQuery();
+    String actual = SqlQueryWrapper.ofRawSql(rawInput).build();
 
     Assert.assertEquals(expected, actual);
   }

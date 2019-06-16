@@ -80,7 +80,7 @@ public class JdbcAvroSchema {
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(baseSqlQuery.addLimit());
+          statement.executeQuery(baseSqlQuery.copy().withLimitOne().build());
 
       Schema schema = JdbcAvroSchema.createAvroSchema(
           resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,
