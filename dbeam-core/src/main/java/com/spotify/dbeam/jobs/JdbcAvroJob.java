@@ -21,8 +21,8 @@
 package com.spotify.dbeam.jobs;
 
 import com.google.common.base.Preconditions;
+import com.spotify.dbeam.args.DbeamQueryBuilder;
 import com.spotify.dbeam.args.JdbcExportArgs;
-import com.spotify.dbeam.args.SqlQueryWrapper;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
 import com.spotify.dbeam.beam.BeamHelper;
@@ -93,7 +93,7 @@ public class JdbcAvroJob {
     final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(
         this.pipeline, jdbcExportArgs);
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
-    final List<SqlQueryWrapper> sqlQueries = StreamSupport.stream(
+    final List<DbeamQueryBuilder> sqlQueries = StreamSupport.stream(
         jdbcExportArgs
             .queryBuilderArgs()
             .buildQueries(jdbcExportArgs.createConnection())

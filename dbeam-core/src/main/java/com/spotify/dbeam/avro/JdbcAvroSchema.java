@@ -45,7 +45,7 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
-import com.spotify.dbeam.args.SqlQueryWrapper;
+import com.spotify.dbeam.args.DbeamQueryBuilder;
 
 import java.sql.Connection;
 import java.sql.JDBCType;
@@ -68,12 +68,12 @@ public class JdbcAvroSchema {
           String avroDoc, boolean useLogicalTypes)
       throws SQLException {
     return createSchemaByReadingOneRow(
-            connection, SqlQueryWrapper.ofTablename(tablename),
+            connection, DbeamQueryBuilder.fromTablename(tablename),
             avroSchemaNamespace, avroDoc, useLogicalTypes);
   }
 
   public static Schema createSchemaByReadingOneRow(
-          Connection connection, SqlQueryWrapper baseSqlQuery, String avroSchemaNamespace,
+          Connection connection, DbeamQueryBuilder baseSqlQuery, String avroSchemaNamespace,
           String avroDoc, boolean useLogicalTypes)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");

@@ -48,7 +48,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract String tableName();
 
-  public abstract SqlQueryWrapper baseSqlQuery();
+  public abstract DbeamQueryBuilder baseSqlQuery();
 
   public abstract Optional<Integer> limit();
 
@@ -69,7 +69,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setTableName(String tableName);
 
-    public abstract Builder setBaseSqlQuery(SqlQueryWrapper baseSqlQuery);
+    public abstract Builder setBaseSqlQuery(DbeamQueryBuilder baseSqlQuery);
 
     public abstract Builder setLimit(Integer limit);
 
@@ -104,7 +104,7 @@ public abstract class QueryBuilderArgs implements Serializable {
   public static QueryBuilderArgs create(String tableName) {
     checkArgument(tableName != null,
             "TableName cannot be null");
-    SqlQueryWrapper baseSqlQuery = getBaseSqlQuery(tableName, Optional.empty());
+    DbeamQueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, Optional.empty());
     return new AutoValue_QueryBuilderArgs.Builder()
             .setTableName(tableName)
             .setBaseSqlQuery(baseSqlQuery)
@@ -115,7 +115,7 @@ public abstract class QueryBuilderArgs implements Serializable {
   public static QueryBuilderArgs create(String tableName, final Optional<String> sqlQueryOpt) {
     checkArgument(tableName != null,
             "TableName cannot be null");
-    SqlQueryWrapper baseSqlQuery = getBaseSqlQuery(tableName, sqlQueryOpt);
+    DbeamQueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, sqlQueryOpt);
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
         .setBaseSqlQuery(baseSqlQuery)
@@ -123,13 +123,13 @@ public abstract class QueryBuilderArgs implements Serializable {
         .build();
   }
 
-  private static SqlQueryWrapper getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
+  private static DbeamQueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
     if (!sqlQueryOpt.isPresent()) {
-      return SqlQueryWrapper.ofTablename(tableName);
+      return DbeamQueryBuilder.fromTablename(tableName);
     } else {
       String sqlQuery = sqlQueryOpt.get();
-      return SqlQueryWrapper.ofRawSql(sqlQuery);
+      return DbeamQueryBuilder.fromSqlQuery(sqlQuery);
     }
   }
 
@@ -140,7 +140,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A list of queries to be executed.
    * @throws SQLException when it fails to find out limits for splits.
    */
-  public Iterable<SqlQueryWrapper> buildQueries(Connection connection)
+  public Iterable<DbeamQueryBuilder> buildQueries(Connection connection)
       throws SQLException {
     checkArgument(!queryParallelism().isPresent() || splitColumn().isPresent(),
         "Cannot use queryParallelism because no column to split is specified. "
@@ -189,17 +189,18 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
   private long[] findInputBounds(
-      Connection connection, SqlQueryWrapper baseSqlQuery, String splitColumn) throws SQLException {
+      Connection connection, DbeamQueryBuilder baseSqlQuery, String splitColumn)
+      throws SQLException {
     String minColumnName = "min_s";
     String maxColumnName = "max_s";
-    SqlQueryWrapper queryWrapper = baseSqlQuery.generateQueryToGetLimitsOfSplitColumn(
+    DbeamQueryBuilder limitsQuery = baseSqlQuery.generateQueryToGetLimitsOfSplitColumn(
             splitColumn, minColumnName, maxColumnName);
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(queryWrapper.build());
+          statement.executeQuery(limitsQuery.build());
       // Check and make sure we have a record. This should ideally succeed always.
       checkState(resultSet.next(), "Result Set for Min/Max returned zero records");
 
@@ -252,8 +253,8 @@ public abstract class QueryBuilderArgs implements Serializable {
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
    */
-  protected static List<SqlQueryWrapper> queriesForBounds(
-         long min, long max, int parallelism, String splitColumn, SqlQueryWrapper baseSqlQuery) {
+  protected static List<DbeamQueryBuilder> queriesForBounds(
+         long min, long max, int parallelism, String splitColumn, DbeamQueryBuilder baseSqlQuery) {
     
     List<QueryRange> ranges = generateRanges(min, max, parallelism);
 

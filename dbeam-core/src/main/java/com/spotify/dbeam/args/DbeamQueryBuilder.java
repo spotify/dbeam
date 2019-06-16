@@ -26,44 +26,65 @@ import java.util.Optional;
 /**
  * Wrapper class for raw SQL query (SELECT statement).
  */
-public class SqlQueryWrapper implements Serializable {
+public class DbeamQueryBuilder implements Serializable {
 
   private final StringBuilder sqlBuilder;
   private final int fromIdx;
   private Optional<String> limitStr = Optional.empty();
 
-  private SqlQueryWrapper(final String sqlQuery) {
+  private DbeamQueryBuilder(final String sqlQuery) {
     String uppSql = sqlQuery.toUpperCase();
     if (!uppSql.startsWith("SELECT")) {
       throw new IllegalArgumentException("Sql query should start with SELECT");
     }
+    
+    boolean isContainsWhere = false;
+    if (uppSql.toUpperCase().contains("WHERE ")) {
+      isContainsWhere = true;
+    }
+
     fromIdx = uppSql.indexOf("FROM");
     if (fromIdx < 0) {
       throw new IllegalArgumentException("Sql query missing FROM clause");
     }
-    // TODO: may be check that LIMIT is not present
+    
+    // TODO: may be check that LIMIT is not present;
+    //  can be difficult to judge in a complicated query
 
     this.sqlBuilder = new StringBuilder(sqlQuery);
+    
+    if (!isContainsWhere) {
+      sqlBuilder.append(" WHERE 1=1");
+    }
+
   }
 
-  private SqlQueryWrapper(SqlQueryWrapper that) {
+  private DbeamQueryBuilder(DbeamQueryBuilder that) {
     this.sqlBuilder = new StringBuilder(that.sqlBuilder);
     this.fromIdx = that.fromIdx;
     this.limitStr = that.limitStr;
   }
 
-  public SqlQueryWrapper copy() {
-    return new SqlQueryWrapper(this);
+  public DbeamQueryBuilder copy() {
+    return new DbeamQueryBuilder(this);
   }
-  
-  public SqlQueryWrapper withPartitionCondition(
+
+  public static DbeamQueryBuilder fromTablename(final String tableName) {
+    return new DbeamQueryBuilder(String.format("SELECT * FROM %s WHERE 1=1", tableName));
+  }
+
+  public static DbeamQueryBuilder fromSqlQuery(final String sqlQuery) {
+    String s = removeTrailingSymbols(sqlQuery);
+    return new DbeamQueryBuilder(s);
+  }
+
+  public DbeamQueryBuilder withPartitionCondition(
           String partitionColumn, String startPointIncl, String endPointExcl) {
     sqlBuilder.append(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
     return this;
   }
           
-          
-  // TODO It is assumed now that partitionColumn is not numeric type 
+  // TODO It is assumed now that partitionColumn is of non-numeric type 
   private static String createSqlPartitionCondition(
       String partitionColumn, String startPointIncl, String endPointExcl) {
     return String.format(
@@ -71,7 +92,7 @@ public class SqlQueryWrapper implements Serializable {
         partitionColumn, startPointIncl, partitionColumn, endPointExcl);
   }
 
-  public SqlQueryWrapper withParallelizationCondition(
+  public DbeamQueryBuilder withParallelizationCondition(
       String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
     sqlBuilder.append(
         createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl));
@@ -87,43 +108,31 @@ public class SqlQueryWrapper implements Serializable {
             partitionColumn, startPointIncl, partitionColumn, upperBoundOperation, endPoint);
   }
 
-  public String getSqlString() {
-    return build();
-  }
-  
+  /**
+   * Returns generated SQL query string.
+   * 
+   * @return generated SQL query string.
+   */
   public String build() {
     limitStr.map(x -> sqlBuilder.append(x));
     limitStr = Optional.empty();
     return sqlBuilder.toString();
   }
 
-  public static SqlQueryWrapper ofRawSql(final String sqlQuery) {
-    String s = removeTrailingSymbols(sqlQuery);
-    if (s.toUpperCase().contains("WHERE ")) {
-      return new SqlQueryWrapper(s);
-    } else {
-      return new SqlQueryWrapper(String.format("%s WHERE 1=1", s));
-    }
-  }
-
   private static String removeTrailingSymbols(String sqlQuery) {
     return sqlQuery.replaceAll("[\\s|;]+$", "");
   }
 
-  public static SqlQueryWrapper ofTablename(final String tableName) {
-    return new SqlQueryWrapper(String.format("SELECT * FROM %s WHERE 1=1", tableName));
-  }
-
-  public SqlQueryWrapper withLimit(Optional<Integer> limitOpt) {
+  public DbeamQueryBuilder withLimit(Optional<Integer> limitOpt) {
     return limitOpt.map(l -> this.withLimit(l)).orElse(this);
   }
   
-  public SqlQueryWrapper withLimit(long limit) {
+  public DbeamQueryBuilder withLimit(long limit) {
     limitStr = Optional.of(String.format(" LIMIT %d", limit));
     return this;
   }
 
-  public SqlQueryWrapper withLimitOne() {
+  public DbeamQueryBuilder withLimitOne() {
     return withLimit(1L);
   }
 
@@ -137,8 +146,8 @@ public class SqlQueryWrapper implements Serializable {
     if (obj == this) {
       return true;
     }
-    if (obj instanceof SqlQueryWrapper) {
-      SqlQueryWrapper that = (SqlQueryWrapper) obj;
+    if (obj instanceof DbeamQueryBuilder) {
+      DbeamQueryBuilder that = (DbeamQueryBuilder) obj;
       return build().equals((that.build())) && limitStr.equals(that.limitStr);
     }
     return false;
@@ -149,12 +158,20 @@ public class SqlQueryWrapper implements Serializable {
     return sqlBuilder.hashCode();
   }
 
-  public SqlQueryWrapper generateQueryToGetLimitsOfSplitColumn(
+  /**
+   * Generates a new query to get MIN/MAX values for splitColumn.  
+   * 
+   * @param splitColumn
+   * @param minSplitColumnName
+   * @param maxSplitColumnName
+   * @return a new query
+   */
+  public DbeamQueryBuilder generateQueryToGetLimitsOfSplitColumn(
       String splitColumn,
       String minSplitColumnName,
       String maxSplitColumnName) {
 
-    return SqlQueryWrapper.ofRawSql(
+    return DbeamQueryBuilder.fromSqlQuery(
         String.format(
             "SELECT MIN(%s) as %s, MAX(%s) as %s %s",
             splitColumn,

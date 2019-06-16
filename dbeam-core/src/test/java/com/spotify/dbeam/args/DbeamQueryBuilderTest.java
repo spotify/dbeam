@@ -25,11 +25,11 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class SqlQueryWrapperTest {
+public class DbeamQueryBuilderTest {
 
   @Test
   public void testCtorFromTable() {
-    SqlQueryWrapper wrapper = SqlQueryWrapper.ofTablename("abc");
+    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromTablename("abc");
 
     String expected = "SELECT * FROM abc WHERE 1=1";
 
@@ -38,7 +38,7 @@ public class SqlQueryWrapperTest {
 
   @Test
   public void testCtorRawSqlWithoutWhere() {
-    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
 
     String expected = "SELECT * FROM t1 WHERE 1=1";
 
@@ -46,8 +46,24 @@ public class SqlQueryWrapperTest {
   }
 
   @Test
+  public void testCtorCopyEquals() {
+    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    DbeamQueryBuilder copy = q1.copy();
+
+    Assert.assertEquals(q1, copy);
+  }
+
+  @Test
+  public void testCtorCopyContentEquals() {
+    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    DbeamQueryBuilder copy = q1.copy();
+
+    Assert.assertEquals(q1.build(), copy.build());
+  }
+
+  @Test
   public void testCtorRawSqlWithWhere() {
-    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1 WHERE a > 100");
+    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
 
     String expected = "SELECT * FROM t1 WHERE a > 100";
 
@@ -56,21 +72,21 @@ public class SqlQueryWrapperTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testCtorRawSqlFailedNoSelect() {
-    SqlQueryWrapper.ofRawSql("SELE * FROM t1");
+    DbeamQueryBuilder.fromSqlQuery("SELE * FROM t1");
     
     Assert.fail("Should not be reached");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testCtorRawSqlFailedNoFrom() {
-    SqlQueryWrapper.ofRawSql("SELECT * FRAMME t1");
+    DbeamQueryBuilder.fromSqlQuery("SELECT * FRAMME t1");
 
     Assert.fail("Should not be reached");
   }
 
   @Test
-  public void testCtorRawSqlWithLimit() {
-    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+  public void testRawSqlWithLimit() {
+    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withLimit(102L);
 
     String expected = "SELECT * FROM t1 WHERE 1=1 LIMIT 102";
@@ -79,8 +95,8 @@ public class SqlQueryWrapperTest {
   }
 
   @Test
-  public void testCtorRawSqlwithParallelization() {
-    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+  public void testRawSqlwithParallelization() {
+    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withParallelizationCondition("bucket", 10, 20, true);
 
     String expected = "SELECT * FROM t1 WHERE 1=1 AND bucket >= 10 AND bucket < 20";
@@ -89,8 +105,8 @@ public class SqlQueryWrapperTest {
   }
 
   @Test
-  public void testCtorRawSqlWithPartition() {
-    SqlQueryWrapper wrapper = SqlQueryWrapper.ofRawSql("SELECT * FROM t1");
+  public void testRawSqlWithPartition() {
+    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
     String expected =
@@ -125,7 +141,7 @@ public class SqlQueryWrapperTest {
                 + " WHERE size > 10 AND partition >= 'a' AND partition < 'd'";
 
     String actual =
-        SqlQueryWrapper.ofRawSql(input).withPartitionCondition("partition", "a", "d")
+        DbeamQueryBuilder.fromSqlQuery(input).withPartitionCondition("partition", "a", "d")
             .generateQueryToGetLimitsOfSplitColumn(
                 "splitCol", "mixy", "maxy")
             .build();
@@ -133,7 +149,7 @@ public class SqlQueryWrapperTest {
   }
 
   private void execAndCompare(String rawInput, String expected) {
-    String actual = SqlQueryWrapper.ofRawSql(rawInput).build();
+    String actual = DbeamQueryBuilder.fromSqlQuery(rawInput).build();
 
     Assert.assertEquals(expected, actual);
   }

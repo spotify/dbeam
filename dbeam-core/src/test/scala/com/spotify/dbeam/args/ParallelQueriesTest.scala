@@ -49,7 +49,7 @@ class ParallelQueriesTest extends FlatSpec with Matchers {
 
   private def queriesForBounds2(
       min: Long, max: Long, parallelism: Int, splitColumn: String, queryFormat: String): java.util.List[String] = {
-    val queries = QueryBuilderArgs.queriesForBounds(min, max, parallelism, splitColumn, SqlQueryWrapper.ofRawSql(queryFormat))
+    val queries = QueryBuilderArgs.queriesForBounds(min, max, parallelism, splitColumn, DbeamQueryBuilder.fromSqlQuery(queryFormat))
     val q2 = queries.asScala.map(x => x.toString()).toList.asJava
     q2
   }
