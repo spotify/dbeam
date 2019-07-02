@@ -50,7 +50,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract DbeamQueryBuilder baseSqlQuery();
 
-  public abstract Optional<Integer> limit();
+  public abstract Optional<Long> limit();
 
   public abstract Optional<String> partitionColumn();
 
@@ -71,9 +71,9 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setBaseSqlQuery(DbeamQueryBuilder baseSqlQuery);
 
-    public abstract Builder setLimit(Integer limit);
+    public abstract Builder setLimit(Long limit);
 
-    public abstract Builder setLimit(Optional<Integer> limit);
+    public abstract Builder setLimit(Optional<Long> limit);
 
     public abstract Builder setPartitionColumn(String partitionColumn);
 
@@ -170,9 +170,9 @@ public abstract class QueryBuilderArgs implements Serializable {
       long min = minMax[0];
       long max = minMax[1];
 
-      Optional<Integer> limitWithParallelism =
-          this.limit().flatMap(l -> queryParallelism().map(k -> l / k));
-      this.baseSqlQuery().withLimit(limitWithParallelism);
+      this.limit()
+          .flatMap(l -> queryParallelism().map(k -> l / k))
+          .ifPresent(limit -> this.baseSqlQuery().withLimit(limit));
 
       return queriesForBounds(
           min, max, queryParallelism().get(), splitColumn().get(), this.baseSqlQuery());

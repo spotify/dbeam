@@ -38,7 +38,7 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setTable(String value);
 
-  @Description("A local file containing the SQL SELECT query.")
+  @Description("A filename containing the SQL SELECT query.")
   String getSqlFile();
 
   void setSqlFile(String value);

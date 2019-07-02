@@ -57,9 +57,9 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setMinPartitionPeriod(String value);
 
   @Description("Limit the output number of rows, indefinite by default.")
-  Integer getLimit();
+  Long getLimit();
 
-  void setLimit(Integer value);
+  void setLimit(Long value);
 
   @Default.String("dbeam_generated")
   @Description("The namespace of the generated avro schema.")

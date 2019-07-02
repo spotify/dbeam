@@ -40,7 +40,7 @@ public class DbeamQueryBuilderTest {
   public void testCtorRawSqlWithoutWhere() {
     DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
 
-    String expected = "SELECT * FROM t1 WHERE 1=1";
+    String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -65,23 +65,9 @@ public class DbeamQueryBuilderTest {
   public void testCtorRawSqlWithWhere() {
     DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
 
-    String expected = "SELECT * FROM t1 WHERE a > 100";
+    String expected = "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testCtorRawSqlFailedNoSelect() {
-    DbeamQueryBuilder.fromSqlQuery("SELE * FROM t1");
-    
-    Assert.fail("Should not be reached");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testCtorRawSqlFailedNoFrom() {
-    DbeamQueryBuilder.fromSqlQuery("SELECT * FRAMME t1");
-
-    Assert.fail("Should not be reached");
   }
 
   @Test
@@ -89,7 +75,7 @@ public class DbeamQueryBuilderTest {
     DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withLimit(102L);
 
-    String expected = "SELECT * FROM t1 WHERE 1=1 LIMIT 102";
+    String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 LIMIT 102";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -99,7 +85,7 @@ public class DbeamQueryBuilderTest {
     DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withParallelizationCondition("bucket", 10, 20, true);
 
-    String expected = "SELECT * FROM t1 WHERE 1=1 AND bucket >= 10 AND bucket < 20";
+    String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 AND bucket >= 10 AND bucket < 20";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -110,7 +96,7 @@ public class DbeamQueryBuilderTest {
     wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
     String expected =
-        "SELECT * FROM t1 WHERE 1=1 AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
+        "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -128,7 +114,7 @@ public class DbeamQueryBuilderTest {
             "SELECT * FROM coffees WHERE size > 10; ",
             "SELECT * FROM coffees WHERE size > 10 ;",
             "SELECT * FROM coffees WHERE size > 10;\n");
-    String expected = "SELECT * FROM coffees WHERE size > 10";
+    String expected = "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1";
 
     rawInput.stream().forEach(in -> execAndCompare(in, expected));
   }
@@ -137,8 +123,8 @@ public class DbeamQueryBuilderTest {
   public void testItGeneratesQueryForLimits() {
     String input = "SELECT * FROM coffees WHERE size > 10";
     String expected =
-        "SELECT MIN(splitCol) as mixy, MAX(splitCol) as maxy FROM coffees"
-                + " WHERE size > 10 AND partition >= 'a' AND partition < 'd'";
+        "SELECT MIN(splitCol) as mixy, MAX(splitCol) as maxy FROM (SELECT * FROM coffees WHERE size > 10)"
+            + " WHERE 1=1 AND partition >= 'a' AND partition < 'd'";
 
     String actual =
         DbeamQueryBuilder.fromSqlQuery(input).withPartitionCondition("partition", "a", "d")

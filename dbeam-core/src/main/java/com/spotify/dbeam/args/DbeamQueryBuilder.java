@@ -21,47 +21,108 @@
 package com.spotify.dbeam.args;
 
 import java.io.Serializable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 
 /**
- * Wrapper class for raw SQL query (SELECT statement).
+ * Wrapper class for raw SQL query.
  */
 public class DbeamQueryBuilder implements Serializable {
 
-  private final StringBuilder sqlBuilder;
-  private final int fromIdx;
-  private Optional<String> limitStr = Optional.empty();
+  //private static final char SQL_STATEMENT_TERMINATOR = ';';
+  private static final String DEFAULT_SELECT_CLAUSE = "SELECT *";
+  private static final String DEFAULT_WHERE_CLAUSE = "WHERE 1=1";
 
-  private DbeamQueryBuilder(final String sqlQuery) {
-    String uppSql = sqlQuery.toUpperCase();
-    if (!uppSql.startsWith("SELECT")) {
-      throw new IllegalArgumentException("Sql query should start with SELECT");
-    }
-    
-    boolean isContainsWhere = false;
-    if (uppSql.toUpperCase().contains("WHERE ")) {
-      isContainsWhere = true;
-    }
 
-    fromIdx = uppSql.indexOf("FROM");
-    if (fromIdx < 0) {
-      throw new IllegalArgumentException("Sql query missing FROM clause");
-    }
-    
-    // TODO: may be check that LIMIT is not present;
-    //  can be difficult to judge in a complicated query
+  interface DbeamQueryBase {
 
-    this.sqlBuilder = new StringBuilder(sqlQuery);
-    
-    if (!isContainsWhere) {
-      sqlBuilder.append(" WHERE 1=1");
+    String getBaseSql();
+
+    DbeamQueryBase copyWithSelect(final String selectClause);
+  }
+  
+  // Immutable
+  private static class TableQueryBase implements DbeamQueryBase {
+
+    private final String tableName;
+    private final String selectClause;
+
+    public TableQueryBase(final String tableName) {
+      this(tableName, DEFAULT_SELECT_CLAUSE);
     }
 
+    public TableQueryBase(final String tableName, final String selectClause) {
+      this.tableName = tableName;
+      this.selectClause = selectClause;
+    }
+
+    @Override
+    public String getBaseSql() {
+      return String.format("%s FROM %s %s",
+              selectClause, tableName, DEFAULT_WHERE_CLAUSE);
+    }
+
+    @Override
+    public TableQueryBase copyWithSelect(final String selectClause) {
+      return new TableQueryBase(this.tableName, selectClause);
+    }
+
+    @Override
+    public int hashCode() {
+      return tableName.hashCode();
+    }
   }
 
-  private DbeamQueryBuilder(DbeamQueryBuilder that) {
-    this.sqlBuilder = new StringBuilder(that.sqlBuilder);
-    this.fromIdx = that.fromIdx;
+  // Immutable
+  private static class UserQueryBase implements DbeamQueryBase {
+
+    private final String userSqlQuery;
+    private final String selectClause;
+
+    public UserQueryBase(final String userSqlQuery) {
+      this(userSqlQuery, DEFAULT_SELECT_CLAUSE);
+    }
+
+    public UserQueryBase(final String userSqlQuery, final String selectClause) {
+      this.userSqlQuery = removeTrailingSymbols(userSqlQuery);
+      this.selectClause = selectClause;
+    }
+    
+    @Override
+    public String getBaseSql() {
+      return String.format("%s FROM (%s) %s",
+              selectClause, userSqlQuery, DEFAULT_WHERE_CLAUSE);
+    }
+
+    @Override
+    public UserQueryBase copyWithSelect(String selectClause) {
+      return new UserQueryBase(this.userSqlQuery, selectClause);
+    }
+
+    @Override
+    public int hashCode() {
+      return userSqlQuery.hashCode();
+    }
+  }
+
+  private final DbeamQueryBase base;
+  private final List<String> whereConditions = new LinkedList<>();
+  private Optional<String> limitStr = Optional.empty();
+  
+  private DbeamQueryBuilder(final DbeamQueryBase base) {
+    this.base = base;
+  }
+
+  private DbeamQueryBuilder(final DbeamQueryBase base, final DbeamQueryBuilder that) {
+    this.base = base;
+    this.whereConditions.addAll(that.whereConditions);
+    this.limitStr = that.limitStr;
+  }
+
+  private DbeamQueryBuilder(final DbeamQueryBuilder that) {
+    this.base = that.base;
+    this.whereConditions.addAll(that.whereConditions);
     this.limitStr = that.limitStr;
   }
 
@@ -70,21 +131,19 @@ public class DbeamQueryBuilder implements Serializable {
   }
 
   public static DbeamQueryBuilder fromTablename(final String tableName) {
-    return new DbeamQueryBuilder(String.format("SELECT * FROM %s WHERE 1=1", tableName));
+    return new DbeamQueryBuilder(new TableQueryBase(tableName));
   }
 
   public static DbeamQueryBuilder fromSqlQuery(final String sqlQuery) {
-    String s = removeTrailingSymbols(sqlQuery);
-    return new DbeamQueryBuilder(s);
+    return new DbeamQueryBuilder(new UserQueryBase(sqlQuery));
   }
 
   public DbeamQueryBuilder withPartitionCondition(
           String partitionColumn, String startPointIncl, String endPointExcl) {
-    sqlBuilder.append(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
+    whereConditions.add(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
     return this;
   }
           
-  // TODO It is assumed now that partitionColumn is of non-numeric type 
   private static String createSqlPartitionCondition(
       String partitionColumn, String startPointIncl, String endPointExcl) {
     return String.format(
@@ -94,18 +153,18 @@ public class DbeamQueryBuilder implements Serializable {
 
   public DbeamQueryBuilder withParallelizationCondition(
       String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
-    sqlBuilder.append(
+    whereConditions.add(
         createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl));
     return this;
   }
 
   private static String createSqlSplitCondition(
-          String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
-    
+      String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
+
     String upperBoundOperation = isEndPointExcl ? "<" : "<=";
     return String.format(
-            " AND %s >= %s AND %s %s %s",
-            partitionColumn, startPointIncl, partitionColumn, upperBoundOperation, endPoint);
+        " AND %s >= %s AND %s %s %s",
+        partitionColumn, startPointIncl, partitionColumn, upperBoundOperation, endPoint);
   }
 
   /**
@@ -114,16 +173,19 @@ public class DbeamQueryBuilder implements Serializable {
    * @return generated SQL query string.
    */
   public String build() {
-    limitStr.map(x -> sqlBuilder.append(x));
-    limitStr = Optional.empty();
-    return sqlBuilder.toString();
+    String initial = base.getBaseSql();
+    StringBuilder buffer = new StringBuilder(initial);
+    whereConditions.forEach(x -> buffer.append(x));
+    limitStr.ifPresent(x -> buffer.append(x));
+    //buffer.append(SQL_STATEMENT_TERMINATOR);
+    return buffer.toString();
   }
 
   private static String removeTrailingSymbols(String sqlQuery) {
     return sqlQuery.replaceAll("[\\s|;]+$", "");
   }
 
-  public DbeamQueryBuilder withLimit(Optional<Integer> limitOpt) {
+  public DbeamQueryBuilder withLimit(Optional<Long> limitOpt) {
     return limitOpt.map(l -> this.withLimit(l)).orElse(this);
   }
   
@@ -155,7 +217,7 @@ public class DbeamQueryBuilder implements Serializable {
 
   @Override
   public int hashCode() {
-    return sqlBuilder.hashCode();
+    return base.hashCode();
   }
 
   /**
@@ -171,14 +233,14 @@ public class DbeamQueryBuilder implements Serializable {
       String minSplitColumnName,
       String maxSplitColumnName) {
 
-    return DbeamQueryBuilder.fromSqlQuery(
-        String.format(
-            "SELECT MIN(%s) as %s, MAX(%s) as %s %s",
+    String selectMinMax = String.format(
+            "SELECT MIN(%s) as %s, MAX(%s) as %s",
             splitColumn,
             minSplitColumnName,
             splitColumn,
-            maxSplitColumnName,
-            sqlBuilder.substring(fromIdx)));
+            maxSplitColumnName);
+    
+    return new DbeamQueryBuilder(base.copyWithSelect(selectMinMax), this);
   }
 
 }
