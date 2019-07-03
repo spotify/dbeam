@@ -272,7 +272,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
 
   private def buildStringQueries(actual: QueryBuilderArgs) = {
-    actual.buildQueries(connection).asScala.toList.map(x => x.toString)
+    actual.buildQueries(connection).asScala.toList
   }
 
   it should "configure partition column and limit" in {

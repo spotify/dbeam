@@ -125,12 +125,9 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   private static DbeamQueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
-    if (!sqlQueryOpt.isPresent()) {
-      return DbeamQueryBuilder.fromTablename(tableName);
-    } else {
-      String sqlQuery = sqlQueryOpt.get();
-      return DbeamQueryBuilder.fromSqlQuery(sqlQuery);
-    }
+    return sqlQueryOpt
+        .map(q -> DbeamQueryBuilder.fromSqlQuery(q))
+        .orElse(DbeamQueryBuilder.fromTablename(tableName));
   }
 
   /**
@@ -140,7 +137,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A list of queries to be executed.
    * @throws SQLException when it fails to find out limits for splits.
    */
-  public Iterable<DbeamQueryBuilder> buildQueries(Connection connection)
+  public Iterable<String> buildQueries(Connection connection)
       throws SQLException {
     checkArgument(!queryParallelism().isPresent() || splitColumn().isPresent(),
         "Cannot use queryParallelism because no column to split is specified. "
@@ -177,7 +174,7 @@ public abstract class QueryBuilderArgs implements Serializable {
       return queriesForBounds(
           min, max, queryParallelism().get(), splitColumn().get(), this.baseSqlQuery());
     } else {
-      return Lists.newArrayList(this.baseSqlQuery().withLimit(this.limit()));
+      return Lists.newArrayList(this.baseSqlQuery().withLimit(this.limit()).build());
     }
   }
 
@@ -253,7 +250,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
    */
-  protected static List<DbeamQueryBuilder> queriesForBounds(
+  protected static List<String> queriesForBounds(
          long min, long max, int parallelism, String splitColumn, DbeamQueryBuilder baseSqlQuery) {
     
     List<QueryRange> ranges = generateRanges(min, max, parallelism);
@@ -264,7 +261,8 @@ public abstract class QueryBuilderArgs implements Serializable {
                 baseSqlQuery
                     .copy() // we create a new query here
                     .withParallelizationCondition(
-                        splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl()))
+                        splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
+                    .build())
         .collect(Collectors.toList());
   }
 
