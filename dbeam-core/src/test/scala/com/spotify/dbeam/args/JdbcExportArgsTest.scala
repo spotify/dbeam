@@ -92,7 +92,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     }
   }
   it should "parse correctly with missing password parameter" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=" + "some_table")
+    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table")
 
     val expected = JdbcExportArgs.create(
       JdbcAvroArgs.create(
