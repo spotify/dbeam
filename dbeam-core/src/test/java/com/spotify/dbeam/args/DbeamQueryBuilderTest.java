@@ -62,6 +62,24 @@ public class DbeamQueryBuilderTest {
   }
 
   @Test
+  public void testCtorCopyWithConditionNotEquals() {
+    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    DbeamQueryBuilder copy = q1.copy();
+    copy.withPartitionCondition("pary", "20180101", "20180201");
+
+    Assert.assertNotEquals(q1.build(), copy.build());
+  }
+
+  @Test
+  public void testCtorCopyWithLimitNotEquals() {
+    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    DbeamQueryBuilder copy = q1.copy();
+    copy.withLimit(3L);
+
+    Assert.assertNotEquals(q1.build(), copy.build());
+  }
+
+  @Test
   public void testCtorRawSqlWithWhere() {
     DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
 
@@ -96,7 +114,8 @@ public class DbeamQueryBuilderTest {
     wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
     String expected =
-        "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
+        "SELECT * FROM (SELECT * FROM t1) WHERE 1=1"
+            + " AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -123,13 +142,14 @@ public class DbeamQueryBuilderTest {
   public void testItGeneratesQueryForLimits() {
     String input = "SELECT * FROM coffees WHERE size > 10";
     String expected =
-        "SELECT MIN(splitCol) as mixy, MAX(splitCol) as maxy FROM (SELECT * FROM coffees WHERE size > 10)"
+        "SELECT MIN(splitCol) as mixy, MAX(splitCol) as maxy "
+            + "FROM (SELECT * FROM coffees WHERE size > 10)"
             + " WHERE 1=1 AND partition >= 'a' AND partition < 'd'";
 
     String actual =
-        DbeamQueryBuilder.fromSqlQuery(input).withPartitionCondition("partition", "a", "d")
-            .generateQueryToGetLimitsOfSplitColumn(
-                "splitCol", "mixy", "maxy")
+        DbeamQueryBuilder.fromSqlQuery(input)
+            .withPartitionCondition("partition", "a", "d")
+            .generateQueryToGetLimitsOfSplitColumn("splitCol", "mixy", "maxy")
             .build();
     Assert.assertEquals(expected, actual);
   }

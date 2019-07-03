@@ -21,6 +21,7 @@ import java.sql.Connection
 import java.util.Optional
 
 import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.JdbcTestFixtures.recordType
 import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
 import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
@@ -351,6 +352,46 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq(
       s"$coffeesUserQueryWithConditions" +
         " AND ROWNUM >= 1 AND ROWNUM <= 2")
+  }
+
+  /**
+    * Creates a sequence of n records using record as a clone source.
+    * 
+    * @param n
+    * @param record
+    * @return sequence of records.
+    */
+  def createRecordSeq(n: Int, record: recordType): Seq[recordType] = {
+    (1 to n).map(x => record.copy(_1 = record._1 + x, _13 = record._13 + x))
+  }
+  
+
+  it should "create queries for split column of integer type for sqlQuery in many splits" in {
+    //set-up fixture
+    val parallelism = 5
+    val numberOfRecords = 25 
+    val moreRecords = createRecordSeq(numberOfRecords-2, JdbcTestFixtures.record2);
+    
+    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2) ++ moreRecords)
+    
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
+      "--password=secret --sqlFile=coffees_query_1.sql --splitColumn=ROWNUM --queryParallelism=5")
+      .queryBuilderArgs()
+    val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
+      .builder()
+      .setSplitColumn("ROWNUM")
+      .setQueryParallelism(parallelism)
+      .build()
+    actual should be(expected)
+    val msgs = buildStringQueries(actual)
+    msgs should
+      contain theSameElementsAs Seq(
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 1 AND ROWNUM < 6",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 6 AND ROWNUM < 11",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 11 AND ROWNUM < 16",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 16 AND ROWNUM < 21",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 21 AND ROWNUM <= 25"
+    )
   }
 
   it should "create queries with partition column and split column with queryParallelism" in {

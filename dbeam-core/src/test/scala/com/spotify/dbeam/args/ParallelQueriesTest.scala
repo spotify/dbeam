@@ -30,6 +30,7 @@ import scala.collection.JavaConverters._
 @RunWith(classOf[JUnitRunner])
 class ParallelQueriesTest extends FlatSpec with Matchers {
 
+  private val tablename = "tab"
   private val queryFormat = "SELECT * FROM tab WHERE 1=1"
 
   private def splitPointsToRanges(splitPoints: Seq[Long]): List[String] = {
@@ -49,7 +50,7 @@ class ParallelQueriesTest extends FlatSpec with Matchers {
 
   private def queriesForBounds2(
       min: Long, max: Long, parallelism: Int, splitColumn: String, queryFormat: String): java.util.List[String] = {
-    val queries = QueryBuilderArgs.queriesForBounds(min, max, parallelism, splitColumn, DbeamQueryBuilder.fromSqlQuery(queryFormat))
+    val queries = QueryBuilderArgs.queriesForBounds(min, max, parallelism, splitColumn, DbeamQueryBuilder.fromTablename(tablename))
     val q2 = queries.asScala.map(x => x.toString()).toList.asJava
     q2
   }

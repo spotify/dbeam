@@ -210,7 +210,7 @@ public class DbeamQueryBuilder implements Serializable {
     }
     if (obj instanceof DbeamQueryBuilder) {
       DbeamQueryBuilder that = (DbeamQueryBuilder) obj;
-      return build().equals((that.build())) && limitStr.equals(that.limitStr);
+      return build().equals((that.build()));
     }
     return false;
   }
