@@ -41,8 +41,12 @@ public class DbeamQueryBuilder implements Serializable {
 
     DbeamQueryBase copyWithSelect(final String selectClause);
   }
-  
-  // Immutable
+
+  /**
+   * Represents table-based query, which we have full control of.
+   * 
+   * Immutable entity. 
+   */
   private static class TableQueryBase implements DbeamQueryBase {
 
     private final String tableName;
@@ -74,7 +78,11 @@ public class DbeamQueryBuilder implements Serializable {
     }
   }
 
-  // Immutable
+  /**
+   * Represents user-provided raw query, which we have no control of.
+   *
+   * Immutable entity. 
+   */
   private static class UserQueryBase implements DbeamQueryBase {
 
     private final String userSqlQuery;
