@@ -45,7 +45,7 @@ public class DbeamQueryBuilder implements Serializable {
   /**
    * Represents table-based query, which we have full control of.
    * 
-   * Immutable entity. 
+   * <p>Immutable entity. 
    */
   private static class TableQueryBase implements DbeamQueryBase {
 
@@ -81,7 +81,7 @@ public class DbeamQueryBuilder implements Serializable {
   /**
    * Represents user-provided raw query, which we have no control of.
    *
-   * Immutable entity. 
+   * <p>Immutable entity. 
    */
   private static class UserQueryBase implements DbeamQueryBase {
 
