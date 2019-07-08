@@ -502,6 +502,8 @@
               <artifactId>jacoco-maven-plugin</artifactId>
               <version>0.8.2</version>
               <configuration>
+                <!--Configure to work on codecov-->
+                <!--https://github.com/codecov/example-java/blob/master/pom.xml-->
                 <excludes>
                   <exclude>**/AutoValue_*.*</exclude>
                 </excludes>
@@ -517,7 +519,6 @@
                     </limits>
                   </rule>
                 </rules>
-                <outputDirectory>${project.build.directory}/jacoco</outputDirectory>
               </configuration>
               <executions>
                 <execution>
