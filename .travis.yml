@@ -24,7 +24,7 @@ env:
 script:
   - mvn clean verify -Pcoverage
   - bash <(curl -s https://codecov.io/bash)
-  - (cd e2e && ./e2e.sh)
+  - ./e2e/e2e.sh
 
 after_success:
   - ./scripts/deploy.sh
