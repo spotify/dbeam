@@ -118,7 +118,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <beam.version>2.12.0</beam.version>
+        <beam.version>2.13.0</beam.version>
         <postgresql.version>42.2.5</postgresql.version>
         <mysql.version>5.1.47</mysql.version>
         <socket-factory.version>1.0.11</socket-factory.version>
