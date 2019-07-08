@@ -45,8 +45,6 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -54,26 +52,12 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TimeZone;
 
 public class JdbcAvroRecord {
 
   static final int MAX_DIGITS_BIGINT = 19;
   private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-
-  public static Map<Integer, SqlFunction<ResultSet, Object>> computeAllMappings(ResultSet resultSet)
-      throws SQLException {
-    final ResultSetMetaData meta = resultSet.getMetaData();
-    final int columnCount = meta.getColumnCount();
-    final Map<Integer, SqlFunction<ResultSet, Object>> mappings = new HashMap<>(columnCount);
-
-    for (int i = 1; i <= columnCount; i++) {
-      mappings.put(i, computeMapping(meta, i));
-    }
-    return ImmutableMap.copyOf(mappings);
-  }
 
   @FunctionalInterface
   public interface SqlFunction<T, R> {
