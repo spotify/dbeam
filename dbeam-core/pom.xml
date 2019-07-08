@@ -17,7 +17,7 @@
 
     <properties>
         <scala.baseVersion>2.12</scala.baseVersion>
-        <scala.version>2.12.7</scala.version>
+        <scala.version>2.12.8</scala.version>
     </properties>
 
     <dependencies>
@@ -136,7 +136,7 @@
       <dependency>
         <groupId>com.typesafe.slick</groupId>
         <artifactId>slick_${scala.baseVersion}</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.2</version>
         <scope>test</scope>
       </dependency>
       <dependency>

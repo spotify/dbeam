@@ -119,13 +119,13 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <beam.version>2.13.0</beam.version>
-        <postgresql.version>42.2.5</postgresql.version>
+        <postgresql.version>42.2.6</postgresql.version>
         <mysql.version>5.1.47</mysql.version>
-        <socket-factory.version>1.0.11</socket-factory.version>
+        <socket-factory.version>1.0.12</socket-factory.version>
 
         <jackson.version>2.9.8</jackson.version>
         <slf4j.version>1.7.25</slf4j.version>
-        <auto-value.version>1.5.3</auto-value.version>
+        <auto-value.version>1.6.5</auto-value.version>
         <guava.version>20.0</guava.version>
         <protobuf-util.version>3.3.1</protobuf-util.version>
         <protobuf.version>3.6.1</protobuf.version>
@@ -371,7 +371,7 @@
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>1.4.196</version>
+                <version>1.4.199</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
