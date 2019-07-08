@@ -249,7 +249,7 @@
             <dependency>
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-cloudkms</artifactId>
-                <version>v1-rev81-1.25.0</version>
+                <version>v1-rev88-1.25.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
