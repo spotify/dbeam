@@ -282,13 +282,13 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   it should "create queries with partition column and split column with queryParallelism" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
-      "--password=secret --partitionColumn=created --partition=2027-07-31 --partitionPeriod=P1M " +
+      "--password=secret --partitionColumn=CREATED --partition=2027-07-31 --partitionPeriod=P1M " +
       "--splitColumn=ROWNUM --queryParallelism=5").queryBuilderArgs()
     val baseCoffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1 " +
-      "AND created >= '2027-07-31' AND created < '2027-08-31'"
+      "AND CREATED >= '2027-07-31' AND CREATED < '2027-08-31'"
     val expected = QueryBuilderArgs.create("COFFEES")
       .builder()
-      .setPartitionColumn("created")
+      .setPartitionColumn("CREATED")
       .setPartitionPeriod(Period.parse("P1M"))
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
       .setSplitColumn("ROWNUM")

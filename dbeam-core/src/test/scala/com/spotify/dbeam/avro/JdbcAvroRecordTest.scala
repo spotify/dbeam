@@ -42,10 +42,10 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "create schema" in {
-    val fieldCount = 13
+    val fieldCount = 12
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(),
-      "coffees", "dbeam_generated",
+      "COFFEES", "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false)
 
     actual shouldNot be (null)
@@ -55,7 +55,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getFields.size() should be (fieldCount)
     actual.getFields.asScala.map(_.name()) should
       be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
-               "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID", "ROWNUM"))
+               "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "UID", "ROWNUM"))
     actual.getFields.asScala.map(_.schema().getType) should
       be (List.fill(fieldCount)(Schema.Type.UNION))
     actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
@@ -72,7 +72,6 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should be (null)
-    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
     actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
     actual.getField("ROWNUM").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.toString shouldNot be (null)
@@ -80,10 +79,10 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "create schema with logical types" in {
-    val fieldCount = 13
+    val fieldCount = 12
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
       db.source.createConnection(),
-      "coffees", "dbeam_generated",
+      "COFFEES", "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
       true)
 
@@ -94,7 +93,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getFields.size() should be (fieldCount)
     actual.getFields.asScala.map(_.name()) should
       be (List("COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
-        "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "BT", "UID", "ROWNUM"))
+        "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "UID", "ROWNUM"))
     actual.getFields.asScala.map(_.schema().getType) should
       be (List.fill(fieldCount)(Schema.Type.UNION))
     actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
@@ -112,7 +111,6 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should
       be ("timestamp-millis")
-    actual.getField("BT").schema().getTypes.get(1).getType should be (Schema.Type.INT)
     actual.getField("UID").schema().getTypes.get(1).getType should be (Schema.Type.BYTES)
     actual.getField("ROWNUM").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.toString shouldNot be (null)
@@ -121,7 +119,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "create schema under specified namespace" in {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc", false)
+      db.source.createConnection(), "COFFEES", "ns", "doc", false)
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
@@ -129,7 +127,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "create schema with specified doc string" in {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "coffees", "ns", "doc", false)
+      db.source.createConnection(), "COFFEES", "ns", "doc", false)
 
     actual shouldNot be (null)
     actual.getDoc should be ("doc")
@@ -144,7 +142,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "convert jdbc result set to avro generic record" in {
-    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM coffees")
+    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM COFFEES")
     val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
     rs.next()
 
@@ -154,7 +152,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
     record shouldNot be (null)
     record.getSchema should be (schema)
-    record.getSchema.getFields.size() should be (13)
+    record.getSchema.getFields.size() should be (12)
     record.get(0) should be (record1._1)
     record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
     record.get(2) should be (record1._3.toString)
@@ -165,9 +163,8 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     record.get(7) should be (record1._8)
     record.get(8) should be (record1._9.getTime)
     record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
-    record.get(10) should be (record1._11.map(_.toInt).map(x => x : java.lang.Integer).orNull)
-    record.get(11) should be (toByteBuffer(record1._12))
-    record.get(12) should be (record1._13)
+    record.get(10) should be (toByteBuffer(record1._11))
+    record.get(11) should be (record1._12)
   }
 
 }

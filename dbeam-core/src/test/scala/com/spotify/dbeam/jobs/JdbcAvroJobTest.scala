@@ -73,7 +73,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         "--connectionUrl=" + connectionUrl,
         "--username=",
         "--passwordFile=" + passwordFile.getAbsolutePath,
-        "--table=coffees",
+        "--table=COFFEES",
         "--output=" + dir.getAbsolutePath)
     )
     val files: Array[File] = dir.listFiles()
