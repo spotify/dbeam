@@ -46,10 +46,10 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   private val baseUserQueryNoConditions = "SELECT * FROM (SELECT * FROM some_table) WHERE 1=1"
   private val baseQueryWithConditions = "SELECT * FROM some_table WHERE column_id > 100"
   private val baseUserQueryWithConditions = "SELECT * FROM (SELECT * FROM some_table WHERE column_id > 100) WHERE 1=1"
-  private val coffeesQueryNoConditions = "SELECT * FROM coffees WHERE 1=1"
-  private val coffeesQueryWithConditions = "SELECT * FROM coffees WHERE size > 10"
-  private val coffeesUserQueryNoConditions = "SELECT * FROM (SELECT * FROM coffees) WHERE 1=1"
-  private val coffeesUserQueryWithConditions = "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1"
+  private val coffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1"
+  private val coffeesQueryWithConditions = "SELECT * FROM COFFEES WHERE SIZE > 10"
+  private val coffeesUserQueryNoConditions = "SELECT * FROM (SELECT * FROM COFFEES) WHERE 1=1"
+  private val coffeesUserQueryWithConditions = "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1"
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
@@ -362,7 +362,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     * @return sequence of records.
     */
   def createRecordSeq(n: Int, record: recordType): Seq[recordType] = {
-    (1 to n).map(x => record.copy(_1 = record._1 + x, _13 = record._13 + x))
+    (1 to n).map(x => record.copy(_1 = record._1 + x, _12 = record._12 + x))
   }
   
 
@@ -395,13 +395,13 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
 
   it should "create queries with partition column and split column with queryParallelism" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=coffees " +
-      "--password=secret --partitionColumn=created --partition=2027-07-31 --partitionPeriod=P1M " +
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
+      "--password=secret --partitionColumn=CREATED --partition=2027-07-31 --partitionPeriod=P1M " +
       "--splitColumn=ROWNUM --queryParallelism=5").queryBuilderArgs()
       
-    val expected = QueryBuilderArgs.create("coffees")
+    val expected = QueryBuilderArgs.create("COFFEES")
       .builder()
-      .setPartitionColumn("created")
+      .setPartitionColumn("CREATED")
       .setPartitionPeriod(Period.parse("P1M"))
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC))
       .setSplitColumn("ROWNUM")
@@ -411,7 +411,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     buildStringQueries(actual) should
       contain theSameElementsAs Seq(
       s"$coffeesQueryNoConditions" +
-        " AND created >= '2027-07-31' AND created < '2027-08-31'" +
+        " AND CREATED >= '2027-07-31' AND CREATED < '2027-08-31'" +
         " AND ROWNUM >= 0 AND ROWNUM <= 0")
   }
 
