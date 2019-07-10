@@ -40,7 +40,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val record1 = JdbcTestFixtures.record1
 
   override def beforeAll(): Unit = {
-    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1))
+    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))
   }
 
   it should "create schema" in {
@@ -139,20 +139,24 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "encode jdbc result set to valid avro" in {
     val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM COFFEES")
     val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
-    rs.next()
-
     val converter = JdbcAvroRecordConverter.create(rs)
     val dataFileWriter = new DataFileWriter(new GenericDatumWriter[GenericRecord](schema))
     val outputStream = new ByteArrayOutputStream()
     dataFileWriter.create(schema, outputStream)
     // convert and write
-    dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes())
+    while (rs.next()) {
+      dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes())
+    }
     dataFileWriter.flush()
+    outputStream.close()
     // transform to generic record
     val inputStream = new SeekableByteArrayInput(outputStream.toByteArray)
     val dataFileReader = new DataFileReader[GenericRecord](inputStream,
       new GenericDatumReader[GenericRecord](schema))
-    val record: GenericRecord = dataFileReader.iterator().next()
+    val records: Seq[GenericRecord] =
+      dataFileReader.asInstanceOf[java.lang.Iterable[GenericRecord]].asScala.toSeq
+    records.size should be (2)
+    val record: GenericRecord = records.filter(r => r.get(0).toString == record1._1).head
 
     record shouldNot be (null)
     record.getSchema should be (schema)
