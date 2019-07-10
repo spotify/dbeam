@@ -114,7 +114,7 @@ public class JdbcAvroRecordConverter {
       }
     }
     binaryEncoder.flush();
-    return ByteBuffer.wrap(out.getBufffer());
+    return ByteBuffer.wrap(out.getBufffer(), 0, out.size());
   }
 
 }
