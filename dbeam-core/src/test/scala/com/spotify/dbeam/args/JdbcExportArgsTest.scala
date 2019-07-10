@@ -51,6 +51,11 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   private val coffeesUserQueryNoConditions = "SELECT * FROM (SELECT * FROM COFFEES) WHERE 1=1"
   private val coffeesUserQueryWithConditions = "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1"
 
+  private val workingPath = java.nio.file.Paths.get(".").toAbsolutePath.toString
+  private val testSqlFile = workingPath + "/src/test/resources/test_query_1.sql"
+  private val coffeesSqlFile = workingPath + "/src/test/resources/coffees_query_1.sql"
+  
+
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
     val opts: PipelineOptions =
@@ -204,8 +209,10 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       contain theSameElementsAs Seq(s"$baseQueryNoConditions LIMIT 7")
   }
   it should "configure limit for sqlQuery" in {
+
+    
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-      "--table=some_table --sqlFile=test_query_1.sql --password=secret --limit=7").queryBuilderArgs()
+      "--table=some_table --sqlFile=%s --password=secret --limit=7".format(testSqlFile)).queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
       .builder().setLimit(7L).build()
@@ -259,7 +266,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   
   it should "configure partition column for sqlQuery" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --sqlFile=test_query_1.sql --partition=2027-07-31 --partitionColumn=col").queryBuilderArgs()
+      "--password=secret --sqlFile=%s --partition=2027-07-31 --partitionColumn=col".format(testSqlFile))
+      .queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
       .builder()
@@ -292,7 +300,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "configure partition column and limit for sqlQuery" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --sqlFile=test_query_1.sql --partition=2027-07-31 --partitionColumn=col --limit=5").queryBuilderArgs()
+      "--password=secret --sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=5".format(testSqlFile))
+      .queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
       .builder()
@@ -339,7 +348,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
 
   it should "create queries for split column of integer type for sqlQuery" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
-      "--password=secret --sqlFile=coffees_query_1.sql --splitColumn=ROWNUM --queryParallelism=5")
+      "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
       .queryBuilderArgs()
     val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
       .builder()
@@ -375,7 +384,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2) ++ moreRecords)
     
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
-      "--password=secret --sqlFile=coffees_query_1.sql --splitColumn=ROWNUM --queryParallelism=5")
+      "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
       .queryBuilderArgs()
     val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
       .builder()

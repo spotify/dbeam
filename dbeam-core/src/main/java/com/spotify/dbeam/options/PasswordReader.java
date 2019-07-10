@@ -2,7 +2,7 @@
  * -\-\-
  * DBeam Core
  * --
- * Copyright (C) 2016 - 2019 Spotify AB
+ * Copyright (C) 2016 - 2018 Spotify AB
  * --
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,21 @@
 
 package com.spotify.dbeam.options;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.channels.Channels;
 import java.util.Optional;
+
 import org.apache.beam.sdk.io.FileSystems;
+import org.apache.beam.sdk.io.fs.MatchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class PasswordReader extends ParameterFileReader {
+class PasswordReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PasswordReader.class);
   private final KmsDecrypter kmsDecrypter;
@@ -49,4 +57,12 @@ class PasswordReader extends ParameterFileReader {
       return Optional.ofNullable(options.getPassword());
     }
   }
+
+  String readFromFile(String dataFile) throws IOException {
+    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(dataFile);
+    LOGGER.info("Reading data from file: {}", m.resourceId().toString());
+    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
+    return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+  }
+
 }
