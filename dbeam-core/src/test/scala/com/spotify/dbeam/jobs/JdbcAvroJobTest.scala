@@ -17,19 +17,20 @@
 
 package com.spotify.dbeam.jobs
 
-import java.io.File
-import java.nio.file.{Files, Path}
-import java.util
-import java.util.{Comparator, UUID}
-
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.avro.JdbcAvroMetering
 import com.spotify.dbeam.options.OutputOptions
+
+import java.io.File
+import java.nio.file.{Files, Path}
+import java.util
+import java.util.stream.{Collectors, StreamSupport}
+import java.util.{Comparator, UUID}
+
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
-import org.apache.beam.sdk.io.AvroSource
+import org.apache.avro.file.DataFileReader
+import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.beam.sdk.options.PipelineOptionsFactory
-import org.apache.beam.sdk.testing.SourceTestUtils
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -74,8 +75,9 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         "--username=",
         "--passwordFile=" + passwordFile.getAbsolutePath,
         "--table=COFFEES",
-        "--output=" + dir.getAbsolutePath)
-    )
+        "--output=" + dir.getAbsolutePath,
+        "--avroCodec=deflate1"
+    ))
     val files: Array[File] = dir.listFiles()
     files.map(_.getName) should contain theSameElementsAs Seq(
       "_AVRO_SCHEMA.avsc", "_METRICS.json", "_SERVICE_METRICS.json",
@@ -83,11 +85,18 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     files.filter(_.getName.equals("_queries"))(0).listFiles().map(_.getName) should
       contain theSameElementsAs Seq("query_0.sql")
     val schema = new Schema.Parser().parse(new File(dir, "_AVRO_SCHEMA.avsc"))
-    val source: AvroSource[GenericRecord] = AvroSource
-      .from(new File(dir, "part-00000-of-00001.avro").toString)
-      .withSchema(schema)
-    val records: util.List[GenericRecord] = SourceTestUtils.readFromSource(source, null)
+    val records: util.List[GenericRecord] =
+      readAvroRecords(new File(dir, "part-00000-of-00001.avro"), schema)
     records should have size 2
+  }
+
+  private def readAvroRecords(avroFile: File, schema: Schema): util.List[GenericRecord] = {
+    val datum: GenericDatumReader[GenericRecord] = new GenericDatumReader(schema)
+    val dataFileReader = new DataFileReader(avroFile, datum)
+    val records: util.List[GenericRecord] = StreamSupport.stream(dataFileReader.spliterator(), false)
+                           .collect(Collectors.toList())
+    dataFileReader.close()
+    records
   }
 
   "JdbcAvroJob" should "have a default exit code" in {
