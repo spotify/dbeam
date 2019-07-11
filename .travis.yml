@@ -1,7 +1,22 @@
 language: java
+dist: xenial
+sudo: false
 
-jdk:
-  - oraclejdk8
+matrix:
+  include:
+# 8
+    - env: JDK='OpenJDK 8'
+      jdk: openjdk8
+# 11
+    - env: JDK='OpenJDK 11'
+      jdk: openjdk11
+# 12
+    - env: JDK='OpenJDK 12'
+      jdk: openjdk12
+  allow_failures:
+    # Beam SDK does not support JDK 12
+    # See https://issues.apache.org/jira/browse/BEAM-2530
+    - env: JDK='OpenJDK 12'
 
 services:
   - docker
@@ -22,11 +37,12 @@ env:
     - secure: "VeSEC0xxEPh7H6hj4aEsyN8b7/nNNlZ3VzzO/fy9Ail2LxSfdouKL9v05zeNN2YvQsQx6suD1mb1PwQ3HxCH7Mkdg6yXxko7vu7CdIwDmrjWygVJEzzut84bqFLHAzQb6FPz51SiOLevkzLunR9asiUzmcZppxn6PSP6uSEk5xfxrHvsLt01JUUHyBkizz7Rp1R+WvFrlKoQ9L2moh1hKRWD5WwCTY3OJzq9Pag2Iw6XsCgoBlTTswiEErstHx4Y6K7DZhF2NppxUPckKkZwWC04WWYcSKgYEkxX+d5JAeZVBYQHERGt/zYfUERYc9XOhuV8tOIZPTOepWneCX0RdO1McuBwnWssvrmm5mZn1GdQ3SJEbaQJ3DumuXIiYKf5pMyg5FI+X41ehA5OTrdTQGrB+6E9krHon5jon2l+mtKAxbbPJkh490GL/tSpZ7CEKpEK0qUR+tEYZU/hK3MfBJaY7Rz/rCaZfiPifKvtFea3SX/XT3hNOOgX/qZ9KPNyuOZw20Pfv6GKvlIOp5E/Tl//F6PgVN0uWwnnGJCfskXJ9QRUpaQ7qO/i0Sca8UK5zmlyekWp+H5jxGLKnun+QaQzTuo4Ale4RCccMgbK5uQZ0C9QoGIioVOJB5AI2sTWewNXCltJAFv9os2It1jt9ansOkG8DMApG6AuMo6RUMg="
 
 script:
+  - java -version
   - mvn clean verify -Pcoverage
-  - bash <(curl -s https://codecov.io/bash)
   - ./e2e/e2e.sh
 
 after_success:
+  - bash <(curl -s https://codecov.io/bash)
   - ./scripts/deploy.sh
 
 branches:
