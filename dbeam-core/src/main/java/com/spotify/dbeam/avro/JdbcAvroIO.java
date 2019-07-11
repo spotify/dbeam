@@ -201,7 +201,7 @@ public class JdbcAvroIO {
           dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
           this.metering.incrementRecordCount();
         }
-        this.dataFileWriter.sync();
+        this.dataFileWriter.flush();
         this.metering.exposeWriteElapsedMs(System.currentTimeMillis() - startMs);
         this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());
       }
@@ -214,7 +214,7 @@ public class JdbcAvroIO {
         connection.close();
       }
       if (dataFileWriter != null) {
-        dataFileWriter.flush();
+        dataFileWriter.close();
       }
       logger.info("jdbcavroio : Write finished");
     }
