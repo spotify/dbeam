@@ -28,18 +28,18 @@ import java.util.Optional;
 /**
  * Wrapper class for raw SQL query.
  */
-public class DbeamQueryBuilder implements Serializable {
+public class QueryBuilder implements Serializable {
 
   //private static final char SQL_STATEMENT_TERMINATOR = ';';
   private static final String DEFAULT_SELECT_CLAUSE = "SELECT *";
   private static final String DEFAULT_WHERE_CLAUSE = "WHERE 1=1";
 
 
-  interface DbeamQueryBase {
+  interface QueryBase {
 
     String getBaseSql();
 
-    DbeamQueryBase copyWithSelect(final String selectClause);
+    QueryBase copyWithSelect(final String selectClause);
   }
 
   /**
@@ -47,7 +47,7 @@ public class DbeamQueryBuilder implements Serializable {
    * 
    * <p>Immutable entity. 
    */
-  private static class TableQueryBase implements DbeamQueryBase {
+  private static class TableQueryBase implements QueryBase {
 
     private final String tableName;
     private final String selectClause;
@@ -83,7 +83,7 @@ public class DbeamQueryBuilder implements Serializable {
    *
    * <p>Immutable entity. 
    */
-  private static class UserQueryBase implements DbeamQueryBase {
+  private static class UserQueryBase implements QueryBase {
 
     private final String userSqlQuery;
     private final String selectClause;
@@ -114,39 +114,39 @@ public class DbeamQueryBuilder implements Serializable {
     }
   }
 
-  private final DbeamQueryBase base;
+  private final QueryBase base;
   private final List<String> whereConditions = new LinkedList<>();
   private Optional<String> limitStr = Optional.empty();
   
-  private DbeamQueryBuilder(final DbeamQueryBase base) {
+  private QueryBuilder(final QueryBase base) {
     this.base = base;
   }
 
-  private DbeamQueryBuilder(final DbeamQueryBase base, final DbeamQueryBuilder that) {
+  private QueryBuilder(final QueryBase base, final QueryBuilder that) {
     this.base = base;
     this.whereConditions.addAll(that.whereConditions);
     this.limitStr = that.limitStr;
   }
 
-  private DbeamQueryBuilder(final DbeamQueryBuilder that) {
+  private QueryBuilder(final QueryBuilder that) {
     this.base = that.base;
     this.whereConditions.addAll(that.whereConditions);
     this.limitStr = that.limitStr;
   }
 
-  public DbeamQueryBuilder copy() {
-    return new DbeamQueryBuilder(this);
+  public QueryBuilder copy() {
+    return new QueryBuilder(this);
   }
 
-  public static DbeamQueryBuilder fromTablename(final String tableName) {
-    return new DbeamQueryBuilder(new TableQueryBase(tableName));
+  public static QueryBuilder fromTablename(final String tableName) {
+    return new QueryBuilder(new TableQueryBase(tableName));
   }
 
-  public static DbeamQueryBuilder fromSqlQuery(final String sqlQuery) {
-    return new DbeamQueryBuilder(new UserQueryBase(sqlQuery));
+  public static QueryBuilder fromSqlQuery(final String sqlQuery) {
+    return new QueryBuilder(new UserQueryBase(sqlQuery));
   }
 
-  public DbeamQueryBuilder withPartitionCondition(
+  public QueryBuilder withPartitionCondition(
           String partitionColumn, String startPointIncl, String endPointExcl) {
     whereConditions.add(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
     return this;
@@ -159,7 +159,7 @@ public class DbeamQueryBuilder implements Serializable {
         partitionColumn, startPointIncl, partitionColumn, endPointExcl);
   }
 
-  public DbeamQueryBuilder withParallelizationCondition(
+  public QueryBuilder withParallelizationCondition(
       String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
     whereConditions.add(
         createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl));
@@ -193,16 +193,16 @@ public class DbeamQueryBuilder implements Serializable {
     return sqlQuery.replaceAll("[\\s|;]+$", "");
   }
 
-  public DbeamQueryBuilder withLimit(Optional<Long> limitOpt) {
+  public QueryBuilder withLimit(Optional<Long> limitOpt) {
     return limitOpt.map(l -> this.withLimit(l)).orElse(this);
   }
   
-  public DbeamQueryBuilder withLimit(long limit) {
+  public QueryBuilder withLimit(long limit) {
     limitStr = Optional.of(String.format(" LIMIT %d", limit));
     return this;
   }
 
-  public DbeamQueryBuilder withLimitOne() {
+  public QueryBuilder withLimitOne() {
     return withLimit(1L);
   }
 
@@ -216,8 +216,8 @@ public class DbeamQueryBuilder implements Serializable {
     if (obj == this) {
       return true;
     }
-    if (obj instanceof DbeamQueryBuilder) {
-      DbeamQueryBuilder that = (DbeamQueryBuilder) obj;
+    if (obj instanceof QueryBuilder) {
+      QueryBuilder that = (QueryBuilder) obj;
       return build().equals((that.build()));
     }
     return false;
@@ -236,7 +236,7 @@ public class DbeamQueryBuilder implements Serializable {
    * @param maxSplitColumnName MAX() column value alias
    * @return a new query builder
    */
-  public DbeamQueryBuilder generateQueryToGetLimitsOfSplitColumn(
+  public QueryBuilder generateQueryToGetLimitsOfSplitColumn(
       String splitColumn,
       String minSplitColumnName,
       String maxSplitColumnName) {
@@ -248,7 +248,7 @@ public class DbeamQueryBuilder implements Serializable {
             splitColumn,
             maxSplitColumnName);
     
-    return new DbeamQueryBuilder(base.copyWithSelect(selectMinMax), this);
+    return new QueryBuilder(base.copyWithSelect(selectMinMax), this);
   }
 
 }

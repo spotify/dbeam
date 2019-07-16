@@ -25,11 +25,11 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class DbeamQueryBuilderTest {
+public class QueryBuilderTest {
 
   @Test
   public void testCtorFromTable() {
-    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromTablename("abc");
+    QueryBuilder wrapper = QueryBuilder.fromTablename("abc");
 
     String expected = "SELECT * FROM abc WHERE 1=1";
 
@@ -38,7 +38,7 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testCtorRawSqlWithoutWhere() {
-    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
 
     String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1";
 
@@ -47,24 +47,24 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testCtorCopyEquals() {
-    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    DbeamQueryBuilder copy = q1.copy();
+    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder copy = q1.copy();
 
     Assert.assertEquals(q1, copy);
   }
 
   @Test
   public void testCtorCopyContentEquals() {
-    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    DbeamQueryBuilder copy = q1.copy();
+    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder copy = q1.copy();
 
     Assert.assertEquals(q1.build(), copy.build());
   }
 
   @Test
   public void testCtorCopyWithConditionNotEquals() {
-    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    DbeamQueryBuilder copy = q1.copy();
+    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder copy = q1.copy();
     copy.withPartitionCondition("pary", "20180101", "20180201");
 
     Assert.assertNotEquals(q1.build(), copy.build());
@@ -72,8 +72,8 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testCtorCopyWithLimitNotEquals() {
-    DbeamQueryBuilder q1 = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    DbeamQueryBuilder copy = q1.copy();
+    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder copy = q1.copy();
     copy.withLimit(3L);
 
     Assert.assertNotEquals(q1.build(), copy.build());
@@ -81,7 +81,7 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testCtorRawSqlWithWhere() {
-    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
 
     String expected = "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) WHERE 1=1";
 
@@ -90,7 +90,7 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testRawSqlWithLimit() {
-    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withLimit(102L);
 
     String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 LIMIT 102";
@@ -100,7 +100,7 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testRawSqlwithParallelization() {
-    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withParallelizationCondition("bucket", 10, 20, true);
 
     String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 AND bucket >= 10 AND bucket < 20";
@@ -110,7 +110,7 @@ public class DbeamQueryBuilderTest {
 
   @Test
   public void testRawSqlWithPartition() {
-    DbeamQueryBuilder wrapper = DbeamQueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
     String expected =
@@ -147,7 +147,7 @@ public class DbeamQueryBuilderTest {
             + " WHERE 1=1 AND partition >= 'a' AND partition < 'd'";
 
     String actual =
-        DbeamQueryBuilder.fromSqlQuery(input)
+        QueryBuilder.fromSqlQuery(input)
             .withPartitionCondition("partition", "a", "d")
             .generateQueryToGetLimitsOfSplitColumn("splitCol", "mixy", "maxy")
             .build();
@@ -155,7 +155,7 @@ public class DbeamQueryBuilderTest {
   }
 
   private void execAndCompare(String rawInput, String expected) {
-    String actual = DbeamQueryBuilder.fromSqlQuery(rawInput).build();
+    String actual = QueryBuilder.fromSqlQuery(rawInput).build();
 
     Assert.assertEquals(expected, actual);
   }

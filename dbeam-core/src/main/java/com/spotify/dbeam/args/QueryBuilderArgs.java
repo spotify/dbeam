@@ -48,7 +48,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract String tableName();
 
-  public abstract DbeamQueryBuilder baseSqlQuery();
+  public abstract QueryBuilder baseSqlQuery();
 
   public abstract Optional<Long> limit();
 
@@ -69,7 +69,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setTableName(String tableName);
 
-    public abstract Builder setBaseSqlQuery(DbeamQueryBuilder baseSqlQuery);
+    public abstract Builder setBaseSqlQuery(QueryBuilder baseSqlQuery);
 
     public abstract Builder setLimit(Long limit);
 
@@ -104,7 +104,7 @@ public abstract class QueryBuilderArgs implements Serializable {
   public static QueryBuilderArgs create(String tableName) {
     checkArgument(tableName != null,
             "TableName cannot be null");
-    DbeamQueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, Optional.empty());
+    QueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, Optional.empty());
     return new AutoValue_QueryBuilderArgs.Builder()
             .setTableName(tableName)
             .setBaseSqlQuery(baseSqlQuery)
@@ -115,7 +115,7 @@ public abstract class QueryBuilderArgs implements Serializable {
   public static QueryBuilderArgs create(String tableName, final Optional<String> sqlQueryOpt) {
     checkArgument(tableName != null,
             "TableName cannot be null");
-    DbeamQueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, sqlQueryOpt);
+    QueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, sqlQueryOpt);
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
         .setBaseSqlQuery(baseSqlQuery)
@@ -123,11 +123,11 @@ public abstract class QueryBuilderArgs implements Serializable {
         .build();
   }
 
-  private static DbeamQueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
+  private static QueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
     return sqlQueryOpt
-        .map(q -> DbeamQueryBuilder.fromSqlQuery(q))
-        .orElse(DbeamQueryBuilder.fromTablename(tableName));
+        .map(q -> QueryBuilder.fromSqlQuery(q))
+        .orElse(QueryBuilder.fromTablename(tableName));
   }
 
   /**
@@ -186,11 +186,11 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
   private long[] findInputBounds(
-      Connection connection, DbeamQueryBuilder baseSqlQuery, String splitColumn)
+          Connection connection, QueryBuilder baseSqlQuery, String splitColumn)
       throws SQLException {
     String minColumnName = "min_s";
     String maxColumnName = "max_s";
-    DbeamQueryBuilder limitsQuery = baseSqlQuery.generateQueryToGetLimitsOfSplitColumn(
+    QueryBuilder limitsQuery = baseSqlQuery.generateQueryToGetLimitsOfSplitColumn(
             splitColumn, minColumnName, maxColumnName);
     long min;
     long max;
@@ -251,7 +251,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * executed.
    */
   protected static List<String> queriesForBounds(
-         long min, long max, int parallelism, String splitColumn, DbeamQueryBuilder baseSqlQuery) {
+         long min, long max, int parallelism, String splitColumn, QueryBuilder baseSqlQuery) {
     
     List<QueryRange> ranges = generateRanges(min, max, parallelism);
 
