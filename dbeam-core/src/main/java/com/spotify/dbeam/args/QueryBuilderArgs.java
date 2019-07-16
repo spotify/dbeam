@@ -93,7 +93,6 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setQueryParallelism(Optional<Integer> queryParallelism);
 
-
     public abstract QueryBuilderArgs build();
   }
 
@@ -102,29 +101,21 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   public static QueryBuilderArgs create(String tableName) {
-    checkArgument(tableName != null,
-            "TableName cannot be null");
-    QueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, Optional.empty());
-    return new AutoValue_QueryBuilderArgs.Builder()
-            .setTableName(tableName)
-            .setBaseSqlQuery(baseSqlQuery)
-            .setPartitionPeriod(Days.ONE)
-            .build();
+    return create(tableName, Optional.empty());
   }
+  
+  public static QueryBuilderArgs create(String tableName, Optional<String> sqlQueryOpt) {
+    checkArgument(tableName != null, "TableName cannot be null");
+    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
 
-  public static QueryBuilderArgs create(String tableName, final Optional<String> sqlQueryOpt) {
-    checkArgument(tableName != null,
-            "TableName cannot be null");
-    QueryBuilder baseSqlQuery = getBaseSqlQuery(tableName, sqlQueryOpt);
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
-        .setBaseSqlQuery(baseSqlQuery)
+        .setBaseSqlQuery(getBaseSqlQuery(tableName, sqlQueryOpt))
         .setPartitionPeriod(Days.ONE)
         .build();
   }
 
   private static QueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
-    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
     return sqlQueryOpt
         .map(q -> QueryBuilder.fromSqlQuery(q))
         .orElse(QueryBuilder.fromTablename(tableName));
@@ -186,11 +177,11 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
   private long[] findInputBounds(
-          Connection connection, QueryBuilder baseSqlQuery, String splitColumn)
+          Connection connection, QueryBuilder queryBuilder, String splitColumn)
       throws SQLException {
     String minColumnName = "min_s";
     String maxColumnName = "max_s";
-    QueryBuilder limitsQuery = baseSqlQuery.generateQueryToGetLimitsOfSplitColumn(
+    QueryBuilder limitsQuery = queryBuilder.generateQueryToGetLimitsOfSplitColumn(
             splitColumn, minColumnName, maxColumnName);
     long min;
     long max;

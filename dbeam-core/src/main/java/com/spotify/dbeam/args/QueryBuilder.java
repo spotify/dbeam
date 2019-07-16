@@ -30,7 +30,7 @@ import java.util.Optional;
  */
 public class QueryBuilder implements Serializable {
 
-  //private static final char SQL_STATEMENT_TERMINATOR = ';';
+  private static final char SQL_STATEMENT_TERMINATOR = ';';
   private static final String DEFAULT_SELECT_CLAUSE = "SELECT *";
   private static final String DEFAULT_WHERE_CLAUSE = "WHERE 1=1";
 
@@ -185,12 +185,13 @@ public class QueryBuilder implements Serializable {
     StringBuilder buffer = new StringBuilder(initial);
     whereConditions.forEach(x -> buffer.append(x));
     limitStr.ifPresent(x -> buffer.append(x));
-    //buffer.append(SQL_STATEMENT_TERMINATOR);
     return buffer.toString();
   }
 
   private static String removeTrailingSymbols(String sqlQuery) {
-    return sqlQuery.replaceAll("[\\s|;]+$", "");
+    // semicolon followed by any number of delimiters at the end of the string
+    String regex = String.format("%c([\\s]*)$", SQL_STATEMENT_TERMINATOR);
+    return sqlQuery.replaceAll(regex, "$1");
   }
 
   public QueryBuilder withLimit(Optional<Long> limitOpt) {

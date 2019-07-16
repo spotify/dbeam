@@ -121,21 +121,96 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void testItRemovesTrailingSymbols() {
+  public void testRawSqlMultiline() {
+    String sqlString =
+            "SELECT a, b, c FROM t1\n"
+            + " WHERE total > 100\n"
+            + " AND country = 262\n";
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
+
+    String expected =
+        "SELECT * FROM (SELECT a, b, c FROM t1\n WHERE total > 100\n AND country = 262\n)"
+            + " WHERE 1=1";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
+  public void testRawSqlWithComments() {
+    String sqlString =
+        "-- We perform initial query here\n"
+        + "SELECT a, b, c FROM t1\n" 
+        + " WHERE total > 100";
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
+
+    String expected =
+        "SELECT * FROM ("
+            + "-- We perform initial query here\nSELECT a, b, c FROM t1\n WHERE total > 100)"
+            + " WHERE 1=1";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
+  public void testRawSqlWithCte() {
+    String sqlString =
+        "WITH active_orders AS\n"
+            + "(\n"
+            + "    SELECT *\n"
+            + "    FROM orders\n"
+            + "    WHERE status = 'active' \n"
+            + ")\n"
+            + "SELECT date, SUM(amount)\n"
+            + "FROM active_orders\n"
+            + "GROUP BY date\n";
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
+
+    String expected =
+            "SELECT * FROM ("
+            + "WITH active_orders AS\n"
+            + "(\n"
+            + "    SELECT *\n"
+            + "    FROM orders\n"
+            + "    WHERE status = 'active' \n"
+            + ")\n"
+            + "SELECT date, SUM(amount)\n"
+            + "FROM active_orders\n"
+            + "GROUP BY date\n"
+            + ") WHERE 1=1";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  
+  
+  @Test
+  public void testItRemovesTrailingSemicolon() {
     List<String> rawInput =
         Arrays.asList(
             "SELECT * FROM coffees WHERE size > 10",
-            "SELECT * FROM coffees WHERE size > 10\n",
-            "SELECT * FROM coffees WHERE size > 10\r",
-            "SELECT * FROM coffees WHERE size > 10\n\r",
             "SELECT * FROM coffees WHERE size > 10;",
             "SELECT * FROM coffees WHERE size > 10 ",
             "SELECT * FROM coffees WHERE size > 10; ",
             "SELECT * FROM coffees WHERE size > 10 ;",
+            "SELECT * FROM coffees WHERE size > 10\n;",
+            "SELECT * FROM coffees WHERE size > 10\r;",
+            "SELECT * FROM coffees WHERE size > 10\n\r;",
             "SELECT * FROM coffees WHERE size > 10;\n");
-    String expected = "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1";
+    List<String> expected =
+        Arrays.asList(
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\r) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n\r) WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n) WHERE 1=1");
 
-    rawInput.stream().forEach(in -> execAndCompare(in, expected));
+    for (int i = 0; i < rawInput.size(); i++) {
+      execAndCompare(rawInput.get(i), expected.get(i));
+    }
   }
 
   @Test
