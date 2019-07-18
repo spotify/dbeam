@@ -17,12 +17,13 @@
 
 package com.spotify.dbeam.args
 
+import java.nio.file.{Files, Path, Paths}
 import java.sql.Connection
-import java.util.Optional
+import java.util.{Comparator, Optional}
 
-import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.JdbcTestFixtures.recordType
 import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
+import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
 import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
@@ -34,7 +35,7 @@ import slick.jdbc.H2Profile.api._
 import scala.collection.JavaConverters._
 
 @RunWith(classOf[JUnitRunner])
-class JdbcExportArgsTest extends FlatSpec with Matchers {
+class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
@@ -50,11 +51,31 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   private val coffeesQueryWithConditions = "SELECT * FROM COFFEES WHERE SIZE > 10"
   private val coffeesUserQueryNoConditions = "SELECT * FROM (SELECT * FROM COFFEES) WHERE 1=1"
   private val coffeesUserQueryWithConditions = "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1"
-
-  private val workingPath = java.nio.file.Paths.get(".").toAbsolutePath.toString
-  private val testSqlFile = workingPath + "/src/test/resources/test_query_1.sql"
-  private val coffeesSqlFile = workingPath + "/src/test/resources/coffees_query_1.sql"
   
+  private val tempFilesDir = TestHelper.createTmpDirName("jdbc-export-args-test")
+  private val testSqlFilePath: Path = Paths.get(tempFilesDir.toString, "test_query_1.sql")
+  private val coffeesSqlFilePath = Paths.get(tempFilesDir.toString, "coffees_query_1.sql")
+  private val testSqlFile = testSqlFilePath.toString
+  private val coffeesSqlFile = coffeesSqlFilePath.toString
+
+  override def beforeAll(): Unit = {
+    TestHelper.createDir(tempFilesDir)
+    TestHelper.createFile(testSqlFilePath)
+    TestHelper.createFile(coffeesSqlFilePath)
+    TestHelper.writeToFile(testSqlFilePath, TestSqlStatements.vanillaSelectWithWhere)
+    TestHelper.writeToFile(coffeesSqlFilePath, TestSqlStatements.coffeesSelectWithWhere)
+  }
+
+  override protected def afterAll(): Unit = {
+    Files.delete(testSqlFilePath)
+    Files.delete(coffeesSqlFilePath)
+    Files.walk(tempFilesDir)
+      .sorted(Comparator.reverseOrder())
+      .iterator()
+      .asScala
+      .foreach((p: Path) => Files.delete(p))
+  }
+
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])

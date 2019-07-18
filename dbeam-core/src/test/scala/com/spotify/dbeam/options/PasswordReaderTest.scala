@@ -17,15 +17,15 @@
 
 package com.spotify.dbeam.options
 
-import java.io.File
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
-import java.util.{Optional, UUID}
+import java.util.Optional
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.json.Json
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.testing.http.{MockHttpTransport, MockLowLevelHttpResponse}
 import com.google.api.services.cloudkms.v1.model.DecryptResponse
+import com.spotify.dbeam.TestHelper
 import org.apache.beam.sdk.options.PipelineOptionsFactory
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -34,12 +34,8 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class PasswordReaderTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
-  private val dir = tmpDir
+  private val dir = TestHelper.createTmpDirName("jdbc-avro-test-").toFile
   private val passwordPath: Path = Paths.get(dir.getAbsolutePath + ".encrypted")
-
-  def tmpDir: File = new File(
-    new File(sys.props("java.io.tmpdir")),
-    "jdbc-avro-test-" + UUID.randomUUID().toString)
 
   override def beforeAll(): Unit = {
     Files.write(passwordPath, "something_encrypted".getBytes, StandardOpenOption.CREATE)
