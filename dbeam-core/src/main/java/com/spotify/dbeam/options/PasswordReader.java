@@ -52,15 +52,15 @@ class PasswordReader {
       return Optional.of(kmsDecrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted()))
           .trim());
     } else if (options.getPasswordFile() != null) {
+      LOGGER.info("Reading password from file: {}", options.getPasswordFile());
       return Optional.of(readFromFile(options.getPasswordFile()));
     } else {
       return Optional.ofNullable(options.getPassword());
     }
   }
 
-  String readFromFile(String dataFile) throws IOException {
-    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(dataFile);
-    LOGGER.info("Reading data from file: {}", m.resourceId().toString());
+  static String readFromFile(String passwordFile) throws IOException {
+    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(passwordFile);
     InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
     return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }

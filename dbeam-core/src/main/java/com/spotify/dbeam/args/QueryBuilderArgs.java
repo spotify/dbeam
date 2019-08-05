@@ -100,25 +100,24 @@ public abstract class QueryBuilderArgs implements Serializable {
     return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
   }
 
-  public static QueryBuilderArgs create(String tableName) {
-    return create(tableName, Optional.empty());
-  }
-  
-  public static QueryBuilderArgs create(String tableName, Optional<String> sqlQueryOpt) {
+  private static Builder builderForTableName(String tableName) {
     checkArgument(tableName != null, "TableName cannot be null");
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
 
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
-        .setBaseSqlQuery(getBaseSqlQuery(tableName, sqlQueryOpt))
-        .setPartitionPeriod(Days.ONE)
-        .build();
+        .setBaseSqlQuery(QueryBuilder.fromTablename(tableName))
+        .setPartitionPeriod(Days.ONE);
   }
 
-  private static QueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
-    return sqlQueryOpt
-        .map(q -> QueryBuilder.fromSqlQuery(q))
-        .orElse(QueryBuilder.fromTablename(tableName));
+  public static QueryBuilderArgs create(String tableName) {
+    return QueryBuilderArgs.builderForTableName(tableName).build();
+  }
+
+  public static QueryBuilderArgs create(String tableName, String sqlQueryOpt) {
+    return QueryBuilderArgs.builderForTableName(tableName)
+        .setBaseSqlQuery(QueryBuilder.fromSqlQuery(sqlQueryOpt))
+        .build();
   }
 
   /**

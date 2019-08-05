@@ -75,9 +75,7 @@ public class JdbcExportArgsFactory {
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
 
-    Optional<String> sqlQueryOpt = resolveSqlQueryParameter(options);
-
-    return QueryBuilderArgs.create(options.getTable(), sqlQueryOpt)
+    return createQueryBuilderArgs(options)
         .builder()
         .setLimit(Optional.ofNullable(options.getLimit()))
         .setPartitionColumn(partitionColumn)
@@ -88,12 +86,13 @@ public class JdbcExportArgsFactory {
         .build();
   }
 
-  private static Optional<String> resolveSqlQueryParameter(JdbcExportPipelineOptions options)
+  private static QueryBuilderArgs createQueryBuilderArgs(JdbcExportPipelineOptions options)
       throws IOException {
     if (options.getSqlFile() != null) {
-      return Optional.of(PasswordReader.INSTANCE.readFromFile(options.getSqlFile()));
+      return QueryBuilderArgs.create(
+          options.getTable(), PasswordReader.readFromFile(options.getSqlFile()));
     } else {
-      return Optional.empty();
+      return QueryBuilderArgs.create(options.getTable());
     }
   }
 

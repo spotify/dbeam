@@ -181,8 +181,6 @@ public class QueryBuilderTest {
     Assert.assertEquals(expected, wrapper.build());
   }
 
-  
-  
   @Test
   public void testItRemovesTrailingSemicolon() {
     List<String> rawInput =

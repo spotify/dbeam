@@ -102,7 +102,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
   it should "create a valid SQL query from a user query" in {
-    val args = QueryBuilderArgs.create("some_table", Optional.of("SELECT * FROM some_table"))
+    val args = QueryBuilderArgs.create("some_table", "SELECT * FROM some_table")
     
     args.baseSqlQuery().build should be(baseUserQueryNoConditions)
     args.tableName() should be("some_table")
@@ -239,7 +239,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --sqlFile=%s --password=secret --limit=7".format(testSqlFile)).queryBuilderArgs()
 
-    val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
+    val expected = QueryBuilderArgs.create("some_table", baseQueryWithConditions)
       .builder().setLimit(7L).build()
     actual should be(expected)
     buildStringQueries(actual) should
@@ -294,7 +294,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "--password=secret --sqlFile=%s --partition=2027-07-31 --partitionColumn=col".format(testSqlFile))
       .queryBuilderArgs()
 
-    val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
+    val expected = QueryBuilderArgs.create("some_table", baseQueryWithConditions)
       .builder()
       .setPartitionColumn("col")
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
@@ -324,7 +324,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       "--password=secret --sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=5".format(testSqlFile))
       .queryBuilderArgs()
 
-    val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
+    val expected = QueryBuilderArgs.create("some_table", baseQueryWithConditions)
       .builder()
       .setLimit(5L)
       .setPartitionColumn("col")
@@ -371,7 +371,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
       "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
       .queryBuilderArgs()
-    val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
+    val expected = QueryBuilderArgs.create("COFFEES", coffeesQueryWithConditions)
       .builder()
       .setSplitColumn("ROWNUM")
       .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
@@ -396,7 +396,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
       "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
       .queryBuilderArgs()
-    val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
+    val expected = QueryBuilderArgs.create("COFFEES", coffeesQueryWithConditions)
       .builder()
       .setSplitColumn("ROWNUM")
       .setQueryParallelism(parallelism)
