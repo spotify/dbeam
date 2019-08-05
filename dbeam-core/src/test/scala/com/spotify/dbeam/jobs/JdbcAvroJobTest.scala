@@ -17,10 +17,9 @@
 
 package com.spotify.dbeam.jobs
 
-import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
 import com.spotify.dbeam.avro.JdbcAvroMetering
 import com.spotify.dbeam.options.OutputOptions
-
 import java.io.File
 import java.nio.file.{Files, Path}
 import java.util
@@ -44,12 +43,9 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
-  private val dir = tmpDir
+  private val dir = TestHelper.createTmpDirName("jdbc-avro-test-").toFile
   private val passwordFile = new File(dir.getAbsolutePath + ".password")
-
-  def tmpDir: File = new File(
-    new File(sys.props("java.io.tmpdir")),
-    "jdbc-avro-test-" + UUID.randomUUID().toString)
+  
 
   override def beforeAll(): Unit = {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))

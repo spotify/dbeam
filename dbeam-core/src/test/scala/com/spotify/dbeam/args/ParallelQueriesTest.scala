@@ -30,7 +30,9 @@ import scala.collection.JavaConverters._
 @RunWith(classOf[JUnitRunner])
 class ParallelQueriesTest extends FlatSpec with Matchers {
 
-  private val queryFormat = "SEL ... tab WHERE 1=1%s"
+  private val tablename = "tab"
+  private val queryTxt = "SELECT * FROM tab WHERE 1=1"
+  private val queryFormat = QueryBuilder.fromTablename(tablename)
 
   private def splitPointsToRanges(splitPoints: Seq[Long]): List[String] = {
     val paired = splitPoints
@@ -41,10 +43,10 @@ class ParallelQueriesTest extends FlatSpec with Matchers {
     paired
       .reverse
       .tail
-      .reverse.map(z => String.format(queryFormat, s" AND sp >= ${z(0)} AND sp < ${z(1)}")) ++
+      .reverse.map(z => String.format(queryTxt+"%s", s" AND sp >= ${z(0)} AND sp < ${z(1)}")) ++
       paired
         .lastOption
-        .map(z => String.format(queryFormat, s" AND sp >= ${z(0)} AND sp <= ${z(1)}")) // last element should be included
+        .map(z => String.format(queryTxt+"%s", s" AND sp >= ${z(0)} AND sp <= ${z(1)}")) // last element should be included
   }
 
   it should "build appropriate parallel queries for a a given range" in {

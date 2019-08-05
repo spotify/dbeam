@@ -52,7 +52,7 @@ public class BeamJdbcAvroSchema {
                                              dbUrl));
       dbName = connection.getCatalog();
       generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
-          connection, args.queryBuilderArgs().tableName(),
+          connection, args.queryBuilderArgs().baseSqlQuery(),
           args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
     }
     final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;

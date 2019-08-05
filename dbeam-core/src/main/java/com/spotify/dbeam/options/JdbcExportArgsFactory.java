@@ -57,7 +57,8 @@ public class JdbcExportArgsFactory {
     );
   }
 
-  public static QueryBuilderArgs createQueryArgs(JdbcExportPipelineOptions options) {
+  public static QueryBuilderArgs createQueryArgs(JdbcExportPipelineOptions options)
+      throws IOException {
     final ReadablePeriod partitionPeriod = Optional.ofNullable(options.getPartitionPeriod())
         .map(v -> (ReadablePeriod) Period.parse(v)).orElse(Days.ONE);
     Optional<DateTime> partition = Optional.ofNullable(options.getPartition())
@@ -73,7 +74,10 @@ public class JdbcExportArgsFactory {
           .orElse(DateTime.now().minus(partitionPeriod.toPeriod().multipliedBy(2)));
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
-    return QueryBuilderArgs.create(options.getTable())
+
+    Optional<String> sqlQueryOpt = resolveSqlQueryParameter(options);
+
+    return QueryBuilderArgs.create(options.getTable(), sqlQueryOpt)
         .builder()
         .setLimit(Optional.ofNullable(options.getLimit()))
         .setPartitionColumn(partitionColumn)
@@ -82,6 +86,15 @@ public class JdbcExportArgsFactory {
         .setSplitColumn(Optional.ofNullable(options.getSplitColumn()))
         .setQueryParallelism(Optional.ofNullable(options.getQueryParallelism()))
         .build();
+  }
+
+  private static Optional<String> resolveSqlQueryParameter(JdbcExportPipelineOptions options)
+      throws IOException {
+    if (options.getSqlFile() != null) {
+      return Optional.of(PasswordReader.INSTANCE.readFromFile(options.getSqlFile()));
+    } else {
+      return Optional.empty();
+    }
   }
 
   private static DateTime parseDateTime(String input) {

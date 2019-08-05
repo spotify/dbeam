@@ -17,11 +17,13 @@
 
 package com.spotify.dbeam.args
 
+import java.nio.file.{Files, Path, Paths}
 import java.sql.Connection
-import java.util.Optional
+import java.util.{Comparator, Optional}
 
-import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.JdbcTestFixtures.recordType
 import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
+import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
 import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
@@ -33,7 +35,7 @@ import slick.jdbc.H2Profile.api._
 import scala.collection.JavaConverters._
 
 @RunWith(classOf[JUnitRunner])
-class JdbcExportArgsTest extends FlatSpec with Matchers {
+class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
@@ -42,6 +44,38 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   private val connection: Connection = db.source.createConnection()
 
   private val baseQueryNoConditions = "SELECT * FROM some_table WHERE 1=1"
+  private val baseUserQueryNoConditions = "SELECT * FROM (SELECT * FROM some_table) WHERE 1=1"
+  private val baseQueryWithConditions = "SELECT * FROM some_table WHERE column_id > 100"
+  private val baseUserQueryWithConditions = "SELECT * FROM (SELECT * FROM some_table WHERE column_id > 100) WHERE 1=1"
+  private val coffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1"
+  private val coffeesQueryWithConditions = "SELECT * FROM COFFEES WHERE SIZE > 10"
+  private val coffeesUserQueryNoConditions = "SELECT * FROM (SELECT * FROM COFFEES) WHERE 1=1"
+  private val coffeesUserQueryWithConditions = "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1"
+  
+  private val tempFilesDir = TestHelper.createTmpDirName("jdbc-export-args-test")
+  private val testSqlFilePath: Path = Paths.get(tempFilesDir.toString, "test_query_1.sql")
+  private val coffeesSqlFilePath = Paths.get(tempFilesDir.toString, "coffees_query_1.sql")
+  private val testSqlFile = testSqlFilePath.toString
+  private val coffeesSqlFile = coffeesSqlFilePath.toString
+
+  override def beforeAll(): Unit = {
+    TestHelper.createDir(tempFilesDir)
+    TestHelper.createFile(testSqlFilePath)
+    TestHelper.createFile(coffeesSqlFilePath)
+    TestHelper.writeToFile(testSqlFilePath, TestSqlStatements.vanillaSelectWithWhere)
+    TestHelper.writeToFile(coffeesSqlFilePath, TestSqlStatements.coffeesSelectWithWhere)
+  }
+
+  override protected def afterAll(): Unit = {
+    Files.delete(testSqlFilePath)
+    Files.delete(coffeesSqlFilePath)
+    Files.walk(tempFilesDir)
+      .sorted(Comparator.reverseOrder())
+      .iterator()
+      .asScala
+      .foreach((p: Path) => Files.delete(p))
+  }
+
 
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
@@ -60,6 +94,12 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     a[IllegalArgumentException] should be thrownBy {
       QueryBuilderArgs.create("*invalid#name@!")
     }
+  }
+  it should "create a valid SQL query from a user query" in {
+    val args = QueryBuilderArgs.create("some_table", Optional.of("SELECT * FROM some_table"))
+    
+    args.baseSqlQuery().build should be(baseUserQueryNoConditions)
+    args.tableName() should be("some_table")
   }
   it should "fail parse invalid arguments" in {
     a[IllegalArgumentException] should be thrownBy {
@@ -92,7 +132,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
   }
   it should "fail to parse invalid table parameter" in {
     a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some-table " +
+      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some-table-with-dash " +
         "--password=secret")
     }
   }
@@ -184,10 +224,22 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       "--table=some_table --password=secret --limit=7").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
-      .builder().setLimit(7).build()
+      .builder().setLimit(7L).build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(s"$baseQueryNoConditions LIMIT 7")
+  }
+  it should "configure limit for sqlQuery" in {
+
+    
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
+      "--table=some_table --sqlFile=%s --password=secret --limit=7".format(testSqlFile)).queryBuilderArgs()
+
+    val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
+      .builder().setLimit(7L).build()
+    actual should be(expected)
+    buildStringQueries(actual) should
+      contain theSameElementsAs Seq(s"$baseUserQueryWithConditions LIMIT 7")
   }
   it should "configure partition" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
@@ -196,7 +248,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     val expected = QueryBuilderArgs.create("some_table")
       .builder().setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(baseQueryNoConditions)
   }
   it should "configure partition with full ISO date time (Styx cron syntax)" in {
@@ -206,7 +258,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     val expected = QueryBuilderArgs.create("some_table")
       .builder().setPartition(new DateTime(2027, 7, 31, 13, 37, 59, DateTimeZone.UTC)).build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(baseQueryNoConditions)
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
@@ -216,7 +268,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
     val expected = QueryBuilderArgs.create("some_table")
       .builder().setPartition(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC)).build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(baseQueryNoConditions)
   }
   it should "configure partition column" in {
@@ -228,25 +280,60 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setPartitionColumn("col")
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(s"$baseQueryNoConditions " +
       "AND col >= '2027-07-31' AND col < '2027-08-01'")
   }
+  
+  it should "configure partition column for sqlQuery" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
+      "--password=secret --sqlFile=%s --partition=2027-07-31 --partitionColumn=col".format(testSqlFile))
+      .queryBuilderArgs()
+
+    val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
+      .builder()
+      .setPartitionColumn("col")
+      .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
+    actual should be(expected)
+    buildStringQueries(actual) should
+      contain theSameElementsAs Seq(s"$baseUserQueryWithConditions" +
+      " AND col >= '2027-07-31' AND col < '2027-08-01'")
+  }
+
+  private def buildStringQueries(actual: QueryBuilderArgs) = {
+    actual.buildQueries(connection).asScala.toList
+  }
+
   it should "configure partition column and limit" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
       "--password=secret --partition=2027-07-31 --partitionColumn=col --limit=5").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
       .builder()
-      .setLimit(5)
+      .setLimit(5L)
       .setPartitionColumn("col")
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     actual should be(expected)
 
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(
-      s"$baseQueryNoConditions AND col >= '2027-07-31'" +
-        " AND col < '2027-08-01' LIMIT 5")
+      s"$baseQueryNoConditions AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5")
+  }
+  it should "configure partition column and limit for sqlQuery" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
+      "--password=secret --sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=5".format(testSqlFile))
+      .queryBuilderArgs()
+
+    val expected = QueryBuilderArgs.create("some_table", Optional.of(baseQueryWithConditions))
+      .builder()
+      .setLimit(5L)
+      .setPartitionColumn("col")
+      .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
+    actual should be(expected)
+
+    buildStringQueries(actual) should
+      contain theSameElementsAs Seq(
+      s"$baseUserQueryWithConditions AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5")
   }
   it should "configure partition column and partition period" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
@@ -258,7 +345,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setPartitionPeriod(Period.parse("P1M"))
       .setPartition(new DateTime(2027, 7, 31, 0, 0, 0, DateTimeZone.UTC)).build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(
       s"$baseQueryNoConditions " +
         "AND col >= '2027-07-31' AND col < '2027-08-31'")
@@ -274,18 +361,74 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
       .build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
-      contain theSameElementsAs Seq(
+    buildStringQueries(actual) should
+      contain theSameElementsAs List(
       s"$baseCoffeesQueryNoConditions " +
         "AND ROWNUM >= 1 AND ROWNUM <= 2")
+  }
+
+  it should "create queries for split column of integer type for sqlQuery" in {
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
+      "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
+      .queryBuilderArgs()
+    val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
+      .builder()
+      .setSplitColumn("ROWNUM")
+      .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
+      .build()
+    actual should be(expected)
+    val msgs = buildStringQueries(actual)
+    msgs should
+      contain theSameElementsAs Seq(
+      s"$coffeesUserQueryWithConditions" +
+        " AND ROWNUM >= 1 AND ROWNUM <= 2")
+  }
+
+  /**
+    * Creates a sequence of n records using record as a clone source.
+    * 
+    * @param n
+    * @param record
+    * @return sequence of records.
+    */
+  def createRecordSeq(n: Int, record: recordType): Seq[recordType] = {
+    (1 to n).map(x => record.copy(_1 = record._1 + x, _12 = record._12 + x))
+  }
+  
+
+  it should "create queries for split column of integer type for sqlQuery in many splits" in {
+    //set-up fixture
+    val parallelism = 5
+    val numberOfRecords = 25 
+    val moreRecords = createRecordSeq(numberOfRecords-2, JdbcTestFixtures.record2);
+    
+    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2) ++ moreRecords)
+    
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
+      "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
+      .queryBuilderArgs()
+    val expected = QueryBuilderArgs.create("COFFEES", Optional.of(coffeesQueryWithConditions))
+      .builder()
+      .setSplitColumn("ROWNUM")
+      .setQueryParallelism(parallelism)
+      .build()
+    actual should be(expected)
+    val msgs = buildStringQueries(actual)
+    msgs should
+      contain theSameElementsAs Seq(
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 1 AND ROWNUM < 6",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 6 AND ROWNUM < 11",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 11 AND ROWNUM < 16",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 16 AND ROWNUM < 21",
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 21 AND ROWNUM <= 25"
+    )
   }
 
   it should "create queries with partition column and split column with queryParallelism" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
       "--password=secret --partitionColumn=CREATED --partition=2027-07-31 --partitionPeriod=P1M " +
       "--splitColumn=ROWNUM --queryParallelism=5").queryBuilderArgs()
-    val baseCoffeesQueryNoConditions = "SELECT * FROM COFFEES WHERE 1=1 " +
-      "AND CREATED >= '2027-07-31' AND CREATED < '2027-08-31'"
+      
     val expected = QueryBuilderArgs.create("COFFEES")
       .builder()
       .setPartitionColumn("CREATED")
@@ -295,10 +438,11 @@ class JdbcExportArgsTest extends FlatSpec with Matchers {
       .setQueryParallelism(5) // We have only two values of ROWNUM but still give a higher parallism
       .build()
     actual should be(expected)
-    actual.buildQueries(connection).asScala should
+    buildStringQueries(actual) should
       contain theSameElementsAs Seq(
-      s"$baseCoffeesQueryNoConditions " +
-        "AND ROWNUM >= 0 AND ROWNUM <= 0")
+      s"$coffeesQueryNoConditions" +
+        " AND CREATED >= '2027-07-31' AND CREATED < '2027-08-31'" +
+        " AND ROWNUM >= 0 AND ROWNUM <= 0")
   }
 
   it should "configure avro schema namespace" in {

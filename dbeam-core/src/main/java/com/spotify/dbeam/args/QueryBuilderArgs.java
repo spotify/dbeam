@@ -34,6 +34,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
@@ -47,7 +48,9 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract String tableName();
 
-  public abstract Optional<Integer> limit();
+  public abstract QueryBuilder baseSqlQuery();
+
+  public abstract Optional<Long> limit();
 
   public abstract Optional<String> partitionColumn();
 
@@ -66,9 +69,11 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setTableName(String tableName);
 
-    public abstract Builder setLimit(Integer limit);
+    public abstract Builder setBaseSqlQuery(QueryBuilder baseSqlQuery);
 
-    public abstract Builder setLimit(Optional<Integer> limit);
+    public abstract Builder setLimit(Long limit);
+
+    public abstract Builder setLimit(Optional<Long> limit);
 
     public abstract Builder setPartitionColumn(String partitionColumn);
 
@@ -88,7 +93,6 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setQueryParallelism(Optional<Integer> queryParallelism);
 
-
     public abstract QueryBuilderArgs build();
   }
 
@@ -97,14 +101,24 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   public static QueryBuilderArgs create(String tableName) {
-    checkArgument(tableName != null,
-        "TableName cannot be null");
-    checkArgument(checkTableName(tableName),
-        "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+    return create(tableName, Optional.empty());
+  }
+  
+  public static QueryBuilderArgs create(String tableName, Optional<String> sqlQueryOpt) {
+    checkArgument(tableName != null, "TableName cannot be null");
+    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+
     return new AutoValue_QueryBuilderArgs.Builder()
         .setTableName(tableName)
+        .setBaseSqlQuery(getBaseSqlQuery(tableName, sqlQueryOpt))
         .setPartitionPeriod(Days.ONE)
         .build();
+  }
+
+  private static QueryBuilder getBaseSqlQuery(String tableName, Optional<String> sqlQueryOpt) {
+    return sqlQueryOpt
+        .map(q -> QueryBuilder.fromSqlQuery(q))
+        .orElse(QueryBuilder.fromTablename(tableName));
   }
 
   /**
@@ -124,40 +138,34 @@ public abstract class QueryBuilderArgs implements Serializable {
     queryParallelism().ifPresent(p -> checkArgument(p > 0,
         "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
 
-    final String limit = this.limit().map(l -> String.format(" LIMIT %d", l)).orElse("");
-
-    final String partitionCondition = this.partitionColumn().flatMap(
-        partitionColumn ->
-            this.partition().map(partition -> {
-              final LocalDate datePartition = partition.toLocalDate();
-              final String nextPartition = datePartition.plus(partitionPeriod()).toString();
-              return String.format(" AND %s >= '%s' AND %s < '%s'",
-                  partitionColumn, datePartition, partitionColumn, nextPartition);
-            })
-    ).orElse("");
+    this.partitionColumn()
+        .flatMap(
+            partitionColumn ->
+                this.partition()
+                    .map(
+                        partition -> {
+                          final LocalDate datePartition = partition.toLocalDate();
+                          final String nextPartition =
+                              datePartition.plus(partitionPeriod()).toString();
+                          return this.baseSqlQuery()
+                              .withPartitionCondition(
+                                  partitionColumn, datePartition.toString(), nextPartition);
+                        }));
 
     if (queryParallelism().isPresent() && splitColumn().isPresent()) {
 
-      long[] minMax = findInputBounds(connection, this.tableName(), partitionCondition,
-          splitColumn().get());
+      long[] minMax = findInputBounds(connection, this.baseSqlQuery(), splitColumn().get());
       long min = minMax[0];
       long max = minMax[1];
 
+      this.limit()
+          .flatMap(l -> queryParallelism().map(k -> l / k))
+          .ifPresent(limit -> this.baseSqlQuery().withLimit(limit));
 
-      String limitWithParallelism = this.limit()
-          .map(l -> String.format(" LIMIT %d", l / queryParallelism().get())).orElse("");
-      String queryFormat = String
-          .format("SELECT * FROM %s WHERE 1=1%s%s%s",
-                  this.tableName(),
-                  partitionCondition,
-                  "%s", // the split conditions
-                  limitWithParallelism);
-
-      return queriesForBounds(min, max, queryParallelism().get(), splitColumn().get(), queryFormat);
+      return queriesForBounds(
+          min, max, queryParallelism().get(), splitColumn().get(), this.baseSqlQuery());
     } else {
-      return Lists.newArrayList(
-          String.format("SELECT * FROM %s WHERE 1=1%s%s", this.tableName(), partitionCondition,
-              limit));
+      return Lists.newArrayList(this.baseSqlQuery().withLimit(this.limit()).build());
     }
   }
 
@@ -168,32 +176,32 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A long array of two elements, with [0] being min and [1] being max.
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
-  private long[] findInputBounds(Connection connection, String tableName, String partitionCondition,
-      String splitColumn)
+  private long[] findInputBounds(
+          Connection connection, QueryBuilder queryBuilder, String splitColumn)
       throws SQLException {
-    // Generate queries to get limits of split column.
-    String query = String.format(
-        "SELECT min(%s) as min_s, max(%s) as max_s FROM %s WHERE 1=1%s",
-        splitColumn,
-        splitColumn,
-        tableName,
-        partitionCondition);
+    String minColumnName = "min_s";
+    String maxColumnName = "max_s";
+    QueryBuilder limitsQuery = queryBuilder.generateQueryToGetLimitsOfSplitColumn(
+            splitColumn, minColumnName, maxColumnName);
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(query);
+          statement.executeQuery(limitsQuery.build());
       // Check and make sure we have a record. This should ideally succeed always.
       checkState(resultSet.next(), "Result Set for Min/Max returned zero records");
 
-      // min_s and max_s would both of the same type
+      // minColumnName and maxColumnName would be both of the same type
       switch (resultSet.getMetaData().getColumnType(1)) {
         case Types.LONGVARBINARY:
         case Types.BIGINT:
         case Types.INTEGER:
-          min = resultSet.getLong("min_s");
-          max = resultSet.getLong("max_s");
+          min = resultSet.getLong(minColumnName);
+          // TODO
+          // check resultSet.wasNull(); NULL -> 0L
+          // there is no value to carry on since it will be empty set anyway 
+          max = resultSet.getLong(maxColumnName);
           break;
         default:
           throw new IllegalArgumentException("splitColumn should be of type Integer / Long");
@@ -203,33 +211,69 @@ public abstract class QueryBuilderArgs implements Serializable {
     return new long[]{min, max};
   }
 
+  public static class QueryRange {
+
+    private final long startPointIncl; // always inclusive
+    private final long endPoint; // inclusivity controlled by isEndPointExcl 
+    private final boolean isEndPointExcl;
+
+    public QueryRange(long startPointIncl, long endPoint, boolean isEndPointExcl) {
+      this.startPointIncl = startPointIncl;
+      this.endPoint = endPoint;
+      this.isEndPointExcl = isEndPointExcl;
+    }
+
+    public long getStartPointIncl() {
+      return startPointIncl;
+    }
+
+    public long getEndPoint() {
+      return endPoint;
+    }
+
+    public boolean isEndPointExcl() {
+      return isEndPointExcl;
+    }
+
+  }
+
   /**
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
    */
-  protected static Iterable<String> queriesForBounds(long min, long max, int parallelism,
-      String splitColumn,
-      String queryFormat) {
+  protected static List<String> queriesForBounds(
+         long min, long max, int parallelism, String splitColumn, QueryBuilder baseSqlQuery) {
+    
+    List<QueryRange> ranges = generateRanges(min, max, parallelism);
+
+    return ranges.stream()
+        .map(
+            x ->
+                baseSqlQuery
+                    .copy() // we create a new query here
+                    .withParallelizationCondition(
+                        splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
+                    .build())
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Given a min, max and expected queryParallelism, generate all required queries that should be
+   * executed.
+   */
+  protected static List<QueryRange> generateRanges(
+          long min, long max, int parallelism) {
     // We try not to generate more than queryParallelism. Hence we don't want to loose number by
-    // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 queries
+    // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 ranges
     long bucketSize = (long) Math.ceil((double) (max - min) / (double) parallelism);
     bucketSize =
-        bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
-    List<String> queries = new ArrayList<>(parallelism);
+            bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
+    List<QueryRange> ranges = new ArrayList<>(parallelism);
 
-    String parallelismCondition;
     long i = min;
     while (i + bucketSize < max) {
-
       // Include lower bound and exclude the upper bound.
-      parallelismCondition =
-          String.format(" AND %s >= %s AND %s < %s",
-              splitColumn,
-              i,
-              splitColumn,
-              i + bucketSize);
-      queries.add(String
-          .format(queryFormat, parallelismCondition));
+      ranges.add(new QueryRange(i, i + bucketSize, true));
       i = i + bucketSize;
     }
 
@@ -237,22 +281,15 @@ public abstract class QueryBuilderArgs implements Serializable {
     if (i + bucketSize >= max) {
       // If bucket size exceeds max, we must use max and the predicate
       // should include upper bound.
-      parallelismCondition =
-          String.format(" AND %s >= %s AND %s <= %s",
-              splitColumn,
-              i,
-              splitColumn,
-              max);
-      queries.add(String
-          .format(queryFormat, parallelismCondition));
+      ranges.add(new QueryRange(i, max, false));
     }
 
-    // If queryParallelism is higher than max-min, this will generate less queries.
-    // But lets never generate more queries.
-    checkState(queries.size() <= parallelism,
-        "Unable to generate expected number of queries for given min max.");
+    // If queryParallelism is higher than max-min, this will generate less ranges.
+    // But lets never generate more ranges.
+    checkState(ranges.size() <= parallelism,
+            "Unable to generate expected number of ranges for given min max.");
 
-    return queries;
+    return ranges;
   }
 
 }
