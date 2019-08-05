@@ -17,6 +17,7 @@
 
 package com.spotify.dbeam.args
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.sql.Connection
 import java.util.{Comparator, Optional}
@@ -59,11 +60,13 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val coffeesSqlFile = coffeesSqlFilePath.toString
 
   override def beforeAll(): Unit = {
-    TestHelper.createDir(tempFilesDir)
-    TestHelper.createFile(testSqlFilePath)
-    TestHelper.createFile(coffeesSqlFilePath)
-    TestHelper.writeToFile(testSqlFilePath, TestSqlStatements.vanillaSelectWithWhere)
-    TestHelper.writeToFile(coffeesSqlFilePath, TestSqlStatements.coffeesSelectWithWhere)
+    Files.createDirectories(tempFilesDir)
+    Files.createFile(testSqlFilePath)
+    Files.createFile(coffeesSqlFilePath)
+    Files.write(testSqlFilePath,
+      "SELECT * FROM some_table WHERE column_id > 100".getBytes(StandardCharsets.UTF_8))
+    Files.write(coffeesSqlFilePath,
+      "SELECT * FROM COFFEES WHERE SIZE > 10".getBytes(StandardCharsets.UTF_8))
   }
 
   override protected def afterAll(): Unit = {
@@ -76,12 +79,15 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       .foreach((p: Path) => Files.delete(p))
   }
 
-
   def optionsFromArgs(cmdLineArgs: String): JdbcExportArgs = {
     PipelineOptionsFactory.register(classOf[JdbcExportPipelineOptions])
     val opts: PipelineOptions =
       PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "): _*).withValidation().create()
     JdbcExportArgsFactory.fromPipelineOptions(opts)
+  }
+
+  private def buildStringQueries(actual: QueryBuilderArgs) = {
+    actual.buildQueries(connection).asScala.toList
   }
 
   it should "fail on missing table name" in {
@@ -230,8 +236,6 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       contain theSameElementsAs Seq(s"$baseQueryNoConditions LIMIT 7")
   }
   it should "configure limit for sqlQuery" in {
-
-    
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --sqlFile=%s --password=secret --limit=7".format(testSqlFile)).queryBuilderArgs()
 
@@ -298,10 +302,6 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     buildStringQueries(actual) should
       contain theSameElementsAs Seq(s"$baseUserQueryWithConditions" +
       " AND col >= '2027-07-31' AND col < '2027-08-01'")
-  }
-
-  private def buildStringQueries(actual: QueryBuilderArgs) = {
-    actual.buildQueries(connection).asScala.toList
   }
 
   it should "configure partition column and limit" in {
@@ -384,25 +384,14 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
         " AND ROWNUM >= 1 AND ROWNUM <= 2")
   }
 
-  /**
-    * Creates a sequence of n records using record as a clone source.
-    * 
-    * @param n
-    * @param record
-    * @return sequence of records.
-    */
-  def createRecordSeq(n: Int, record: recordType): Seq[recordType] = {
-    (1 to n).map(x => record.copy(_1 = record._1 + x, _12 = record._12 + x))
-  }
-  
-
   it should "create queries for split column of integer type for sqlQuery in many splits" in {
     //set-up fixture
     val parallelism = 5
-    val numberOfRecords = 25 
-    val moreRecords = createRecordSeq(numberOfRecords-2, JdbcTestFixtures.record2);
-    
-    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2) ++ moreRecords)
+    val records = Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2) ++
+      (1 to 23).map(x => JdbcTestFixtures.record2.copy(
+        _1 = JdbcTestFixtures.record2._1 + x, _12 = JdbcTestFixtures.record2._12 + x))
+
+    JdbcTestFixtures.createFixtures(db, records)
     
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
       "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))

@@ -17,26 +17,13 @@
 
 package com.spotify.dbeam
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 object TestHelper {
         
   def createTmpDirName(subDirNamePrefix: String): Path = {
-    val dir = Paths.get(sys.props("java.io.tmpdir"),  subDirNamePrefix + "-" + UUID.randomUUID().toString)
-    dir         
+    Paths.get(sys.props("java.io.tmpdir"),  subDirNamePrefix + "-" + UUID.randomUUID().toString)
   }
 
-  def createDir(path: Path): Path = {
-    Files.createDirectories(path)
-  }
-
-  def createFile(path: Path): Path = {
-    Files.createFile(path)
-  }
-
-  def writeToFile(path: Path, content: String): Unit = {
-    Files.write(path, content.getBytes(StandardCharsets.UTF_8))
-  }
 }
