@@ -17,6 +17,9 @@
 
 package com.spotify.dbeam.jobs
 
+import java.time.Duration
+import java.util.Optional
+
 import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.args.{JdbcAvroArgs, JdbcConnectionArgs, JdbcExportArgs, QueryBuilderArgs}
 import org.joda.time.{DateTime, DateTimeZone, Days}
@@ -35,16 +38,18 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
   override def beforeAll(): Unit = {
     JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1))
   }
+  private def createArgs(url: String = connectionUrl,
+                         queryBuilderArgs: QueryBuilderArgs = QueryBuilderArgs.create("some_table")) = {
+    JdbcExportArgs.create(
+      JdbcAvroArgs.create(JdbcConnectionArgs.create(url)),
+      queryBuilderArgs,
+      "dbeam_generated", Optional.empty(), false,
+      Duration.ZERO
+    )
+  }
 
   it should "fail with invalid driver" in {
-    val args = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:mysql://some_db")
-          .withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
+    val args = createArgs("jdbc:mysql://some_db")
 
     a[IllegalArgumentException] should be thrownBy {
       PsqlReplicationCheck.validateOptions(args)
@@ -52,14 +57,7 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
   }
 
   it should "fail with missing partition" in {
-    val args = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-          .withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
+    val args = createArgs("jdbc:postgresql://some_db")
 
     a[IllegalArgumentException] should be thrownBy {
       PsqlReplicationCheck.validateOptions(args)
@@ -67,16 +65,11 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
   }
 
   it should "validate" in {
-    val args = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-          .withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
+    val args = createArgs("jdbc:postgresql://some_db",
       QueryBuilderArgs.create("some_table")
         .builder()
-        .setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build()
-    )
+        .setPartition(new DateTime(2027, 7, 31, 0, 0, DateTimeZone.UTC)).build(
+    ))
 
     PsqlReplicationCheck.validateOptions(args)
   }
@@ -132,15 +125,11 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
       "parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
       " AS last_replication, " +
       "13 AS replication_delay"
-    val replicationCheck = new PsqlReplicationCheck(
-      JdbcExportArgs.create(
-        JdbcAvroArgs.create(
-          JdbcConnectionArgs.create(connectionUrl)),
-        QueryBuilderArgs.create("coffees").builder()
+    val args = createArgs(connectionUrl,
+      QueryBuilderArgs.create("coffees").builder()
           .setPartition(DateTime.parse("2025-02-28T00:00:00"))
-          .build()),
-      query
-    )
+          .build())
+    val replicationCheck = new PsqlReplicationCheck(args, query)
     val lastReplication = new DateTime(2017, 2, 1, 23, 58, 57, DateTimeZone.UTC)
 
     val actual = replicationCheck.queryReplication()
@@ -157,15 +146,11 @@ class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfte
       "parsedatetime('2030-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')" +
       " AS last_replication, " +
       "13 AS replication_delay"
-    val replicationCheck = new PsqlReplicationCheck(
-      JdbcExportArgs.create(
-        JdbcAvroArgs.create(
-          JdbcConnectionArgs.create(connectionUrl)),
-        QueryBuilderArgs.create("coffees").builder()
+    val args = createArgs(connectionUrl,
+      QueryBuilderArgs.create("coffees").builder()
           .setPartition(DateTime.parse("2025-02-28T00:00:00"))
-          .build()),
-      query
-    )
+          .build())
+    val replicationCheck = new PsqlReplicationCheck(args, query)
     val lastReplication = new DateTime(2030, 2, 1, 23, 58, 57, DateTimeZone.UTC)
 
     val actual = replicationCheck.queryReplication()

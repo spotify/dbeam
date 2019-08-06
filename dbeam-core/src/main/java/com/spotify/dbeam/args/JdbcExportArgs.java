@@ -21,6 +21,7 @@
 package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.annotations.VisibleForTesting;
 
 import java.io.Serializable;
 import java.sql.Connection;
@@ -60,11 +61,12 @@ public abstract class JdbcExportArgs implements Serializable {
     abstract JdbcExportArgs build();
   }
 
-  public static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,
+  @VisibleForTesting
+  static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,
                                       QueryBuilderArgs queryBuilderArgs) {
     return create(jdbcAvroArgs, queryBuilderArgs,
                   "dbeam_generated", Optional.empty(), false,
-                  Duration.ZERO);
+                  Duration.ofDays(7));
   }
 
   public static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,

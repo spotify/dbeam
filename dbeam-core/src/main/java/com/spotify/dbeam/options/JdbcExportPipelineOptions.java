@@ -104,7 +104,7 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setQueryParallelism(Integer value);
 
-  @Default.String("PT0S")
+  @Default.String("P7D")
   @Description(
       "Export timeout, after this duration the export will be terminated.")
   String getExportTimeout();
