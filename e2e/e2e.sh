@@ -20,7 +20,7 @@ startPostgres() {
     -e POSTGRES_DB=dbeam_test \
     -e POSTGRES_PASSWORD=mysecretpassword \
     -v /tmp/pgdata:/var/lib/postgresql/data \
-    -p 54321:5432/tcp -d postgres:10 || true
+    -p 54321:5432/tcp -d postgres:10 || docker start dbeam-postgres
   # https://stackoverflow.com/questions/35069027/docker-wait-for-postgresql-to-be-running
   docker run -it --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10.7 timeout 45s bash -ic 'until psql -h postgres -U postgres dbeam_test -c "select 1"; do sleep 1; done; echo "psql up and running.."'
   sleep 3
