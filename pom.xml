@@ -118,7 +118,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <beam.version>2.14.0</beam.version>
+        <beam.version>2.15.0</beam.version>
         <postgresql.version>42.2.6</postgresql.version>
         <mysql.version>5.1.47</mysql.version>
         <socket-factory.version>1.0.12</socket-factory.version>
@@ -128,7 +128,6 @@
         <jackson.version>2.9.9</jackson.version>
         <slf4j.version>1.7.25</slf4j.version>
         <auto-value.version>1.6.5</auto-value.version>
-        <guava.version>20.0</guava.version>
         <protobuf-util.version>3.6.1</protobuf-util.version>
         <protobuf.version>3.6.1</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
@@ -299,7 +298,7 @@
             <dependency>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_annotations</artifactId>
-                <version>2.2.0</version>
+                <version>2.3.2</version>
             </dependency>
             <dependency>
                 <groupId>com.google.api.grpc</groupId>
