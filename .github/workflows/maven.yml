@@ -1,0 +1,60 @@
+name: Java Maven CI
+
+# https://github.com/laboratoriobridge/metafy/blob/d2f4fd53ef3783140cece9d5f2a57045304266dc/.github/workflows/maven.yml
+on:
+  push:
+    # Sequence of patterns matched against refs/heads
+    branches:
+      - master         # Push events on master branch
+      - 'releases/*'   # Push events to branches matching refs/heads/releases/*
+      - 'refs/tags/*'  # Push events to branches matching refs/heads/tags/*
+      - '!refs/pull/*' # Push events on branches that do not match refs/pull/*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: CI on Java ${{ matrix.java_version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        java_version: ['1.8', '1.11']
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java_version }}
+      - name: Build with Maven
+        run: mvn clean verify -Pcoverage -Ppack --file pom.xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          file: ./dbeam-core/target/site/jacoco/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+      - name: End to end tests
+        run: ./e2e/e2e.sh
+        # # https://github.com/arduino/arduino-cli/blob/5e1627de181e6737a874c8b3ea356cec248cc74c/.github/workflows/test.yaml
+        # # https://github.com/softprops/action-gh-release
+      - name: Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        run: |
+          echo "$GPG_KEY" | base64 --decode --ignore-garbage | gpg --batch --fast-import -
+          mvn --settings sonatype-settings.xml -DskipTests -Prelease deploy
+          rm -rf ~/.gnupg
+      - name: Release
+        uses: docker://softprops/action-gh-release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        with:
+          # body_path: ${{ github.workflow }}-CHANGELOG.txt
+          files: './dbeam-core/target/dbeam-core-*.jar,./dbeam-core/target/dbeam-core-*.jar.asc'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
