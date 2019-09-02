@@ -122,7 +122,7 @@ main() {
   if [[ $# -gt 0 ]]; then
     "$@"
   else
-    pack
+    # pack  # assume pack already ran before
     time startPostgres
 
     runSuite
