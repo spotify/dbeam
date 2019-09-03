@@ -134,7 +134,7 @@
         <google.cloud.core.version>1.61.0</google.cloud.core.version>
         <grpc.version>1.17.1</grpc.version>
         <joda.version>2.10.3</joda.version>
-        <google-http-client.version>1.27.0</google-http-client.version>
+        <google-http-client.version>1.31.0</google-http-client.version>
         <google-api-client.version>1.27.0</google-api-client.version>
 
         <junit.version>4.12</junit.version>
