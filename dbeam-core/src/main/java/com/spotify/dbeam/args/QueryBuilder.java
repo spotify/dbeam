@@ -183,8 +183,8 @@ public class QueryBuilder implements Serializable {
   public String build() {
     String initial = base.getBaseSql();
     StringBuilder buffer = new StringBuilder(initial);
-    whereConditions.forEach(x -> buffer.append(x));
-    limitStr.ifPresent(x -> buffer.append(x));
+    whereConditions.forEach(buffer::append);
+    limitStr.ifPresent(buffer::append);
     return buffer.toString();
   }
 
@@ -194,10 +194,6 @@ public class QueryBuilder implements Serializable {
     return sqlQuery.replaceAll(regex, "$1");
   }
 
-  public QueryBuilder withLimit(Optional<Long> limitOpt) {
-    return limitOpt.map(l -> this.withLimit(l)).orElse(this);
-  }
-  
   public QueryBuilder withLimit(long limit) {
     limitStr = Optional.of(String.format(" LIMIT %d", limit));
     return this;

@@ -127,7 +127,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A list of queries to be executed.
    * @throws SQLException when it fails to find out limits for splits.
    */
-  public Iterable<String> buildQueries(Connection connection)
+  public List<String> buildQueries(Connection connection)
       throws SQLException {
     checkArgument(!queryParallelism().isPresent() || splitColumn().isPresent(),
         "Cannot use queryParallelism because no column to split is specified. "
@@ -138,18 +138,21 @@ public abstract class QueryBuilderArgs implements Serializable {
         "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
 
     this.partitionColumn()
-        .flatMap(
+        .ifPresent(
             partitionColumn ->
                 this.partition()
-                    .map(
+                    .ifPresent(
                         partition -> {
                           final LocalDate datePartition = partition.toLocalDate();
                           final String nextPartition =
                               datePartition.plus(partitionPeriod()).toString();
-                          return this.baseSqlQuery()
+                          this.baseSqlQuery()
                               .withPartitionCondition(
                                   partitionColumn, datePartition.toString(), nextPartition);
                         }));
+    this.limit()
+        .ifPresent(l ->
+                       this.baseSqlQuery().withLimit(queryParallelism().map(k -> l / k).orElse(l)));
 
     if (queryParallelism().isPresent() && splitColumn().isPresent()) {
 
@@ -157,14 +160,10 @@ public abstract class QueryBuilderArgs implements Serializable {
       long min = minMax[0];
       long max = minMax[1];
 
-      this.limit()
-          .flatMap(l -> queryParallelism().map(k -> l / k))
-          .ifPresent(limit -> this.baseSqlQuery().withLimit(limit));
-
       return queriesForBounds(
           min, max, queryParallelism().get(), splitColumn().get(), this.baseSqlQuery());
     } else {
-      return Lists.newArrayList(this.baseSqlQuery().withLimit(this.limit()).build());
+      return Lists.newArrayList(this.baseSqlQuery().build());
     }
   }
 
@@ -180,14 +179,14 @@ public abstract class QueryBuilderArgs implements Serializable {
       throws SQLException {
     String minColumnName = "min_s";
     String maxColumnName = "max_s";
-    QueryBuilder limitsQuery = queryBuilder.generateQueryToGetLimitsOfSplitColumn(
-            splitColumn, minColumnName, maxColumnName);
+    String limitsQuery = queryBuilder.generateQueryToGetLimitsOfSplitColumn(
+            splitColumn, minColumnName, maxColumnName).build();
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(limitsQuery.build());
+          statement.executeQuery(limitsQuery);
       // Check and make sure we have a record. This should ideally succeed always.
       checkState(resultSet.next(), "Result Set for Min/Max returned zero records");
 

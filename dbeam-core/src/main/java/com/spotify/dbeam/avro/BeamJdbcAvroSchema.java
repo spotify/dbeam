@@ -40,21 +40,21 @@ public class BeamJdbcAvroSchema {
 
   private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
-  public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args) throws Exception {
+  public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args, Connection connection)
+      throws Exception {
     Schema generatedSchema;
     String dbName;
     final long startTimeMillis = System.currentTimeMillis();
-    try (Connection connection = args.createConnection()) {
-      final String dbUrl = connection.getMetaData().getURL();
-      final String avroDoc = args.avroDoc().orElseGet(() ->
-          String.format("Generate schema from JDBC ResultSet from %s %s",
-                                             args.queryBuilderArgs().tableName(),
-                                             dbUrl));
-      dbName = connection.getCatalog();
-      generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
-          connection, args.queryBuilderArgs().baseSqlQuery(),
-          args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
-    }
+    final String dbUrl = connection.getMetaData().getURL();
+    final String avroDoc = args.avroDoc().orElseGet(
+        () ->
+            String.format("Generate schema from JDBC ResultSet from %s %s",
+                          args.queryBuilderArgs().tableName(),
+                          dbUrl));
+    dbName = connection.getCatalog();
+    generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
+        connection, args.queryBuilderArgs().baseSqlQuery(),
+        args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
     final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 

@@ -30,9 +30,8 @@ import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
+import java.sql.Connection;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.apache.avro.Schema;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
@@ -89,17 +88,17 @@ public class JdbcAvroJob {
         this.getClass().getPackage().getImplementationTitle(),
         this.getClass().getSimpleName(),
         this.getClass().getPackage().getImplementationVersion());
-    final Schema generatedSchema = BeamJdbcAvroSchema.createSchema(
-        this.pipeline, jdbcExportArgs);
-    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
-    final List<String> queries = StreamSupport.stream(
-        jdbcExportArgs
-            .queryBuilderArgs()
-            .buildQueries(jdbcExportArgs.createConnection())
-            .spliterator(),
-        false)
-        .collect(Collectors.toList());
 
+    final List<String> queries;
+    final Schema generatedSchema;
+    try (Connection connection = jdbcExportArgs.createConnection()) {
+      generatedSchema = BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
+      queries = jdbcExportArgs
+          .queryBuilderArgs()
+          .buildQueries(jdbcExportArgs.createConnection());
+    }
+    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc",
+                                   generatedSchema.toString(true));
     for (int i = 0; i < queries.size(); i++) {
       BeamHelper.saveStringOnSubPath(
           output, String.format("/_queries/query_%d.sql", i), queries.get(i));
