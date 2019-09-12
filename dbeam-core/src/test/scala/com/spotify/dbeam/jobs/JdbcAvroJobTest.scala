@@ -24,7 +24,7 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import java.util
 import java.util.stream.{Collectors, StreamSupport}
-import java.util.{Comparator, UUID}
+import java.util.Comparator
 
 import org.apache.avro.Schema
 import org.apache.avro.file.DataFileReader

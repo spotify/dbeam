@@ -22,7 +22,6 @@ import java.nio.file.{Files, Path, Paths}
 import java.sql.Connection
 import java.util.{Comparator, Optional}
 
-import com.spotify.dbeam.JdbcTestFixtures.recordType
 import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
 import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
 import org.apache.avro.file.CodecFactory
