@@ -20,11 +20,10 @@ package com.spotify.dbeam.args
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.sql.Connection
-import java.util.{Comparator, Optional}
+import java.util.Comparator
 
 import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
 import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
-import org.apache.avro.file.CodecFactory
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.junit.runner.RunWith
@@ -35,7 +34,7 @@ import slick.jdbc.H2Profile.api._
 import scala.collection.JavaConverters._
 
 @RunWith(classOf[JUnitRunner])
-class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class QueryBuilderArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
@@ -106,124 +105,6 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     args.baseSqlQuery().build should be(baseUserQueryNoConditions)
     args.tableName() should be("some_table")
   }
-  it should "fail parse invalid arguments" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("")
-      optionsFromArgs("--foo=bar")
-    }
-  }
-  it should "fail to parse with missing connectionUrl parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--table=some-table")
-    }
-  }
-  it should "fail to parse with missing table parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db")
-    }
-  }
-  it should "parse correctly with missing password parameter" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table")
-
-    val expected = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-          .withUsername("dbeam-extractor")
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-
-    options should be(expected)
-  }
-  it should "fail to parse invalid table parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some-table-with-dash " +
-        "--password=secret")
-    }
-  }
-  it should "fail to parse non jdbc connection parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=bar --table=some_table --password=secret")
-    }
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=some:foo:bar --table=some_table --password=secret")
-    }
-  }
-  it should "fail to parse unsupported jdbc connection parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:paradox:./foo --table=some_table " +
-        "--password=secret")
-    }
-  }
-  it should "fail to parse missing partition parameter but partition column present" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-        "--password=secret --partitionColumn=col")
-    }
-  }
-  it should "fail on too old partition parameter" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-        "--password=secret --partition=2015-01-01")
-    }
-  }
-  it should "fail on old partition parameter with configured partition = min-partition-period" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-        "--password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-01")
-    }
-  }
-  it should "fail on old partition parameter with configured partition < min-partition-period" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-        "--password=secret --partition=2015-01-01 --minPartitionPeriod=2015-01-02")
-    }
-  }
-  it should "parse correctly for postgresql connection" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret")
-
-    val expected = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-          .withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-
-    options should be(expected)
-  }
-  it should "parse correctly for mysql connection" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:mysql://some_db --table=some_table " +
-      "--password=secret")
-
-
-    val expected = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:mysql://some_db")
-          .withUsername("dbeam-extractor")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-    options should be(expected)
-  }
-  it should "configure username" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-      "--table=some_table --password=secret --username=some_user")
-
-    val expected = JdbcExportArgs.create(
-      JdbcAvroArgs.create(
-        JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-          .withUsername("some_user")
-          .withPassword("secret")
-      ),
-      QueryBuilderArgs.create("some_table")
-    )
-
-    options should be(expected)
-  }
   it should "configure limit" in {
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
       "--table=some_table --password=secret --limit=7").queryBuilderArgs()
@@ -265,8 +146,8 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       contain theSameElementsAs Seq(baseQueryNoConditions)
   }
   it should "configure partition with month date (Styx monthly schedule)" in {
-    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-      "--table=some_table --password=secret --partition=2027-05").queryBuilderArgs()
+    val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
+      + "--table=some_table --password=secret --partition=2027-05").queryBuilderArgs()
 
     val expected = QueryBuilderArgs.create("some_table")
       .builder().setPartition(new DateTime(2027, 5, 1, 0, 0, 0, DateTimeZone.UTC)).build()
@@ -431,53 +312,6 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
       s"$coffeesQueryNoConditions" +
         " AND CREATED >= '2027-07-31' AND CREATED < '2027-08-31'" +
         " AND ROWNUM >= 0 AND ROWNUM <= 0")
-  }
-
-  it should "configure avro schema namespace" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --avroSchemaNamespace=ns")
-
-    options.avroSchemaNamespace() should be("ns")
-  }
-  it should "configure avro doc" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --avroDoc=doc")
-
-    options.avroDoc() should be(Optional.of("doc"))
-  }
-  it should "configure use avro logical types" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --useAvroLogicalTypes=true")
-
-    options.useAvroLogicalTypes() shouldBe true
-  }
-  it should "configure fetch size" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --fetchSize=1234")
-
-    options.jdbcAvroOptions().fetchSize() should be(1234)
-  }
-  it should "configure deflate compression level on avro codec" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --avroCodec=deflate7")
-
-    options.jdbcAvroOptions().avroCodec() should be("deflate7")
-    options.jdbcAvroOptions().getCodecFactory.toString should
-      be(CodecFactory.deflateCodec(7).toString)
-  }
-  it should "configure snappy as avro codec" in {
-    val options = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table " +
-      "--password=secret --avroCodec=snappy")
-
-    options.jdbcAvroOptions().avroCodec() should be("snappy")
-    options.jdbcAvroOptions().getCodecFactory.toString should
-      be(CodecFactory.snappyCodec().toString)
-  }
-  it should "fail on invalid avro codec" in {
-    a[IllegalArgumentException] should be thrownBy {
-      optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db " +
-        "--table=some_table --password=secret --avroCodec=lzma")
-    }
   }
 
   it should "fail on queryParallelism with no split column" in {
