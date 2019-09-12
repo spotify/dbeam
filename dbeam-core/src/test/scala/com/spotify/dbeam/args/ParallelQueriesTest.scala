@@ -21,6 +21,8 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
 
+import com.spotify.dbeam.args.ParallelQueryBuilder._
+
 import scala.collection.JavaConverters._
 
 /**
@@ -50,49 +52,49 @@ class ParallelQueriesTest extends FlatSpec with Matchers {
   }
 
   it should "build appropriate parallel queries for a a given range" in {
-    val actual = QueryBuilderArgs.queriesForBounds(100, 400, 3, "sp", queryFormat)
+    val actual = queriesForBounds(100, 400, 3, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(100, 200, 300, 400))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
   it should "build appropriate parallel queries for a a given range which doesn't divide equally" in {
-    val actual = QueryBuilderArgs.queriesForBounds(100, 400, 7, "sp", queryFormat)
+    val actual = queriesForBounds(100, 400, 7, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(100, 143, 186, 229, 272, 315, 358, 400))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
   it should "parallel queries should have equal distribution of range" in {
-    val actual = QueryBuilderArgs.queriesForBounds(100, 400, 6, "sp", queryFormat)
+    val actual = queriesForBounds(100, 400, 6, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(100, 150, 200, 250, 300, 350, 400))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
   it should "build 1 query if queryParallelism is more than max-min" in {
-    val actual = QueryBuilderArgs.queriesForBounds(1, 2, 5, "sp", queryFormat)
+    val actual = queriesForBounds(1, 2, 5, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(1, 2))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
   it should "build 1 query when max and min are same" in {
-    val actual = QueryBuilderArgs.queriesForBounds(1, 1, 5, "sp", queryFormat)
+    val actual = queriesForBounds(1, 1, 5, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(1, 1))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
   it should "build 1 query when max and min are same and queryParallelism is 1" in {
-    val actual = QueryBuilderArgs.queriesForBounds(1, 1, 1, "sp", queryFormat)
+    val actual = queriesForBounds(1, 1, 1, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(1, 1))
 
     actual.asScala should contain theSameElementsAs expected
   }
 
   it should "build 1 query when queryParallelism is 1" in {
-    val actual = QueryBuilderArgs.queriesForBounds(2, 345, 1, "sp", queryFormat)
+    val actual = queriesForBounds(2, 345, 1, "sp", queryFormat)
     val expected = splitPointsToRanges(Seq(2, 345))
 
     actual.asScala should contain theSameElementsAs expected
