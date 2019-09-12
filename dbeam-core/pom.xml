@@ -174,7 +174,7 @@
                 </executions>
                 <configuration>
                     <scalaVersion>${scala.version}</scalaVersion>
-                    <sendJavaToScalac>false</sendJavaToScalac>
+                    <compileOrder>JavaThenScala</compileOrder>
                     <addScalacArgs>-Xexperimental|-target:jvm-1.8</addScalacArgs>
                 </configuration>
             </plugin>
