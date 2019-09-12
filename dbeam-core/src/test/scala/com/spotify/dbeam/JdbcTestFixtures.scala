@@ -39,7 +39,8 @@ object JdbcTestFixtures {
     (230.7).toDouble, true, 13, 201L, new java.sql.Timestamp(1488300723000L),
     None, UUID.fromString("123e4567-e89b-a456-12d3-426655440000"), 2)
 
-  def createFixtures(db: Database, records: Seq[recordType]): Unit = {
+  def createFixtures(db: Database,
+                     records: Seq[recordType] = Seq(record1, record2)): Unit = {
     class Coffees(tag: slick.jdbc.H2Profile.api.Tag) extends
       Table[recordType](tag, "COFFEES") {
       def name = column[String]("COF_NAME", O.PrimaryKey)
@@ -61,9 +62,18 @@ object JdbcTestFixtures {
     val coffee = TableQuery[Coffees]
 
     val action = sql"SELECT COUNT(*) FROM COFFEES".as[(Int)]
+    val createStatement = sqlu"""
+       DROP TABLE IF EXISTS COFFEES;
+       create table if not exists COFFEES (
+        "COF_NAME" VARCHAR NOT NULL PRIMARY KEY,
+        "SUP_ID" INTEGER,"PRICE" DECIMAL(21,2) NOT NULL,
+        "TEMPERATURE" REAL NOT NULL,
+        "SIZE" DOUBLE NOT NULL,"IS_ARABIC" BOOLEAN NOT NULL,"SALES" INTEGER DEFAULT 0 NOT NULL,
+        "TOTAL" BIGINT DEFAULT 0 NOT NULL,"CREATED" TIMESTAMP NOT NULL,"UPDATED" TIMESTAMP,"UID" UUID NOT NULL,
+        "ROWNUM" BIGINT NOT NULL)
+      """
     val dbioSeq = DBIO.seq(
-      sqlu"DROP TABLE IF EXISTS COFFEES",
-      coffee.schema.create,
+      createStatement,
       coffee ++= records,
       action
     )

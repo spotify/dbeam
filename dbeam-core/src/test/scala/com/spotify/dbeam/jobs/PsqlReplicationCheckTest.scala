@@ -20,24 +20,18 @@ package com.spotify.dbeam.jobs
 import java.time.Duration
 import java.util.Optional
 
-import com.spotify.dbeam.JdbcTestFixtures
 import com.spotify.dbeam.args.{JdbcAvroArgs, JdbcConnectionArgs, JdbcExportArgs, QueryBuilderArgs}
 import org.joda.time.{DateTime, DateTimeZone, Days}
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-import slick.jdbc.H2Profile.api._
 
 
 @RunWith(classOf[JUnitRunner])
 class PsqlReplicationCheckTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:testpsql;MODE=postgresql;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
-  private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
 
-  override def beforeAll(): Unit = {
-    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1))
-  }
   private def createArgs(url: String = connectionUrl,
                          queryBuilderArgs: QueryBuilderArgs = QueryBuilderArgs.create("some_table")) = {
     JdbcExportArgs.create(

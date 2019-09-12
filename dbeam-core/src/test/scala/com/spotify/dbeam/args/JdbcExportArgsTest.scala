@@ -40,7 +40,7 @@ class JdbcExportArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
   private val db = Database.forURL(connectionUrl, driver = "org.h2.Driver")
-  JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))
+  JdbcTestFixtures.createFixtures(db)
   private val connection: Connection = db.source.createConnection()
 
   private val baseQueryNoConditions = "SELECT * FROM some_table WHERE 1=1"

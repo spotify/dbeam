@@ -48,7 +48,7 @@ class JdbcAvroJobTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   
 
   override def beforeAll(): Unit = {
-    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))
+    JdbcTestFixtures.createFixtures(db)
     passwordFile.createNewFile()
   }
 

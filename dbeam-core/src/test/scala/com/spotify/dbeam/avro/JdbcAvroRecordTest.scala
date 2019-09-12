@@ -40,7 +40,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val record1 = JdbcTestFixtures.record1
 
   override def beforeAll(): Unit = {
-    JdbcTestFixtures.createFixtures(db, Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2))
+    JdbcTestFixtures.createFixtures(db)
   }
 
   it should "create schema" in {
