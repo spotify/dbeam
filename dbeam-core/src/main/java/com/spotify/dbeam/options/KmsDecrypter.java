@@ -57,6 +57,7 @@ public abstract class KmsDecrypter {
 
   /**
    * Create a new {@link Builder} for customizing the {@link KmsDecrypter} configuration.
+   * @return a configured {@link KmsDecrypter}
    */
   public static Builder decrypter() {
     return new AutoValue_KmsDecrypter.Builder()

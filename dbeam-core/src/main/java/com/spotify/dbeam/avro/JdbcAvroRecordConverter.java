@@ -84,6 +84,9 @@ public class JdbcAvroRecordConverter {
   /**
    * Read data from a single row of result set and and encode into a Avro record as byte array.
    * Directly reading and encoding has the benefit of less need for copying bytes between objects.
+   * @return a ByteBuffer with binary encoded Avro record
+   * @throws SQLException in case reading row from JDBC fails
+   * @throws IOException in case binary encoding fails
    */
   public ByteBuffer convertResultSetIntoAvroBytes()
       throws SQLException, IOException {

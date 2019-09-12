@@ -239,16 +239,22 @@ public abstract class QueryBuilderArgs implements Serializable {
   /**
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
+   * @param min minimum value to filter splitColumn
+   * @param max maximium value to filter splitColumn
+   * @param parallelism max number of queries to generate
+   * @param splitColumn the column that will be use to split and parallelize queries
+   * @param queryBuilder template query builder
+   * @return a list of SQL queries
    */
   protected static List<String> queriesForBounds(
-         long min, long max, int parallelism, String splitColumn, QueryBuilder baseSqlQuery) {
+         long min, long max, int parallelism, String splitColumn, QueryBuilder queryBuilder) {
     
     List<QueryRange> ranges = generateRanges(min, max, parallelism);
 
     return ranges.stream()
         .map(
             x ->
-                baseSqlQuery
+                queryBuilder
                     .copy() // we create a new query here
                     .withParallelizationCondition(
                         splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
@@ -259,6 +265,10 @@ public abstract class QueryBuilderArgs implements Serializable {
   /**
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
+   * @param min minimum value to filter splitColumn
+   * @param max maximium value to filter splitColumn
+   * @param parallelism max number of queries to generate
+   * @return A list query ranges
    */
   protected static List<QueryRange> generateRanges(
           long min, long max, int parallelism) {
