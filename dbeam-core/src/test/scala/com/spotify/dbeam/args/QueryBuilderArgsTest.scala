@@ -265,31 +265,19 @@ class QueryBuilderArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll
   }
 
   it should "create queries for split column of integer type for sqlQuery in many splits" in {
-    //set-up fixture
-    val parallelism = 5
-    val records = Seq(JdbcTestFixtures.record1, JdbcTestFixtures.record2) ++
-      (1 to 23).map(x => JdbcTestFixtures.record2.copy(
-        _1 = JdbcTestFixtures.record2._1 + x, _12 = JdbcTestFixtures.record2._12 + x))
-
-    JdbcTestFixtures.createFixtures(db, records)
-    
     val actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=COFFEES " +
-      "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5".format(coffeesSqlFile))
+      "--password=secret --sqlFile=%s --splitColumn=ROWNUM --queryParallelism=2".format(coffeesSqlFile))
       .queryBuilderArgs()
     val expected = QueryBuilderArgs.create("COFFEES", coffeesQueryWithConditions)
       .builder()
       .setSplitColumn("ROWNUM")
-      .setQueryParallelism(parallelism)
+      .setQueryParallelism(2)
       .build()
     actual should be(expected)
     val msgs = buildStringQueries(actual)
     msgs should
       contain theSameElementsAs Seq(
-      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 1 AND ROWNUM < 6",
-      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 6 AND ROWNUM < 11",
-      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 11 AND ROWNUM < 16",
-      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 16 AND ROWNUM < 21",
-      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 21 AND ROWNUM <= 25"
+      s"$coffeesUserQueryWithConditions" + " AND ROWNUM >= 1 AND ROWNUM <= 2"
     )
   }
 
