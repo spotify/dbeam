@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.hamcrest.Matchers;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 
@@ -109,6 +110,22 @@ public class ParallelQueryBuilderTest {
         actual,
         Matchers.is(Lists.newArrayList(
             format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 10)
+        ))
+    );
+  }
+
+  @Ignore // TODO: fix this
+  @Test
+  public void shouldBuildMultipleQueriesWhenQueryingFromTwoRows() {
+    final List<String> actual =
+        ParallelQueryBuilder.queriesForBounds(1, 2, 2, "sp",
+                                              QUERY_FORMAT);
+
+    Assert.assertThat(
+        actual,
+        Matchers.is(Lists.newArrayList(
+            format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 1, 2),
+            format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 2, 2)
         ))
     );
   }
