@@ -20,6 +20,7 @@
 
 package com.spotify.dbeam;
 
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -29,6 +30,14 @@ public class TestHelper {
   public static Path createTmpDirName(String subDirNamePrefix) {
     return Paths.get(System.getProperty("java.io.tmpdir"),
     subDirNamePrefix + "-" + UUID.randomUUID().toString());
+  }
+
+  public static ByteBuffer uuidToByteBuffer(UUID uuid) {
+    ByteBuffer bf = ByteBuffer.allocate(16)
+        .putLong(uuid.getMostSignificantBits())
+        .putLong(uuid.getLeastSignificantBits());
+    bf.clear();
+    return bf;
   }
 
 }

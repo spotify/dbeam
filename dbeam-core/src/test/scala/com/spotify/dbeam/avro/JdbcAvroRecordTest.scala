@@ -18,10 +18,8 @@
 package com.spotify.dbeam.avro
 
 import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
-import java.util.UUID
 
-import com.spotify.dbeam.JdbcTestFixtures
+import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
 import org.apache.avro.Schema
 import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayInput}
 import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
@@ -128,14 +126,6 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getDoc should be ("doc")
   }
 
-  def toByteBuffer(uuid: UUID): ByteBuffer = {
-    val bf = ByteBuffer.allocate(16)
-      .putLong(uuid.getMostSignificantBits)
-      .putLong(uuid.getLeastSignificantBits)
-    bf.clear()
-    bf
-  }
-
   it should "encode jdbc result set to valid avro" in {
     val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM COFFEES")
     val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
@@ -171,7 +161,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     record.get(7) should be (record1._8)
     record.get(8) should be (record1._9.getTime)
     record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
-    record.get(10) should be (toByteBuffer(record1._11))
+    record.get(10) should be (TestHelper.uuidToByteBuffer(record1._11))
     record.get(11) should be (record1._12)
   }
 
