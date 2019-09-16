@@ -18,15 +18,15 @@
 package com.spotify.dbeam.avro
 
 import java.io.ByteArrayOutputStream
+import java.util.Optional
 
-import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
+import com.spotify.dbeam.{Coffee, DbTestHelper, TestHelper}
 import org.apache.avro.Schema
 import org.apache.avro.file.{DataFileReader, DataFileWriter, SeekableByteArrayInput}
 import org.apache.avro.generic.{GenericDatumReader, GenericDatumWriter, GenericRecord}
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-import slick.jdbc.H2Profile.api._
 
 import scala.collection.JavaConverters._
 
@@ -34,17 +34,16 @@ import scala.collection.JavaConverters._
 class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
-  private val db: Database = Database.forURL(connectionUrl, driver = "org.h2.Driver")
-  private val record1 = JdbcTestFixtures.record1
+  private val record1 = Coffee.COFFEE1
 
   override def beforeAll(): Unit = {
-    JdbcTestFixtures.createFixtures(db)
+    DbTestHelper.createFixtures(connectionUrl)
   }
 
   it should "create schema" in {
     val fieldCount = 12
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(),
+      DbTestHelper.createConnection(connectionUrl),
       "COFFEES", "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false)
 
@@ -81,7 +80,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   it should "create schema with logical types" in {
     val fieldCount = 12
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(),
+      DbTestHelper.createConnection(connectionUrl),
       "COFFEES", "dbeam_generated",
       "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
       true)
@@ -119,7 +118,8 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   it should "create schema with specified namespace and doc string" in {
     val actual: Schema = JdbcAvroSchema.createSchemaByReadingOneRow(
-      db.source.createConnection(), "COFFEES", "ns", "doc", false)
+      DbTestHelper.createConnection(connectionUrl),
+      "COFFEES", "ns", "doc", false)
 
     actual shouldNot be (null)
     actual.getNamespace should be ("ns")
@@ -127,7 +127,7 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   it should "encode jdbc result set to valid avro" in {
-    val rs = db.source.createConnection().createStatement().executeQuery(s"SELECT * FROM COFFEES")
+    val rs = DbTestHelper.createConnection(connectionUrl).createStatement().executeQuery(s"SELECT * FROM COFFEES")
     val schema = JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated","connection", "doc", false)
     val converter = JdbcAvroRecordConverter.create(rs)
     val dataFileWriter = new DataFileWriter(new GenericDatumWriter[GenericRecord](schema))
@@ -146,23 +146,26 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val records: Seq[GenericRecord] =
       dataFileReader.asInstanceOf[java.lang.Iterable[GenericRecord]].asScala.toSeq
     records.size should be (2)
-    val record: GenericRecord = records.filter(r => r.get(0).toString == record1._1).head
+    val record: GenericRecord = records.filter(r => r.get(0).toString == record1.name()).head
 
     record shouldNot be (null)
     record.getSchema should be (schema)
     record.getSchema.getFields.size() should be (12)
-    record.get(0).toString should be (record1._1)
-    record.get(1) should be (record1._2.map(x => x : java.lang.Integer).orNull)
-    record.get(2).toString should be (record1._3.toString)
-    record.get(3) should be (record1._4)
-    record.get(4) should be (record1._5)
-    record.get(5) should be (new java.lang.Boolean(record1._6))
-    record.get(6) should be (record1._7)
-    record.get(7) should be (record1._8)
-    record.get(8) should be (record1._9.getTime)
-    record.get(9) should be (record1._10.map(_.getTime).map(x => x : java.lang.Long).orNull)
-    record.get(10) should be (TestHelper.uuidToByteBuffer(record1._11))
-    record.get(11) should be (record1._12)
+    val actual = Coffee.create(
+      record.get(0).toString,
+      Optional.ofNullable(record.get(1).asInstanceOf[java.lang.Integer]),
+      new java.math.BigDecimal(record.get(2).toString),
+      record.get(3).asInstanceOf[java.lang.Float],
+      record.get(4).asInstanceOf[java.lang.Double],
+      record.get(5).asInstanceOf[java.lang.Boolean],
+      record.get(6).asInstanceOf[java.lang.Integer],
+      record.get(7).asInstanceOf[java.lang.Long],
+      new java.sql.Timestamp(record.get(8).asInstanceOf[java.lang.Long]),
+      Optional.ofNullable(Option(record.get(9).asInstanceOf[java.lang.Long]).map(v => new java.sql.Timestamp(v)).orNull),
+      TestHelper.byteBufferToUuid(record.get(10).asInstanceOf[java.nio.ByteBuffer]),
+      record.get(11).asInstanceOf[java.lang.Long]
+    )
+    actual should be (record1)
   }
 
 }

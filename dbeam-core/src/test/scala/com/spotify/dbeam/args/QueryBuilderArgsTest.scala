@@ -23,13 +23,12 @@ import java.sql.Connection
 import java.util.Comparator
 
 import com.spotify.dbeam.options.{JdbcExportArgsFactory, JdbcExportPipelineOptions}
-import com.spotify.dbeam.{JdbcTestFixtures, TestHelper}
+import com.spotify.dbeam.{DbTestHelper, TestHelper}
 import org.apache.beam.sdk.options.{PipelineOptions, PipelineOptionsFactory}
 import org.joda.time.{DateTime, DateTimeZone, Period}
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-import slick.jdbc.H2Profile.api._
 
 import scala.collection.JavaConverters._
 
@@ -38,9 +37,8 @@ class QueryBuilderArgsTest extends FlatSpec with Matchers with BeforeAndAfterAll
 
   private val connectionUrl: String =
     "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1"
-  private val db = Database.forURL(connectionUrl, driver = "org.h2.Driver")
-  JdbcTestFixtures.createFixtures(db)
-  private val connection: Connection = db.source.createConnection()
+  DbTestHelper.createFixtures(connectionUrl)
+  private val connection: Connection = DbTestHelper.createConnection(connectionUrl)
 
   private val baseQueryNoConditions = "SELECT * FROM some_table WHERE 1=1"
   private val baseUserQueryNoConditions = "SELECT * FROM (SELECT * FROM some_table) WHERE 1=1"

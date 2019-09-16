@@ -32,12 +32,11 @@ public class TestHelper {
     subDirNamePrefix + "-" + UUID.randomUUID().toString());
   }
 
-  public static ByteBuffer uuidToByteBuffer(UUID uuid) {
-    ByteBuffer bf = ByteBuffer.allocate(16)
-        .putLong(uuid.getMostSignificantBits())
-        .putLong(uuid.getLeastSignificantBits());
-    bf.clear();
-    return bf;
+  public static UUID byteBufferToUuid(ByteBuffer byteBuffer) {
+    Long high = byteBuffer.getLong();
+    Long low = byteBuffer.getLong();
+
+    return new UUID(high, low);
   }
 
 }

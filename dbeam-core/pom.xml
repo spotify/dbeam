@@ -143,12 +143,6 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>com.typesafe.slick</groupId>
-        <artifactId>slick_${scala.baseVersion}</artifactId>
-        <version>3.3.2</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
         <groupId>com.google.http-client</groupId>
         <artifactId>google-http-client-test</artifactId>
         <scope>test</scope>
