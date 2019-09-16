@@ -98,14 +98,6 @@ class JdbcAvroRecordTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     actual.getFields.asScala.map(_.schema().getTypes.get(0).getType) should
       be (List.fill(fieldCount)(Schema.Type.NULL))
     actual.getFields.asScala.map(_.schema().getTypes.size()) should be (List.fill(fieldCount)(2))
-    actual.getField("COF_NAME").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
-    actual.getField("SUP_ID").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("PRICE").schema().getTypes.get(1).getType should be (Schema.Type.STRING)
-    actual.getField("TEMPERATURE").schema().getTypes.get(1).getType should be (Schema.Type.FLOAT)
-    actual.getField("SIZE").schema().getTypes.get(1).getType should be (Schema.Type.DOUBLE)
-    actual.getField("IS_ARABIC").schema().getTypes.get(1).getType should be (Schema.Type.BOOLEAN)
-    actual.getField("SALES").schema().getTypes.get(1).getType should be (Schema.Type.INT)
-    actual.getField("TOTAL").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("CREATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getType should be (Schema.Type.LONG)
     actual.getField("UPDATED").schema().getTypes.get(1).getProp("logicalType") should
