@@ -15,11 +15,6 @@
       Top level core implementation
     </description>
 
-    <properties>
-        <scala.baseVersion>2.12</scala.baseVersion>
-        <scala.version>2.12.8</scala.version>
-    </properties>
-
     <dependencies>
 
       <!-- SDK -->
@@ -110,19 +105,6 @@
       <!-- Test Deps -->
 
       <dependency>
-          <groupId>org.scala-lang</groupId>
-          <artifactId>scala-library</artifactId>
-          <version>${scala.version}</version>
-          <scope>test</scope>
-      </dependency>
-      <dependency>
-          <groupId>org.scalatest</groupId>
-          <artifactId>scalatest_${scala.baseVersion}</artifactId>
-          <version>3.0.5</version>
-          <scope>test</scope>
-      </dependency>
-
-      <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <scope>test</scope>
@@ -148,31 +130,5 @@
         <scope>test</scope>
       </dependency>
     </dependencies>
-
-
-    <build>
-        <plugins>
-
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>4.2.0</version>
-                <executions>
-                    <execution>
-                        <id>scala-test-compile</id>
-                        <phase>process-test-resources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <scalaVersion>${scala.version}</scalaVersion>
-                    <compileOrder>JavaThenScala</compileOrder>
-                    <addScalacArgs>-Xexperimental|-target:jvm-1.8</addScalacArgs>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>
