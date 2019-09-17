@@ -233,4 +233,32 @@ public class JdbcExportOptionsTest {
         + "--password=secret --avroCodec=lzma");
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailOnQueryParallelismWithNoSplitColumn()
+      throws IOException, ClassNotFoundException {
+    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
+                    + "--table=some_table --password=secret --queryParallelism=10");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailOnSplitColumnWithNoQueryParallelism()
+      throws IOException, ClassNotFoundException {
+    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
+                    + "--table=some_table --password=secret --splitColumn=id");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailOnZeroQueryParallelism()
+      throws IOException, ClassNotFoundException {
+    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
+                    + "--table=some_table --password=secret --queryParallelism=0 --splitColumn=id");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailOnNegativeQueryParallelism()
+      throws IOException, ClassNotFoundException {
+    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                    + "--password=secret --queryParallelism=-5 --splitColumn=id");
+  }
+
 }

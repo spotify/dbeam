@@ -20,7 +20,8 @@
 
 package com.spotify.dbeam.options;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
@@ -64,7 +65,7 @@ public class JdbcExportArgsFactory {
     Optional<DateTime> partition = Optional.ofNullable(options.getPartition())
         .map(JdbcExportArgsFactory::parseDateTime);
     Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
-    Preconditions.checkArgument(
+    checkArgument(
         !partitionColumn.isPresent() || partition.isPresent(),
         "To use --partitionColumn the --partition parameter must also be configured");
 
@@ -75,14 +76,23 @@ public class JdbcExportArgsFactory {
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
 
+    final Optional<String> splitColumn = Optional.ofNullable(options.getSplitColumn());
+    final Optional<Integer> queryParallelism = Optional.ofNullable(options.getQueryParallelism());
+    checkArgument(queryParallelism.isPresent() == splitColumn.isPresent(),
+                  "Either both --queryParallelism and --splitColumn must be present or "
+                  + "none of them");
+    queryParallelism.ifPresent(p -> checkArgument(
+        p > 0,
+        "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
+
     return createQueryBuilderArgs(options)
         .builder()
         .setLimit(Optional.ofNullable(options.getLimit()))
         .setPartitionColumn(partitionColumn)
         .setPartition(partition)
         .setPartitionPeriod(partitionPeriod)
-        .setSplitColumn(Optional.ofNullable(options.getSplitColumn()))
-        .setQueryParallelism(Optional.ofNullable(options.getQueryParallelism()))
+        .setSplitColumn(splitColumn)
+        .setQueryParallelism(queryParallelism)
         .build();
   }
 
@@ -105,7 +115,7 @@ public class JdbcExportArgsFactory {
 
   private static DateTime validatePartition(
       DateTime partitionDateTime, DateTime minPartitionDateTime) {
-    Preconditions.checkArgument(
+    checkArgument(
         partitionDateTime.isAfter(minPartitionDateTime),
         "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check",
         partitionDateTime, minPartitionDateTime

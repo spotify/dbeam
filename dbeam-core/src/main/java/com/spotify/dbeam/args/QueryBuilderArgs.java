@@ -125,14 +125,6 @@ public abstract class QueryBuilderArgs implements Serializable {
    */
   public List<String> buildQueries(Connection connection)
       throws SQLException {
-    checkArgument(!queryParallelism().isPresent() || splitColumn().isPresent(),
-        "Cannot use queryParallelism because no column to split is specified. "
-            + "Please specify column to use for splitting using --splitColumn");
-    checkArgument(queryParallelism().isPresent() || !splitColumn().isPresent(),
-        "argument splitColumn has no effect since --queryParallelism is not specified");
-    queryParallelism().ifPresent(p -> checkArgument(p > 0,
-        "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
-
     this.partitionColumn()
         .ifPresent(
             partitionColumn ->
