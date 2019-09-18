@@ -1,4 +1,4 @@
-name: Java Maven CI
+name: Java Maven
 
 # https://github.com/laboratoriobridge/metafy/blob/d2f4fd53ef3783140cece9d5f2a57045304266dc/.github/workflows/maven.yml
 on:
@@ -15,7 +15,7 @@ on:
 
 jobs:
   test:
-    name: CI on Java ${{ matrix.java_version }} and ${{ matrix.os }}
+    name: CI on JDK ${{ matrix.java_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -41,9 +41,11 @@ jobs:
         # # https://github.com/arduino/arduino-cli/blob/5e1627de181e6737a874c8b3ea356cec248cc74c/.github/workflows/test.yaml
         # # https://github.com/softprops/action-gh-release
       - name: Deploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '1.8'
         env:
           GPG_KEY: ${{ secrets.GPG_KEY }}
+          GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: |
@@ -52,7 +54,7 @@ jobs:
           rm -rf ~/.gnupg
       - name: Release
         uses: docker://softprops/action-gh-release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && matrix.java_version == '1.8'
         with:
           # body_path: ${{ github.workflow }}-CHANGELOG.txt
           files: './dbeam-core/target/dbeam-core-*.jar,./dbeam-core/target/dbeam-core-*.jar.asc'
