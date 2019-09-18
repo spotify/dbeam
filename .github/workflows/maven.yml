@@ -28,14 +28,11 @@ jobs:
         with:
           java-version: ${{ matrix.java_version }}
       - name: Build with Maven
-        run: mvn clean verify -Pcoverage -Ppack --file pom.xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1.0.2
-        with:
-          token: ${{secrets.CODECOV_TOKEN}}
-          file: ./dbeam-core/target/site/jacoco/jacoco.xml
-          flags: unittests
-          name: codecov-umbrella
+        env:
+          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
+        run: |
+          mvn clean verify -Pcoverage -Ppack --file pom.xml --batch-mode -Dsytle.colors=always --errors
+          bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN -F unittests -f ./dbeam-core/target/site/jacoco/jacoco.xml -n codecov-umbrella
       - name: End to end tests
         run: ./e2e/e2e.sh
         # # https://github.com/arduino/arduino-cli/blob/5e1627de181e6737a874c8b3ea356cec248cc74c/.github/workflows/test.yaml
@@ -49,8 +46,12 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: |
+          export GPG_TTY=$(tty)
+          export DISPLAY=:0
+          gpg --version
           echo "$GPG_KEY" | base64 --decode --ignore-garbage | gpg --batch --fast-import -
-          mvn --settings sonatype-settings.xml -DskipTests -Prelease deploy
+          echo "test" | gpg --batch --clearsign --pinentry-mode loopback || true
+          mvn --settings sonatype-settings.xml -DskipTests -Prelease deploy --batch-mode -Dsytle.colors=always --errors
           rm -rf ~/.gnupg
       - name: Release
         uses: docker://softprops/action-gh-release
