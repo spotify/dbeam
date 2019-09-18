@@ -134,7 +134,7 @@
         <protobuf.version>3.6.1</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
         <google.cloud.core.version>1.61.0</google.cloud.core.version>
-        <grpc.version>1.17.1</grpc.version>
+        <grpc.version>1.23.0</grpc.version>
         <google-http-client.version>1.27.0</google-http-client.version>
         <google-api-client.version>1.27.0</google-api-client.version>
 
