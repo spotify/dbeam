@@ -238,6 +238,10 @@
                         <groupId>com.google.apis</groupId>
                         <artifactId>google-api-services-storage</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.avro</groupId>
+                        <artifactId>avro</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -272,6 +276,11 @@
                 <version>v1-rev20181109-1.27.0</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>1.9.1</version>
+            </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>

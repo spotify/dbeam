@@ -97,7 +97,7 @@ public class JdbcAvroJobTest {
         "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
         "--table=COFFEES",
         "--output=" + DIR.getAbsolutePath(),
-        "--avroCodec=deflate1"
+        "--avroCodec=zstandard1"
     });
     Assert.assertThat(
         listDir(DIR),

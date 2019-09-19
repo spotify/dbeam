@@ -48,6 +48,8 @@ public abstract class JdbcAvroArgs implements Serializable {
       return CodecFactory.snappyCodec();
     } else if (avroCodec().startsWith("deflate")) {
       return CodecFactory.deflateCodec(Integer.valueOf(avroCodec().replace("deflate", "")));
+    } else if (avroCodec().startsWith("zstandard")) {
+      return CodecFactory.zstandardCodec(Integer.valueOf(avroCodec().replace("zstandard", "")));
     }
     throw new IllegalArgumentException("Invalid avroCodec " + avroCodec());
   }
@@ -68,7 +70,7 @@ public abstract class JdbcAvroArgs implements Serializable {
 
   public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs,
                                     int fetchSize, String avroCodec) {
-    Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]"),
+    Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]|zstandard[1-9]"),
                           "Avro codec should be snappy or deflate1, .., deflate9");
     return new AutoValue_JdbcAvroArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)

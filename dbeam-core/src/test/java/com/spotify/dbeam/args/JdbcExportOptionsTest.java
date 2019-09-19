@@ -213,6 +213,20 @@ public class JdbcExportOptionsTest {
   }
 
   @Test
+  public void shouldConfigureZstandardCodec() throws IOException, ClassNotFoundException {
+    JdbcExportArgs options = optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        + "--password=secret --avroCodec=zstandard9");
+
+    Assert.assertEquals(
+        "zstandard9",
+        options.jdbcAvroOptions().avroCodec());
+    Assert.assertEquals(
+        CodecFactory.zstandardCodec(9).toString(),
+        options.jdbcAvroOptions().getCodecFactory().toString());
+  }
+
+  @Test
   public void shouldConfigureSnappyCodec() throws IOException, ClassNotFoundException {
     JdbcExportArgs options = optionsFromArgs(
         "--connectionUrl=jdbc:postgresql://some_db --table=some_table "

@@ -34,6 +34,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -77,7 +78,8 @@ public class JdbcAvroIO {
     final DynamicAvroDestinations<String, Void, String>
         destinations =
         AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                    jdbcAvroArgs.getCodecFactory(),
+                                    // since Beam does not support zstandard
+                                    CodecFactory.nullCodec(),
                                     SerializableFunctions.identity());
     final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
         prefixProvider,
@@ -158,7 +160,7 @@ public class JdbcAvroIO {
       Void destination = getDestination();
       Schema schema = dynamicDestinations.getSchema(destination);
       dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema))
-          .setCodec(dynamicDestinations.getCodec(destination))
+          .setCodec(jdbcAvroArgs.getCodecFactory())
           .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       this.countingOutputStream = new CountingOutputStream(Channels.newOutputStream(channel));
