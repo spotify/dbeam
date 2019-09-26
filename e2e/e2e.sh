@@ -7,7 +7,6 @@ set -o pipefail
 
 readonly SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 readonly PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null && pwd)"
-readonly RESULTS_FILE="$SCRIPT_PATH/bench_dbeam_results.out"
 
 # This file contatins psql views with complex types to validate and troubleshoot dbeam
 
@@ -63,15 +62,7 @@ pack() {
 }
 
 runFromJar() {
-  (set -ex; java $JAVA_OPTS -cp "$PROJECT_PATH"/dbeam-core/target/dbeam-core-shaded.jar com.spotify.dbeam.jobs.JdbcAvroJob "$@")
-}
-
-runDbeamDefault() {
-  time \
-    runFromJar \
-    --skipPartitionCheck \
-    --targetParallelism=1 \
-    "$@" 2>&1 | tee -a /tmp/out1
+  (set -ex; java $JAVA_OPTS -cp "$PROJECT_PATH"/dbeam-core/target/dbeam-core-shaded.jar com.spotify.dbeam.jobs.BenchJdbcAvroJob "$@")
 }
 
 DOCKER_PSQL_ARGS=(
@@ -83,40 +74,30 @@ DOCKER_PSQL_ARGS=(
 
 runDBeamDockerCon() {
   OUTPUT="$SCRIPT_PATH/results/testn/$(date +%FT%H%M%S)/"
-  runDbeamDefault \
+  time \
+    runFromJar \
+    --skipPartitionCheck \
+    --targetParallelism=1 \
     "${DOCKER_PSQL_ARGS[@]}" \
     "--partition=$(date +%F)" \
     "--output=$OUTPUT" \
-    "$@"
-}
-
-runScenario() {
-  for ((i=1;i<=3;i++)); do
-    runDBeamDockerCon "${@:2}"
-    jq -r "[\"$1\", .recordCount, .writeElapsedMs, .msPerMillionRows, .bytesWritten?, (.bytesWritten? / .writeElapsedMs | . * 1000 | floor | . / 1000)] | @tsv" < "$OUTPUT/_METRICS.json" >> "$RESULTS_FILE"
-  done
+    "$@" 2>&1 | tee -a /tmp/out1
 }
 
 runSuite() {
   java -version
-  printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\tkBps\n' >> "$RESULTS_FILE"
   table=demo_table
-  BINARY_TRANSFER='false' runScenario "deflate1t5" --avroCodec=deflate1
-  BINARY_TRANSFER='false' runScenario "||query" --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=zstandard1
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
 }
 
 light() {
   pack
-  printf 'scenario\t\trecords\twriteElapsedMs\tmsPerMillionRows\tbytesWritten\n' >> "$RESULTS_FILE"
   table=demo_table
-  BINARY_TRANSFER='false' runScenario "deflate1t5" --avroCodec=deflate1
-  printResults
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
 }
 
-
-printResults() {
-  column -t -s $'\t' < "$RESULTS_FILE" | tail -n 20
-}
 
 main() {
   if [[ $# -gt 0 ]]; then
@@ -126,7 +107,6 @@ main() {
     time startPostgres
 
     runSuite
-    printResults
     dockerClean
   fi
 }
