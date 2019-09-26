@@ -61,7 +61,7 @@ public class JdbcAvroJob {
                                 "'output' must be defined");
   }
 
-  public static JdbcAvroJob create(PipelineOptions pipelineOptions)
+  public static JdbcAvroJob create(PipelineOptions pipelineOptions, String output)
       throws IOException, ClassNotFoundException {
     // make sure pipeline.run() does not call waitUntilFinish
     // instead we call with an explicit duration/exportTimeout configuration
@@ -69,7 +69,13 @@ public class JdbcAvroJob {
     return new JdbcAvroJob(pipelineOptions,
                            Pipeline.create(pipelineOptions),
                            JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
-                           pipelineOptions.as(OutputOptions.class).getOutput());
+                           output);
+  }
+
+  public static JdbcAvroJob create(PipelineOptions pipelineOptions)
+      throws IOException, ClassNotFoundException {
+    return create(pipelineOptions,
+                  pipelineOptions.as(OutputOptions.class).getOutput());
   }
 
   public static JdbcAvroJob create(String[] cmdLineArgs)
