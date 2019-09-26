@@ -22,10 +22,21 @@ package com.spotify.dbeam.jobs;
 
 import static com.google.common.collect.Lists.newArrayList;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.math.Stats;
 
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.options.OutputOptions;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.Default;
@@ -33,14 +44,9 @@ import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+/**
+ * Used on e2e test, allows benchmarking with different configuration parameters.
+ */
 public class BenchJdbcAvroJob {
 
   public interface BenchJdbcAvroOptions extends PipelineOptions {
@@ -76,6 +82,8 @@ public class BenchJdbcAvroJob {
           JdbcAvroJob.create(pipelineOptions, output).runExport();
       this.metrics.add(MetricsHelper.getMetrics(pipelineResult));
     }
+    System.out.println("Summary for BenchJdbcAvroJob");
+    System.out.println(pipelineOptions.toString());
     System.out.println(tsvMetrics());
   }
 
@@ -84,39 +92,43 @@ public class BenchJdbcAvroJob {
         columns =
         newArrayList("recordCount", "writeElapsedMs", "msPerMillionRows", "bytesWritten");
     final Collector<CharSequence, ?, String> tabJoining = Collectors.joining("\t");
-    final Stream<String> lines = this.metrics.stream().map(
-        m ->
-            "k\t" +
-            Stream.concat(
-                columns.stream().map(c ->
-                                         m.get(c).toString()),
-                Stream.of(String.valueOf(m.get("bytesWritten") / m.get("writeElapsedMs")))
-            )
-                .collect(tabJoining)
+    final Stream<String> lines = IntStream.range(0, this.metrics.size()).mapToObj(
+        i -> String.format(
+            "run_%02d  \t%s\t% 6d",
+            i,
+            columns.stream().map(
+                c ->
+                    Optional.of(this.metrics.get(i).get(c))
+                        .orElse(0L).toString()).collect(tabJoining),
+            this.metrics.get(i).get("bytesWritten") / this.metrics.get(i).get("writeElapsedMs")
+        )
     );
     final List<Stats> stats = Stream.concat(
         columns.stream().map(c ->
                                  Stats.of((Iterable<Long>) this.metrics.stream()
-                                     .map(m -> m.get(c))::iterator)
+                                     .map(m -> Optional.of(m.get(c)).orElse(0L))::iterator)
         ), Stream.of(
             Stats
                 .of((Iterable<Long>) this.metrics.stream()
                     .map(m -> m.get("bytesWritten") / m.get("writeElapsedMs"))::iterator)
         )).collect(Collectors.toList());
+    final Map<String, Function<Stats, Double>> relevantStats = ImmutableMap.of(
+        "max    ", Stats::max,
+        "mean   ", Stats::mean,
+        "min    ", Stats::min,
+        "stddev ", Stats::populationStandardDeviation);
+    final Stream<String> statsSummary = relevantStats.entrySet().stream().map(
+        e -> String.format("%s\t%s",
+                           e.getKey(),
+                           stats.stream().map(e.getValue())
+                               .map(v -> String.format("% 6.1f", v)).collect(tabJoining)
+        ));
     return Stream.concat(
         Stream.concat(
-            Stream.of(Stream.concat(Stream.of("name"), columns.stream()).collect(tabJoining)),
+            Stream.of(String.format("name   \t%s\tKBps", String.join("\t", columns))),
             lines),
-        Stream.of(
-            "max\t" +
-            stats.stream().map(Stats::max).map(String::valueOf).collect(tabJoining),
-            "mean\t" +
-            stats.stream().map(Stats::mean).map(String::valueOf).collect(tabJoining),
-            "min\t" +
-            stats.stream().map(Stats::min).map(String::valueOf).collect(tabJoining),
-            "stddev\t" +
-            stats.stream().map(Stats::populationStandardDeviation).map(String::valueOf).collect(tabJoining)
-        )).collect(Collectors.joining("\n"));
+        statsSummary)
+        .collect(Collectors.joining("\n"));
   }
 
   public static void main(String[] cmdLineArgs) {
