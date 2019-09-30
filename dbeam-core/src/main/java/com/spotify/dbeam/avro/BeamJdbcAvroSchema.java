@@ -44,7 +44,7 @@ public class BeamJdbcAvroSchema {
       throws Exception {
     Schema generatedSchema;
     String dbName;
-    final long startTimeMillis = System.currentTimeMillis();
+    final long startTime = System.nanoTime();
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc = args.avroDoc().orElseGet(
         () ->
@@ -55,7 +55,7 @@ public class BeamJdbcAvroSchema {
     generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
         connection, args.queryBuilderArgs().baseSqlQuery(),
         args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
-    final long elapsedTimeSchema = System.currentTimeMillis() - startTimeMillis;
+    final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
     JobNameConfiguration.configureJobName(

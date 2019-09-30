@@ -64,9 +64,9 @@ public class JdbcAvroMetering {
     this.rowCount++;
     if ((this.rowCount % countReportEvery) == 0) {
       this.recordCount.inc(countReportEvery);
-      long elapsedMs = System.currentTimeMillis() - this.writeIterateStartTime;
-      long msPerMillionRows = 1000000L * elapsedMs / rowCount;
-      long rowsPerMinute = (60 * 1000L) * rowCount / elapsedMs;
+      long elapsedNano = System.nanoTime() - this.writeIterateStartTime;
+      long msPerMillionRows = elapsedNano / rowCount;
+      long rowsPerMinute = (60 * 1000000000L) * rowCount / elapsedNano;
       this.msPerMillionRows.set(msPerMillionRows);
       this.rowsPerMinute.set(rowsPerMinute);
       if ((this.rowCount % logEvery) == 0) {
@@ -77,9 +77,10 @@ public class JdbcAvroMetering {
     }
   }
 
-  public void exposeWriteElapsedMs(long elapsedMs) {
-    logger.info(String.format("jdbcavroio : Read %d rows, took %5.2f seconds",
-                              rowCount, elapsedMs / 1000.0));
+  public void exposeWriteElapsed() {
+    long elapsedMs = (System.nanoTime() - this.writeIterateStartTime) / 1000000L;
+    logger.info("jdbcavroio : Read {} rows, took {} seconds",
+                              rowCount, elapsedMs / 1000.0);
     this.writeElapsedMs.inc(elapsedMs);
     if (rowCount > 0) {
       this.recordCount.inc((this.rowCount % countReportEvery));
@@ -91,15 +92,15 @@ public class JdbcAvroMetering {
   }
 
   public long startWriteMeter() {
-    long startTs = System.currentTimeMillis();
+    long startTs = System.nanoTime();
     this.writeIterateStartTime = startTs;
     this.rowCount = 0;
     return startTs;
   }
 
   public void exposeExecuteQueryMs(long elapsedMs) {
-    logger.info(String.format("jdbcavroio : Execute query took %5.2f seconds",
-                              elapsedMs / 1000.0));
+    logger.info("jdbcavroio : Execute query took {} seconds",
+                              elapsedMs / 1000.0);
     this.executeQueryElapsedMs.inc(elapsedMs);
   }
 

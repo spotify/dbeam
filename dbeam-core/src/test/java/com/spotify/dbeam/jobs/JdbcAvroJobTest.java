@@ -139,9 +139,10 @@ public class JdbcAvroJobTest {
   @Test
   public void shouldIncrementCounterMetrics() {
     JdbcAvroMetering metering = new JdbcAvroMetering(1, 1);
-    metering.exposeWriteElapsedMs(0);
+    metering.startWriteMeter();
+    metering.exposeWriteElapsed();
     metering.incrementRecordCount();
-    metering.exposeWriteElapsedMs(0);
+    metering.exposeWriteElapsed();
   }
 
 }

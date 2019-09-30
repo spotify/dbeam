@@ -180,12 +180,12 @@ public class JdbcAvroIO {
         jdbcAvroArgs.statementPreparator().setParameters(statement);
       }
 
-      long startTime = System.currentTimeMillis();
+      long startTime = System.nanoTime();
       logger.info(
           "jdbcavroio : Executing query with fetchSize={} (this might take a few minutes) ...",
           statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
-      this.metering.exposeExecuteQueryMs(System.currentTimeMillis() - startTime);
+      this.metering.exposeExecuteQueryMs((System.nanoTime() - startTime) / 1000000L);
       checkArgument(resultSet != null,
                     "JDBC resultSet was not properly created");
       return resultSet;
@@ -197,14 +197,14 @@ public class JdbcAvroIO {
                     "Avro DataFileWriter was not properly created");
       logger.info("jdbcavroio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
-        long startMs = metering.startWriteMeter();
+        metering.startWriteMeter();
         final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet);
         while (resultSet.next()) {
           dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
           this.metering.incrementRecordCount();
         }
         this.dataFileWriter.flush();
-        this.metering.exposeWriteElapsedMs(System.currentTimeMillis() - startMs);
+        this.metering.exposeWriteElapsed();
         this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());
       }
     }
