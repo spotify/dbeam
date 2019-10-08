@@ -120,14 +120,14 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <beam.version>2.15.0</beam.version>
+        <beam.version>2.16.0</beam.version>
         <postgresql.version>42.2.6</postgresql.version>
         <mysql.version>8.0.17</mysql.version>
         <socket-factory.version>1.0.12</socket-factory.version>
 
         <!--Ensure Beam SDK compatibility-->
         <!--https://github.com/apache/beam/blob/master/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy-->
-        <jackson.version>2.9.9</jackson.version>
+        <jackson.version>2.9.10</jackson.version>
         <slf4j.version>1.7.28</slf4j.version>
         <auto-value.version>1.6.6</auto-value.version>
         <protobuf-util.version>3.6.1</protobuf-util.version>
@@ -248,6 +248,11 @@
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-cloudkms</artifactId>
                 <version>v1-rev88-1.25.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opencensus</groupId>
+                <artifactId>opencensus-contrib-grpc-util</artifactId>
+                <version>0.17.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
