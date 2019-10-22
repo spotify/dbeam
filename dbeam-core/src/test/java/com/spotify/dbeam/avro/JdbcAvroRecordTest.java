@@ -21,22 +21,20 @@
 package com.spotify.dbeam.avro;
 
 import com.google.common.collect.Lists;
-
 import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
@@ -130,8 +128,9 @@ public class JdbcAvroRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     ResultSet rs = DbTestHelper.createConnection(CONNECTION_URL)
         .createStatement().executeQuery("SELECT * FROM COFFEES");
-    Schema schema = JdbcAvroSchema.createAvroSchema(
-        rs, "dbeam_generated","connection", "doc", false);
+    Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            rs, "dbeam_generated", "connection", "doc", false, Optional.empty());
     JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
@@ -175,4 +174,48 @@ public class JdbcAvroRecordTest {
     Assert.assertEquals(Coffee.COFFEE1, actual);
   }
 
+  @Test
+  public void checkOutputSchemaContainsInputSchemaDocs()
+      throws ClassNotFoundException, SQLException, IOException {
+    ResultSet rs = DbTestHelper.createConnection(CONNECTION_URL)
+        .createStatement().executeQuery("SELECT * FROM COFFEES");
+    String[] fieldNames = {"COF_NAME", "SUP_ID", "PRICE"};
+    String[] fieldDocs = {
+      "Input field COF_NAME doc", "Input field SUP_ID doc", "Input field PRICE doc"
+    };
+
+    final String recordName = "COFFEE";
+    final String recordDoc = "Input record doc";
+    final String recordNamespace = "Input record namespace";
+    Schema inputSchema = createRecordSchema(recordName, recordDoc, recordNamespace, fieldNames,
+        fieldDocs);
+
+    Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            rs, "dbeam_generated", "connection", "doc", false, Optional.of(inputSchema));
+
+    Assert.assertEquals("Input record doc", schema.getDoc());
+    Assert.assertEquals("Input record namespace", schema.getNamespace());
+    Assert.assertEquals("Input field COF_NAME doc", schema.getField("COF_NAME").doc());
+    Assert.assertEquals("Input field SUP_ID doc", schema.getField("SUP_ID").doc());
+    Assert.assertEquals("Input field PRICE doc", schema.getField("PRICE").doc());
+  }
+
+  private Schema createRecordSchema(
+      final String recordName,
+      final String recordDoc,
+      final String recordNamespace,
+      final String[] fieldNames,
+      final String[] fieldDocs) {
+    Schema inputSchema = Schema.createRecord(recordName, recordDoc, recordNamespace, false);
+    final List<Schema.Field> fields = new ArrayList<>();
+    for (int i = 0; i < fieldNames.length; i++) {
+      String fieldName = fieldNames[i];
+      String fieldDoc = fieldDocs[i];
+      fields.add(new Schema.Field(fieldName, inputSchema,fieldDoc));
+    }
+    inputSchema.setFields(fields);
+    
+    return inputSchema;
+  }
 }

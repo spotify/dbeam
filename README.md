@@ -54,6 +54,16 @@ simply streams the table contents via JDBC into target location as Avro.
 - `--minPartitionPeriod`: the minimum partition required for the job not to fail (when partition column is not specified), by default `now() - 2*partitionPeriod`
 - `--queryParallelism`: max number of queries to generate to extract in parallel. Generates one query if nothing is specified. Split column `splitColumn` must be defined.
 - `--splitColumn`: a long / integer type column which is used to determine bounds for generating parallel queries. Must be used with parallelism defined.
+- `--avroSchemaFilePath`: a path to a file containing an input avro schema file (optional)
+
+#### Input Avro schema file
+If provided an input Avro schema file, dbeam will read input schema file and use some of the 
+properties when an output Avro schema is created.
+#### Following fields will be propagated from input into output schema:
+* `record.doc`   
+* `record.namespace`   
+* `record.field.doc`   
+
 
 #### DBeam Parallel Mode
 

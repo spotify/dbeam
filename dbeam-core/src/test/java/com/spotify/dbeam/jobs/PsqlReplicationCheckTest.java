@@ -24,12 +24,10 @@ import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.util.Optional;
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,9 +41,11 @@ public class PsqlReplicationCheckTest {
     return JdbcExportArgs.create(
         JdbcAvroArgs.create(JdbcConnectionArgs.create(url)),
         queryBuilderArgs,
-        "dbeam_generated", Optional.empty(), false,
-        Duration.ZERO
-    );
+        "dbeam_generated",
+        Optional.empty(),
+        false,
+        Duration.ZERO,
+        Optional.empty());
   }
 
   @Test(expected = IllegalArgumentException.class)
