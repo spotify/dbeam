@@ -90,8 +90,10 @@ public class PsqlReplicationCheck {
 
   static Instant queryReplication(Connection connection, String query) throws SQLException {
     final ResultSet resultSet = connection.createStatement().executeQuery(query);
-    Preconditions.checkState(resultSet.next(), "Replication query returned empty results");
-    Instant lastReplication = resultSet.getTimestamp("last_replication").toInstant();
+    Preconditions.checkState(resultSet.next(),
+        "Replication query returned empty results, consider using jdbc-avro-job instead");
+    Instant lastReplication = Preconditions.checkNotNull(resultSet.getTimestamp("last_replication"),
+        "Empty last_replication, consider using jdbc-avro-job instead").toInstant();
     Duration replicationDelay = Duration.ofSeconds(resultSet.getLong("replication_delay"));
     LOGGER.info("Psql replication check lastReplication={} replicationDelay={}",
                 lastReplication, replicationDelay);
