@@ -31,6 +31,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
@@ -38,6 +40,7 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class InputAvroSchemaTest {
@@ -83,6 +86,24 @@ public class InputAvroSchemaTest {
     return newTempFile;
   }
 
+  private Schema createRecordSchema(
+      final String recordName,
+      final String recordDoc,
+      final String recordNamespace,
+      final String[] fieldNames,
+      final String[] fieldDocs) {
+    Schema inputSchema = Schema.createRecord(recordName, recordDoc, recordNamespace, false);
+    final List<Schema.Field> fields = new ArrayList<>();
+    for (int i = 0; i < fieldNames.length; i++) {
+      String fieldName = fieldNames[i];
+      String fieldDoc = fieldDocs[i];
+      fields.add(new Schema.Field(fieldName, inputSchema,fieldDoc));
+    }
+    inputSchema.setFields(fields);
+
+    return inputSchema;
+  }
+
   @AfterClass
   public static void afterAll() throws IOException {
     Files.delete(avroSchemaFile.toPath());
@@ -102,6 +123,21 @@ public class InputAvroSchemaTest {
     Assert.assertEquals("Record description", inputSchema.getDoc());
     Assert.assertEquals("Field1 description", inputSchema.getField("field1").doc());
     Assert.assertEquals("Field2 description", inputSchema.getField("field2").doc());
+  }
+
+  @Test
+  @Ignore
+  public void checkFullPath() {
+    // TODO
+    // Check provide input string to args and verify final schema
+
+    String[] fieldNames = null;
+    String[] fieldDocs = null;
+    final String recordName = "COFFEE";
+    final String recordDoc = "Input record doc";
+    final String recordNamespace = "Input record namespace";
+    Schema inputSchema =
+        createRecordSchema(recordName, recordDoc, recordNamespace, fieldNames, fieldDocs);
   }
 
   @Test
