@@ -110,4 +110,9 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   String getExportTimeout();
 
   void setExportTimeout(String value);
+
+  @Description("Path to file with a target AVRO schema.")
+  String getAvroSchemaFilePath();
+
+  void setAvroSchemaFilePath(String value);
 }

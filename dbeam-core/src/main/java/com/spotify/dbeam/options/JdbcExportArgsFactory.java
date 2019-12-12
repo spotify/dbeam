@@ -26,7 +26,7 @@ import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
-
+import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,7 +36,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.Optional;
-
 import org.apache.beam.sdk.options.PipelineOptions;
 
 public class JdbcExportArgsFactory {
@@ -71,7 +70,8 @@ public class JdbcExportArgsFactory {
         exportOptions.getAvroSchemaNamespace(),
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
-        Duration.parse(exportOptions.getExportTimeout())
+        Duration.parse(exportOptions.getExportTimeout()),
+        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath())
     );
   }
 

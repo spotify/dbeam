@@ -21,12 +21,10 @@
 package com.spotify.dbeam.args;
 
 import com.google.common.collect.Lists;
-
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.JdbcExportPipelineOptions;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -37,7 +35,6 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Optional;
-
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -282,13 +279,16 @@ public class QueryBuilderArgsTest {
   }
 
   private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {
-    PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
-    JdbcExportPipelineOptions opts =
-        PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "))
-            .withValidation()
-            .create()
-            .as(JdbcExportPipelineOptions.class);
+    JdbcExportPipelineOptions opts = commandLineToOptions(cmdLineArgs);
     return JdbcExportArgsFactory.createQueryArgs(opts);
+  }
+
+  public static JdbcExportPipelineOptions commandLineToOptions(final String cmdLineArgs) {
+    PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
+    return PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "))
+        .withValidation()
+        .create()
+        .as(JdbcExportPipelineOptions.class);
   }
 
 }

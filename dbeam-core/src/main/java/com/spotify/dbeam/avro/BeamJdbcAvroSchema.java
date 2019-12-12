@@ -22,12 +22,17 @@ package com.spotify.dbeam.avro;
 
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.options.JobNameConfiguration;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.channels.Channels;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collections;
-
+import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.FileSystems;
+import org.apache.beam.sdk.io.fs.MatchResult;
 import org.apache.beam.sdk.metrics.Counter;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.Create;
@@ -45,16 +50,8 @@ public class BeamJdbcAvroSchema {
     Schema generatedSchema;
     String dbName;
     final long startTime = System.nanoTime();
-    final String dbUrl = connection.getMetaData().getURL();
-    final String avroDoc = args.avroDoc().orElseGet(
-        () ->
-            String.format("Generate schema from JDBC ResultSet from %s %s",
-                          args.queryBuilderArgs().tableName(),
-                          dbUrl));
     dbName = connection.getCatalog();
-    generatedSchema = JdbcAvroSchema.createSchemaByReadingOneRow(
-        connection, args.queryBuilderArgs().baseSqlQuery(),
-        args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
+    generatedSchema = getAvroSchema(args, connection);
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
@@ -75,4 +72,40 @@ public class BeamJdbcAvroSchema {
     return generatedSchema;
   }
 
+  public static Schema getAvroSchema(JdbcExportArgs args, Connection connection)
+      throws SQLException {
+    return args.inputAvroSchema().orElse(generateAvroSchema(args, connection));
+  }
+
+  private static Schema generateAvroSchema(JdbcExportArgs args, Connection connection)
+      throws SQLException {
+    final String dbUrl = connection.getMetaData().getURL();
+    final String avroDoc =
+        args.avroDoc()
+            .orElseGet(
+                () ->
+                    String.format(
+                        "Generate schema from JDBC ResultSet from %s %s",
+                        args.queryBuilderArgs().tableName(), dbUrl));
+    return JdbcAvroSchema.createSchemaByReadingOneRow(
+    connection, args.queryBuilderArgs().baseSqlQuery(),
+    args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
+  }
+
+  public static Optional<Schema> parseOptionalInputAvroSchemaFile(String filename)
+      throws IOException {
+
+    if (filename == null || filename.isEmpty()) {
+      return Optional.empty();
+    }
+
+    return Optional.of(parseInputAvroSchemaFile(filename));
+  }
+
+  public static Schema parseInputAvroSchemaFile(String filename) throws IOException {
+    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
+    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
+
+    return new Schema.Parser().parse(inputStream);
+  }
 }

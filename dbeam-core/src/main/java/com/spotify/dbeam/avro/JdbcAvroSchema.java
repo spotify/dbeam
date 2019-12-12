@@ -46,14 +46,12 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import com.spotify.dbeam.args.QueryBuilder;
-
 import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.slf4j.Logger;
@@ -73,8 +71,11 @@ public class JdbcAvroSchema {
   }
 
   public static Schema createSchemaByReadingOneRow(
-          Connection connection, QueryBuilder baseSqlQuery, String avroSchemaNamespace,
-          String avroDoc, boolean useLogicalTypes)
+      Connection connection,
+      QueryBuilder baseSqlQuery,
+      String avroSchemaNamespace,
+      String avroDoc,
+      boolean useLogicalTypes)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
@@ -82,7 +83,7 @@ public class JdbcAvroSchema {
           resultSet =
           statement.executeQuery(baseSqlQuery.copy().withLimitOne().build());
 
-      Schema schema = JdbcAvroSchema.createAvroSchema(
+      Schema schema = createAvroSchema(
           resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,
           useLogicalTypes);
       LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
@@ -91,8 +92,11 @@ public class JdbcAvroSchema {
   }
 
   public static Schema createAvroSchema(
-      ResultSet resultSet, String avroSchemaNamespace, String connectionUrl,
-      String avroDoc, boolean useLogicalTypes)
+      ResultSet resultSet,
+      String avroSchemaNamespace,
+      String connectionUrl,
+      String avroDoc,
+      boolean useLogicalTypes)
       throws SQLException {
     ResultSetMetaData meta = resultSet.getMetaData();
     String tableName = "no_table_name";
@@ -100,6 +104,7 @@ public class JdbcAvroSchema {
     if (meta.getColumnCount() > 0) {
       tableName = normalizeForAvro(meta.getTableName(1));
     }
+
     SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record(tableName)
         .namespace(avroSchemaNamespace)
         .doc(avroDoc)
@@ -110,8 +115,11 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
-      ResultSetMetaData meta, SchemaBuilder.FieldAssembler<Schema> builder, boolean useLogicalTypes)
+      ResultSetMetaData meta,
+      SchemaBuilder.FieldAssembler<Schema> builder,
+      boolean useLogicalTypes)
       throws SQLException {
+
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
       String columnName;

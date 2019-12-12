@@ -21,11 +21,9 @@
 package com.spotify.dbeam.avro;
 
 import com.google.common.collect.Lists;
-
 import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -36,7 +34,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
@@ -130,8 +127,8 @@ public class JdbcAvroRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     ResultSet rs = DbTestHelper.createConnection(CONNECTION_URL)
         .createStatement().executeQuery("SELECT * FROM COFFEES");
-    Schema schema = JdbcAvroSchema.createAvroSchema(
-        rs, "dbeam_generated","connection", "doc", false);
+    Schema schema =
+        JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated", "connection", "doc", false);
     JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
@@ -174,5 +171,4 @@ public class JdbcAvroRecordTest {
     );
     Assert.assertEquals(Coffee.COFFEE1, actual);
   }
-
 }
