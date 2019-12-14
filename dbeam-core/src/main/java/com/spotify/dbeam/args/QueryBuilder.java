@@ -99,7 +99,7 @@ public class QueryBuilder implements Serializable {
     
     @Override
     public String getBaseSql() {
-      return String.format("%s FROM (%s) %s",
+      return String.format("%s FROM (%s) as user_sql_query %s",
               selectClause, userSqlQuery, DEFAULT_WHERE_CLAUSE);
     }
 

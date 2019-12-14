@@ -95,7 +95,7 @@ public class QueryBuilderArgsTest {
 
     Assert.assertEquals("some_table", args.tableName());
     Assert.assertEquals(
-        "SELECT * FROM (SELECT * FROM some_table) WHERE 1=1",
+        "SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1",
         args.baseSqlQuery().build()
     );
   }
@@ -207,7 +207,8 @@ public class QueryBuilderArgsTest {
         + "--sqlFile=%s --limit=7", COFFEES_SQL_QUERY_PATH.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1 LIMIT 7"),
+        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query"
+            + " WHERE 1=1 LIMIT 7"),
                         actual.buildQueries(null));
   }
 
@@ -219,7 +220,7 @@ public class QueryBuilderArgsTest {
         COFFEES_SQL_QUERY_PATH.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1 "
+        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
         + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 7"),
                         actual.buildQueries(null));
   }
@@ -233,7 +234,7 @@ public class QueryBuilderArgsTest {
         COFFEES_SQL_QUERY_PATH.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1 "
+        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
         + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
                         actual.buildQueries(null));
   }
@@ -261,7 +262,7 @@ public class QueryBuilderArgsTest {
         COFFEES_SQL_QUERY_PATH.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1"
+        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
         + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
                         actual.buildQueries(CONNECTION));
   }
@@ -276,7 +277,7 @@ public class QueryBuilderArgsTest {
         COFFEES_SQL_QUERY_PATH.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) WHERE 1=1"
+        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
         + " AND col >= '2027-07-31' AND col < '2027-08-31' LIMIT 7"),
                         actual.buildQueries(CONNECTION));
   }
