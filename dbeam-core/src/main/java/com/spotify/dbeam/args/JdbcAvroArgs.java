@@ -52,7 +52,7 @@ public abstract class JdbcAvroArgs implements Serializable {
       return CodecFactory.snappyCodec();
     } else if (avroCodec().startsWith("deflate")) {
       return CodecFactory.deflateCodec(Integer.valueOf(avroCodec().replace("deflate", "")));
-    } else if (avroCodec().startsWith("z`standard")) {
+    } else if (avroCodec().startsWith("zstandard")) {
       return CodecFactory.zstandardCodec(Integer.valueOf(avroCodec().replace("zstandard", "")));
     }
     throw new IllegalArgumentException("Invalid avroCodec " + avroCodec());
