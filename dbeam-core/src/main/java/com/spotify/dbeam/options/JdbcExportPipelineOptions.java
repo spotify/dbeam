@@ -20,6 +20,8 @@
 
 package com.spotify.dbeam.options;
 
+import java.util.List;
+
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 
@@ -115,4 +117,9 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   String getAvroSchemaFilePath();
 
   void setAvroSchemaFilePath(String value);
+
+  @Description("Precommand to be executed before query")
+  List<String> getPreCommand();
+
+  void setPreCommand(List<String> value);
 }

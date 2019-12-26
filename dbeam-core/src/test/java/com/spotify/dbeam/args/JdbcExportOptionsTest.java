@@ -36,9 +36,13 @@ import org.junit.Test;
 public class JdbcExportOptionsTest {
 
   JdbcExportArgs optionsFromArgs(String cmdLineArgs) throws IOException, ClassNotFoundException {
+    return optionsFromArgs(cmdLineArgs.split(" "));
+  }
+
+  JdbcExportArgs optionsFromArgs(String [] cmdLineArgs) throws IOException, ClassNotFoundException {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
     PipelineOptions opts =
-        PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" ")).withValidation().create();
+            PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
     return JdbcExportArgsFactory.fromPipelineOptions(opts);
   }
 
@@ -238,6 +242,26 @@ public class JdbcExportOptionsTest {
     Assert.assertEquals(
         CodecFactory.snappyCodec().toString(),
         options.jdbcAvroOptions().getCodecFactory().toString());
+  }
+
+  @Test
+  public void shouldConfiguraPreCommands() throws IOException, ClassNotFoundException {
+    JdbcExportArgs options = optionsFromArgs(
+        new String[] {
+            "--connectionUrl=jdbc:postgresql://some_db;",
+            "--password=secret",
+            "--table=some_table",
+            "--preCommand=set foo='1'",
+            "--preCommand=set bar=2"
+        }
+    );
+
+    Assert.assertEquals(
+            "set foo='1'",
+            options.jdbcAvroOptions().preCommand().get(0));
+    Assert.assertEquals(
+            "set bar=2",
+            options.jdbcAvroOptions().preCommand().get(1));
   }
 
   @Test(expected = IllegalArgumentException.class)

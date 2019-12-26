@@ -35,6 +35,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.util.Collections;
 import java.util.Optional;
 import org.apache.beam.sdk.options.PipelineOptions;
 
@@ -62,7 +63,8 @@ public class JdbcExportArgsFactory {
             .withUsername(exportOptions.getUsername())
             .withPassword(PasswordReader.INSTANCE.readPassword(exportOptions).orElse(null)),
         exportOptions.getFetchSize(),
-        exportOptions.getAvroCodec());
+        exportOptions.getAvroCodec(),
+        Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()));
 
     return JdbcExportArgs.create(
         jdbcAvroArgs,
