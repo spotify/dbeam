@@ -90,7 +90,10 @@ public class JdbcAvroJobTest {
   }
 
   @Test
-  public void shouldRunJdbcAvroJob() throws IOException, SQLException, ClassNotFoundException {
+  public void shouldRunJdbcAvroJob() throws IOException {
+    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunJdbcAvroJob"
+            + File.separator;
+
     JdbcAvroJob.main(new String[]{
         "--targetParallelism=1",  // no need for more threads when testing
         "--partition=2025-02-28",
@@ -100,26 +103,62 @@ public class JdbcAvroJobTest {
         "--username=",
         "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
         "--table=COFFEES",
-        "--output=" + DIR.getAbsolutePath(),
-        "--avroCodec=zstandard1",
-        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_1;",
-        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
-
+        "--output=" + outputFolder,
+        "--avroCodec=zstandard1"
     });
+
     Assert.assertThat(
-        listDir(DIR),
+        listDir(new File(outputFolder)),
         Matchers.is(
             Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
                                "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
         ));
     Assert.assertThat(
-        listDir(new File(DIR, "_queries")),
+        listDir(new File(outputFolder, "_queries")),
         Matchers.is(
             Lists.newArrayList("query_0.sql")
         ));
-    Schema schema = new Schema.Parser().parse(new File(DIR, "_AVRO_SCHEMA.avsc"));
+    Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
     List<GenericRecord> records =
-        readAvroRecords(new File(DIR, "part-00000-of-00001.avro"), schema);
+        readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
+    Assert.assertEquals(2, records.size());
+  }
+
+  @Test
+  public void shouldRunAvroJobPreCommands()
+          throws IOException, SQLException, ClassNotFoundException {
+    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunAvroJobPreCommands"
+            + File.separator;
+
+    JdbcAvroJob.main(new String[]{
+        "--targetParallelism=1",  // no need for more threads when testing
+        "--partition=2025-02-28",
+        "--skipPartitionCheck",
+        "--exportTimeout=PT1M",
+        "--connectionUrl=" + CONNECTION_URL,
+        "--username=",
+        "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
+        "--table=COFFEES",
+        "--output=" + outputFolder,
+        "--avroCodec=zstandard1",
+        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_1;",
+        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
+    });
+
+    Assert.assertThat(
+            listDir(new File(outputFolder)),
+            Matchers.is(
+                    Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
+                            "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
+            ));
+    Assert.assertThat(
+            listDir(new File(outputFolder, "_queries")),
+            Matchers.is(
+                    Lists.newArrayList("query_0.sql")
+            ));
+    Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
+    List<GenericRecord> records =
+            readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
     Assert.assertEquals(2, records.size());
 
     List<String> schemas = new ArrayList<>();
