@@ -40,7 +40,7 @@ public class QueryBuilderTest {
   public void testCtorRawSqlWithoutWhere() {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
 
-    String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1";
+    String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -83,7 +83,7 @@ public class QueryBuilderTest {
   public void testCtorRawSqlWithWhere() {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
 
-    String expected = "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) WHERE 1=1";
+    String expected = "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -93,7 +93,7 @@ public class QueryBuilderTest {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withLimit(102L);
 
-    String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 LIMIT 102";
+    String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1 LIMIT 102";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -103,7 +103,8 @@ public class QueryBuilderTest {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withParallelizationCondition("bucket", 10, 20, true);
 
-    String expected = "SELECT * FROM (SELECT * FROM t1) WHERE 1=1 AND bucket >= 10 AND bucket < 20";
+    String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query"
+            + " WHERE 1=1 AND bucket >= 10 AND bucket < 20";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -114,7 +115,7 @@ public class QueryBuilderTest {
     wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
     String expected =
-        "SELECT * FROM (SELECT * FROM t1) WHERE 1=1"
+        "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1"
             + " AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
 
     Assert.assertEquals(expected, wrapper.build());
@@ -130,7 +131,7 @@ public class QueryBuilderTest {
 
     String expected =
         "SELECT * FROM (SELECT a, b, c FROM t1\n WHERE total > 100\n AND country = 262\n)"
-            + " WHERE 1=1";
+            + " as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -146,7 +147,7 @@ public class QueryBuilderTest {
     String expected =
         "SELECT * FROM ("
             + "-- We perform initial query here\nSELECT a, b, c FROM t1\n WHERE total > 100)"
-            + " WHERE 1=1";
+            + " as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -176,7 +177,7 @@ public class QueryBuilderTest {
             + "SELECT date, SUM(amount)\n"
             + "FROM active_orders\n"
             + "GROUP BY date\n"
-            + ") WHERE 1=1";
+            + ") as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
@@ -196,15 +197,15 @@ public class QueryBuilderTest {
             "SELECT * FROM coffees WHERE size > 10;\n");
     List<String> expected =
         Arrays.asList(
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\r) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n\r) WHERE 1=1",
-            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n) WHERE 1=1");
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10 ) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\r) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n\r) as user_sql_query WHERE 1=1",
+            "SELECT * FROM (SELECT * FROM coffees WHERE size > 10\n) as user_sql_query WHERE 1=1");
 
     for (int i = 0; i < rawInput.size(); i++) {
       execAndCompare(rawInput.get(i), expected.get(i));
@@ -216,7 +217,7 @@ public class QueryBuilderTest {
     String input = "SELECT * FROM coffees WHERE size > 10";
     String expected =
         "SELECT MIN(splitCol) as mixy, MAX(splitCol) as maxy "
-            + "FROM (SELECT * FROM coffees WHERE size > 10)"
+            + "FROM (SELECT * FROM coffees WHERE size > 10) as user_sql_query"
             + " WHERE 1=1 AND partition >= 'a' AND partition < 'd'";
 
     String actual =
