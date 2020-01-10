@@ -32,6 +32,7 @@ import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
@@ -178,6 +179,13 @@ public class JdbcAvroIO {
       statement.setFetchSize(jdbcAvroArgs.fetchSize());
       if (jdbcAvroArgs.statementPreparator() != null) {
         jdbcAvroArgs.statementPreparator().setParameters(statement);
+      }
+
+      if (jdbcAvroArgs.preCommand() != null && jdbcAvroArgs.preCommand().size() > 0) {
+        Statement stmt = connection.createStatement();
+        for (String command : jdbcAvroArgs.preCommand()) {
+          stmt.execute(command);
+        }
       }
 
       long startTime = System.nanoTime();

@@ -25,6 +25,8 @@ import com.google.common.base.Preconditions;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
+import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -40,6 +42,8 @@ public abstract class JdbcAvroArgs implements Serializable {
   public abstract int fetchSize();
 
   public abstract String avroCodec();
+
+  public abstract List<String> preCommand();
 
   abstract Builder builder();
 
@@ -65,22 +69,25 @@ public abstract class JdbcAvroArgs implements Serializable {
 
     abstract Builder setAvroCodec(String avroCodec);
 
+    abstract Builder setPreCommand(List<String> preCommand);
+
     abstract JdbcAvroArgs build();
   }
 
   public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs,
-                                    int fetchSize, String avroCodec) {
+                                    int fetchSize, String avroCodec, List<String> preCommand) {
     Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]|zstandard[1-9]"),
                           "Avro codec should be snappy or deflate1, .., deflate9");
     return new AutoValue_JdbcAvroArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)
         .setFetchSize(fetchSize)
         .setAvroCodec(avroCodec)
+        .setPreCommand(preCommand)
         .build();
   }
 
   public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs) {
-    return create(jdbcConnectionArgs, 10000, "deflate6");
+    return create(jdbcConnectionArgs, 10000, "deflate6", Collections.emptyList());
   }
 
   public interface StatementPreparator extends Serializable {

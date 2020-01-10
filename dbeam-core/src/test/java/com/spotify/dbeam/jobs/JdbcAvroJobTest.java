@@ -30,7 +30,10 @@ import com.spotify.dbeam.options.OutputOptions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -44,6 +47,7 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -87,6 +91,9 @@ public class JdbcAvroJobTest {
 
   @Test
   public void shouldRunJdbcAvroJob() throws IOException {
+    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunJdbcAvroJob"
+            + File.separator;
+
     JdbcAvroJob.main(new String[]{
         "--targetParallelism=1",  // no need for more threads when testing
         "--partition=2025-02-28",
@@ -96,24 +103,74 @@ public class JdbcAvroJobTest {
         "--username=",
         "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
         "--table=COFFEES",
-        "--output=" + DIR.getAbsolutePath(),
+        "--output=" + outputFolder,
         "--avroCodec=zstandard1"
     });
+
     Assert.assertThat(
-        listDir(DIR),
+        listDir(new File(outputFolder)),
         Matchers.is(
             Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
                                "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
         ));
     Assert.assertThat(
-        listDir(new File(DIR, "_queries")),
+        listDir(new File(outputFolder, "_queries")),
         Matchers.is(
             Lists.newArrayList("query_0.sql")
         ));
-    Schema schema = new Schema.Parser().parse(new File(DIR, "_AVRO_SCHEMA.avsc"));
+    Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
     List<GenericRecord> records =
-        readAvroRecords(new File(DIR, "part-00000-of-00001.avro"), schema);
+        readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
     Assert.assertEquals(2, records.size());
+  }
+
+  @Test
+  public void shouldRunAvroJobPreCommands()
+          throws IOException, SQLException, ClassNotFoundException {
+    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunAvroJobPreCommands"
+            + File.separator;
+
+    JdbcAvroJob.main(new String[]{
+        "--targetParallelism=1",  // no need for more threads when testing
+        "--partition=2025-02-28",
+        "--skipPartitionCheck",
+        "--exportTimeout=PT1M",
+        "--connectionUrl=" + CONNECTION_URL,
+        "--username=",
+        "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
+        "--table=COFFEES",
+        "--output=" + outputFolder,
+        "--avroCodec=zstandard1",
+        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_1;",
+        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
+    });
+
+    Assert.assertThat(
+            listDir(new File(outputFolder)),
+            Matchers.is(
+                    Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
+                            "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
+            ));
+    Assert.assertThat(
+            listDir(new File(outputFolder, "_queries")),
+            Matchers.is(
+                    Lists.newArrayList("query_0.sql")
+            ));
+    Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
+    List<GenericRecord> records =
+            readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
+    Assert.assertEquals(2, records.size());
+
+    List<String> schemas = new ArrayList<>();
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      ResultSet rs = connection.createStatement().executeQuery("SHOW SCHEMAS;");
+      while (rs.next()) {
+        schemas.add(rs.getString(1));
+      }
+    }
+
+    String [] expectedSchemas = {"TEST_COMMAND_1", "TEST_COMMAND_2"};
+    Assert.assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
   @Test
