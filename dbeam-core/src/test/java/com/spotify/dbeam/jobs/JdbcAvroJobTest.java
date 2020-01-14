@@ -60,6 +60,7 @@ public class JdbcAvroJobTest {
       "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
   private static File DIR = TestHelper.createTmpDirName("jdbc-avro-test-").toFile();
   private static File PASSWORD_FILE = new File(DIR.getAbsolutePath() + ".password");
+  private static File SQL_FILE = new File(DIR.getAbsolutePath() + ".sql");
 
   private List<String> listDir(File dir) {
     return Arrays.stream(Objects.requireNonNull(dir.listFiles()))
@@ -79,11 +80,15 @@ public class JdbcAvroJobTest {
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
     DbTestHelper.createFixtures(CONNECTION_URL);
     PASSWORD_FILE.createNewFile();
+    SQL_FILE.createNewFile();
+    Files.write(SQL_FILE.toPath(),
+            "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
   }
 
   @AfterClass
   public static void afterAll() throws IOException {
     PASSWORD_FILE.delete();
+    SQL_FILE.delete();
     Files.walk(DIR.toPath())
         .sorted(Comparator.reverseOrder())
         .forEach(p -> p.toFile().delete());
@@ -123,6 +128,46 @@ public class JdbcAvroJobTest {
         readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
     Assert.assertEquals(2, records.size());
   }
+
+  @Test
+  public void shouldRunJdbcAvroJobSqlFile() throws IOException {
+    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunJdbcAvroJob"
+            + File.separator;
+
+    JdbcAvroJob.main(new String[]{
+        "--targetParallelism=1",  // no need for more threads when testing
+        "--partition=2025-02-28",
+        "--skipPartitionCheck",
+        "--exportTimeout=PT1M",
+        "--connectionUrl=" + CONNECTION_URL,
+        "--username=",
+        "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
+        "--table=COFFEES",
+        "--output=" + outputFolder,
+        "--avroCodec=zstandard1",
+        "--sqlFile=" + SQL_FILE.getAbsolutePath()
+    });
+
+    Assert.assertThat(
+            listDir(new File(outputFolder)),
+            Matchers.is(
+                    Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
+                            "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
+            ));
+    Assert.assertThat(
+            listDir(new File(outputFolder, "_queries")),
+            Matchers.is(
+                    Lists.newArrayList("query_0.sql")
+            ));
+    Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
+    List<GenericRecord> records =
+            readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
+    Assert.assertEquals(1, records.size());
+    Assert.assertEquals(Lists.newArrayList("COF_NAME", "SIZE", "TOTAL"),
+            schema.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()));
+
+  }
+
 
   @Test
   public void shouldRunAvroJobPreCommands()
