@@ -142,7 +142,6 @@ public class JdbcAvroJobTest {
         "--connectionUrl=" + CONNECTION_URL,
         "--username=",
         "--passwordFile=" + PASSWORD_FILE.getAbsolutePath(),
-        "--table=COFFEES",
         "--output=" + outputFolder,
         "--avroCodec=zstandard1",
         "--sqlFile=" + SQL_FILE.getAbsolutePath()

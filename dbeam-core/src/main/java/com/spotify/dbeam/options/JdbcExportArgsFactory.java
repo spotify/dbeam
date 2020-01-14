@@ -117,9 +117,11 @@ public class JdbcExportArgsFactory {
 
   private static QueryBuilderArgs createQueryBuilderArgs(JdbcExportPipelineOptions options)
       throws IOException {
+    checkArgument((options.getTable() != null) != (options.getSqlFile() != null),
+            "Either --table or --sqlFile must be present");
     if (options.getSqlFile() != null) {
       return QueryBuilderArgs.create(
-          options.getTable(), PasswordReader.readFromFile(options.getSqlFile()));
+          "user_based_query", PasswordReader.readFromFile(options.getSqlFile()));
     } else {
       return QueryBuilderArgs.create(options.getTable());
     }

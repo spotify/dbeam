@@ -23,17 +23,34 @@ package com.spotify.dbeam.args;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Optional;
 
 import org.apache.avro.file.CodecFactory;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 
 public class JdbcExportOptionsTest {
+  private static File sqlFile;
+
+  @BeforeClass
+  public static void beforeAll() throws IOException {
+    sqlFile = File.createTempFile("query", ".sql");
+    sqlFile.deleteOnExit();
+  }
+
+  @AfterClass
+  public static void afterAll() throws IOException {
+    Files.delete(sqlFile.toPath());
+  }
+
 
   JdbcExportArgs optionsFromArgs(String cmdLineArgs) throws IOException, ClassNotFoundException {
     return optionsFromArgs(cmdLineArgs.split(" "));
@@ -53,13 +70,26 @@ public class JdbcExportOptionsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnMissingConnectionUrl() throws IOException, ClassNotFoundException {
-    optionsFromArgs("--table=somtable");
+    optionsFromArgs("--table=sometable");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnMissingTable() throws IOException, ClassNotFoundException {
+  public void shouldFailOnMissingTableSqlFile() throws IOException, ClassNotFoundException {
     optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db");
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailOnTableAndSqlFilePresent() throws IOException, ClassNotFoundException {
+    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --sqlFile="
+        + sqlFile.getAbsolutePath() + " --table=some_table");
+  }
+
+  @Test
+  public void shouldNotFailOnMissingTableSqlFile() throws IOException, ClassNotFoundException {
+    JdbcExportArgs actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --sqlFile="
+        + sqlFile.getAbsolutePath());
+  }
+
 
   @Test
   public void shouldParseWithDefaultsOnConnectionUrlAndTable()
