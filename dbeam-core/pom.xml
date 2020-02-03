@@ -6,13 +6,13 @@
     <parent>
       <artifactId>dbeam-parent</artifactId>
       <groupId>com.spotify</groupId>
-      <version>0.9.9-SNAPSHOT</version>
+      <version>0.9.10-SNAPSHOT</version>
     </parent>
 
     <name>DBeam Core</name>
     <artifactId>dbeam-core</artifactId>
     <description>
-      Top level core implementation
+      Top level DBeam core implementation
     </description>
 
     <dependencies>

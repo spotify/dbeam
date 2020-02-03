@@ -23,10 +23,8 @@ package com.spotify.dbeam.args;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.time.Period;
 import java.util.Optional;
 
 import org.apache.avro.file.CodecFactory;
@@ -244,6 +242,19 @@ public class JdbcExportOptionsTest {
     Assert.assertEquals(
         1234,
         options.jdbcAvroOptions().fetchSize());
+  }
+
+  @Test
+  public void shouldSupportMonthlyPartitionPeriod() throws IOException, ClassNotFoundException {
+    // Given handling ChronoUnit.MONTHS is not always simple
+    // https://stackoverflow.com/q/39907925/1046584
+    JdbcExportArgs options = optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        + "--password=secret --partitionPeriod=P1M --partition=2050-12");
+
+    Assert.assertEquals(
+        Period.ofMonths(1),
+        options.queryBuilderArgs().partitionPeriod());
   }
 
   @Test

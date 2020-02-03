@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -91,7 +92,13 @@ public class JdbcExportArgsFactory {
     if (!(options.isSkipPartitionCheck() || partitionColumn.isPresent())) {
       Instant minPartitionDateTime = Optional.ofNullable(options.getMinPartitionPeriod())
           .map(JdbcExportArgsFactory::parseInstant)
-          .orElse(Instant.now().minus(partitionPeriod.multipliedBy(2)));
+          // given Instant does not support operations with ChronoUnit.MONTHS
+          .orElse(
+              Instant.now()
+                .atOffset(ZoneOffset.UTC)
+                .minus(partitionPeriod.multipliedBy(2))
+                .toInstant()
+              );
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
 
