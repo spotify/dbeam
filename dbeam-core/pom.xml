@@ -12,7 +12,7 @@
     <name>DBeam Core</name>
     <artifactId>dbeam-core</artifactId>
     <description>
-      Top level core implementation
+      Top level DBeam core implementation
     </description>
 
     <dependencies>
