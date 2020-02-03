@@ -25,6 +25,7 @@ import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Optional;
 
@@ -74,7 +75,7 @@ public class JdbcExportOptionsTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnMissingTableSqlFile() throws IOException, ClassNotFoundException {
+  public void shouldFailOnMissingTableAndSqlFile() throws IOException, ClassNotFoundException {
     optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db");
   }
 
@@ -88,6 +89,19 @@ public class JdbcExportOptionsTest {
   public void shouldNotFailOnMissingTableSqlFile() throws IOException, ClassNotFoundException {
     JdbcExportArgs actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --sqlFile="
         + sqlFile.getAbsolutePath());
+
+    JdbcExportArgs expected = JdbcExportArgs.create(
+        JdbcAvroArgs.create(
+            JdbcConnectionArgs.create("jdbc:postgresql://some_db")
+                        .withUsername("dbeam-extractor")
+        ),
+        QueryBuilderArgs.create(
+            "user_based_query",
+            com.google.common.io.Files.asCharSource(sqlFile, StandardCharsets.UTF_8).read()
+        )
+    );
+
+    Assert.assertEquals(expected, actual);
   }
 
 
