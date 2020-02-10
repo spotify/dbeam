@@ -100,7 +100,7 @@ public class BenchJdbcAvroJob {
                 c ->
                     Optional.of(this.metrics.get(i).get(c))
                         .orElse(0L).toString()).collect(tabJoining),
-            this.metrics.get(i).get("bytesWritten")
+            this.metrics.get(i).get("bytesWritten") / this.metrics.get(i).get("writeElapsedMs")
         )
     );
     final List<Stats> stats = Stream.concat(
@@ -110,10 +110,7 @@ public class BenchJdbcAvroJob {
         ), Stream.of(
             Stats
                 .of((Iterable<Long>) this.metrics.stream()
-                    .map(
-                        m -> m.get("bytesWritten")
-                        / (m.get("writeElapsedMs") != 0L ? m.get("writeElapsedMs") : 1L)
-                    )::iterator)
+                    .map(m -> m.get("bytesWritten") / m.get("writeElapsedMs"))::iterator)
         )).collect(Collectors.toList());
     final Map<String, Function<Stats, Double>> relevantStats = ImmutableMap.of(
         "max    ", Stats::max,
