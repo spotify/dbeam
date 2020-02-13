@@ -33,7 +33,6 @@ public interface DBeamPipelineOptions extends PipelineOptions {
   void setConnectionUrl(String value);
 
   @Description("The database table to query and perform the export.")
-  @Validation.Required
   String getTable();
 
   void setTable(String value);

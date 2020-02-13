@@ -200,7 +200,7 @@ public class QueryBuilderArgsTest {
   @Test
   public void shouldConfigureLimitForSqlFile() throws IOException, SQLException {
     QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --limit=7", COFFEES_SQL_QUERY_PATH.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
@@ -212,7 +212,7 @@ public class QueryBuilderArgsTest {
   @Test
   public void shouldConfigurePartitionColumnAndLimitForSqlFile() throws IOException, SQLException {
     QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=7",
         COFFEES_SQL_QUERY_PATH.toString()));
 
@@ -226,7 +226,7 @@ public class QueryBuilderArgsTest {
   public void shouldConfigurePartitionColumnAndPartitionPeriodForSqlFile()
       throws IOException, SQLException {
     QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M",
         COFFEES_SQL_QUERY_PATH.toString()));
 
@@ -254,7 +254,7 @@ public class QueryBuilderArgsTest {
   public void shouldCreateParallelQueriesWithSqlFile()
       throws IOException, SQLException {
     QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5",
         COFFEES_SQL_QUERY_PATH.toString()));
 
@@ -268,7 +268,7 @@ public class QueryBuilderArgsTest {
   public void shouldCreateParallelQueriesWithPartitionColumn()
       throws IOException, SQLException {
     QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+        "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --partition=2027-07-31 "
         + "--partitionColumn=col --partitionPeriod=P1M --limit=7",
         COFFEES_SQL_QUERY_PATH.toString()));
