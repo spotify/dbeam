@@ -130,7 +130,7 @@
         <jackson.version>2.9.10</jackson.version>
         <slf4j.version>1.7.28</slf4j.version>
         <auto-value.version>1.7</auto-value.version>
-        <protobuf.version>3.11.1</protobuf.version>
+        <protobuf.version>3.11.4</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
         <grpc.version>1.17.1</grpc.version>
         <google-clients.version>1.28.0</google-clients.version>
