@@ -55,8 +55,7 @@ public class BeamJdbcAvroSchema {
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
-    JobNameConfiguration.configureJobName(
-        pipeline.getOptions(), dbName, args.queryBuilderArgs().tableName());
+    JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName);
     final Counter cnt =
         Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
                         "schemaElapsedTimeMs");
@@ -85,8 +84,8 @@ public class BeamJdbcAvroSchema {
             .orElseGet(
                 () ->
                     String.format(
-                        "Generate schema from JDBC ResultSet from %s %s",
-                        args.queryBuilderArgs().tableName(), dbUrl));
+                        "Generate schema from JDBC ResultSet from %s",
+                        dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
     connection, args.queryBuilderArgs().baseSqlQuery(),
     args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());

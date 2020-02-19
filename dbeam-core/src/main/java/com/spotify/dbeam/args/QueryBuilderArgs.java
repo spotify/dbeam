@@ -42,8 +42,6 @@ import java.util.Optional;
 @AutoValue
 public abstract class QueryBuilderArgs implements Serializable {
 
-  public abstract String tableName();
-
   public abstract QueryBuilder baseSqlQuery();
 
   public abstract Optional<Long> limit();
@@ -62,8 +60,6 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   @AutoValue.Builder
   public abstract static class Builder {
-
-    public abstract Builder setTableName(String tableName);
 
     public abstract Builder setBaseSqlQuery(QueryBuilder baseSqlQuery);
 
@@ -101,7 +97,6 @@ public abstract class QueryBuilderArgs implements Serializable {
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
 
     return new AutoValue_QueryBuilderArgs.Builder()
-        .setTableName(tableName)
         .setBaseSqlQuery(QueryBuilder.fromTablename(tableName))
         .setPartitionPeriod(Period.ofDays(1));
   }

@@ -35,7 +35,7 @@ public class JobNameConfiguration {
     return str.toLowerCase().replaceAll("[^a-z0-9]", "");
   }
 
-  public static void configureJobName(PipelineOptions options, String dbName, String tableName) {
+  public static void configureJobName(PipelineOptions options, String dbName) {
     try {
       options.as(ApplicationNameOptions.class).setAppName("JdbcAvroJob");
     } catch (Exception e) {
@@ -45,7 +45,7 @@ public class JobNameConfiguration {
       String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());
       options.setJobName(
           String.join("-",
-                      "dbeam", normalizeString(dbName), normalizeString(tableName), randomPart));
+                      "dbeam", normalizeString(dbName), randomPart));
     }
   }
 }

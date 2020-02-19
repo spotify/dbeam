@@ -90,7 +90,6 @@ public class QueryBuilderArgsTest {
     QueryBuilderArgs args =
         QueryBuilderArgs.create("some_table", "SELECT * FROM some_table");
 
-    Assert.assertEquals("some_table", args.tableName());
     Assert.assertEquals(
         "SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1",
         args.baseSqlQuery().build()

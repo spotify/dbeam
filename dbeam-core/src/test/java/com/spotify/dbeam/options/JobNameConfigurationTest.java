@@ -36,13 +36,13 @@ public class JobNameConfigurationTest {
     PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
     pipelineOptions.setJobName(null);
 
-    JobNameConfiguration.configureJobName(pipelineOptions, "some_db", "some_table");
+    JobNameConfiguration.configureJobName(pipelineOptions, "some_db");
 
     Assert.assertEquals(
         "JdbcAvroJob",
         pipelineOptions.as(ApplicationNameOptions.class).getAppName()
     );
-    assertThat(pipelineOptions.getJobName(), startsWith("dbeam-somedb-sometable-"));
+    assertThat(pipelineOptions.getJobName(), startsWith("dbeam-somedb-"));
   }
 
   @Test
@@ -50,13 +50,13 @@ public class JobNameConfigurationTest {
     PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
     pipelineOptions.setJobName("auto");
 
-    JobNameConfiguration.configureJobName(pipelineOptions, "some_db", "some_table");
+    JobNameConfiguration.configureJobName(pipelineOptions, "some_db");
 
     Assert.assertEquals(
         "JdbcAvroJob",
         pipelineOptions.as(ApplicationNameOptions.class).getAppName()
     );
-    assertThat(pipelineOptions.getJobName(), startsWith("dbeam-somedb-sometable-"));
+    assertThat(pipelineOptions.getJobName(), startsWith("dbeam-somedb-"));
   }
 
 }
