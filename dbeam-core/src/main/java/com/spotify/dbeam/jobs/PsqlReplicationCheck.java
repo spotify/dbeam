@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,9 @@
 package com.spotify.dbeam.jobs;
 
 import com.google.api.client.util.Preconditions;
+
 import com.spotify.dbeam.args.JdbcExportArgs;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,6 +31,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.time.ZoneOffset;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,8 +84,8 @@ public class PsqlReplicationCheck {
         .toInstant();
     if (lastReplication.isBefore(partitionPlusPartitionPeriod)) {
       LOGGER.error("Replication was not completed for partition, "
-              + "expected >= {}, actual = {}",
-          partitionPlusPartitionPeriod, lastReplication);
+                   + "expected >= {}, actual = {}",
+                   partitionPlusPartitionPeriod, lastReplication);
       return true;
     }
     return false;
