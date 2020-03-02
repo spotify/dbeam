@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
+import java.time.ZoneOffset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,10 +80,12 @@ public class PsqlReplicationCheck {
 
   static boolean isReplicationDelayed(Instant partition, Instant lastReplication,
                                       Period partitionPeriod) {
-    if (lastReplication.isBefore(partition.plus(partitionPeriod))) {
+    Instant partitionPlusPartitionPeriod = partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod)
+        .toInstant();
+    if (lastReplication.isBefore(partitionPlusPartitionPeriod)) {
       LOGGER.error("Replication was not completed for partition, "
                    + "expected >= {}, actual = {}",
-                   partition.plus(partitionPeriod), lastReplication);
+                   partitionPlusPartitionPeriod, lastReplication);
       return true;
     }
     return false;

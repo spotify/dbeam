@@ -124,6 +124,16 @@ public class PsqlReplicationCheckTest {
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
+  @Test
+  public void shouldWorkWithMonthlyPartitionPeriod() {
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
+    Period partitionPeriod = Period.ofMonths(1);
+
+    Assert.assertTrue(
+        PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
+  }
+
   @Test(expected = NotReadyException.class)
   public void shouldRunQueryAndReturnReplicationDelayed() throws Exception {
     String query =
