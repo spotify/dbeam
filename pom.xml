@@ -134,7 +134,7 @@
         <findbugs.version>3.0.2</findbugs.version>
         <grpc.version>1.17.1</grpc.version>
         <google-clients.version>1.28.0</google-clients.version>
-        <google.cloud.core.version>1.61.0</google.cloud.core.version>
+        <google.cloud.core.version>1.93.1</google.cloud.core.version>
         <opencensus.version>0.18.0</opencensus.version>
 
         <junit.version>4.12</junit.version>
