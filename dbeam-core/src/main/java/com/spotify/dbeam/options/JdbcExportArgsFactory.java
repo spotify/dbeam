@@ -127,8 +127,7 @@ public class JdbcExportArgsFactory {
     checkArgument((options.getTable() != null) != (options.getSqlFile() != null),
             "Either --table or --sqlFile must be present");
     if (options.getSqlFile() != null) {
-      return QueryBuilderArgs.create(
-          "user_based_query", PasswordReader.readFromFile(options.getSqlFile()));
+      return QueryBuilderArgs.createFromQuery(PasswordReader.readFromFile(options.getSqlFile()));
     } else {
       return QueryBuilderArgs.create(options.getTable());
     }

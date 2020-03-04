@@ -96,8 +96,7 @@ public class JdbcExportOptionsTest {
             JdbcConnectionArgs.create("jdbc:postgresql://some_db")
                         .withUsername("dbeam-extractor")
         ),
-        QueryBuilderArgs.create(
-            "user_based_query",
+        QueryBuilderArgs.createFromQuery(
             com.google.common.io.Files.asCharSource(sqlFile, StandardCharsets.UTF_8).read()
         )
     );
