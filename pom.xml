@@ -132,7 +132,7 @@
         <auto-value.version>1.7</auto-value.version>
         <protobuf.version>3.11.1</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <grpc.version>1.17.1</grpc.version>
+        <grpc.version>1.27.2</grpc.version>
         <google-clients.version>1.28.0</google-clients.version>
         <google.cloud.core.version>1.61.0</google.cloud.core.version>
         <opencensus.version>0.18.0</opencensus.version>
