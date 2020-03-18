@@ -21,7 +21,6 @@
 package com.spotify.dbeam.options;
 
 import java.util.concurrent.ThreadLocalRandom;
-
 import org.apache.beam.sdk.options.ApplicationNameOptions;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.slf4j.Logger;
@@ -35,7 +34,7 @@ public class JobNameConfiguration {
     return str.toLowerCase().replaceAll("[^a-z0-9]", "");
   }
 
-  public static void configureJobName(PipelineOptions options, String dbName) {
+  public static void configureJobName(PipelineOptions options, String dbName, String tableName) {
     try {
       options.as(ApplicationNameOptions.class).setAppName("JdbcAvroJob");
     } catch (Exception e) {
@@ -45,7 +44,7 @@ public class JobNameConfiguration {
       String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());
       options.setJobName(
           String.join("-",
-                      "dbeam", normalizeString(dbName), randomPart));
+                      "dbeam", normalizeString(dbName), normalizeString(tableName), randomPart));
     }
   }
 }
