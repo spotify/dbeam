@@ -36,7 +36,6 @@ import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.io.fs.MatchResult;
 import org.apache.beam.sdk.metrics.Counter;
 import org.apache.beam.sdk.metrics.Metrics;
-import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.apache.beam.sdk.values.TypeDescriptors;
@@ -53,10 +52,14 @@ public class BeamJdbcAvroSchema {
     final String dbName = connection.getCatalog();
     final Schema generatedSchema = getAvroSchema(args, connection);
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
-    final String tableName = getTablename(pipeline.getOptions());
+    final String tableName = pipeline.getOptions().as(DBeamPipelineOptions.class).getTable();
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
-    JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, tableName);
+    if (tableName != null) {
+      JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, tableName);
+    } else {
+      JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, "");
+    }
     final Counter cnt =
         Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
                         "schemaElapsedTimeMs");
@@ -70,16 +73,6 @@ public class BeamJdbcAvroSchema {
                  return v;
                }));
     return generatedSchema;
-  }
-
-  static String getTablename(PipelineOptions args) {
-    final String defTableName = "unknown";
-    if (args instanceof DBeamPipelineOptions) {
-      DBeamPipelineOptions dbeamArgs = (DBeamPipelineOptions) args;
-      return Optional.ofNullable(
-          dbeamArgs.getTable()).filter(x -> !x.isEmpty()).orElse(defTableName);
-    }
-    return defTableName;
   }
 
   public static Schema getAvroSchema(JdbcExportArgs args, Connection connection)
