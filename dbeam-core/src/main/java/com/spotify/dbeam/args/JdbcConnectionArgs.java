@@ -29,9 +29,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * A POJO describing a how to create a JDBC {@link Connection}.
- */
+/** A POJO describing a how to create a JDBC {@link Connection}. */
 @AutoValue
 public abstract class JdbcConnectionArgs implements Serializable {
 
@@ -41,9 +39,11 @@ public abstract class JdbcConnectionArgs implements Serializable {
 
   public abstract String url();
 
-  @Nullable abstract String username();
+  @Nullable
+  abstract String username();
 
-  @Nullable abstract String password();
+  @Nullable
+  abstract String password();
 
   abstract Builder builder();
 
@@ -61,11 +61,10 @@ public abstract class JdbcConnectionArgs implements Serializable {
     abstract JdbcConnectionArgs build();
   }
 
-  public static JdbcConnectionArgs create(final String url)
-      throws ClassNotFoundException {
-    Preconditions.checkArgument(url != null,
-                  "DataSourceConfiguration.create(driverClassName, url) called "
-                  + "with null url");
+  public static JdbcConnectionArgs create(final String url) throws ClassNotFoundException {
+    Preconditions.checkArgument(
+        url != null,
+        "DataSourceConfiguration.create(driverClassName, url) called " + "with null url");
     final String driverClassName = JdbcConnectionUtil.getDriverClass(url);
     return new AutoValue_JdbcConnectionArgs.Builder()
         .setDriverClassName(driverClassName)
@@ -83,9 +82,7 @@ public abstract class JdbcConnectionArgs implements Serializable {
 
   public Connection createConnection() throws Exception {
     Class.forName(driverClassName());
-    LOGGER.info("Creating JDBC connection to {} with user {}",
-        url(),
-        username());
+    LOGGER.info("Creating JDBC connection to {} with user {}", url(), username());
     Connection connection = DriverManager.getConnection(url(), username(), password());
     connection.setAutoCommit(false);
     return connection;

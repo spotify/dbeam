@@ -30,7 +30,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-
 public class ParallelQueryBuilderTest {
 
   private static String QUERY_BASE = "SELECT * FROM tab WHERE 1=1";
@@ -39,8 +38,7 @@ public class ParallelQueryBuilderTest {
   @Test
   public void shouldBuildParallelQueriesGivenRangeAndParallelism3() {
     final List<String> actual =
-        ParallelQueryBuilder.queriesForBounds(100, 400, 3, "sp",
-                                                                      QUERY_FORMAT);
+        ParallelQueryBuilder.queriesForBounds(100, 400, 3, "sp", QUERY_FORMAT);
 
     assertThat(
         actual,
@@ -48,85 +46,62 @@ public class ParallelQueryBuilderTest {
             Lists.newArrayList(
                 format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 100, 200),
                 format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 200, 300),
-                format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 300, 400)
-            ))
-    );
+                format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 300, 400))));
   }
 
   @Test
   public void shouldBuildParallelQueriesGivenRangeThatDoesNotDivideEqually() {
     final List<String> actual =
-        ParallelQueryBuilder.queriesForBounds(100, 402, 5, "sp",
-                                              QUERY_FORMAT);
+        ParallelQueryBuilder.queriesForBounds(100, 402, 5, "sp", QUERY_FORMAT);
 
     assertThat(
         actual,
-        Matchers.is(Lists.newArrayList(
-            format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 100, 161),
-            format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 161, 222),
-            format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 222, 283),
-            format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 283, 344),
-            format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 344, 402)
-        ))
-    );
+        Matchers.is(
+            Lists.newArrayList(
+                format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 100, 161),
+                format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 161, 222),
+                format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 222, 283),
+                format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 283, 344),
+                format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 344, 402))));
   }
 
   @Test
   public void shouldBuildSingleQueryWhenParallelismIsMoreThanMaxMin() {
-    final List<String> actual =
-        ParallelQueryBuilder.queriesForBounds(1, 2, 5, "sp",
-                                              QUERY_FORMAT);
+    final List<String> actual = ParallelQueryBuilder.queriesForBounds(1, 2, 5, "sp", QUERY_FORMAT);
 
     Assert.assertThat(
         actual,
-        Matchers.is(Lists.newArrayList(
-            format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 2)
-        ))
-    );
+        Matchers.is(Lists.newArrayList(format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 2))));
   }
 
   @Test
   public void shouldBuildSingleQueryWhenMaxMinIsTheSame() {
-    final List<String> actual =
-        ParallelQueryBuilder.queriesForBounds(1, 1, 5, "sp",
-                                              QUERY_FORMAT);
+    final List<String> actual = ParallelQueryBuilder.queriesForBounds(1, 1, 5, "sp", QUERY_FORMAT);
 
     assertThat(
         actual,
-        Matchers.is(Lists.newArrayList(
-            format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 1)
-        ))
-    );
+        Matchers.is(Lists.newArrayList(format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 1))));
   }
 
   @Test
   public void shouldBuildSingleQueryWhenParallelismIsOne() {
-    final List<String> actual =
-        ParallelQueryBuilder.queriesForBounds(1, 10, 1, "sp",
-                                              QUERY_FORMAT);
+    final List<String> actual = ParallelQueryBuilder.queriesForBounds(1, 10, 1, "sp", QUERY_FORMAT);
 
     assertThat(
         actual,
-        Matchers.is(Lists.newArrayList(
-            format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 10)
-        ))
-    );
+        Matchers.is(Lists.newArrayList(format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 10))));
   }
 
   @Ignore // TODO: fix this
   @Test
   public void shouldBuildMultipleQueriesWhenQueryingFromTwoRows() {
-    final List<String> actual =
-        ParallelQueryBuilder.queriesForBounds(1, 2, 2, "sp",
-                                              QUERY_FORMAT);
+    final List<String> actual = ParallelQueryBuilder.queriesForBounds(1, 2, 2, "sp", QUERY_FORMAT);
 
     assertThat(
         actual,
-        Matchers.is(Lists.newArrayList(
-            format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 1, 2),
-            format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 2, 2)
-        ))
-    );
+        Matchers.is(
+            Lists.newArrayList(
+                format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 1, 2),
+                format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 2, 2))));
   }
-
 }

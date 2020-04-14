@@ -48,11 +48,12 @@ public class QueryBuilderArgsTest {
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
-    coffeesSqlQueryPath = TestHelper.createTmpDirPath("jdbc-export-args-test").resolve(
-        "coffees_query_1.sql");
-    Files.write(coffeesSqlQueryPath,
-                "SELECT * FROM COFFEES WHERE SIZE > 10".getBytes(StandardCharsets.UTF_8));
-    connection =  DbTestHelper.createConnection(CONNECTION_URL);
+    coffeesSqlQueryPath =
+        TestHelper.createTmpDirPath("jdbc-export-args-test").resolve("coffees_query_1.sql");
+    Files.write(
+        coffeesSqlQueryPath,
+        "SELECT * FROM COFFEES WHERE SIZE > 10".getBytes(StandardCharsets.UTF_8));
+    connection = DbTestHelper.createConnection(CONNECTION_URL);
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
@@ -78,20 +79,17 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldCreateValidSqlQueryFromUserQuery() {
-    QueryBuilderArgs args =
-        QueryBuilderArgs.createFromQuery("SELECT * FROM some_table");
+    QueryBuilderArgs args = QueryBuilderArgs.createFromQuery("SELECT * FROM some_table");
 
     Assert.assertEquals(
         "SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1",
-        args.baseSqlQuery().build()
-    );
+        args.baseSqlQuery().build());
   }
 
   @Test
   public void shouldConfigureLimit() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--limit=7");
+    QueryBuilderArgs actual =
+        pareOptions("--connectionUrl=jdbc:postgresql://some_db --table=some_table " + "--limit=7");
 
     Assert.assertEquals(
         Lists.newArrayList("SELECT * FROM some_table WHERE 1=1 LIMIT 7"),
@@ -100,88 +98,85 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartition() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-07-31");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31");
 
+    Assert.assertEquals(Optional.of(Instant.parse("2027-07-31T00:00:00Z")), actual.partition());
     Assert.assertEquals(
-        Optional.of(Instant.parse("2027-07-31T00:00:00Z")),
-        actual.partition()
-    );
-    Assert.assertEquals(
-        Lists.newArrayList("SELECT * FROM some_table WHERE 1=1"),
-        actual.buildQueries(null));
+        Lists.newArrayList("SELECT * FROM some_table WHERE 1=1"), actual.buildQueries(null));
   }
 
   @Test
   public void shouldConfigurePartitionForFullIsoString() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-07-31T13:37:59Z");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31T13:37:59Z");
 
-    Assert.assertEquals(
-        Optional.of(Instant.parse("2027-07-31T13:37:59Z")),
-        actual.partition()
-    );
+    Assert.assertEquals(Optional.of(Instant.parse("2027-07-31T13:37:59Z")), actual.partition());
   }
 
   @Test
   public void shouldConfigurePartitionForMonthlySchedule() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-05");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-05");
 
-    Assert.assertEquals(
-        Optional.of(Instant.parse("2027-05-01T00:00:00Z")),
-        actual.partition()
-    );
+    Assert.assertEquals(Optional.of(Instant.parse("2027-05-01T00:00:00Z")), actual.partition());
   }
 
   @Test
   public void shouldConfigurePartitionForHourlySchedule() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-05-02T23");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-05-02T23");
 
-    Assert.assertEquals(
-        Optional.of(Instant.parse("2027-05-02T23:00:00Z")),
-        actual.partition()
-    );
+    Assert.assertEquals(Optional.of(Instant.parse("2027-05-02T23:00:00Z")), actual.partition());
   }
 
   @Test
   public void shouldConfigurePartitionColumn() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-07-31 --partitionColumn=col");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31 --partitionColumn=col");
 
     Assert.assertEquals(
-        Lists.newArrayList("SELECT * FROM some_table WHERE 1=1 "
-                           + "AND col >= '2027-07-31' AND col < '2027-08-01'"),
+        Lists.newArrayList(
+            "SELECT * FROM some_table WHERE 1=1 "
+                + "AND col >= '2027-07-31' AND col < '2027-08-01'"),
         actual.buildQueries(null));
   }
 
   @Test
   public void shouldConfigurePartitionColumnAndLimit() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-07-31 --partitionColumn=col --limit=5");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31 --partitionColumn=col --limit=5");
 
     Assert.assertEquals(
-        Lists.newArrayList("SELECT * FROM some_table WHERE 1=1 "
-                           + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5"),
+        Lists.newArrayList(
+            "SELECT * FROM some_table WHERE 1=1 "
+                + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5"),
         actual.buildQueries(null));
   }
 
   @Test
   public void shouldConfigurePartitionColumnAndPartitionPeriod() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M");
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M");
 
     Assert.assertEquals(
-        Lists.newArrayList("SELECT * FROM some_table WHERE 1=1 "
-                           + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
+        Lists.newArrayList(
+            "SELECT * FROM some_table WHERE 1=1 "
+                + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
         actual.buildQueries(null));
   }
 
@@ -189,84 +184,97 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigureLimitForSqlFile() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db "
-        + "--sqlFile=%s --limit=7", coffeesSqlQueryPath.toString()));
+    QueryBuilderArgs actual =
+        pareOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db " + "--sqlFile=%s --limit=7",
+                coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query"
-            + " WHERE 1=1 LIMIT 7"),
-                        actual.buildQueries(null));
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query"
+                + " WHERE 1=1 LIMIT 7"),
+        actual.buildQueries(null));
   }
 
   @Test
   public void shouldConfigurePartitionColumnAndLimitForSqlFile() throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db "
-        + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=7",
-        coffeesSqlQueryPath.toString()));
+    QueryBuilderArgs actual =
+        pareOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db "
+                    + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=7",
+                coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
-        + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 7"),
-                        actual.buildQueries(null));
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
+                + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 7"),
+        actual.buildQueries(null));
   }
 
   @Test
   public void shouldConfigurePartitionColumnAndPartitionPeriodForSqlFile()
       throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db "
-        + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M",
-        coffeesSqlQueryPath.toString()));
+    QueryBuilderArgs actual =
+        pareOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db "
+                    + "--sqlFile=%s --partition=2027-07-31 "
+                    + "--partitionColumn=col --partitionPeriod=P1M",
+                coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
-        + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
-                        actual.buildQueries(null));
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
+                + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
+        actual.buildQueries(null));
   }
 
   // tests for --queryParallelism
   @Test
-  public void shouldCreateParallelQueries()
-      throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=COFFEES "
-        + "--splitColumn=ROWNUM --queryParallelism=5");
+  public void shouldCreateParallelQueries() throws IOException, SQLException {
+    QueryBuilderArgs actual =
+        pareOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=COFFEES "
+                + "--splitColumn=ROWNUM --queryParallelism=5");
 
-    Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM COFFEES WHERE 1=1"
-        + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
-                        actual.buildQueries(connection));
+    Assert.assertEquals(
+        Lists.newArrayList("SELECT * FROM COFFEES WHERE 1=1" + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
+        actual.buildQueries(connection));
   }
 
   @Test
-  public void shouldCreateParallelQueriesWithSqlFile()
-      throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db "
-        + "--sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5",
-        coffeesSqlQueryPath.toString()));
+  public void shouldCreateParallelQueriesWithSqlFile() throws IOException, SQLException {
+    QueryBuilderArgs actual =
+        pareOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db "
+                    + "--sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5",
+                coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
-        + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
-                        actual.buildQueries(connection));
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
+                + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
+        actual.buildQueries(connection));
   }
 
   @Test
-  public void shouldCreateParallelQueriesWithPartitionColumn()
-      throws IOException, SQLException {
-    QueryBuilderArgs actual = pareOptions(String.format(
-        "--connectionUrl=jdbc:postgresql://some_db "
-        + "--sqlFile=%s --partition=2027-07-31 "
-        + "--partitionColumn=col --partitionPeriod=P1M --limit=7",
-        coffeesSqlQueryPath.toString()));
+  public void shouldCreateParallelQueriesWithPartitionColumn() throws IOException, SQLException {
+    QueryBuilderArgs actual =
+        pareOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db "
+                    + "--sqlFile=%s --partition=2027-07-31 "
+                    + "--partitionColumn=col --partitionPeriod=P1M --limit=7",
+                coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(Lists.newArrayList(
-        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
-        + " AND col >= '2027-07-31' AND col < '2027-08-31' LIMIT 7"),
-                        actual.buildQueries(connection));
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
+                + " AND col >= '2027-07-31' AND col < '2027-08-31' LIMIT 7"),
+        actual.buildQueries(connection));
   }
 
   private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {
@@ -281,5 +289,4 @@ public class QueryBuilderArgsTest {
         .create()
         .as(JdbcExportPipelineOptions.class);
   }
-
 }

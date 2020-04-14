@@ -28,13 +28,13 @@ public class PsqlAvroJobTest {
   @Test
   public void shouldCreatePsqlAvroJob() throws IOException, ClassNotFoundException {
     // no exception should be thrown
-    PsqlAvroJob.create(new String[]{
-        "--connectionUrl=jdbc:postgresql://fake",
-        "--table=foo",
-        "--partition=2025-02-28",
-        "--skipPartitionCheck",
-        "--output=/fake"
-    });
+    PsqlAvroJob.create(
+        new String[] {
+          "--connectionUrl=jdbc:postgresql://fake",
+          "--table=foo",
+          "--partition=2025-02-28",
+          "--skipPartitionCheck",
+          "--output=/fake"
+        });
   }
-
 }

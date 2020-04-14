@@ -53,23 +53,23 @@ public class InputAvroSchemaTest {
   public static void beforeAll() throws IOException {
     String jsonSchema =
         "{\n"
-        + "  \"name\": \"Show\",\n"
-        + "  \"doc\": \"Record description\",\n"
-        + "  \"namespace\": \"v2\",\n"
-        + "  \"type\": \"record\",\n"
-        + "  \"fields\": [\n"
-        + "    {\n"
-        + "      \"name\": \"field1\",\n"
-        + "      \"type\": \"string\",\n"
-        + "      \"doc\": \"Field1 description\"\n"
-        + "    },\n"
-        + "    {\n"
-        + "      \"name\": \"field2\",\n"
-        + "      \"type\": \"string\",\n"
-        + "      \"doc\": \"Field2 description\"\n"
-        + "    }\n"
-        + "  ]\n"
-        + "}\n";
+            + "  \"name\": \"Show\",\n"
+            + "  \"doc\": \"Record description\",\n"
+            + "  \"namespace\": \"v2\",\n"
+            + "  \"type\": \"record\",\n"
+            + "  \"fields\": [\n"
+            + "    {\n"
+            + "      \"name\": \"field1\",\n"
+            + "      \"type\": \"string\",\n"
+            + "      \"doc\": \"Field1 description\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"field2\",\n"
+            + "      \"type\": \"string\",\n"
+            + "      \"doc\": \"Field2 description\"\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}\n";
 
     avroSchemaFile = createTestAvroSchemaFile(jsonSchema);
     avroSchemaFilePath = avroSchemaFile.toPath();
@@ -97,7 +97,7 @@ public class InputAvroSchemaTest {
     for (int i = 0; i < fieldNames.length; i++) {
       String fieldName = fieldNames[i];
       String fieldDoc = fieldDocs[i];
-      fields.add(new Schema.Field(fieldName, inputSchema,fieldDoc));
+      fields.add(new Schema.Field(fieldName, inputSchema, fieldDoc));
     }
     inputSchema.setFields(fields);
 
@@ -166,7 +166,6 @@ public class InputAvroSchemaTest {
         Optional.empty(), BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
-
   @Test(expected = SchemaParseException.class)
   public void checkReadAvroSchemaWithInvalidFormat() throws IOException {
 
@@ -194,21 +193,21 @@ public class InputAvroSchemaTest {
   }
 
   @Test
-  public void checkValidCommandLineArgIsParsedAsOptions()
-      throws IOException, SQLException {
-    JdbcExportPipelineOptions options = QueryBuilderArgsTest.commandLineToOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-            + "--avroSchemaFilePath=/temp/record1.avsc --partition=2027-07-31");
+  public void checkValidCommandLineArgIsParsedAsOptions() throws IOException, SQLException {
+    JdbcExportPipelineOptions options =
+        QueryBuilderArgsTest.commandLineToOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--avroSchemaFilePath=/temp/record1.avsc --partition=2027-07-31");
 
     Assert.assertEquals("/temp/record1.avsc", options.getAvroSchemaFilePath());
   }
 
   @Test
-  public void checkEmptyCommandLineArgIsParsedAsOptions()
-      throws IOException, SQLException {
-    JdbcExportPipelineOptions options = QueryBuilderArgsTest.commandLineToOptions(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--partition=2027-07-31");
+  public void checkEmptyCommandLineArgIsParsedAsOptions() throws IOException, SQLException {
+    JdbcExportPipelineOptions options =
+        QueryBuilderArgsTest.commandLineToOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31");
 
     Assert.assertNull(options.getAvroSchemaFilePath());
   }
@@ -222,5 +221,4 @@ public class InputAvroSchemaTest {
             .as(JdbcExportPipelineOptions.class);
     return JdbcExportArgsFactory.createQueryArgs(opts);
   }
-
 }

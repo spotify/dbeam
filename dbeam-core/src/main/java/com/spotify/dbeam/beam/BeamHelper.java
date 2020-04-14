@@ -45,22 +45,24 @@ import org.slf4j.LoggerFactory;
 public class BeamHelper {
   private static Logger LOGGER = LoggerFactory.getLogger(BeamHelper.class);
 
-  public static PipelineResult waitUntilDone(final PipelineResult result,
-                                             final Duration exportTimeout) {
+  public static PipelineResult waitUntilDone(
+      final PipelineResult result, final Duration exportTimeout) {
     // terminal state might be null, such as:
     // {{ @link org.apache.beam.runners.dataflow.DataflowPipelineJob.waitUntilFinish }}
-    @Nullable final PipelineResult.State terminalState = result.waitUntilFinish(
-        org.joda.time.Duration.millis(
-            exportTimeout.toMillis()));
+    @Nullable
+    final PipelineResult.State terminalState =
+        result.waitUntilFinish(org.joda.time.Duration.millis(exportTimeout.toMillis()));
     if (terminalState == null || !terminalState.isTerminal()) {
       try {
         result.cancel();
       } catch (IOException e) {
         throw new Pipeline.PipelineExecutionException(
-            new Exception(String.format(
-                "Job exceeded timeout of %s, but was not possible to cancel, "
-                + "finished with terminalState %s",
-                exportTimeout.toString(), terminalState), e));
+            new Exception(
+                String.format(
+                    "Job exceeded timeout of %s, but was not possible to cancel, "
+                        + "finished with terminalState %s",
+                    exportTimeout.toString(), terminalState),
+                e));
       }
       throw new Pipeline.PipelineExecutionException(
           new Exception("Job cancelled after exceeding timeout " + exportTimeout.toString()));
@@ -81,8 +83,7 @@ public class BeamHelper {
   }
 
   public static void saveStringOnSubPath(
-      final String path, final String subPath, final String contents)
-      throws IOException {
+      final String path, final String subPath, final String contents) throws IOException {
     String filename = path.replaceAll("/+$", "") + subPath;
     writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())));
   }
@@ -107,5 +108,4 @@ public class BeamHelper {
     InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
     return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }
-
 }

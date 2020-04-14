@@ -44,18 +44,14 @@ public class JdbcAvroRecordConverter {
     this.resultSet = resultSet;
   }
 
-  public static JdbcAvroRecordConverter create(final ResultSet resultSet)
-      throws SQLException {
+  public static JdbcAvroRecordConverter create(final ResultSet resultSet) throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet),
-        resultSet.getMetaData().getColumnCount(),
-        resultSet);
+        computeAllMappings(resultSet), resultSet.getMetaData().getColumnCount(), resultSet);
   }
-  
+
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet)
-      throws SQLException {
+      final ResultSet resultSet) throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
 
@@ -85,12 +81,12 @@ public class JdbcAvroRecordConverter {
   /**
    * Read data from a single row of result set and and encode into a Avro record as byte array.
    * Directly reading and encoding has the benefit of less need for copying bytes between objects.
+   *
    * @return a ByteBuffer with binary encoded Avro record
    * @throws SQLException in case reading row from JDBC fails
    * @throws IOException in case binary encoding fails
    */
-  public ByteBuffer convertResultSetIntoAvroBytes()
-      throws SQLException, IOException {
+  public ByteBuffer convertResultSetIntoAvroBytes() throws SQLException, IOException {
     final MyByteArrayOutputStream out = new MyByteArrayOutputStream(columnCount * 64);
     binaryEncoder = encoderFactory.directBinaryEncoder(out, binaryEncoder);
     for (int i = 1; i <= columnCount; i++) {
@@ -120,5 +116,4 @@ public class JdbcAvroRecordConverter {
     binaryEncoder.flush();
     return ByteBuffer.wrap(out.getBufffer(), 0, out.size());
   }
-
 }

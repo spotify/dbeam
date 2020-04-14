@@ -66,8 +66,8 @@ public abstract class JdbcExportArgs implements Serializable {
   }
 
   @VisibleForTesting
-  static JdbcExportArgs create(final JdbcAvroArgs jdbcAvroArgs,
-                               final QueryBuilderArgs queryBuilderArgs) {
+  static JdbcExportArgs create(
+      final JdbcAvroArgs jdbcAvroArgs, final QueryBuilderArgs queryBuilderArgs) {
     return create(
         jdbcAvroArgs,
         queryBuilderArgs,
@@ -100,5 +100,4 @@ public abstract class JdbcExportArgs implements Serializable {
   public Connection createConnection() throws Exception {
     return this.jdbcAvroOptions().jdbcConnectionConfiguration().createConnection();
   }
-
 }

@@ -40,9 +40,7 @@ import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 
-/**
- * Used on e2e test, allows benchmarking with different configuration parameters.
- */
+/** Used on e2e test, allows benchmarking with different configuration parameters. */
 public class BenchJdbcAvroJob {
 
   public interface BenchJdbcAvroOptions extends PipelineOptions {
@@ -69,12 +67,9 @@ public class BenchJdbcAvroJob {
   public void run() throws Exception {
     int executions = pipelineOptions.as(BenchJdbcAvroOptions.class).getExecutions();
     for (int i = 0; i < executions; i++) {
-      String output = String.format("%s/run_%d",
-                                    pipelineOptions.as(OutputOptions.class).getOutput(),
-                                    i);
-      final PipelineResult
-          pipelineResult =
-          JdbcAvroJob.create(pipelineOptions, output).runExport();
+      String output =
+          String.format("%s/run_%d", pipelineOptions.as(OutputOptions.class).getOutput(), i);
+      final PipelineResult pipelineResult = JdbcAvroJob.create(pipelineOptions, output).runExport();
       this.metrics.add(MetricsHelper.getMetrics(pipelineResult));
     }
     System.out.println("Summary for BenchJdbcAvroJob");
@@ -83,46 +78,58 @@ public class BenchJdbcAvroJob {
   }
 
   private String tsvMetrics() {
-    final List<String>
-        columns =
+    final List<String> columns =
         newArrayList("recordCount", "writeElapsedMs", "msPerMillionRows", "bytesWritten");
     final Collector<CharSequence, ?, String> tabJoining = Collectors.joining("\t");
-    final Stream<String> lines = IntStream.range(0, this.metrics.size()).mapToObj(
-        i -> String.format(
-            "run_%02d  \t%s\t% 6d",
-            i,
-            columns.stream().map(
-                c ->
-                    Optional.of(this.metrics.get(i).get(c))
-                        .orElse(0L).toString()).collect(tabJoining),
-            this.metrics.get(i).get("bytesWritten") / this.metrics.get(i).get("writeElapsedMs")
-        )
-    );
-    final List<Stats> stats = Stream.concat(
-        columns.stream().map(c ->
-                                 Stats.of((Iterable<Long>) this.metrics.stream()
-                                     .map(m -> Optional.of(m.get(c)).orElse(0L))::iterator)
-        ), Stream.of(
-            Stats
-                .of((Iterable<Long>) this.metrics.stream()
-                    .map(m -> m.get("bytesWritten") / m.get("writeElapsedMs"))::iterator)
-        )).collect(Collectors.toList());
-    final Map<String, Function<Stats, Double>> relevantStats = ImmutableMap.of(
-        "max    ", Stats::max,
-        "mean   ", Stats::mean,
-        "min    ", Stats::min,
-        "stddev ", Stats::populationStandardDeviation);
-    final Stream<String> statsSummary = relevantStats.entrySet().stream().map(
-        e -> String.format("%s\t%s",
-                           e.getKey(),
-                           stats.stream().map(e.getValue())
-                               .map(v -> String.format("% 6.1f", v)).collect(tabJoining)
-        ));
-    return Stream.concat(
+    final Stream<String> lines =
+        IntStream.range(0, this.metrics.size())
+            .mapToObj(
+                i ->
+                    String.format(
+                        "run_%02d  \t%s\t% 6d",
+                        i,
+                        columns.stream()
+                            .map(c -> Optional.of(this.metrics.get(i).get(c)).orElse(0L).toString())
+                            .collect(tabJoining),
+                        this.metrics.get(i).get("bytesWritten")
+                            / this.metrics.get(i).get("writeElapsedMs")));
+    final List<Stats> stats =
         Stream.concat(
-            Stream.of(String.format("name   \t%s\tKBps", String.join("\t", columns))),
-            lines),
-        statsSummary)
+                columns.stream()
+                    .map(
+                        c ->
+                            Stats.of(
+                                (Iterable<Long>)
+                                    this.metrics.stream().map(m -> Optional.of(m.get(c)).orElse(0L))
+                                        ::iterator)),
+                Stream.of(
+                    Stats.of(
+                        (Iterable<Long>)
+                            this.metrics.stream()
+                                    .map(m -> m.get("bytesWritten") / m.get("writeElapsedMs"))
+                                ::iterator)))
+            .collect(Collectors.toList());
+    final Map<String, Function<Stats, Double>> relevantStats =
+        ImmutableMap.of(
+            "max    ", Stats::max,
+            "mean   ", Stats::mean,
+            "min    ", Stats::min,
+            "stddev ", Stats::populationStandardDeviation);
+    final Stream<String> statsSummary =
+        relevantStats.entrySet().stream()
+            .map(
+                e ->
+                    String.format(
+                        "%s\t%s",
+                        e.getKey(),
+                        stats.stream()
+                            .map(e.getValue())
+                            .map(v -> String.format("% 6.1f", v))
+                            .collect(tabJoining)));
+    return Stream.concat(
+            Stream.concat(
+                Stream.of(String.format("name   \t%s\tKBps", String.join("\t", columns))), lines),
+            statsSummary)
         .collect(Collectors.joining("\n"));
   }
 
@@ -133,5 +140,4 @@ public class BenchJdbcAvroJob {
       ExceptionHandling.handleException(e);
     }
   }
-
 }

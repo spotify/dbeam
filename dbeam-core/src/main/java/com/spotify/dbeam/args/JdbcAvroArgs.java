@@ -34,7 +34,8 @@ public abstract class JdbcAvroArgs implements Serializable {
 
   public abstract JdbcConnectionArgs jdbcConnectionConfiguration();
 
-  @Nullable public abstract StatementPreparator statementPreparator();
+  @Nullable
+  public abstract StatementPreparator statementPreparator();
 
   public abstract int fetchSize();
 
@@ -71,12 +72,14 @@ public abstract class JdbcAvroArgs implements Serializable {
     abstract JdbcAvroArgs build();
   }
 
-  public static JdbcAvroArgs create(final JdbcConnectionArgs jdbcConnectionArgs,
-                                    final int fetchSize,
-                                    final String avroCodec,
-                                    final List<String> preCommand) {
-    Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]|zstandard[1-9]"),
-                          "Avro codec should be snappy or deflate1, .., deflate9");
+  public static JdbcAvroArgs create(
+      final JdbcConnectionArgs jdbcConnectionArgs,
+      final int fetchSize,
+      final String avroCodec,
+      final List<String> preCommand) {
+    Preconditions.checkArgument(
+        avroCodec.matches("snappy|deflate[1-9]|zstandard[1-9]"),
+        "Avro codec should be snappy or deflate1, .., deflate9");
     return new AutoValue_JdbcAvroArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)
         .setFetchSize(fetchSize)

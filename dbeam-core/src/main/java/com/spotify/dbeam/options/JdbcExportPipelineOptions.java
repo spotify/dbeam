@@ -38,21 +38,24 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setPartitionColumn(String value);
 
   @Default.Boolean(false)
-  @Description("When partition column is not specified, "
-      + "fails if partition is too old; set this flag to ignore this check.")
+  @Description(
+      "When partition column is not specified, "
+          + "fails if partition is too old; set this flag to ignore this check.")
   Boolean isSkipPartitionCheck();
 
   void setSkipPartitionCheck(Boolean value);
 
-  @Description("The period frequency which the export runs, used to filder based"
-             + "on current partition and also to fail exports for too old partitions.")
+  @Description(
+      "The period frequency which the export runs, used to filder based"
+          + "on current partition and also to fail exports for too old partitions.")
   String getPartitionPeriod();
 
   void setPartitionPeriod(String value);
 
-  @Description("The minimum partition required for the job not to fail "
-      + "(when partition column is not specified),"
-      + "by default `now() - 2*partitionPeriod`.")
+  @Description(
+      "The minimum partition required for the job not to fail "
+          + "(when partition column is not specified),"
+          + "by default `now() - 2*partitionPeriod`.")
   String getMinPartitionPeriod();
 
   void setMinPartitionPeriod(String value);
@@ -74,8 +77,7 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setAvroDoc(String value);
 
   @Default.Boolean(false)
-  @Description(
-      "Controls whether generated Avro schema will contain logicalTypes or not.")
+  @Description("Controls whether generated Avro schema will contain logicalTypes or not.")
   Boolean isUseAvroLogicalTypes();
 
   void setUseAvroLogicalTypes(Boolean value);
@@ -99,15 +101,13 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setSplitColumn(String value);
 
-  @Description(
-      "Number of queries to run in parallel for exports. Should be used with splitColumn")
+  @Description("Number of queries to run in parallel for exports. Should be used with splitColumn")
   Integer getQueryParallelism();
 
   void setQueryParallelism(Integer value);
 
   @Default.String("P7D")
-  @Description(
-      "Export timeout, after this duration the export will be terminated.")
+  @Description("Export timeout, after this duration the export will be terminated.")
   String getExportTimeout();
 
   void setExportTimeout(String value);

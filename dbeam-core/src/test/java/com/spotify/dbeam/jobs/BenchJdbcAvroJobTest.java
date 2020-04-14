@@ -45,20 +45,17 @@ public class BenchJdbcAvroJobTest {
 
   @Test
   public void shouldRunJdbcAvroJob() {
-    BenchJdbcAvroJob.main(new String[]{
-        "--targetParallelism=1",  // no need for more threads when testing
-        "--skipPartitionCheck",
-        "--connectionUrl=" + CONNECTION_URL,
-        "--username=",
-        "--table=COFFEES",
-        "--output=" + testDir.toString(),
-        "--avroCodec=zstandard1",
-        "--executions=2"
-    });
-    assertThat(
-        TestHelper.listDir(testDir.toFile()),
-        containsInAnyOrder("run_0", "run_1")
-    );
+    BenchJdbcAvroJob.main(
+        new String[] {
+          "--targetParallelism=1", // no need for more threads when testing
+          "--skipPartitionCheck",
+          "--connectionUrl=" + CONNECTION_URL,
+          "--username=",
+          "--table=COFFEES",
+          "--output=" + testDir.toString(),
+          "--avroCodec=zstandard1",
+          "--executions=2"
+        });
+    assertThat(TestHelper.listDir(testDir.toFile()), containsInAnyOrder("run_0", "run_1"));
   }
-
 }

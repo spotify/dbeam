@@ -35,8 +35,7 @@ public class PsqlReplicationCheckTest {
   private static String CONNECTION_URL =
       "jdbc:h2:mem:testpsql;MODE=postgresql;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
 
-  private static JdbcExportArgs createArgs(String url,
-                                    QueryBuilderArgs queryBuilderArgs)
+  private static JdbcExportArgs createArgs(String url, QueryBuilderArgs queryBuilderArgs)
       throws ClassNotFoundException {
     return JdbcExportArgs.create(
         JdbcAvroArgs.create(JdbcConnectionArgs.create(url)),
@@ -50,27 +49,28 @@ public class PsqlReplicationCheckTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnInvalidDriver() throws ClassNotFoundException {
-    JdbcExportArgs args = createArgs("jdbc:mysql://some_db",
-                                     QueryBuilderArgs.create("some_table"));
+    JdbcExportArgs args = createArgs("jdbc:mysql://some_db", QueryBuilderArgs.create("some_table"));
 
     PsqlReplicationCheck.validateOptions(args);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnMissingPartition() throws ClassNotFoundException {
-    JdbcExportArgs args = createArgs("jdbc:postgresql://some_db",
-                                     QueryBuilderArgs.create("some_table"));
+    JdbcExportArgs args =
+        createArgs("jdbc:postgresql://some_db", QueryBuilderArgs.create("some_table"));
 
     PsqlReplicationCheck.validateOptions(args);
   }
 
   @Test
   public void shouldSucceedOnValidDriverAndPartition() throws ClassNotFoundException {
-    final JdbcExportArgs args = createArgs("jdbc:postgresql://some_db",
-                                              QueryBuilderArgs.create("coffees").builder()
-                                                  .setPartition(
-                                                      Instant.parse("2025-02-28T00:00:00Z"))
-                                                  .build());
+    final JdbcExportArgs args =
+        createArgs(
+            "jdbc:postgresql://some_db",
+            QueryBuilderArgs.create("coffees")
+                .builder()
+                .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
+                .build());
     PsqlReplicationCheck.validateOptions(args);
   }
 
@@ -138,13 +138,17 @@ public class PsqlReplicationCheckTest {
   public void shouldRunQueryAndReturnReplicationDelayed() throws Exception {
     String query =
         "SELECT parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')"
-        + " AS last_replication, "
-        + "13 AS replication_delay";
-    PsqlReplicationCheck replicationCheck = new PsqlReplicationCheck(
-        createArgs(CONNECTION_URL,
-                         QueryBuilderArgs.create("coffees").builder()
-                                             .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
-                                             .build()), query);
+            + " AS last_replication, "
+            + "13 AS replication_delay";
+    PsqlReplicationCheck replicationCheck =
+        new PsqlReplicationCheck(
+            createArgs(
+                CONNECTION_URL,
+                QueryBuilderArgs.create("coffees")
+                    .builder()
+                    .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
+                    .build()),
+            query);
     Instant expectedLastReplication = Instant.parse("2017-02-01T23:58:57Z");
 
     Instant actual = replicationCheck.queryReplication();
@@ -158,13 +162,17 @@ public class PsqlReplicationCheckTest {
   public void shouldRunQueryAndReturnReplicationNotDelayed() throws Exception {
     String query =
         "SELECT parsedatetime('2030-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')"
-        + " AS last_replication, "
-        + "13 AS replication_delay";
-    PsqlReplicationCheck replicationCheck = new PsqlReplicationCheck(
-        createArgs(CONNECTION_URL,
-                         QueryBuilderArgs.create("coffees").builder()
-                                             .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
-                                             .build()), query);
+            + " AS last_replication, "
+            + "13 AS replication_delay";
+    PsqlReplicationCheck replicationCheck =
+        new PsqlReplicationCheck(
+            createArgs(
+                CONNECTION_URL,
+                QueryBuilderArgs.create("coffees")
+                    .builder()
+                    .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
+                    .build()),
+            query);
     Instant expectedLastReplication = Instant.parse("2030-02-01T23:58:57Z");
 
     Instant actual = replicationCheck.queryReplication();
@@ -173,5 +181,4 @@ public class PsqlReplicationCheckTest {
     Assert.assertFalse(replicationCheck.isReplicationDelayed());
     replicationCheck.checkReplication();
   }
-
 }

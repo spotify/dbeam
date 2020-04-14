@@ -53,14 +53,17 @@ public class JdbcAvroJob {
   private final JdbcExportArgs jdbcExportArgs;
   private final String output;
 
-  public JdbcAvroJob(final PipelineOptions pipelineOptions, final Pipeline pipeline,
-                     final JdbcExportArgs jdbcExportArgs, final String output) {
+  public JdbcAvroJob(
+      final PipelineOptions pipelineOptions,
+      final Pipeline pipeline,
+      final JdbcExportArgs jdbcExportArgs,
+      final String output) {
     this.pipelineOptions = pipelineOptions;
     this.pipeline = pipeline;
     this.jdbcExportArgs = jdbcExportArgs;
     this.output = output;
-    Preconditions.checkArgument(this.output != null && this.output.length() > 0,
-                                "'output' must be defined");
+    Preconditions.checkArgument(
+        this.output != null && this.output.length() > 0, "'output' must be defined");
   }
 
   public static JdbcAvroJob create(final PipelineOptions pipelineOptions, final String output)
@@ -68,16 +71,16 @@ public class JdbcAvroJob {
     // make sure pipeline.run() does not call waitUntilFinish
     // instead we call with an explicit duration/exportTimeout configuration
     pipelineOptions.as(DirectOptions.class).setBlockOnRun(false);
-    return new JdbcAvroJob(pipelineOptions,
-                           Pipeline.create(pipelineOptions),
-                           JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
-                           output);
+    return new JdbcAvroJob(
+        pipelineOptions,
+        Pipeline.create(pipelineOptions),
+        JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
+        output);
   }
 
   public static JdbcAvroJob create(final PipelineOptions pipelineOptions)
       throws IOException, ClassNotFoundException {
-    return create(pipelineOptions,
-                  pipelineOptions.as(OutputOptions.class).getOutput());
+    return create(pipelineOptions, pipelineOptions.as(OutputOptions.class).getOutput());
   }
 
   public static JdbcAvroJob create(final String[] cmdLineArgs)
@@ -92,7 +95,8 @@ public class JdbcAvroJob {
   }
 
   public void prepareExport() throws Exception {
-    LOGGER.info("{} {} version {}",
+    LOGGER.info(
+        "{} {} version {}",
         this.getClass().getPackage().getImplementationTitle(),
         this.getClass().getSimpleName(),
         this.getClass().getPackage().getImplementationVersion());
@@ -101,29 +105,25 @@ public class JdbcAvroJob {
     final Schema generatedSchema;
     try (Connection connection = jdbcExportArgs.createConnection()) {
       generatedSchema = createSchema(connection);
-      queries = jdbcExportArgs
-          .queryBuilderArgs()
-          .buildQueries(connection);
+      queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
       final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
-    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc",
-                                   generatedSchema.toString(true));
+    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
     for (int i = 0; i < queries.size(); i++) {
       BeamHelper.saveStringOnSubPath(
           output, String.format("/_queries/query_%d.sql", i), queries.get(i));
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
-    pipeline.apply("JdbcQueries", Create.of(queries))
-        .apply("JdbcAvroSave", JdbcAvroIO.createWrite(
-            output,
-            ".avro",
-            generatedSchema,
-            jdbcExportArgs.jdbcAvroOptions()
-        ));
+    pipeline
+        .apply("JdbcQueries", Create.of(queries))
+        .apply(
+            "JdbcAvroSave",
+            JdbcAvroIO.createWrite(
+                output, ".avro", generatedSchema, jdbcExportArgs.jdbcAvroOptions()));
   }
 
   private Schema createSchema(final Connection connection) throws Exception {
@@ -151,8 +151,7 @@ public class JdbcAvroJob {
   }
 
   public PipelineResult runAndWait() {
-    return BeamHelper.waitUntilDone(this.pipeline.run(),
-                                    jdbcExportArgs.exportTimeout());
+    return BeamHelper.waitUntilDone(this.pipeline.run(), jdbcExportArgs.exportTimeout());
   }
 
   public PipelineResult runExport() throws Exception {
@@ -169,5 +168,4 @@ public class JdbcAvroJob {
       ExceptionHandling.handleException(e);
     }
   }
-
 }

@@ -45,11 +45,14 @@ public class JobNameConfiguration {
     }
     if (options.getJobName() == null || "auto".equals(options.getJobName())) {
       final String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());
-      final String jobName = String.format("dbeam-%s-%s",
-          Arrays.stream(parts).filter(p -> !Strings.isNullOrEmpty(p))
-              .map(JobNameConfiguration::normalizeString)
-              .collect(Collectors.joining("-")),
-          randomPart);
+      final String jobName =
+          String.format(
+              "dbeam-%s-%s",
+              Arrays.stream(parts)
+                  .filter(p -> !Strings.isNullOrEmpty(p))
+                  .map(JobNameConfiguration::normalizeString)
+                  .collect(Collectors.joining("-")),
+              randomPart);
       options.setJobName(jobName);
     }
   }

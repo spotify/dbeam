@@ -62,8 +62,8 @@ public class JdbcAvroJobTest {
   private List<GenericRecord> readAvroRecords(File avroFile, Schema schema) throws IOException {
     GenericDatumReader<GenericRecord> datum = new GenericDatumReader<>(schema);
     DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(avroFile, datum);
-    List<GenericRecord> records = StreamSupport.stream(dataFileReader.spliterator(), false)
-        .collect(Collectors.toList());
+    List<GenericRecord> records =
+        StreamSupport.stream(dataFileReader.spliterator(), false).collect(Collectors.toList());
     dataFileReader.close();
     return records;
   }
@@ -74,8 +74,7 @@ public class JdbcAvroJobTest {
     passwordPath = testDir.resolve(".password");
     sqlPath = testDir.resolve("query.sql");
     passwordPath.toFile().createNewFile();
-    Files.write(sqlPath,
-        "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
+    Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
@@ -83,28 +82,31 @@ public class JdbcAvroJobTest {
   public void shouldRunJdbcAvroJob() throws IOException {
     Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
 
-    JdbcAvroJob.main(new String[]{
-        "--targetParallelism=1",  // no need for more threads when testing
-        "--partition=2025-02-28",
-        "--skipPartitionCheck",
-        "--exportTimeout=PT1M",
-        "--connectionUrl=" + CONNECTION_URL,
-        "--username=",
-        "--passwordFile=" + passwordPath.toString(),
-        "--table=COFFEES",
-        "--output=" + outputPath.toString(),
-        "--avroCodec=zstandard1"
-    });
+    JdbcAvroJob.main(
+        new String[] {
+          "--targetParallelism=1", // no need for more threads when testing
+          "--partition=2025-02-28",
+          "--skipPartitionCheck",
+          "--exportTimeout=PT1M",
+          "--connectionUrl=" + CONNECTION_URL,
+          "--username=",
+          "--passwordFile=" + passwordPath.toString(),
+          "--table=COFFEES",
+          "--output=" + outputPath.toString(),
+          "--avroCodec=zstandard1"
+        });
 
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
-        containsInAnyOrder("_AVRO_SCHEMA.avsc", "_METRICS.json",
-            "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
-    );
+        containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
+            "_METRICS.json",
+            "_SERVICE_METRICS.json",
+            "_queries",
+            "part-00000-of-00001.avro"));
     assertThat(
         TestHelper.listDir(outputPath.resolve("_queries").toFile()),
-        containsInAnyOrder("query_0.sql")
-    );
+        containsInAnyOrder("query_0.sql"));
     Schema schema = new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
     List<GenericRecord> records =
         readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
@@ -115,24 +117,28 @@ public class JdbcAvroJobTest {
   public void shouldRunJdbcAvroJobSqlFile() throws IOException {
     Path outputPath = testDir.resolve("shouldRunJdbcAvroJobSqlFile");
 
-    JdbcAvroJob.main(new String[]{
-        "--targetParallelism=1",  // no need for more threads when testing
-        "--partition=2025-02-28",
-        "--skipPartitionCheck",
-        "--exportTimeout=PT1M",
-        "--connectionUrl=" + CONNECTION_URL,
-        "--username=",
-        "--passwordFile=" + passwordPath.toString(),
-        "--output=" + outputPath.toString(),
-        "--avroCodec=zstandard1",
-        "--sqlFile=" + sqlPath.toString()
-    });
+    JdbcAvroJob.main(
+        new String[] {
+          "--targetParallelism=1", // no need for more threads when testing
+          "--partition=2025-02-28",
+          "--skipPartitionCheck",
+          "--exportTimeout=PT1M",
+          "--connectionUrl=" + CONNECTION_URL,
+          "--username=",
+          "--passwordFile=" + passwordPath.toString(),
+          "--output=" + outputPath.toString(),
+          "--avroCodec=zstandard1",
+          "--sqlFile=" + sqlPath.toString()
+        });
 
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
-        containsInAnyOrder("_AVRO_SCHEMA.avsc", "_METRICS.json",
-            "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro"
-        ));
+        containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
+            "_METRICS.json",
+            "_SERVICE_METRICS.json",
+            "_queries",
+            "part-00000-of-00001.avro"));
     assertThat(
         TestHelper.listDir(outputPath.resolve("_queries").toFile()),
         containsInAnyOrder("query_0.sql"));
@@ -142,36 +148,37 @@ public class JdbcAvroJobTest {
     assertThat(records, hasSize(1));
     assertThat(
         schema.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()),
-        contains("COF_NAME", "SIZE", "TOTAL")
-    );
+        contains("COF_NAME", "SIZE", "TOTAL"));
   }
 
-
   @Test
-  public void shouldRunAvroJobPreCommands()
-      throws SQLException, ClassNotFoundException {
+  public void shouldRunAvroJobPreCommands() throws SQLException, ClassNotFoundException {
     Path outputPath = testDir.resolve("shouldRunAvroJobPreCommands");
 
-    JdbcAvroJob.main(new String[]{
-        "--targetParallelism=1",  // no need for more threads when testing
-        "--partition=2025-02-28",
-        "--skipPartitionCheck",
-        "--exportTimeout=PT1M",
-        "--connectionUrl=" + CONNECTION_URL,
-        "--username=",
-        "--passwordFile=" + passwordPath.toString(),
-        "--table=COFFEES",
-        "--output=" + outputPath.toString(),
-        "--avroCodec=zstandard1",
-        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_1;",
-        "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
-    });
+    JdbcAvroJob.main(
+        new String[] {
+          "--targetParallelism=1", // no need for more threads when testing
+          "--partition=2025-02-28",
+          "--skipPartitionCheck",
+          "--exportTimeout=PT1M",
+          "--connectionUrl=" + CONNECTION_URL,
+          "--username=",
+          "--passwordFile=" + passwordPath.toString(),
+          "--table=COFFEES",
+          "--output=" + outputPath.toString(),
+          "--avroCodec=zstandard1",
+          "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_1;",
+          "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
+        });
 
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
-        containsInAnyOrder("_AVRO_SCHEMA.avsc", "_METRICS.json",
-            "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro"
-        ));
+        containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
+            "_METRICS.json",
+            "_SERVICE_METRICS.json",
+            "_queries",
+            "part-00000-of-00001.avro"));
 
     List<String> schemas = new ArrayList<>();
     try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
@@ -181,16 +188,14 @@ public class JdbcAvroJobTest {
       }
     }
 
-    String [] expectedSchemas = {"TEST_COMMAND_1", "TEST_COMMAND_2"};
+    String[] expectedSchemas = {"TEST_COMMAND_1", "TEST_COMMAND_2"};
     assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
   @Test
   public void shouldHaveDefaultExitCode() throws IOException, ClassNotFoundException {
     Assert.assertEquals(
-        Integer.valueOf(49),
-        ExceptionHandling.exitCode(new IllegalStateException())
-    );
+        Integer.valueOf(49), ExceptionHandling.exitCode(new IllegalStateException()));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -213,5 +218,4 @@ public class JdbcAvroJobTest {
     metering.incrementRecordCount();
     metering.exposeWriteElapsed();
   }
-
 }

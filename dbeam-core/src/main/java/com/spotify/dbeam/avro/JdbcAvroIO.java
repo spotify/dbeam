@@ -61,40 +61,36 @@ public class JdbcAvroIO {
   private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
 
   public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
-      String filenamePrefix, String filenameSuffix, Schema schema,
-      JdbcAvroArgs jdbcAvroArgs) {
+      String filenamePrefix, String filenameSuffix, Schema schema, JdbcAvroArgs jdbcAvroArgs) {
     filenamePrefix = filenamePrefix.replaceAll("/+$", "") + "/part";
     ValueProvider<ResourceId> prefixProvider =
         StaticValueProvider.of(FileBasedSink.convertToFileResourceIfPossible(filenamePrefix));
     FileBasedSink.FilenamePolicy filenamePolicy =
         DefaultFilenamePolicy.fromStandardParameters(
-            prefixProvider,
-            DEFAULT_SHARD_TEMPLATE,
-            filenameSuffix,
-            false);
+            prefixProvider, DEFAULT_SHARD_TEMPLATE, filenameSuffix, false);
 
-    final DynamicAvroDestinations<String, Void, String>
-        destinations =
-        AvroIO.constantDestinations(filenamePolicy, schema, ImmutableMap.of(),
-                                    // since Beam does not support zstandard
-                                    CodecFactory.nullCodec(),
-                                    SerializableFunctions.identity());
-    final FileBasedSink<String, Void, String> sink = new JdbcAvroSink<>(
-        prefixProvider,
-        destinations,
-        jdbcAvroArgs);
+    final DynamicAvroDestinations<String, Void, String> destinations =
+        AvroIO.constantDestinations(
+            filenamePolicy,
+            schema,
+            ImmutableMap.of(),
+            // since Beam does not support zstandard
+            CodecFactory.nullCodec(),
+            SerializableFunctions.identity());
+    final FileBasedSink<String, Void, String> sink =
+        new JdbcAvroSink<>(prefixProvider, destinations, jdbcAvroArgs);
     return WriteFiles.to(sink);
   }
-
 
   static class JdbcAvroSink<UserT> extends FileBasedSink<UserT, Void, String> {
 
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroArgs jdbcAvroArgs;
 
-    JdbcAvroSink(ValueProvider<ResourceId> filenamePrefix,
-                            DynamicAvroDestinations<UserT, Void, String> dynamicDestinations,
-                            JdbcAvroArgs jdbcAvroArgs) {
+    JdbcAvroSink(
+        ValueProvider<ResourceId> filenamePrefix,
+        DynamicAvroDestinations<UserT, Void, String> dynamicDestinations,
+        JdbcAvroArgs jdbcAvroArgs) {
       super(filenamePrefix, dynamicDestinations, Compression.UNCOMPRESSED);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
@@ -106,15 +102,15 @@ public class JdbcAvroIO {
     }
   }
 
-  private static class JdbcAvroWriteOperation
-      extends FileBasedSink.WriteOperation<Void, String> {
+  private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<Void, String> {
 
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroArgs jdbcAvroArgs;
 
-    private JdbcAvroWriteOperation(FileBasedSink<?, Void, String> sink,
-                                   DynamicAvroDestinations<?, Void, String> dynamicDestinations,
-                                   JdbcAvroArgs jdbcAvroArgs) {
+    private JdbcAvroWriteOperation(
+        FileBasedSink<?, Void, String> sink,
+        DynamicAvroDestinations<?, Void, String> dynamicDestinations,
+        JdbcAvroArgs jdbcAvroArgs) {
 
       super(sink);
       this.dynamicDestinations = dynamicDestinations;
@@ -137,9 +133,10 @@ public class JdbcAvroIO {
     private JdbcAvroMetering metering;
     private CountingOutputStream countingOutputStream;
 
-    JdbcAvroWriter(FileBasedSink.WriteOperation<Void, String> writeOperation,
-                          DynamicAvroDestinations<?, Void, String> dynamicDestinations,
-                          JdbcAvroArgs jdbcAvroArgs) {
+    JdbcAvroWriter(
+        FileBasedSink.WriteOperation<Void, String> writeOperation,
+        DynamicAvroDestinations<?, Void, String> dynamicDestinations,
+        JdbcAvroArgs jdbcAvroArgs) {
       super(writeOperation, MimeTypes.BINARY);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
@@ -157,9 +154,10 @@ public class JdbcAvroIO {
       connection = jdbcAvroArgs.jdbcConnectionConfiguration().createConnection();
       Void destination = getDestination();
       Schema schema = dynamicDestinations.getSchema(destination);
-      dataFileWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema))
-          .setCodec(jdbcAvroArgs.getCodecFactory())
-          .setSyncInterval(syncInterval);
+      dataFileWriter =
+          new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema))
+              .setCodec(jdbcAvroArgs.getCodecFactory())
+              .setSyncInterval(syncInterval);
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       this.countingOutputStream = new CountingOutputStream(Channels.newOutputStream(channel));
       dataFileWriter.create(schema, this.countingOutputStream);
@@ -167,12 +165,10 @@ public class JdbcAvroIO {
     }
 
     private ResultSet executeQuery(String query) throws Exception {
-      checkArgument(connection != null,
-                    "JDBC connection was not properly created");
-      PreparedStatement statement = connection.prepareStatement(
-          query,
-          ResultSet.TYPE_FORWARD_ONLY,
-          ResultSet.CONCUR_READ_ONLY);
+      checkArgument(connection != null, "JDBC connection was not properly created");
+      PreparedStatement statement =
+          connection.prepareStatement(
+              query, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
       statement.setFetchSize(jdbcAvroArgs.fetchSize());
       if (jdbcAvroArgs.statementPreparator() != null) {
         jdbcAvroArgs.statementPreparator().setParameters(statement);
@@ -191,15 +187,13 @@ public class JdbcAvroIO {
           statement.getFetchSize());
       ResultSet resultSet = statement.executeQuery();
       this.metering.exposeExecuteQueryMs((System.nanoTime() - startTime) / 1000000L);
-      checkArgument(resultSet != null,
-                    "JDBC resultSet was not properly created");
+      checkArgument(resultSet != null, "JDBC resultSet was not properly created");
       return resultSet;
     }
 
     @Override
     public void write(String query) throws Exception {
-      checkArgument(dataFileWriter != null,
-                    "Avro DataFileWriter was not properly created");
+      checkArgument(dataFileWriter != null, "Avro DataFileWriter was not properly created");
       logger.info("jdbcavroio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
         metering.startWriteMeter();
@@ -226,5 +220,4 @@ public class JdbcAvroIO {
       logger.info("jdbcavroio : Write finished");
     }
   }
-
 }

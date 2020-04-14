@@ -31,5 +31,4 @@ public interface OutputOptions extends PipelineOptions {
   String getOutput();
 
   void setOutput(String value);
-
 }

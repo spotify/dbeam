@@ -35,8 +35,10 @@ import java.util.stream.Collectors;
 public class TestHelper {
 
   public static Path createTmpDirPath(final String subNamePrefix) throws IOException {
-    final Path path = Paths.get(System.getProperty("java.io.tmpdir"),
-        subNamePrefix + "-" + UUID.randomUUID().toString());
+    final Path path =
+        Paths.get(
+            System.getProperty("java.io.tmpdir"),
+            subNamePrefix + "-" + UUID.randomUUID().toString());
     Files.createDirectories(path);
     path.toFile().deleteOnExit();
     return path;
@@ -44,7 +46,9 @@ public class TestHelper {
 
   public static List<String> listDir(File dir) {
     return Arrays.stream(Objects.requireNonNull(dir.listFiles()))
-        .map(File::getName).sorted().collect(Collectors.toList());
+        .map(File::getName)
+        .sorted()
+        .collect(Collectors.toList());
   }
 
   public static UUID byteBufferToUuid(final ByteBuffer byteBuffer) {
@@ -53,5 +57,4 @@ public class TestHelper {
 
     return new UUID(high, low);
   }
-
 }

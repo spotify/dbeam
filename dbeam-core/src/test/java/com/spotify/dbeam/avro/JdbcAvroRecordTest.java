@@ -59,75 +59,92 @@ public class JdbcAvroRecordTest {
   @Test
   public void shouldCreateSchema() throws ClassNotFoundException, SQLException {
     int fieldCount = 12;
-    Schema actual = JdbcAvroSchema.createSchemaByReadingOneRow(
-        DbTestHelper.createConnection(CONNECTION_URL),
-        QueryBuilderArgs.create("COFFEES"), "dbeam_generated",
-        "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false);
+    Schema actual =
+        JdbcAvroSchema.createSchemaByReadingOneRow(
+            DbTestHelper.createConnection(CONNECTION_URL),
+            QueryBuilderArgs.create("COFFEES"),
+            "dbeam_generated",
+            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            false);
 
     Assert.assertNotNull(actual);
     Assert.assertEquals("dbeam_generated", actual.getNamespace());
     Assert.assertEquals("COFFEES", actual.getProp("tableName"));
     Assert.assertEquals("jdbc:h2:mem:test", actual.getProp("connectionUrl"));
     Assert.assertEquals(
-        "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-        actual.getDoc());
+        "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", actual.getDoc());
     Assert.assertEquals(fieldCount, actual.getFields().size());
-    Assert.assertEquals(Lists.newArrayList(
-        "COF_NAME", "SUP_ID", "PRICE", "TEMPERATURE", "SIZE",
-        "IS_ARABIC", "SALES", "TOTAL", "CREATED", "UPDATED", "UID", "ROWNUM"
-    ), actual.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()));
-    for (Schema.Field f: actual.getFields()) {
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "COF_NAME",
+            "SUP_ID",
+            "PRICE",
+            "TEMPERATURE",
+            "SIZE",
+            "IS_ARABIC",
+            "SALES",
+            "TOTAL",
+            "CREATED",
+            "UPDATED",
+            "UID",
+            "ROWNUM"),
+        actual.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()));
+    for (Schema.Field f : actual.getFields()) {
       Assert.assertEquals(Schema.Type.UNION, f.schema().getType());
       Assert.assertEquals(2, f.schema().getTypes().size());
       Assert.assertEquals(Schema.Type.NULL, f.schema().getTypes().get(0).getType());
     }
-    Assert.assertEquals(Schema.Type.STRING,
-                        actual.getField("COF_NAME").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.INT,
-                        actual.getField("SUP_ID").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.STRING,
-                        actual.getField("PRICE").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.FLOAT,
-                        actual.getField("TEMPERATURE").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.DOUBLE,
-                        actual.getField("SIZE").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.BOOLEAN,
-                        actual.getField("IS_ARABIC").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.INT,
-                        actual.getField("SALES").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.LONG,
-                        actual.getField("TOTAL").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.LONG,
-                        actual.getField("CREATED").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.LONG,
-                        actual.getField("UPDATED").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.BYTES,
-                        actual.getField("UID").schema().getTypes().get(1).getType());
-    Assert.assertEquals(Schema.Type.LONG,
-                        actual.getField("ROWNUM").schema().getTypes().get(1).getType());
-    Assert.assertNull(actual.getField("UPDATED").schema()
-                          .getTypes().get(1).getProp("logicalType"));
+    Assert.assertEquals(
+        Schema.Type.STRING, actual.getField("COF_NAME").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.INT, actual.getField("SUP_ID").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.STRING, actual.getField("PRICE").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.FLOAT, actual.getField("TEMPERATURE").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.DOUBLE, actual.getField("SIZE").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.BOOLEAN, actual.getField("IS_ARABIC").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.INT, actual.getField("SALES").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.LONG, actual.getField("TOTAL").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.LONG, actual.getField("CREATED").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.LONG, actual.getField("UPDATED").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.BYTES, actual.getField("UID").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.LONG, actual.getField("ROWNUM").schema().getTypes().get(1).getType());
+    Assert.assertNull(actual.getField("UPDATED").schema().getTypes().get(1).getProp("logicalType"));
   }
 
   @Test
   public void shouldCreateSchemaWithLogicalTypes() throws ClassNotFoundException, SQLException {
     int fieldCount = 12;
-    Schema actual = JdbcAvroSchema.createSchemaByReadingOneRow(
-        DbTestHelper.createConnection(CONNECTION_URL),
-        QueryBuilderArgs.create("COFFEES"), "dbeam_generated",
-        "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", true);
+    Schema actual =
+        JdbcAvroSchema.createSchemaByReadingOneRow(
+            DbTestHelper.createConnection(CONNECTION_URL),
+            QueryBuilderArgs.create("COFFEES"),
+            "dbeam_generated",
+            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            true);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
-    Assert.assertEquals("timestamp-millis",
-                        actual.getField("UPDATED").schema()
-                            .getTypes().get(1).getProp("logicalType"));
+    Assert.assertEquals(
+        "timestamp-millis",
+        actual.getField("UPDATED").schema().getTypes().get(1).getProp("logicalType"));
   }
 
   @Test
   public void shouldEncodeResultSetToValidAvro()
       throws ClassNotFoundException, SQLException, IOException {
-    ResultSet rs = DbTestHelper.createConnection(CONNECTION_URL)
-        .createStatement().executeQuery("SELECT * FROM COFFEES");
+    ResultSet rs =
+        DbTestHelper.createConnection(CONNECTION_URL)
+            .createStatement()
+            .executeQuery("SELECT * FROM COFFEES");
     Schema schema =
         JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated", "connection", "doc", false);
     JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
@@ -143,33 +160,34 @@ public class JdbcAvroRecordTest {
     outputStream.close();
     // transform to generic record
     SeekableByteArrayInput inputStream = new SeekableByteArrayInput(outputStream.toByteArray());
-    DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(inputStream,
-                                                 new GenericDatumReader<>(
-                                                     schema));
+    DataFileReader<GenericRecord> dataFileReader =
+        new DataFileReader<>(inputStream, new GenericDatumReader<>(schema));
     final List<GenericRecord> records =
         StreamSupport.stream(dataFileReader.spliterator(), false).collect(Collectors.toList());
 
     Assert.assertEquals(2, records.size());
-    GenericRecord record = records.stream()
-        .filter(r -> Coffee.COFFEE1.name().equals(r.get(0).toString()))
-        .findFirst().orElseThrow(() -> new IllegalArgumentException("not found"));
+    GenericRecord record =
+        records.stream()
+            .filter(r -> Coffee.COFFEE1.name().equals(r.get(0).toString()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("not found"));
 
     Assert.assertEquals(12, record.getSchema().getFields().size());
     Assert.assertEquals(schema, record.getSchema());
-    Coffee actual = Coffee.create(
-        record.get(0).toString(),
-        Optional.ofNullable((Integer) record.get(1)),
-        new java.math.BigDecimal(record.get(2).toString()),
-        (Float)record.get(3),
-        (Double)record.get(4),
-        (Boolean)record.get(5),
-        (Integer)record.get(6),
-        (Long)record.get(7),
-        new java.sql.Timestamp((Long)record.get(8)),
-        Optional.ofNullable((Long)record.get(9)).map(Timestamp::new),
-        TestHelper.byteBufferToUuid((ByteBuffer)record.get(10)),
-        (Long)record.get(11)
-    );
+    Coffee actual =
+        Coffee.create(
+            record.get(0).toString(),
+            Optional.ofNullable((Integer) record.get(1)),
+            new java.math.BigDecimal(record.get(2).toString()),
+            (Float) record.get(3),
+            (Double) record.get(4),
+            (Boolean) record.get(5),
+            (Integer) record.get(6),
+            (Long) record.get(7),
+            new java.sql.Timestamp((Long) record.get(8)),
+            Optional.ofNullable((Long) record.get(9)).map(Timestamp::new),
+            TestHelper.byteBufferToUuid((ByteBuffer) record.get(10)),
+            (Long) record.get(11));
     Assert.assertEquals(Coffee.COFFEE1, actual);
   }
 }

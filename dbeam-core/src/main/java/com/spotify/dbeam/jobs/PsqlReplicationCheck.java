@@ -36,10 +36,10 @@ public class PsqlReplicationCheck {
   private static final Logger LOGGER = LoggerFactory.getLogger(PsqlReplicationCheck.class);
   static final String REPLICATION_QUERY =
       "SELECT now() AS current_timestamp, "
-      + "pg_last_xact_replay_timestamp() AS last_replication, "
-      + "ROUND (( EXTRACT (EPOCH FROM now()) - "
-      + "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) "
-      + ") * 1000) AS replication_delay;";
+          + "pg_last_xact_replay_timestamp() AS last_replication, "
+          + "ROUND (( EXTRACT (EPOCH FROM now()) - "
+          + "EXTRACT (EPOCH FROM pg_last_xact_replay_timestamp()) "
+          + ") * 1000) AS replication_delay;";
   private final String replicationQuery;
   private final JdbcExportArgs jdbcExportArgs;
 
@@ -54,8 +54,11 @@ public class PsqlReplicationCheck {
 
   static void validateOptions(final JdbcExportArgs jdbcExportArgs) {
     Preconditions.checkArgument(
-        jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration()
-            .driverClassName().contains("postgres"),
+        jdbcExportArgs
+            .jdbcAvroOptions()
+            .jdbcConnectionConfiguration()
+            .driverClassName()
+            .contains("postgres"),
         "Must be a PostgreSQL connection");
     Preconditions.checkArgument(
         jdbcExportArgs.queryBuilderArgs().partition().isPresent(),
@@ -75,15 +78,15 @@ public class PsqlReplicationCheck {
         this.jdbcExportArgs.queryBuilderArgs().partitionPeriod());
   }
 
-  static boolean isReplicationDelayed(final Instant partition,
-                                      final Instant lastReplication,
-                                      final Period partitionPeriod) {
-    Instant partitionPlusPartitionPeriod = partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod)
-        .toInstant();
+  static boolean isReplicationDelayed(
+      final Instant partition, final Instant lastReplication, final Period partitionPeriod) {
+    Instant partitionPlusPartitionPeriod =
+        partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod).toInstant();
     if (lastReplication.isBefore(partitionPlusPartitionPeriod)) {
-      LOGGER.error("Replication was not completed for partition, "
-                   + "expected >= {}, actual = {}",
-                   partitionPlusPartitionPeriod, lastReplication);
+      LOGGER.error(
+          "Replication was not completed for partition, " + "expected >= {}, actual = {}",
+          partitionPlusPartitionPeriod,
+          lastReplication);
       return true;
     }
     return false;
@@ -92,13 +95,19 @@ public class PsqlReplicationCheck {
   static Instant queryReplication(final Connection connection, final String query)
       throws SQLException {
     final ResultSet resultSet = connection.createStatement().executeQuery(query);
-    Preconditions.checkState(resultSet.next(),
+    Preconditions.checkState(
+        resultSet.next(),
         "Replication query returned empty results, consider using jdbc-avro-job instead");
-    Instant lastReplication = Preconditions.checkNotNull(resultSet.getTimestamp("last_replication"),
-        "Empty last_replication, consider using jdbc-avro-job instead").toInstant();
+    Instant lastReplication =
+        Preconditions.checkNotNull(
+                resultSet.getTimestamp("last_replication"),
+                "Empty last_replication, consider using jdbc-avro-job instead")
+            .toInstant();
     Duration replicationDelay = Duration.ofSeconds(resultSet.getLong("replication_delay"));
-    LOGGER.info("Psql replication check lastReplication={} replicationDelay={}",
-                lastReplication, replicationDelay);
+    LOGGER.info(
+        "Psql replication check lastReplication={} replicationDelay={}",
+        lastReplication,
+        replicationDelay);
     return lastReplication;
   }
 
@@ -108,5 +117,4 @@ public class PsqlReplicationCheck {
       return queryReplication(connection, replicationQuery);
     }
   }
-
 }

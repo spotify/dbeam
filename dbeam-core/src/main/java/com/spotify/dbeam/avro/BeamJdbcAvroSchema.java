@@ -44,12 +44,9 @@ public class BeamJdbcAvroSchema {
 
   private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
-  /**
-   * Generate Avro schema by reading one row. Expose Beam metrics via a Beam PTransform.
-   */
-  public static Schema createSchema(final Pipeline pipeline,
-                                    final JdbcExportArgs args,
-                                    final Connection connection)
+  /** Generate Avro schema by reading one row. Expose Beam metrics via a Beam PTransform. */
+  public static Schema createSchema(
+      final Pipeline pipeline, final JdbcExportArgs args, final Connection connection)
       throws Exception {
     final long startTime = System.nanoTime();
     final Schema generatedSchema = generateAvroSchema(args, connection);
@@ -57,17 +54,19 @@ public class BeamJdbcAvroSchema {
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
     final Counter cnt =
-        Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
-                        "schemaElapsedTimeMs");
+        Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(), "schemaElapsedTimeMs");
     pipeline
-        .apply("ExposeSchemaCountersSeed",
-               Create.of(Collections.singletonList(0))
-                   .withType(TypeDescriptors.integers()))
-        .apply("ExposeSchemaCounters",
-               MapElements.into(TypeDescriptors.integers()).via(v -> {
-                 cnt.inc(elapsedTimeSchema);
-                 return v;
-               }));
+        .apply(
+            "ExposeSchemaCountersSeed",
+            Create.of(Collections.singletonList(0)).withType(TypeDescriptors.integers()))
+        .apply(
+            "ExposeSchemaCounters",
+            MapElements.into(TypeDescriptors.integers())
+                .via(
+                    v -> {
+                      cnt.inc(elapsedTimeSchema);
+                      return v;
+                    }));
     return generatedSchema;
   }
 
@@ -76,14 +75,13 @@ public class BeamJdbcAvroSchema {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
         args.avroDoc()
-            .orElseGet(
-                () ->
-                    String.format(
-                        "Generate schema from JDBC ResultSet from %s",
-                        dbUrl));
+            .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
-        connection, args.queryBuilderArgs(),
-        args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
+        connection,
+        args.queryBuilderArgs(),
+        args.avroSchemaNamespace(),
+        avroDoc,
+        args.useAvroLogicalTypes());
   }
 
   public static Optional<Schema> parseOptionalInputAvroSchemaFile(final String filename)

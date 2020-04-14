@@ -25,15 +25,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Wrapper class for raw SQL query.
- */
+/** Wrapper class for raw SQL query. */
 class QueryBuilder implements Serializable {
 
   private static final char SQL_STATEMENT_TERMINATOR = ';';
   private static final String DEFAULT_SELECT_CLAUSE = "SELECT *";
   private static final String DEFAULT_WHERE_CLAUSE = "WHERE 1=1";
-
 
   interface QueryBase {
 
@@ -44,8 +41,8 @@ class QueryBuilder implements Serializable {
 
   /**
    * Represents table-based query, which we have full control of.
-   * 
-   * <p>Immutable entity. 
+   *
+   * <p>Immutable entity.
    */
   private static class TableQueryBase implements QueryBase {
 
@@ -63,8 +60,7 @@ class QueryBuilder implements Serializable {
 
     @Override
     public String getBaseSql() {
-      return String.format("%s FROM %s %s",
-              selectClause, tableName, DEFAULT_WHERE_CLAUSE);
+      return String.format("%s FROM %s %s", selectClause, tableName, DEFAULT_WHERE_CLAUSE);
     }
 
     @Override
@@ -81,7 +77,7 @@ class QueryBuilder implements Serializable {
   /**
    * Represents user-provided raw query, which we have no control of.
    *
-   * <p>Immutable entity. 
+   * <p>Immutable entity.
    */
   private static class UserQueryBase implements QueryBase {
 
@@ -96,11 +92,11 @@ class QueryBuilder implements Serializable {
       this.userSqlQuery = removeTrailingSymbols(userSqlQuery);
       this.selectClause = selectClause;
     }
-    
+
     @Override
     public String getBaseSql() {
-      return String.format("%s FROM (%s) as user_sql_query %s",
-              selectClause, userSqlQuery, DEFAULT_WHERE_CLAUSE);
+      return String.format(
+          "%s FROM (%s) as user_sql_query %s", selectClause, userSqlQuery, DEFAULT_WHERE_CLAUSE);
     }
 
     @Override
@@ -117,7 +113,7 @@ class QueryBuilder implements Serializable {
   private final QueryBase base;
   private final List<String> whereConditions = new LinkedList<>();
   private Optional<String> limitStr = Optional.empty();
-  
+
   private QueryBuilder(final QueryBase base) {
     this.base = base;
   }
@@ -147,11 +143,11 @@ class QueryBuilder implements Serializable {
   }
 
   public QueryBuilder withPartitionCondition(
-          String partitionColumn, String startPointIncl, String endPointExcl) {
+      String partitionColumn, String startPointIncl, String endPointExcl) {
     whereConditions.add(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
     return this;
   }
-          
+
   private static String createSqlPartitionCondition(
       String partitionColumn, String startPointIncl, String endPointExcl) {
     return String.format(
@@ -177,7 +173,7 @@ class QueryBuilder implements Serializable {
 
   /**
    * Returns generated SQL query string.
-   * 
+   *
    * @return generated SQL query string.
    */
   public String build() {
@@ -226,26 +222,21 @@ class QueryBuilder implements Serializable {
   }
 
   /**
-   * Generates a new query to get MIN/MAX values for splitColumn.  
-   * 
+   * Generates a new query to get MIN/MAX values for splitColumn.
+   *
    * @param splitColumn column to use
    * @param minSplitColumnName MIN() column value alias
    * @param maxSplitColumnName MAX() column value alias
    * @return a new query builder
    */
   public QueryBuilder generateQueryToGetLimitsOfSplitColumn(
-      String splitColumn,
-      String minSplitColumnName,
-      String maxSplitColumnName) {
+      String splitColumn, String minSplitColumnName, String maxSplitColumnName) {
 
-    String selectMinMax = String.format(
+    String selectMinMax =
+        String.format(
             "SELECT MIN(%s) as %s, MAX(%s) as %s",
-            splitColumn,
-            minSplitColumnName,
-            splitColumn,
-            maxSplitColumnName);
-    
+            splitColumn, minSplitColumnName, splitColumn, maxSplitColumnName);
+
     return new QueryBuilder(base.copyWithSelect(selectMinMax), this);
   }
-
 }

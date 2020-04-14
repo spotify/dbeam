@@ -27,8 +27,7 @@ public class PsqlAvroJob {
   private final JdbcAvroJob job;
   private final PsqlReplicationCheck psqlReplicationCheck;
 
-  public PsqlAvroJob(final JdbcAvroJob job,
-                     final PsqlReplicationCheck psqlReplicationCheck) {
+  public PsqlAvroJob(final JdbcAvroJob job, final PsqlReplicationCheck psqlReplicationCheck) {
     this.job = job;
     this.psqlReplicationCheck = psqlReplicationCheck;
   }
@@ -51,5 +50,4 @@ public class PsqlAvroJob {
       ExceptionHandling.handleException(e);
     }
   }
-
 }

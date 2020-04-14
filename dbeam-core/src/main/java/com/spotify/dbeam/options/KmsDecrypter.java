@@ -56,6 +56,7 @@ public abstract class KmsDecrypter {
 
   /**
    * Create a new {@link Builder} for customizing the {@link KmsDecrypter} configuration.
+   *
    * @return a configured {@link KmsDecrypter}
    */
   public static Builder decrypter() {
@@ -66,42 +67,34 @@ public abstract class KmsDecrypter {
         .project(Optional.ofNullable(PROJECT));
   }
 
-  /**
-   * The location of the KMS key to use for decryption.
-   */
+  /** The location of the KMS key to use for decryption. */
   abstract String location();
 
-  /**
-   * The ring of the KMS key to use for decryption.
-   */
+  /** The ring of the KMS key to use for decryption. */
   abstract String keyring();
 
-  /**
-   * The name of the KMS key to use for decryption.
-   */
+  /** The name of the KMS key to use for decryption. */
   abstract String key();
 
   /**
-   * The GCP project KMS key to use for decryption. Will be detected from credentials
-   * or gcloud sdk if not set.
+   * The GCP project KMS key to use for decryption. Will be detected from credentials or gcloud sdk
+   * if not set.
    */
   abstract Optional<String> project();
 
   /**
-   * The {@link HttpTransport} to use for the default credentials and KMS client.
-   * Default will be used if not set.
+   * The {@link HttpTransport} to use for the default credentials and KMS client. Default will be
+   * used if not set.
    */
   abstract Optional<HttpTransport> transport();
 
   /**
-   * The {@link JsonFactory} to use for the default credentials and KMS client.
-   * Default will be used if not set.
+   * The {@link JsonFactory} to use for the default credentials and KMS client. Default will be used
+   * if not set.
    */
   abstract Optional<JsonFactory> jsonFactory();
 
-  /**
-   * The {@link GoogleCredential} to use for the KMS client. Default will be used if not set.
-   */
+  /** The {@link GoogleCredential} to use for the KMS client. Default will be used if not set. */
   abstract Optional<GoogleCredential> credentials();
 
   public abstract Builder builder();
@@ -125,9 +118,7 @@ public abstract class KmsDecrypter {
     public abstract KmsDecrypter build();
   }
 
-  /**
-   * Decrypt a base64 encoded cipher text string.
-   */
+  /** Decrypt a base64 encoded cipher text string. */
   String decrypt(final String base64Ciphertext) throws IOException {
     return StandardCharsets.UTF_8.decode(decryptBinary(base64Ciphertext)).toString();
   }
@@ -139,15 +130,22 @@ public abstract class KmsDecrypter {
    */
   ByteBuffer decryptBinary(final String base64Ciphertext) throws IOException {
     final String project = project().orElseGet(ServiceOptions::getDefaultProjectId);
-    final String keyName = String.format(
-        "projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s",
-        project, location(), keyring(), key());
+    final String keyName =
+        String.format(
+            "projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s",
+            project, location(), keyring(), key());
 
-    final DecryptResponse response = kms()
-        .projects().locations().keyRings().cryptoKeys()
-        .decrypt(keyName, new DecryptRequest()
-            .setCiphertext(CharMatcher.whitespace().removeFrom(base64Ciphertext)))
-        .execute();
+    final DecryptResponse response =
+        kms()
+            .projects()
+            .locations()
+            .keyRings()
+            .cryptoKeys()
+            .decrypt(
+                keyName,
+                new DecryptRequest()
+                    .setCiphertext(CharMatcher.whitespace().removeFrom(base64Ciphertext)))
+            .execute();
     return ByteBuffer.wrap(Base64.getDecoder().decode(response.getPlaintext()));
   }
 
@@ -156,14 +154,15 @@ public abstract class KmsDecrypter {
     final JsonFactory jsonFactory = jsonFactory().orElseGet(Utils::getDefaultJsonFactory);
     final GoogleCredential googleCredential =
         credentials().isPresent()
-        ? credentials().get()
-        : GoogleCredential.getApplicationDefault(transport, jsonFactory);
+            ? credentials().get()
+            : GoogleCredential.getApplicationDefault(transport, jsonFactory);
     return KmsDecrypter.kms(transport, jsonFactory, googleCredential);
   }
 
-  private static CloudKMS kms(final HttpTransport transport,
-                              final JsonFactory jsonFactory,
-                              final GoogleCredential credential) {
+  private static CloudKMS kms(
+      final HttpTransport transport,
+      final JsonFactory jsonFactory,
+      final GoogleCredential credential) {
     return new CloudKMS.Builder(transport, jsonFactory, scoped(credential))
         .setApplicationName("dbeam")
         .build();
@@ -175,5 +174,4 @@ public abstract class KmsDecrypter {
     }
     return credential;
   }
-
 }

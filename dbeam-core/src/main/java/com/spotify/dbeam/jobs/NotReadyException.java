@@ -25,5 +25,4 @@ public class NotReadyException extends Exception {
   public NotReadyException(final String message) {
     super(message);
   }
-
 }

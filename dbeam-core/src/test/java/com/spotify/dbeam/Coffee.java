@@ -21,7 +21,6 @@
 package com.spotify.dbeam;
 
 import com.google.auto.value.AutoValue;
-
 import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Optional;
@@ -31,13 +30,32 @@ import java.util.UUID;
 @AutoValue
 public abstract class Coffee {
 
-  public static Coffee create(String name, Optional<Integer> supId, BigDecimal price,
-                              Float temperature, Double size, Boolean isArabic, Integer sales,
-                              Long total, java.sql.Timestamp created,
-                              Optional<java.sql.Timestamp> updated,
-                              UUID uid, Long rownum) {
-    return new AutoValue_Coffee(name, supId, price, temperature, size, isArabic, sales,
-                                total, created, updated, uid, rownum);
+  public static Coffee create(
+      String name,
+      Optional<Integer> supId,
+      BigDecimal price,
+      Float temperature,
+      Double size,
+      Boolean isArabic,
+      Integer sales,
+      Long total,
+      java.sql.Timestamp created,
+      Optional<java.sql.Timestamp> updated,
+      UUID uid,
+      Long rownum) {
+    return new AutoValue_Coffee(
+        name,
+        supId,
+        price,
+        temperature,
+        size,
+        isArabic,
+        sales,
+        total,
+        created,
+        updated,
+        uid,
+        rownum);
   }
 
   public abstract String name();
@@ -67,38 +85,64 @@ public abstract class Coffee {
   public String insertStatement() {
     return String.format(
         Locale.ENGLISH,
-        "INSERT INTO COFFEES "
-        + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d)",
-        name(), supId().orElse(null), price().toString(), temperature(), size(), isArabic(),
-        sales(), total(), created(), updated().orElse(null), uid(), rownum());
+        "INSERT INTO COFFEES " + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d)",
+        name(),
+        supId().orElse(null),
+        price().toString(),
+        temperature(),
+        size(),
+        isArabic(),
+        sales(),
+        total(),
+        created(),
+        updated().orElse(null),
+        uid(),
+        rownum());
   }
 
   public static String ddl() {
     return "DROP TABLE IF EXISTS COFFEES; "
-           + "CREATE TABLE COFFEES ("
-           + "\"COF_NAME\" VARCHAR NOT NULL PRIMARY KEY,"
-           + "\"SUP_ID\" INTEGER,"
-           + "\"PRICE\" DECIMAL(21,2) NOT NULL,"
-           + "\"TEMPERATURE\" REAL NOT NULL,"
-           + "\"SIZE\" DOUBLE NOT NULL,"
-           + "\"IS_ARABIC\" BOOLEAN NOT NULL,"
-           + "\"SALES\" INTEGER DEFAULT 0 NOT NULL,"
-           + "\"TOTAL\" BIGINT DEFAULT 0 NOT NULL,"
-           + "\"CREATED\" TIMESTAMP NOT NULL,"
-           + "\"UPDATED\" TIMESTAMP,"
-           + "\"UID\" UUID NOT NULL,"
-           + "\"ROWNUM\" BIGINT NOT NULL);";
+        + "CREATE TABLE COFFEES ("
+        + "\"COF_NAME\" VARCHAR NOT NULL PRIMARY KEY,"
+        + "\"SUP_ID\" INTEGER,"
+        + "\"PRICE\" DECIMAL(21,2) NOT NULL,"
+        + "\"TEMPERATURE\" REAL NOT NULL,"
+        + "\"SIZE\" DOUBLE NOT NULL,"
+        + "\"IS_ARABIC\" BOOLEAN NOT NULL,"
+        + "\"SALES\" INTEGER DEFAULT 0 NOT NULL,"
+        + "\"TOTAL\" BIGINT DEFAULT 0 NOT NULL,"
+        + "\"CREATED\" TIMESTAMP NOT NULL,"
+        + "\"UPDATED\" TIMESTAMP,"
+        + "\"UID\" UUID NOT NULL,"
+        + "\"ROWNUM\" BIGINT NOT NULL);";
   }
 
-  public static Coffee COFFEE1 = create(
-      "costa rica caffee", Optional.empty(), new BigDecimal("7.20"), 82.5f,
-      320.7, true, 17, 200L, new java.sql.Timestamp(1488300933000L),
-      Optional.empty(), UUID.fromString("123e4567-e89b-12d3-a456-426655440000"), 1L
-  );
-  public static Coffee COFFEE2 = create(
-      "colombian caffee", Optional.empty(), new BigDecimal("9.20"), 87.5f,
-      230.7, true, 13, 201L, new java.sql.Timestamp(1488300723000L),
-      Optional.empty(), UUID.fromString("123e4567-e89b-a456-12d3-426655440000"), 2L
-  );
-
+  public static Coffee COFFEE1 =
+      create(
+          "costa rica caffee",
+          Optional.empty(),
+          new BigDecimal("7.20"),
+          82.5f,
+          320.7,
+          true,
+          17,
+          200L,
+          new java.sql.Timestamp(1488300933000L),
+          Optional.empty(),
+          UUID.fromString("123e4567-e89b-12d3-a456-426655440000"),
+          1L);
+  public static Coffee COFFEE2 =
+      create(
+          "colombian caffee",
+          Optional.empty(),
+          new BigDecimal("9.20"),
+          87.5f,
+          230.7,
+          true,
+          13,
+          201L,
+          new java.sql.Timestamp(1488300723000L),
+          Optional.empty(),
+          UUID.fromString("123e4567-e89b-a456-12d3-426655440000"),
+          2L);
 }

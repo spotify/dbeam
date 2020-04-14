@@ -103,7 +103,8 @@ public class QueryBuilderTest {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     wrapper.withParallelizationCondition("bucket", 10, 20, true);
 
-    String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query"
+    String expected =
+        "SELECT * FROM (SELECT * FROM t1) as user_sql_query"
             + " WHERE 1=1 AND bucket >= 10 AND bucket < 20";
 
     Assert.assertEquals(expected, wrapper.build());
@@ -123,10 +124,7 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlMultiline() {
-    String sqlString =
-            "SELECT a, b, c FROM t1\n"
-            + " WHERE total > 100\n"
-            + " AND country = 262\n";
+    String sqlString = "SELECT a, b, c FROM t1\n" + " WHERE total > 100\n" + " AND country = 262\n";
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
 
     String expected =
@@ -139,9 +137,7 @@ public class QueryBuilderTest {
   @Test
   public void testRawSqlWithComments() {
     String sqlString =
-        "-- We perform initial query here\n"
-        + "SELECT a, b, c FROM t1\n" 
-        + " WHERE total > 100";
+        "-- We perform initial query here\n" + "SELECT a, b, c FROM t1\n" + " WHERE total > 100";
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
 
     String expected =
@@ -167,7 +163,7 @@ public class QueryBuilderTest {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
 
     String expected =
-            "SELECT * FROM ("
+        "SELECT * FROM ("
             + "WITH active_orders AS\n"
             + "(\n"
             + "    SELECT *\n"

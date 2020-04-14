@@ -70,13 +70,15 @@ public class JdbcAvroSchema {
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
-      final ResultSet
-          resultSet =
-          statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
+      final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
 
-      Schema schema = createAvroSchema(
-          resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,
-          useLogicalTypes);
+      Schema schema =
+          createAvroSchema(
+              resultSet,
+              avroSchemaNamespace,
+              connection.getMetaData().getURL(),
+              avroDoc,
+              useLogicalTypes);
       LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
       return schema;
     }
@@ -96,12 +98,13 @@ public class JdbcAvroSchema {
       tableName = normalizeForAvro(meta.getTableName(1));
     }
 
-    SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record(tableName)
-        .namespace(avroSchemaNamespace)
-        .doc(avroDoc)
-        .prop("tableName", tableName)
-        .prop("connectionUrl", connectionUrl)
-        .fields();
+    SchemaBuilder.FieldAssembler<Schema> builder =
+        SchemaBuilder.record(tableName)
+            .namespace(avroSchemaNamespace)
+            .doc(avroDoc)
+            .prop("tableName", tableName)
+            .prop("connectionUrl", connectionUrl)
+            .fields();
     return createAvroFields(meta, builder, useLogicalTypes).endRecord();
   }
 
@@ -122,12 +125,13 @@ public class JdbcAvroSchema {
 
       int columnType = meta.getColumnType(i);
       String typeName = JDBCType.valueOf(columnType).getName();
-      SchemaBuilder.FieldBuilder<Schema> field = builder
-          .name(normalizeForAvro(columnName))
-          .doc(String.format("From sqlType %d %s", columnType, typeName))
-          .prop("columnName", columnName)
-          .prop("sqlCode", String.valueOf(columnType))
-          .prop("typeName", typeName);
+      SchemaBuilder.FieldBuilder<Schema> field =
+          builder
+              .name(normalizeForAvro(columnName))
+              .doc(String.format("From sqlType %d %s", columnType, typeName))
+              .prop("columnName", columnName)
+              .prop("sqlCode", String.valueOf(columnType))
+              .prop("typeName", typeName);
       fieldAvroType(columnType, meta.getPrecision(i), field, useLogicalTypes);
     }
     return builder;
@@ -140,9 +144,8 @@ public class JdbcAvroSchema {
       boolean useLogicalTypes) {
 
     final SchemaBuilder.BaseTypeBuilder<
-        SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-        field =
-        fieldBuilder.type().unionOf().nullBuilder().endNull().and();
+            SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+        field = fieldBuilder.type().unionOf().nullBuilder().endNull().and();
 
     switch (columnType) {
       case VARCHAR:
@@ -167,8 +170,12 @@ public class JdbcAvroSchema {
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
-          return field.longBuilder().prop("logicalType", "timestamp-millis")
-              .endLong().endUnion().nullDefault();
+          return field
+              .longBuilder()
+              .prop("logicalType", "timestamp-millis")
+              .endLong()
+              .endUnion()
+              .nullDefault();
         } else {
           return field.longType().endUnion().nullDefault();
         }
@@ -199,5 +206,4 @@ public class JdbcAvroSchema {
   private static String normalizeForAvro(final String input) {
     return input.replaceAll("[^A-Za-z0-9_]", "_");
   }
-
 }

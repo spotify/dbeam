@@ -43,8 +43,9 @@ class PasswordReader {
     if (options.getPasswordFileKmsEncrypted() != null) {
       LOGGER.info("Decrypting password using KMS...");
       return Optional.of(
-          kmsDecrypter.decrypt(BeamHelper.readFromFile(options.getPasswordFileKmsEncrypted()))
-          .trim());
+          kmsDecrypter
+              .decrypt(BeamHelper.readFromFile(options.getPasswordFileKmsEncrypted()))
+              .trim());
     } else if (options.getPasswordFile() != null) {
       LOGGER.info("Reading password from file: {}", options.getPasswordFile());
       return Optional.of(BeamHelper.readFromFile(options.getPasswordFile()));
@@ -52,5 +53,4 @@ class PasswordReader {
       return Optional.ofNullable(options.getPassword());
     }
   }
-
 }

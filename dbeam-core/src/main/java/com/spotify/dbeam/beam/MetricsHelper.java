@@ -37,8 +37,8 @@ import org.apache.beam.sdk.metrics.MetricsFilter;
 
 public class MetricsHelper {
 
-  private static final Function<MetricResult<GaugeResult>, GaugeResult>
-      GET_COMMITTED_GAUGE = metricResult -> {
+  private static final Function<MetricResult<GaugeResult>, GaugeResult> GET_COMMITTED_GAUGE =
+      metricResult -> {
         try {
           return metricResult.getCommitted();
         } catch (UnsupportedOperationException e) {
@@ -46,8 +46,8 @@ public class MetricsHelper {
         }
       };
 
-  public static final ToLongFunction<MetricResult<Long>>
-      GET_COMMITTED_COUNTER = metricResult -> {
+  public static final ToLongFunction<MetricResult<Long>> GET_COMMITTED_COUNTER =
+      metricResult -> {
         try {
           return metricResult.getCommitted();
         } catch (UnsupportedOperationException e) {
@@ -55,31 +55,31 @@ public class MetricsHelper {
         }
       };
 
-
   public static Map<String, Long> getMetrics(final PipelineResult result) {
     final MetricQueryResults metricQueryResults =
         result.metrics().queryMetrics(MetricsFilter.builder().build());
 
-    final Map<String, Long>
-        gauges =
+    final Map<String, Long> gauges =
         StreamSupport.stream(metricQueryResults.getGauges().spliterator(), false)
-            .collect(Collectors.groupingBy(
-                MetricResult::getName,
-                Collectors.reducing(GaugeResult.empty(), GET_COMMITTED_GAUGE,
-                                    BinaryOperator.maxBy(
-                                        Comparator.comparing(GaugeResult::getTimestamp)))))
-            .entrySet().stream()
+            .collect(
+                Collectors.groupingBy(
+                    MetricResult::getName,
+                    Collectors.reducing(
+                        GaugeResult.empty(),
+                        GET_COMMITTED_GAUGE,
+                        BinaryOperator.maxBy(Comparator.comparing(GaugeResult::getTimestamp)))))
+            .entrySet()
+            .stream()
             .collect(Collectors.toMap(e -> e.getKey().getName(), e -> e.getValue().getValue()));
 
     final Map<String, Long> counters =
-        StreamSupport.stream(
-            metricQueryResults.getCounters().spliterator(), false)
-            .collect(Collectors.groupingBy(m -> m.getName().getName(),
-                                               Collectors.summingLong(GET_COMMITTED_COUNTER)));
+        StreamSupport.stream(metricQueryResults.getCounters().spliterator(), false)
+            .collect(
+                Collectors.groupingBy(
+                    m -> m.getName().getName(), Collectors.summingLong(GET_COMMITTED_COUNTER)));
     Map<String, Long> ret = new HashMap<>();
     ret.putAll(gauges);
     ret.putAll(counters);
     return Collections.unmodifiableMap(ret);
   }
-
 }

@@ -33,160 +33,157 @@ public class BeamHelperTest {
 
   @Test
   public void shouldThrownExceptionInCaseFailedPipelineResult() {
-    PipelineResult mockResult = new PipelineResult() {
-      @Override
-      public State getState() {
-        return null;
-      }
+    PipelineResult mockResult =
+        new PipelineResult() {
+          @Override
+          public State getState() {
+            return null;
+          }
 
-      @Override
-      public State cancel() throws IOException {
-        return null;
-      }
+          @Override
+          public State cancel() throws IOException {
+            return null;
+          }
 
-      @Override
-      public State waitUntilFinish(org.joda.time.Duration duration) {
-        return PipelineResult.State.FAILED;
-      }
+          @Override
+          public State waitUntilFinish(org.joda.time.Duration duration) {
+            return PipelineResult.State.FAILED;
+          }
 
-      @Override
-      public State waitUntilFinish() {
-        return null;
-      }
+          @Override
+          public State waitUntilFinish() {
+            return null;
+          }
 
-      @Override
-      public MetricResults metrics() {
-        return null;
-      }
-    };
+          @Override
+          public MetricResults metrics() {
+            return null;
+          }
+        };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
       Assert.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
       Assert.assertEquals(
-          "java.lang.Exception: Job finished with terminalState FAILED",
-          exception.getMessage()
-      );
+          "java.lang.Exception: Job finished with terminalState FAILED", exception.getMessage());
     }
   }
 
   @Test
   public void shouldCancelInCaseOfTimeout() {
-    PipelineResult mockResult = new PipelineResult() {
-      @Override
-      public State getState() {
-        return null;
-      }
+    PipelineResult mockResult =
+        new PipelineResult() {
+          @Override
+          public State getState() {
+            return null;
+          }
 
-      @Override
-      public State cancel() throws IOException {
-        return null;
-      }
+          @Override
+          public State cancel() throws IOException {
+            return null;
+          }
 
-      @Override
-      public State waitUntilFinish(org.joda.time.Duration duration) {
-        return State.RUNNING;
-      }
+          @Override
+          public State waitUntilFinish(org.joda.time.Duration duration) {
+            return State.RUNNING;
+          }
 
-      @Override
-      public State waitUntilFinish() {
-        return null;
-      }
+          @Override
+          public State waitUntilFinish() {
+            return null;
+          }
 
-      @Override
-      public MetricResults metrics() {
-        return null;
-      }
-    };
+          @Override
+          public MetricResults metrics() {
+            return null;
+          }
+        };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
       Assert.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
       Assert.assertEquals(
           "java.lang.Exception: Job cancelled after exceeding timeout PT1M",
-          exception.getMessage()
-      );
+          exception.getMessage());
     }
   }
 
-
   @Test
   public void shouldCancelInCaseOfNullState() {
-    PipelineResult mockResult = new PipelineResult() {
-      @Override
-      public State getState() {
-        return null;
-      }
+    PipelineResult mockResult =
+        new PipelineResult() {
+          @Override
+          public State getState() {
+            return null;
+          }
 
-      @Override
-      public State cancel() throws IOException {
-        return null;
-      }
+          @Override
+          public State cancel() throws IOException {
+            return null;
+          }
 
-      @Override
-      public State waitUntilFinish(org.joda.time.Duration duration) {
-        return null;
-      }
+          @Override
+          public State waitUntilFinish(org.joda.time.Duration duration) {
+            return null;
+          }
 
-      @Override
-      public State waitUntilFinish() {
-        return null;
-      }
+          @Override
+          public State waitUntilFinish() {
+            return null;
+          }
 
-      @Override
-      public MetricResults metrics() {
-        return null;
-      }
-    };
+          @Override
+          public MetricResults metrics() {
+            return null;
+          }
+        };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
       Assert.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
       Assert.assertEquals(
           "java.lang.Exception: Job cancelled after exceeding timeout PT1M",
-          exception.getMessage()
-      );
+          exception.getMessage());
     }
   }
 
   @Test
   public void shouldFailAfterFailureToCancelAfterTimeout() {
-    PipelineResult mockResult = new PipelineResult() {
-      @Override
-      public State getState() {
-        return null;
-      }
+    PipelineResult mockResult =
+        new PipelineResult() {
+          @Override
+          public State getState() {
+            return null;
+          }
 
-      @Override
-      public State cancel() throws IOException {
-        throw new IOException("something wrong");
-      }
+          @Override
+          public State cancel() throws IOException {
+            throw new IOException("something wrong");
+          }
 
-      @Override
-      public State waitUntilFinish(org.joda.time.Duration duration) {
-        return State.RUNNING;
-      }
+          @Override
+          public State waitUntilFinish(org.joda.time.Duration duration) {
+            return State.RUNNING;
+          }
 
-      @Override
-      public State waitUntilFinish() {
-        return null;
-      }
+          @Override
+          public State waitUntilFinish() {
+            return null;
+          }
 
-      @Override
-      public MetricResults metrics() {
-        return null;
-      }
-    };
+          @Override
+          public MetricResults metrics() {
+            return null;
+          }
+        };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
       Assert.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
       Assert.assertEquals(
           "java.lang.Exception: Job exceeded timeout of PT1M, "
-          + "but was not possible to cancel, finished with terminalState RUNNING",
-          exception.getMessage()
-      );
+              + "but was not possible to cancel, finished with terminalState RUNNING",
+          exception.getMessage());
     }
   }
-
 }

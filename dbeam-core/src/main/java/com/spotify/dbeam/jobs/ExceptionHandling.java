@@ -38,8 +38,7 @@ public class ExceptionHandling {
           IOException.class, 41,
           IllegalArgumentException.class, 43,
           SQLException.class, 45,
-          Pipeline.PipelineExecutionException.class, 47
-      );
+          Pipeline.PipelineExecutionException.class, 47);
 
   public static void handleException(final Throwable e) {
     LOGGER.error("Failure: ", e);
@@ -48,9 +47,9 @@ public class ExceptionHandling {
 
   static Integer exitCode(final Throwable e) {
     return EXIT_CODES.entrySet().stream()
-          .filter(entry -> entry.getKey().isInstance(e))
-          .map(Map.Entry::getValue)
-          .findFirst()
-          .orElse(49);
+        .filter(entry -> entry.getKey().isInstance(e))
+        .map(Map.Entry::getValue)
+        .findFirst()
+        .orElse(49);
   }
 }

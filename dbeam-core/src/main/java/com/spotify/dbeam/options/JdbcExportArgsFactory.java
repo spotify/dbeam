@@ -60,13 +60,14 @@ public class JdbcExportArgsFactory {
   public static JdbcExportArgs fromPipelineOptions(final PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
-    final JdbcAvroArgs jdbcAvroArgs = JdbcAvroArgs.create(
-        JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
-            .withUsername(exportOptions.getUsername())
-            .withPassword(PasswordReader.INSTANCE.readPassword(exportOptions).orElse(null)),
-        exportOptions.getFetchSize(),
-        exportOptions.getAvroCodec(),
-        Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()));
+    final JdbcAvroArgs jdbcAvroArgs =
+        JdbcAvroArgs.create(
+            JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
+                .withUsername(exportOptions.getUsername())
+                .withPassword(PasswordReader.INSTANCE.readPassword(exportOptions).orElse(null)),
+            exportOptions.getFetchSize(),
+            exportOptions.getAvroCodec(),
+            Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()));
 
     return JdbcExportArgs.create(
         jdbcAvroArgs,
@@ -75,42 +76,46 @@ public class JdbcExportArgsFactory {
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
         Duration.parse(exportOptions.getExportTimeout()),
-        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath())
-    );
+        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
   }
 
   public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)
       throws IOException {
-    final Period partitionPeriod = Optional.ofNullable(options.getPartitionPeriod())
-        .map(Period::parse).orElse(Period.ofDays(1));
-    Optional<Instant> partition = Optional.ofNullable(options.getPartition())
-        .map(JdbcExportArgsFactory::parseInstant);
+    final Period partitionPeriod =
+        Optional.ofNullable(options.getPartitionPeriod())
+            .map(Period::parse)
+            .orElse(Period.ofDays(1));
+    Optional<Instant> partition =
+        Optional.ofNullable(options.getPartition()).map(JdbcExportArgsFactory::parseInstant);
     Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
     checkArgument(
         !partitionColumn.isPresent() || partition.isPresent(),
         "To use --partitionColumn the --partition parameter must also be configured");
 
     if (!(options.isSkipPartitionCheck() || partitionColumn.isPresent())) {
-      Instant minPartitionDateTime = Optional.ofNullable(options.getMinPartitionPeriod())
-          .map(JdbcExportArgsFactory::parseInstant)
-          // given Instant does not support operations with ChronoUnit.MONTHS
-          .orElse(
-              Instant.now()
-                .atOffset(ZoneOffset.UTC)
-                .minus(partitionPeriod.multipliedBy(2))
-                .toInstant()
-              );
+      Instant minPartitionDateTime =
+          Optional.ofNullable(options.getMinPartitionPeriod())
+              .map(JdbcExportArgsFactory::parseInstant)
+              // given Instant does not support operations with ChronoUnit.MONTHS
+              .orElse(
+                  Instant.now()
+                      .atOffset(ZoneOffset.UTC)
+                      .minus(partitionPeriod.multipliedBy(2))
+                      .toInstant());
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
 
     final Optional<String> splitColumn = Optional.ofNullable(options.getSplitColumn());
     final Optional<Integer> queryParallelism = Optional.ofNullable(options.getQueryParallelism());
-    checkArgument(queryParallelism.isPresent() == splitColumn.isPresent(),
-                  "Either both --queryParallelism and --splitColumn must be present or "
-                  + "none of them");
-    queryParallelism.ifPresent(p -> checkArgument(
-        p > 0,
-        "Query Parallelism must be a positive number. Specified queryParallelism was %s", p));
+    checkArgument(
+        queryParallelism.isPresent() == splitColumn.isPresent(),
+        "Either both --queryParallelism and --splitColumn must be present or " + "none of them");
+    queryParallelism.ifPresent(
+        p ->
+            checkArgument(
+                p > 0,
+                "Query Parallelism must be a positive number. Specified queryParallelism was %s",
+                p));
 
     return createQueryBuilderArgs(options)
         .builder()
@@ -125,8 +130,9 @@ public class JdbcExportArgsFactory {
 
   private static QueryBuilderArgs createQueryBuilderArgs(final JdbcExportPipelineOptions options)
       throws IOException {
-    checkArgument((options.getTable() != null) != (options.getSqlFile() != null),
-            "Either --table or --sqlFile must be present");
+    checkArgument(
+        (options.getTable() != null) != (options.getSqlFile() != null),
+        "Either --table or --sqlFile must be present");
     if (options.getSqlFile() != null) {
       return QueryBuilderArgs.createFromQuery(BeamHelper.readFromFile(options.getSqlFile()));
     } else {
@@ -139,14 +145,12 @@ public class JdbcExportArgsFactory {
   }
 
   private static Instant validatePartition(
-      final Instant partitionDateTime,
-      final Instant minPartitionDateTime) {
+      final Instant partitionDateTime, final Instant minPartitionDateTime) {
     checkArgument(
         partitionDateTime.isAfter(minPartitionDateTime),
         "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check",
-        partitionDateTime, minPartitionDateTime
-    );
+        partitionDateTime,
+        minPartitionDateTime);
     return partitionDateTime;
   }
-
 }

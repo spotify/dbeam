@@ -31,16 +31,14 @@ public class JdbcAvroMetering {
   private final int countReportEvery;
   private final int logEvery;
   private final Logger logger = LoggerFactory.getLogger(JdbcAvroMetering.class);
-  private Counter recordCount =
-      Metrics.counter(this.getClass().getCanonicalName(), "recordCount");
+  private Counter recordCount = Metrics.counter(this.getClass().getCanonicalName(), "recordCount");
   private Counter executeQueryElapsedMs =
       Metrics.counter(this.getClass().getCanonicalName(), "executeQueryElapsedMs");
   private Counter writeElapsedMs =
       Metrics.counter(this.getClass().getCanonicalName(), "writeElapsedMs");
   private Gauge msPerMillionRows =
       Metrics.gauge(this.getClass().getCanonicalName(), "msPerMillionRows");
-  private Gauge rowsPerMinute =
-      Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
+  private Gauge rowsPerMinute = Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
   private Counter bytesWritten =
       Metrics.counter(this.getClass().getCanonicalName(), "bytesWritten");
   private int rowCount = 0;
@@ -56,9 +54,8 @@ public class JdbcAvroMetering {
   }
 
   /**
-   * Increment and report counters to Beam SDK and logs.
-   * To avoid slowing down the writes, counts are reported every x 1000s of rows.
-   * This exposes the job progress.
+   * Increment and report counters to Beam SDK and logs. To avoid slowing down the writes, counts
+   * are reported every x 1000s of rows. This exposes the job progress.
    */
   public void incrementRecordCount() {
     this.rowCount++;
@@ -70,17 +67,17 @@ public class JdbcAvroMetering {
       this.msPerMillionRows.set(msPerMillionRows);
       this.rowsPerMinute.set(rowsPerMinute);
       if ((this.rowCount % logEvery) == 0) {
-        logger.info(String.format(
-            "jdbcavroio : Fetched # %08d rows at %08d rows per minute and %08d ms per M rows",
-            rowCount, rowsPerMinute, msPerMillionRows));
+        logger.info(
+            String.format(
+                "jdbcavroio : Fetched # %08d rows at %08d rows per minute and %08d ms per M rows",
+                rowCount, rowsPerMinute, msPerMillionRows));
       }
     }
   }
 
   public void exposeWriteElapsed() {
     long elapsedMs = (System.nanoTime() - this.writeIterateStartTime) / 1000000L;
-    logger.info("jdbcavroio : Read {} rows, took {} seconds",
-                              rowCount, elapsedMs / 1000.0);
+    logger.info("jdbcavroio : Read {} rows, took {} seconds", rowCount, elapsedMs / 1000.0);
     this.writeElapsedMs.inc(elapsedMs);
     if (rowCount > 0) {
       this.recordCount.inc((this.rowCount % countReportEvery));
@@ -99,8 +96,7 @@ public class JdbcAvroMetering {
   }
 
   public void exposeExecuteQueryMs(final long elapsedMs) {
-    logger.info("jdbcavroio : Execute query took {} seconds",
-                              elapsedMs / 1000.0);
+    logger.info("jdbcavroio : Execute query took {} seconds", elapsedMs / 1000.0);
     this.executeQueryElapsedMs.inc(elapsedMs);
   }
 

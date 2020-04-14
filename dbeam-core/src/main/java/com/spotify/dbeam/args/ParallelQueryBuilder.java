@@ -42,18 +42,17 @@ public class ParallelQueryBuilder implements Serializable {
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
   static long[] findInputBounds(
-          Connection connection, QueryBuilder queryBuilder, String splitColumn)
-      throws SQLException {
+      Connection connection, QueryBuilder queryBuilder, String splitColumn) throws SQLException {
     String minColumnName = "min_s";
     String maxColumnName = "max_s";
-    String limitsQuery = queryBuilder.generateQueryToGetLimitsOfSplitColumn(
-            splitColumn, minColumnName, maxColumnName).build();
+    String limitsQuery =
+        queryBuilder
+            .generateQueryToGetLimitsOfSplitColumn(splitColumn, minColumnName, maxColumnName)
+            .build();
     long min;
     long max;
     try (Statement statement = connection.createStatement()) {
-      final ResultSet
-          resultSet =
-          statement.executeQuery(limitsQuery);
+      final ResultSet resultSet = statement.executeQuery(limitsQuery);
       // Check and make sure we have a record. This should ideally succeed always.
       checkState(resultSet.next(), "Result Set for Min/Max returned zero records");
 
@@ -65,7 +64,7 @@ public class ParallelQueryBuilder implements Serializable {
           min = resultSet.getLong(minColumnName);
           // TODO
           // check resultSet.wasNull(); NULL -> 0L
-          // there is no value to carry on since it will be empty set anyway 
+          // there is no value to carry on since it will be empty set anyway
           max = resultSet.getLong(maxColumnName);
           break;
         default:
@@ -73,13 +72,13 @@ public class ParallelQueryBuilder implements Serializable {
       }
     }
 
-    return new long[]{min, max};
+    return new long[] {min, max};
   }
 
   public static class QueryRange {
 
     private final long startPointIncl; // always inclusive
-    private final long endPoint; // inclusivity controlled by isEndPointExcl 
+    private final long endPoint; // inclusivity controlled by isEndPointExcl
     private final boolean isEndPointExcl;
 
     public QueryRange(long startPointIncl, long endPoint, boolean isEndPointExcl) {
@@ -99,12 +98,12 @@ public class ParallelQueryBuilder implements Serializable {
     public boolean isEndPointExcl() {
       return isEndPointExcl;
     }
-
   }
 
   /**
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
+   *
    * @param min minimum value to filter splitColumn
    * @param max maximium value to filter splitColumn
    * @param parallelism max number of queries to generate
@@ -113,8 +112,8 @@ public class ParallelQueryBuilder implements Serializable {
    * @return a list of SQL queries
    */
   protected static List<String> queriesForBounds(
-         long min, long max, int parallelism, String splitColumn, QueryBuilder queryBuilder) {
-    
+      long min, long max, int parallelism, String splitColumn, QueryBuilder queryBuilder) {
+
     List<QueryRange> ranges = generateRanges(min, max, parallelism);
 
     return ranges.stream()
@@ -131,18 +130,17 @@ public class ParallelQueryBuilder implements Serializable {
   /**
    * Given a min, max and expected queryParallelism, generate all required queries that should be
    * executed.
+   *
    * @param min minimum value to filter splitColumn
    * @param max maximium value to filter splitColumn
    * @param parallelism max number of queries to generate
    * @return A list query ranges
    */
-  protected static List<QueryRange> generateRanges(
-          long min, long max, int parallelism) {
+  protected static List<QueryRange> generateRanges(long min, long max, int parallelism) {
     // We try not to generate more than queryParallelism. Hence we don't want to loose number by
     // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 ranges
     long bucketSize = (long) Math.ceil((double) (max - min) / (double) parallelism);
-    bucketSize =
-            bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
+    bucketSize = bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
     List<QueryRange> ranges = new ArrayList<>(parallelism);
 
     long i = min;
@@ -161,10 +159,10 @@ public class ParallelQueryBuilder implements Serializable {
 
     // If queryParallelism is higher than max-min, this will generate less ranges.
     // But lets never generate more ranges.
-    checkState(ranges.size() <= parallelism,
-            "Unable to generate expected number of ranges for given min max.");
+    checkState(
+        ranges.size() <= parallelism,
+        "Unable to generate expected number of ranges for given min max.");
 
     return ranges;
   }
-
 }

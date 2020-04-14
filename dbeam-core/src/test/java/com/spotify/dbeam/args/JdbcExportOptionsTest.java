@@ -36,7 +36,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class JdbcExportOptionsTest {
   private static File sqlFile;
 
@@ -51,15 +50,13 @@ public class JdbcExportOptionsTest {
     Files.delete(sqlFile.toPath());
   }
 
-
   JdbcExportArgs optionsFromArgs(String cmdLineArgs) throws IOException, ClassNotFoundException {
     return optionsFromArgs(cmdLineArgs.split(" "));
   }
 
-  JdbcExportArgs optionsFromArgs(String [] cmdLineArgs) throws IOException, ClassNotFoundException {
+  JdbcExportArgs optionsFromArgs(String[] cmdLineArgs) throws IOException, ClassNotFoundException {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
-    PipelineOptions opts =
-            PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
+    PipelineOptions opts = PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
     return JdbcExportArgsFactory.fromPipelineOptions(opts);
   }
 
@@ -80,58 +77,55 @@ public class JdbcExportOptionsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnTableAndSqlFilePresent() throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --sqlFile="
-        + sqlFile.getAbsolutePath() + " --table=some_table");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --sqlFile="
+            + sqlFile.getAbsolutePath()
+            + " --table=some_table");
   }
 
   @Test
   public void shouldNotFailOnMissingTableSqlFile() throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual = optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --sqlFile="
-        + sqlFile.getAbsolutePath());
+    JdbcExportArgs actual =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --sqlFile=" + sqlFile.getAbsolutePath());
 
-    JdbcExportArgs expected = JdbcExportArgs.create(
-        JdbcAvroArgs.create(
-            JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-                        .withUsername("dbeam-extractor")
-        ),
-        QueryBuilderArgs.createFromQuery(
-            com.google.common.io.Files.asCharSource(sqlFile, StandardCharsets.UTF_8).read()
-        )
-    );
+    JdbcExportArgs expected =
+        JdbcExportArgs.create(
+            JdbcAvroArgs.create(
+                JdbcConnectionArgs.create("jdbc:postgresql://some_db")
+                    .withUsername("dbeam-extractor")),
+            QueryBuilderArgs.createFromQuery(
+                com.google.common.io.Files.asCharSource(sqlFile, StandardCharsets.UTF_8).read()));
 
     Assert.assertEquals(expected, actual);
   }
 
-
   @Test
   public void shouldParseWithDefaultsOnConnectionUrlAndTable()
       throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table");
+    JdbcExportArgs actual =
+        optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table");
 
-    JdbcExportArgs expected = JdbcExportArgs.create(
-        JdbcAvroArgs.create(
-            JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-                .withUsername("dbeam-extractor")
-        ),
-        QueryBuilderArgs.create("some_table")
-    );
+    JdbcExportArgs expected =
+        JdbcExportArgs.create(
+            JdbcAvroArgs.create(
+                JdbcConnectionArgs.create("jdbc:postgresql://some_db")
+                    .withUsername("dbeam-extractor")),
+            QueryBuilderArgs.create("some_table"));
 
     Assert.assertEquals(expected, actual);
   }
 
   @Test
   public void shouldParseWithMySqlConnection() throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual = optionsFromArgs(
-        "--connectionUrl=jdbc:mysql://some_db --table=some_table");
+    JdbcExportArgs actual =
+        optionsFromArgs("--connectionUrl=jdbc:mysql://some_db --table=some_table");
 
-    JdbcExportArgs expected = JdbcExportArgs.create(
-        JdbcAvroArgs.create(
-            JdbcConnectionArgs.create("jdbc:mysql://some_db")
-                .withUsername("dbeam-extractor")
-        ),
-        QueryBuilderArgs.create("some_table")
-    );
+    JdbcExportArgs expected =
+        JdbcExportArgs.create(
+            JdbcAvroArgs.create(
+                JdbcConnectionArgs.create("jdbc:mysql://some_db").withUsername("dbeam-extractor")),
+            QueryBuilderArgs.create("some_table"));
 
     Assert.assertEquals(expected, actual);
   }
@@ -154,28 +148,30 @@ public class JdbcExportOptionsTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnMissingPartitionButPresentPartitionColumn()
       throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=sometable "
-                    + "--partitionColumn=col");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=sometable " + "--partitionColumn=col");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnTooOldPartition() throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=sometable "
-                    + "--partition=2015-01-01");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=sometable " + "--partition=2015-01-01");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnTooOldPartitionWithConfiguredMinPartitionPeriodMoreThanPartition()
       throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=sometable "
-                    + "--partition=2015-01-01 --minPartitionPeriod=2015-01-02");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=sometable "
+            + "--partition=2015-01-01 --minPartitionPeriod=2015-01-02");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnTooOldPartitionWithConfiguredMinPartitionPeriodLessThanPartition()
       throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=sometable "
-                    + "--partition=2015-01-01 --minPartitionPeriod=2015-01-01");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=sometable "
+            + "--partition=2015-01-01 --minPartitionPeriod=2015-01-01");
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -185,87 +181,82 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureUserAndPassword() throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--username=someuser --password=somepassword");
+    JdbcExportArgs actual =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--username=someuser --password=somepassword");
 
-    JdbcExportArgs expected = JdbcExportArgs.create(
-        JdbcAvroArgs.create(
-            JdbcConnectionArgs.create("jdbc:postgresql://some_db")
-                .withUsername("someuser")
-                .withPassword("somepassword")
-        ),
-        QueryBuilderArgs.create("some_table")
-    );
+    JdbcExportArgs expected =
+        JdbcExportArgs.create(
+            JdbcAvroArgs.create(
+                JdbcConnectionArgs.create("jdbc:postgresql://some_db")
+                    .withUsername("someuser")
+                    .withPassword("somepassword")),
+            QueryBuilderArgs.create("some_table"));
 
     Assert.assertEquals(expected, actual);
   }
 
   @Test
   public void shouldConfigureAvroLogicalTypes() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --useAvroLogicalTypes=true");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --useAvroLogicalTypes=true");
 
-    Assert.assertTrue(
-        options.useAvroLogicalTypes());
+    Assert.assertTrue(options.useAvroLogicalTypes());
   }
 
   @Test
   public void shouldConfigureAvroDoc() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --avroDoc=somedoc");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --avroDoc=somedoc");
 
-    Assert.assertEquals(
-        Optional.of("somedoc"),
-        options.avroDoc());
+    Assert.assertEquals(Optional.of("somedoc"), options.avroDoc());
   }
 
   @Test
   public void shouldConfigureAvroSchemaNamespace() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --avroSchemaNamespace=ns");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --avroSchemaNamespace=ns");
 
-    Assert.assertEquals(
-        "ns",
-        options.avroSchemaNamespace());
+    Assert.assertEquals("ns", options.avroSchemaNamespace());
   }
 
   @Test
   public void shouldConfigureFetchSize() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --fetchSize=1234");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --fetchSize=1234");
 
-    Assert.assertEquals(
-        1234,
-        options.jdbcAvroOptions().fetchSize());
+    Assert.assertEquals(1234, options.jdbcAvroOptions().fetchSize());
   }
 
   @Test
   public void shouldSupportMonthlyPartitionPeriod() throws IOException, ClassNotFoundException {
     // Given handling ChronoUnit.MONTHS is not always simple
     // https://stackoverflow.com/q/39907925/1046584
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --partitionPeriod=P1M --partition=2050-12");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --partitionPeriod=P1M --partition=2050-12");
 
-    Assert.assertEquals(
-        Period.ofMonths(1),
-        options.queryBuilderArgs().partitionPeriod());
+    Assert.assertEquals(Period.ofMonths(1), options.queryBuilderArgs().partitionPeriod());
   }
 
   @Test
   public void shouldConfigureDeflateCodec() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --avroCodec=deflate7");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --avroCodec=deflate7");
 
-    Assert.assertEquals(
-        "deflate7",
-        options.jdbcAvroOptions().avroCodec());
+    Assert.assertEquals("deflate7", options.jdbcAvroOptions().avroCodec());
     Assert.assertEquals(
         CodecFactory.deflateCodec(7).toString(),
         options.jdbcAvroOptions().getCodecFactory().toString());
@@ -273,13 +264,12 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureZstandardCodec() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --avroCodec=zstandard9");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --avroCodec=zstandard9");
 
-    Assert.assertEquals(
-        "zstandard9",
-        options.jdbcAvroOptions().avroCodec());
+    Assert.assertEquals("zstandard9", options.jdbcAvroOptions().avroCodec());
     Assert.assertEquals(
         CodecFactory.zstandardCodec(9).toString(),
         options.jdbcAvroOptions().getCodecFactory().toString());
@@ -287,13 +277,12 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureSnappyCodec() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --avroCodec=snappy");
+    JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --avroCodec=snappy");
 
-    Assert.assertEquals(
-        "snappy",
-        options.jdbcAvroOptions().avroCodec());
+    Assert.assertEquals("snappy", options.jdbcAvroOptions().avroCodec());
     Assert.assertEquals(
         CodecFactory.snappyCodec().toString(),
         options.jdbcAvroOptions().getCodecFactory().toString());
@@ -301,57 +290,54 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfiguraPreCommands() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options = optionsFromArgs(
-        new String[] {
-            "--connectionUrl=jdbc:postgresql://some_db;",
-            "--password=secret",
-            "--table=some_table",
-            "--preCommand=set foo='1'",
-            "--preCommand=set bar=2"
-        }
-    );
+    JdbcExportArgs options =
+        optionsFromArgs(
+            new String[] {
+              "--connectionUrl=jdbc:postgresql://some_db;",
+              "--password=secret",
+              "--table=some_table",
+              "--preCommand=set foo='1'",
+              "--preCommand=set bar=2"
+            });
 
-    Assert.assertEquals(
-            "set foo='1'",
-            options.jdbcAvroOptions().preCommand().get(0));
-    Assert.assertEquals(
-            "set bar=2",
-            options.jdbcAvroOptions().preCommand().get(1));
+    Assert.assertEquals("set foo='1'", options.jdbcAvroOptions().preCommand().get(0));
+    Assert.assertEquals("set bar=2", options.jdbcAvroOptions().preCommand().get(1));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnInvalidAvroCodec() throws IOException, ClassNotFoundException {
     optionsFromArgs(
         "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-        + "--password=secret --avroCodec=lzma");
+            + "--password=secret --avroCodec=lzma");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnQueryParallelismWithNoSplitColumn()
       throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
-                    + "--table=some_table --password=secret --queryParallelism=10");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db "
+            + "--table=some_table --password=secret --queryParallelism=10");
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnSplitColumnWithNoQueryParallelism()
       throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
-                    + "--table=some_table --password=secret --splitColumn=id");
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db "
+            + "--table=some_table --password=secret --splitColumn=id");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnZeroQueryParallelism()
-      throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db "
-                    + "--table=some_table --password=secret --queryParallelism=0 --splitColumn=id");
+  public void shouldFailOnZeroQueryParallelism() throws IOException, ClassNotFoundException {
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db "
+            + "--table=some_table --password=secret --queryParallelism=0 --splitColumn=id");
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnNegativeQueryParallelism()
-      throws IOException, ClassNotFoundException {
-    optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table "
-                    + "--password=secret --queryParallelism=-5 --splitColumn=id");
+  public void shouldFailOnNegativeQueryParallelism() throws IOException, ClassNotFoundException {
+    optionsFromArgs(
+        "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+            + "--password=secret --queryParallelism=-5 --splitColumn=id");
   }
-
 }

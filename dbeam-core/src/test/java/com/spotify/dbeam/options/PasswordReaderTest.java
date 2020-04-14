@@ -37,7 +37,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class PasswordReaderTest {
 
   private static File passwordFile;
@@ -59,23 +58,25 @@ public class PasswordReaderTest {
 
     // Using MockHttpTransport, read more at:
     // https://developers.google.com/api-client-library/java/google-http-java-client/unit-testing
-    MockHttpTransport mockHttpTransport = new MockHttpTransport.Builder()
-        .setLowLevelHttpResponse(
-            new MockLowLevelHttpResponse().setStatusCode(200)
-                .setContentType(Json.MEDIA_TYPE)
-                .setContent(
-                    JacksonFactory.getDefaultInstance().toByteArray(
-                        new DecryptResponse()
-                            .encodePlaintext("something_decrypted".getBytes())
-                    )
-                ))
-        .build();
+    MockHttpTransport mockHttpTransport =
+        new MockHttpTransport.Builder()
+            .setLowLevelHttpResponse(
+                new MockLowLevelHttpResponse()
+                    .setStatusCode(200)
+                    .setContentType(Json.MEDIA_TYPE)
+                    .setContent(
+                        JacksonFactory.getDefaultInstance()
+                            .toByteArray(
+                                new DecryptResponse()
+                                    .encodePlaintext("something_decrypted".getBytes()))))
+            .build();
     PasswordReader passwordReader =
-        new PasswordReader(KmsDecrypter.decrypter()
-                               .project(Optional.of("fake_project"))
-                               .credentials(Optional.of(new GoogleCredential.Builder().build()))
-                               .transport(mockHttpTransport)
-                               .build());
+        new PasswordReader(
+            KmsDecrypter.decrypter()
+                .project(Optional.of("fake_project"))
+                .credentials(Optional.of(new GoogleCredential.Builder().build()))
+                .transport(mockHttpTransport)
+                .build());
 
     DBeamPipelineOptions options = PipelineOptionsFactory.create().as(DBeamPipelineOptions.class);
     options.setPasswordFileKmsEncrypted(passwordFile.getPath());
@@ -84,5 +85,4 @@ public class PasswordReaderTest {
 
     Assert.assertEquals(Optional.of("something_decrypted"), actualPassword);
   }
-
 }
