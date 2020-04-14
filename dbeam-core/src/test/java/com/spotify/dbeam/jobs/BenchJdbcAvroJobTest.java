@@ -28,6 +28,7 @@ import com.spotify.dbeam.TestHelper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -42,8 +43,8 @@ import org.junit.Test;
 public class BenchJdbcAvroJobTest {
 
   private static String CONNECTION_URL =
-      "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
-  private static File DIR = TestHelper.createTmpDirName("bench-jdbc-avro-test-").toFile();
+      "jdbc:h2:mem:test3;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
+  private static Path TEST_DIR = TestHelper.createTmpDirName("jdbc-export-args-test");
 
   private List<String> listDir(File dir) {
     return Arrays.stream(Objects.requireNonNull(dir.listFiles()))
@@ -53,11 +54,12 @@ public class BenchJdbcAvroJobTest {
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException {
     DbTestHelper.createFixtures(CONNECTION_URL);
+    TEST_DIR.toFile().deleteOnExit();
   }
 
   @AfterClass
   public static void afterAll() throws IOException {
-    Files.walk(DIR.toPath())
+    Files.walk(TEST_DIR)
         .sorted(Comparator.reverseOrder())
         .forEach(p -> p.toFile().delete());
   }
@@ -70,12 +72,12 @@ public class BenchJdbcAvroJobTest {
         "--connectionUrl=" + CONNECTION_URL,
         "--username=",
         "--table=COFFEES",
-        "--output=" + DIR.getAbsolutePath(),
+        "--output=" + TEST_DIR.toString(),
         "--avroCodec=zstandard1",
         "--executions=2"
     });
     assertThat(
-        listDir(DIR),
+        listDir(TEST_DIR.toFile()),
         Matchers.is(
             Lists.newArrayList("run_0", "run_1")
         ));

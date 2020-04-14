@@ -48,22 +48,22 @@ public class QueryBuilderArgsTest {
   private static Path COFFEES_SQL_QUERY_PATH =
       Paths.get(TEST_DIR.toString(), "coffees_query_1.sql");
   private static String CONNECTION_URL =
-      "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
+      "jdbc:h2:mem:test4;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
   private static Connection CONNECTION;
 
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
+    TEST_DIR.toFile().deleteOnExit();
     CONNECTION =  DbTestHelper.createConnection(CONNECTION_URL);
-    DbTestHelper.createFixtures(CONNECTION_URL);
     Files.createDirectories(TEST_DIR);
     Files.write(COFFEES_SQL_QUERY_PATH,
                 "SELECT * FROM COFFEES WHERE SIZE > 10".getBytes(StandardCharsets.UTF_8));
+    DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
   @AfterClass
   public static void afterAll() throws IOException, SQLException {
-    Files.delete(COFFEES_SQL_QUERY_PATH);
     Files.walk(TEST_DIR)
         .sorted(Comparator.reverseOrder())
         .forEach(p -> p.toFile().delete());

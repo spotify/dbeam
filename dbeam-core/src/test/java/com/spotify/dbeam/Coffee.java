@@ -23,6 +23,7 @@ package com.spotify.dbeam;
 import com.google.auto.value.AutoValue;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -65,6 +66,7 @@ public abstract class Coffee {
 
   public String insertStatement() {
     return String.format(
+        Locale.ENGLISH,
         "INSERT INTO COFFEES "
         + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d)",
         name(), supId().orElse(null), price().toString(), temperature(), size(), isArabic(),
@@ -73,7 +75,7 @@ public abstract class Coffee {
 
   public static String ddl() {
     return "DROP TABLE IF EXISTS COFFEES; "
-           + "create table if not exists COFFEES ("
+           + "CREATE TABLE COFFEES ("
            + "\"COF_NAME\" VARCHAR NOT NULL PRIMARY KEY,"
            + "\"SUP_ID\" INTEGER,"
            + "\"PRICE\" DECIMAL(21,2) NOT NULL,"

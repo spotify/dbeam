@@ -30,6 +30,7 @@ import com.spotify.dbeam.options.OutputOptions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -56,10 +57,10 @@ import org.junit.Test;
 public class JdbcAvroJobTest {
 
   private static String CONNECTION_URL =
-      "jdbc:h2:mem:test2;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
-  private static File DIR = TestHelper.createTmpDirName("jdbc-avro-test-").toFile();
-  private static File PASSWORD_FILE = new File(DIR.getAbsolutePath() + ".password");
-  private static File SQL_FILE = new File(DIR.getAbsolutePath() + ".sql");
+      "jdbc:h2:mem:test5;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
+  private static Path TEST_DIR = TestHelper.createTmpDirName("jdbc-avro-test-");
+  private static File PASSWORD_FILE = new File(TEST_DIR.toString() + ".password");
+  private static File SQL_FILE = new File(TEST_DIR.toString() + ".sql");
 
   private List<String> listDir(File dir) {
     return Arrays.stream(Objects.requireNonNull(dir.listFiles()))
@@ -77,25 +78,26 @@ public class JdbcAvroJobTest {
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
-    DbTestHelper.createFixtures(CONNECTION_URL);
+    TEST_DIR.toFile().deleteOnExit();
     PASSWORD_FILE.createNewFile();
     SQL_FILE.createNewFile();
     Files.write(SQL_FILE.toPath(),
             "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
+    DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
   @AfterClass
   public static void afterAll() throws IOException {
     PASSWORD_FILE.delete();
     SQL_FILE.delete();
-    Files.walk(DIR.toPath())
+    Files.walk(TEST_DIR)
         .sorted(Comparator.reverseOrder())
         .forEach(p -> p.toFile().delete());
   }
 
   @Test
   public void shouldRunJdbcAvroJob() throws IOException {
-    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunJdbcAvroJob"
+    String outputFolder = TEST_DIR.toString() + File.separator + "shouldRunJdbcAvroJob"
             + File.separator;
 
     JdbcAvroJob.main(new String[]{
@@ -130,7 +132,7 @@ public class JdbcAvroJobTest {
 
   @Test
   public void shouldRunJdbcAvroJobSqlFile() throws IOException {
-    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunJdbcAvroJob"
+    String outputFolder = TEST_DIR.toString() + File.separator + "shouldRunJdbcAvroJob"
             + File.separator;
 
     JdbcAvroJob.main(new String[]{
@@ -170,7 +172,7 @@ public class JdbcAvroJobTest {
   @Test
   public void shouldRunAvroJobPreCommands()
           throws IOException, SQLException, ClassNotFoundException {
-    String outputFolder = DIR.getAbsolutePath() + File.separator + "shouldRunAvroJobPreCommands"
+    String outputFolder = TEST_DIR.toString() + File.separator + "shouldRunAvroJobPreCommands"
             + File.separator;
 
     JdbcAvroJob.main(new String[]{
