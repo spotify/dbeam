@@ -21,9 +21,7 @@
 package com.spotify.dbeam.jobs;
 
 import com.google.api.client.util.Preconditions;
-
 import com.spotify.dbeam.args.JdbcExportArgs;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,7 +29,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.time.ZoneOffset;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

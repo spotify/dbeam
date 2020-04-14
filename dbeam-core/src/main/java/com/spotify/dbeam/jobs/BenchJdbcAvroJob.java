@@ -24,10 +24,8 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.math.Stats;
-
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.options.OutputOptions;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +35,6 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;

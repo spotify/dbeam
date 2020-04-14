@@ -22,13 +22,11 @@ package com.spotify.dbeam.options;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.channels.Channels;
 import java.util.Optional;
-
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.io.fs.MatchResult;
 import org.slf4j.Logger;

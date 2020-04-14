@@ -21,10 +21,8 @@
 package com.spotify.dbeam.jobs;
 
 import com.spotify.dbeam.beam.BeamHelper;
-
 import java.io.IOException;
 import java.time.Duration;
-
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.metrics.MetricResults;

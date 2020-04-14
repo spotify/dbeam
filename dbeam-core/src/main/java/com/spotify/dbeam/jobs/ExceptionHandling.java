@@ -21,11 +21,9 @@
 package com.spotify.dbeam.jobs;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
-
 import org.apache.beam.sdk.Pipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

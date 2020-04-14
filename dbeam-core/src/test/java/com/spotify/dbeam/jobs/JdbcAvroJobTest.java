@@ -20,13 +20,13 @@
 
 package com.spotify.dbeam.jobs;
 
-import com.google.common.collect.Lists;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.Lists;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.avro.JdbcAvroMetering;
 import com.spotify.dbeam.options.OutputOptions;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.generic.GenericDatumReader;
@@ -53,8 +52,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class JdbcAvroJobTest {
 

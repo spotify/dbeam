@@ -22,13 +22,10 @@ package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
-
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
-
 import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

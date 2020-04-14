@@ -22,14 +22,11 @@ package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Preconditions;
-
 import java.io.Serializable;
 import java.sql.PreparedStatement;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
 import org.apache.avro.file.CodecFactory;
 
 @AutoValue

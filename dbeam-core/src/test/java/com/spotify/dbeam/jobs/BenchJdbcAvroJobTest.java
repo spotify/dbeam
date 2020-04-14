@@ -20,16 +20,11 @@
 
 package com.spotify.dbeam.jobs;
 
-import com.google.common.collect.Lists;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.Lists;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
-
-import org.hamcrest.Matchers;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,8 +34,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.Matchers;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class BenchJdbcAvroJobTest {
 

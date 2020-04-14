@@ -21,7 +21,6 @@
 package com.spotify.dbeam.options;
 
 import java.util.List;
-
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 

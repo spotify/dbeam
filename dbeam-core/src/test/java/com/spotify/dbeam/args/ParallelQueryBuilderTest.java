@@ -24,9 +24,7 @@ import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.Lists;
-
 import java.util.List;
-
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Ignore;

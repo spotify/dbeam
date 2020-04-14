@@ -21,7 +21,6 @@
 package com.spotify.dbeam.jobs;
 
 import java.io.IOException;
-
 import org.junit.Test;
 
 public class PsqlAvroJobTest {

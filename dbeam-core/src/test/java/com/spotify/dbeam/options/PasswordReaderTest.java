@@ -26,13 +26,11 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.api.services.cloudkms.v1.model.DecryptResponse;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
-
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.junit.AfterClass;
 import org.junit.Assert;

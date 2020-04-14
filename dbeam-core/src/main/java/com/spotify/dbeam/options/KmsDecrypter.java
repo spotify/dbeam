@@ -31,7 +31,6 @@ import com.google.api.services.cloudkms.v1.model.DecryptResponse;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.ServiceOptions;
 import com.google.common.base.CharMatcher;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
