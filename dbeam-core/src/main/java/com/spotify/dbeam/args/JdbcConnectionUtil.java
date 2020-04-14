@@ -33,7 +33,7 @@ public class JdbcConnectionUtil {
           "h2", "org.h2.Driver"
       );
 
-  public static String getDriverClass(String url) throws ClassNotFoundException {
+  public static String getDriverClass(final String url) throws ClassNotFoundException {
     final String[] parts = url.split(":", 3);
     Preconditions.checkArgument(
         parts.length > 1

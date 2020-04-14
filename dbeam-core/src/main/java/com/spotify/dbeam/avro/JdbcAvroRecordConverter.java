@@ -36,14 +36,15 @@ public class JdbcAvroRecordConverter {
   private final EncoderFactory encoderFactory = EncoderFactory.get();
 
   public JdbcAvroRecordConverter(
-      JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings, int columnCount,
-      ResultSet resultSet) {
+      final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings,
+      final int columnCount,
+      final ResultSet resultSet) {
     this.mappings = mappings;
     this.columnCount = columnCount;
     this.resultSet = resultSet;
   }
 
-  public static JdbcAvroRecordConverter create(ResultSet resultSet)
+  public static JdbcAvroRecordConverter create(final ResultSet resultSet)
       throws SQLException {
     return new JdbcAvroRecordConverter(
         computeAllMappings(resultSet),
@@ -52,7 +53,8 @@ public class JdbcAvroRecordConverter {
   }
   
   @SuppressWarnings("unchecked")
-  static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(ResultSet resultSet)
+  static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
+      final ResultSet resultSet)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();

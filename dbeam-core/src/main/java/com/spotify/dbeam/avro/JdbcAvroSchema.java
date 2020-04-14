@@ -62,11 +62,11 @@ public class JdbcAvroSchema {
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
-      Connection connection,
-      QueryBuilderArgs queryBuilderArgs,
-      String avroSchemaNamespace,
-      String avroDoc,
-      boolean useLogicalTypes)
+      final Connection connection,
+      final QueryBuilderArgs queryBuilderArgs,
+      final String avroSchemaNamespace,
+      final String avroDoc,
+      final boolean useLogicalTypes)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
@@ -83,11 +83,11 @@ public class JdbcAvroSchema {
   }
 
   public static Schema createAvroSchema(
-      ResultSet resultSet,
-      String avroSchemaNamespace,
-      String connectionUrl,
-      String avroDoc,
-      boolean useLogicalTypes)
+      final ResultSet resultSet,
+      final String avroSchemaNamespace,
+      final String connectionUrl,
+      final String avroDoc,
+      final boolean useLogicalTypes)
       throws SQLException {
     ResultSetMetaData meta = resultSet.getMetaData();
     String tableName = "no_table_name";
@@ -106,9 +106,9 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
-      ResultSetMetaData meta,
-      SchemaBuilder.FieldAssembler<Schema> builder,
-      boolean useLogicalTypes)
+      final ResultSetMetaData meta,
+      final SchemaBuilder.FieldAssembler<Schema> builder,
+      final boolean useLogicalTypes)
       throws SQLException {
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
@@ -134,7 +134,9 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
-      int columnType, int precision, SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
+      final int columnType,
+      final int precision,
+      final SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
       boolean useLogicalTypes) {
 
     final SchemaBuilder.BaseTypeBuilder<
@@ -194,7 +196,7 @@ public class JdbcAvroSchema {
     }
   }
 
-  private static String normalizeForAvro(String input) {
+  private static String normalizeForAvro(final String input) {
     return input.replaceAll("[^A-Za-z0-9_]", "_");
   }
 

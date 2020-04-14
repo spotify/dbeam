@@ -27,13 +27,13 @@ public class PsqlAvroJob {
   private final JdbcAvroJob job;
   private final PsqlReplicationCheck psqlReplicationCheck;
 
-  public PsqlAvroJob(JdbcAvroJob job,
-                     PsqlReplicationCheck psqlReplicationCheck) {
+  public PsqlAvroJob(final JdbcAvroJob job,
+                     final PsqlReplicationCheck psqlReplicationCheck) {
     this.job = job;
     this.psqlReplicationCheck = psqlReplicationCheck;
   }
 
-  public static PsqlAvroJob create(String[] cmdLineArgs)
+  public static PsqlAvroJob create(final String[] cmdLineArgs)
       throws IOException, ClassNotFoundException {
     JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
     PsqlReplicationCheck.validateOptions(job.getJdbcExportArgs());

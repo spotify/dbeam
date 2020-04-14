@@ -98,13 +98,13 @@ public class JdbcAvroMetering {
     return startTs;
   }
 
-  public void exposeExecuteQueryMs(long elapsedMs) {
+  public void exposeExecuteQueryMs(final long elapsedMs) {
     logger.info("jdbcavroio : Execute query took {} seconds",
                               elapsedMs / 1000.0);
     this.executeQueryElapsedMs.inc(elapsedMs);
   }
 
-  public void exposeWrittenBytes(long count) {
+  public void exposeWrittenBytes(final long count) {
     this.bytesWritten.inc(count);
   }
 }

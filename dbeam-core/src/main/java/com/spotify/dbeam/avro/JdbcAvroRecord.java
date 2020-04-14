@@ -65,7 +65,7 @@ public class JdbcAvroRecord {
     R apply(T t) throws SQLException;
   }
 
-  private static ByteBuffer nullableBytes(byte[] bts) {
+  private static ByteBuffer nullableBytes(final byte[] bts) {
     if (bts != null) {
       return ByteBuffer.wrap(bts);
     } else {

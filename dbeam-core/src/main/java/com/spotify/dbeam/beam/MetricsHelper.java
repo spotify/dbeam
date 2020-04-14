@@ -56,7 +56,7 @@ public class MetricsHelper {
       };
 
 
-  public static Map<String, Long> getMetrics(PipelineResult result) {
+  public static Map<String, Long> getMetrics(final PipelineResult result) {
     final MetricQueryResults metricQueryResults =
         result.metrics().queryMetrics(MetricsFilter.builder().build());
 

@@ -71,8 +71,10 @@ public abstract class JdbcAvroArgs implements Serializable {
     abstract JdbcAvroArgs build();
   }
 
-  public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs,
-                                    int fetchSize, String avroCodec, List<String> preCommand) {
+  public static JdbcAvroArgs create(final JdbcConnectionArgs jdbcConnectionArgs,
+                                    final int fetchSize,
+                                    final String avroCodec,
+                                    final List<String> preCommand) {
     Preconditions.checkArgument(avroCodec.matches("snappy|deflate[1-9]|zstandard[1-9]"),
                           "Avro codec should be snappy or deflate1, .., deflate9");
     return new AutoValue_JdbcAvroArgs.Builder()
@@ -83,7 +85,7 @@ public abstract class JdbcAvroArgs implements Serializable {
         .build();
   }
 
-  public static JdbcAvroArgs create(JdbcConnectionArgs jdbcConnectionArgs) {
+  public static JdbcAvroArgs create(final JdbcConnectionArgs jdbcConnectionArgs) {
     return create(jdbcConnectionArgs, 10000, "deflate6", Collections.emptyList());
   }
 

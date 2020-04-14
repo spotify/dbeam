@@ -21,8 +21,13 @@
 package com.spotify.dbeam.beam;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -30,6 +35,7 @@ import java.util.Map;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.FileSystems;
+import org.apache.beam.sdk.io.fs.MatchResult;
 import org.apache.beam.sdk.io.fs.ResourceId;
 import org.apache.beam.sdk.util.MimeTypes;
 import org.slf4j.Logger;
@@ -89,6 +95,12 @@ public class BeamHelper {
       // only log failures here, avoid to fail export at the end
       LOGGER.error("Failed to save metrics", exception);
     }
+  }
+
+  public static String readFromFile(final String fileSpec) throws IOException {
+    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(fileSpec);
+    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
+    return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }
 
 }

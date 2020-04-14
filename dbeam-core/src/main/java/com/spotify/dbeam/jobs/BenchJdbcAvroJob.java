@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.math.Stats;
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.options.OutputOptions;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,12 +56,11 @@ public class BenchJdbcAvroJob {
   private final PipelineOptions pipelineOptions;
   private List<Map<String, Long>> metrics = newArrayList();
 
-  public BenchJdbcAvroJob(PipelineOptions pipelineOptions) {
+  public BenchJdbcAvroJob(final PipelineOptions pipelineOptions) {
     this.pipelineOptions = pipelineOptions;
   }
 
-  public static BenchJdbcAvroJob create(String[] cmdLineArgs)
-      throws IOException, ClassNotFoundException {
+  public static BenchJdbcAvroJob create(final String[] cmdLineArgs) {
     PipelineOptionsFactory.register(BenchJdbcAvroOptions.class);
     PipelineOptions options = JdbcAvroJob.buildPipelineOptions(cmdLineArgs);
     return new BenchJdbcAvroJob(options);

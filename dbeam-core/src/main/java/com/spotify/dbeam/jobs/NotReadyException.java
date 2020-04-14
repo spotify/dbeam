@@ -22,7 +22,7 @@ package com.spotify.dbeam.jobs;
 
 public class NotReadyException extends Exception {
 
-  public NotReadyException(String message) {
+  public NotReadyException(final String message) {
     super(message);
   }
 

@@ -27,6 +27,7 @@ import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
+import com.spotify.dbeam.beam.BeamHelper;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -56,7 +57,7 @@ public class JdbcExportArgsFactory {
           .toFormatter()
           .withZone(ZoneId.of("UTC"));
 
-  public static JdbcExportArgs fromPipelineOptions(PipelineOptions options)
+  public static JdbcExportArgs fromPipelineOptions(final PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
     final JdbcAvroArgs jdbcAvroArgs = JdbcAvroArgs.create(
@@ -78,7 +79,7 @@ public class JdbcExportArgsFactory {
     );
   }
 
-  public static QueryBuilderArgs createQueryArgs(JdbcExportPipelineOptions options)
+  public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)
       throws IOException {
     final Period partitionPeriod = Optional.ofNullable(options.getPartitionPeriod())
         .map(Period::parse).orElse(Period.ofDays(1));
@@ -122,12 +123,12 @@ public class JdbcExportArgsFactory {
         .build();
   }
 
-  private static QueryBuilderArgs createQueryBuilderArgs(JdbcExportPipelineOptions options)
+  private static QueryBuilderArgs createQueryBuilderArgs(final JdbcExportPipelineOptions options)
       throws IOException {
     checkArgument((options.getTable() != null) != (options.getSqlFile() != null),
             "Either --table or --sqlFile must be present");
     if (options.getSqlFile() != null) {
-      return QueryBuilderArgs.createFromQuery(PasswordReader.readFromFile(options.getSqlFile()));
+      return QueryBuilderArgs.createFromQuery(BeamHelper.readFromFile(options.getSqlFile()));
     } else {
       return QueryBuilderArgs.create(options.getTable());
     }
@@ -138,7 +139,8 @@ public class JdbcExportArgsFactory {
   }
 
   private static Instant validatePartition(
-      Instant partitionDateTime, Instant minPartitionDateTime) {
+      final Instant partitionDateTime,
+      final Instant minPartitionDateTime) {
     checkArgument(
         partitionDateTime.isAfter(minPartitionDateTime),
         "Too old partition date %s. Use a partition date >= %s or use --skip-partition-check",

@@ -128,7 +128,7 @@ public abstract class KmsDecrypter {
   /**
    * Decrypt a base64 encoded cipher text string.
    */
-  String decrypt(String base64Ciphertext) throws IOException {
+  String decrypt(final String base64Ciphertext) throws IOException {
     return StandardCharsets.UTF_8.decode(decryptBinary(base64Ciphertext)).toString();
   }
 
@@ -137,7 +137,7 @@ public abstract class KmsDecrypter {
    *
    * @return A {@link ByteBuffer} with the raw contents.
    */
-  ByteBuffer decryptBinary(String base64Ciphertext) throws IOException {
+  ByteBuffer decryptBinary(final String base64Ciphertext) throws IOException {
     final String project = project().orElseGet(ServiceOptions::getDefaultProjectId);
     final String keyName = String.format(
         "projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s",
@@ -161,14 +161,15 @@ public abstract class KmsDecrypter {
     return KmsDecrypter.kms(transport, jsonFactory, googleCredential);
   }
 
-  private static CloudKMS kms(HttpTransport transport,
-                              JsonFactory jsonFactory, GoogleCredential credential) {
+  private static CloudKMS kms(final HttpTransport transport,
+                              final JsonFactory jsonFactory,
+                              final GoogleCredential credential) {
     return new CloudKMS.Builder(transport, jsonFactory, scoped(credential))
         .setApplicationName("dbeam")
         .build();
   }
 
-  private static GoogleCredential scoped(GoogleCredential credential) {
+  private static GoogleCredential scoped(final GoogleCredential credential) {
     if (credential.createScopedRequired()) {
       return credential.createScoped(CloudKMSScopes.all());
     }

@@ -66,8 +66,8 @@ public abstract class JdbcExportArgs implements Serializable {
   }
 
   @VisibleForTesting
-  static JdbcExportArgs create(JdbcAvroArgs jdbcAvroArgs,
-                                      QueryBuilderArgs queryBuilderArgs) {
+  static JdbcExportArgs create(final JdbcAvroArgs jdbcAvroArgs,
+                               final QueryBuilderArgs queryBuilderArgs) {
     return create(
         jdbcAvroArgs,
         queryBuilderArgs,
@@ -79,13 +79,13 @@ public abstract class JdbcExportArgs implements Serializable {
   }
 
   public static JdbcExportArgs create(
-      JdbcAvroArgs jdbcAvroArgs,
-      QueryBuilderArgs queryBuilderArgs,
-      String avroSchemaNamespace,
-      Optional<String> avroDoc,
-      Boolean useAvroLogicalTypes,
-      Duration exportTimeout,
-      Optional<Schema> inputAvroSchema) {
+      final JdbcAvroArgs jdbcAvroArgs,
+      final QueryBuilderArgs queryBuilderArgs,
+      final String avroSchemaNamespace,
+      final Optional<String> avroDoc,
+      final Boolean useAvroLogicalTypes,
+      final Duration exportTimeout,
+      final Optional<Schema> inputAvroSchema) {
     return new AutoValue_JdbcExportArgs.Builder()
         .setJdbcAvroOptions(jdbcAvroArgs)
         .setQueryBuilderArgs(queryBuilderArgs)

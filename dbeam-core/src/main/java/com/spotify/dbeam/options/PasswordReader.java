@@ -20,15 +20,10 @@
 
 package com.spotify.dbeam.options;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
+import com.spotify.dbeam.beam.BeamHelper;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.channels.Channels;
 import java.util.Optional;
 import org.apache.beam.sdk.io.FileSystems;
-import org.apache.beam.sdk.io.fs.MatchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,24 +38,19 @@ class PasswordReader {
 
   static final PasswordReader INSTANCE = new PasswordReader(KmsDecrypter.decrypter().build());
 
-  Optional<String> readPassword(DBeamPipelineOptions options) throws IOException {
+  Optional<String> readPassword(final DBeamPipelineOptions options) throws IOException {
     FileSystems.setDefaultPipelineOptions(options);
     if (options.getPasswordFileKmsEncrypted() != null) {
       LOGGER.info("Decrypting password using KMS...");
-      return Optional.of(kmsDecrypter.decrypt(readFromFile(options.getPasswordFileKmsEncrypted()))
+      return Optional.of(
+          kmsDecrypter.decrypt(BeamHelper.readFromFile(options.getPasswordFileKmsEncrypted()))
           .trim());
     } else if (options.getPasswordFile() != null) {
       LOGGER.info("Reading password from file: {}", options.getPasswordFile());
-      return Optional.of(readFromFile(options.getPasswordFile()));
+      return Optional.of(BeamHelper.readFromFile(options.getPasswordFile()));
     } else {
       return Optional.ofNullable(options.getPassword());
     }
-  }
-
-  static String readFromFile(String passwordFile) throws IOException {
-    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(passwordFile);
-    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
-    return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }
 
 }

@@ -41,12 +41,12 @@ public class ExceptionHandling {
           Pipeline.PipelineExecutionException.class, 47
       );
 
-  public static void handleException(Throwable e) {
+  public static void handleException(final Throwable e) {
     LOGGER.error("Failure: ", e);
     System.exit(exitCode(e));
   }
 
-  static Integer exitCode(Throwable e) {
+  static Integer exitCode(final Throwable e) {
     return EXIT_CODES.entrySet().stream()
           .filter(entry -> entry.getKey().isInstance(e))
           .map(Map.Entry::getValue)

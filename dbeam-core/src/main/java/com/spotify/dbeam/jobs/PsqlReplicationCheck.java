@@ -43,16 +43,16 @@ public class PsqlReplicationCheck {
   private final String replicationQuery;
   private final JdbcExportArgs jdbcExportArgs;
 
-  public PsqlReplicationCheck(JdbcExportArgs jdbcExportArgs, String replicationQuery) {
+  public PsqlReplicationCheck(final JdbcExportArgs jdbcExportArgs, final String replicationQuery) {
     this.jdbcExportArgs = jdbcExportArgs;
     this.replicationQuery = replicationQuery;
   }
 
-  public static PsqlReplicationCheck create(JdbcExportArgs jdbcExportArgs) {
+  public static PsqlReplicationCheck create(final JdbcExportArgs jdbcExportArgs) {
     return new PsqlReplicationCheck(jdbcExportArgs, REPLICATION_QUERY);
   }
 
-  static void validateOptions(JdbcExportArgs jdbcExportArgs) {
+  static void validateOptions(final JdbcExportArgs jdbcExportArgs) {
     Preconditions.checkArgument(
         jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration()
             .driverClassName().contains("postgres"),
@@ -75,8 +75,9 @@ public class PsqlReplicationCheck {
         this.jdbcExportArgs.queryBuilderArgs().partitionPeriod());
   }
 
-  static boolean isReplicationDelayed(Instant partition, Instant lastReplication,
-                                      Period partitionPeriod) {
+  static boolean isReplicationDelayed(final Instant partition,
+                                      final Instant lastReplication,
+                                      final Period partitionPeriod) {
     Instant partitionPlusPartitionPeriod = partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod)
         .toInstant();
     if (lastReplication.isBefore(partitionPlusPartitionPeriod)) {
@@ -88,7 +89,8 @@ public class PsqlReplicationCheck {
     return false;
   }
 
-  static Instant queryReplication(Connection connection, String query) throws SQLException {
+  static Instant queryReplication(final Connection connection, final String query)
+      throws SQLException {
     final ResultSet resultSet = connection.createStatement().executeQuery(query);
     Preconditions.checkState(resultSet.next(),
         "Replication query returned empty results, consider using jdbc-avro-job instead");

@@ -88,6 +88,30 @@ public abstract class QueryBuilderArgs implements Serializable {
     public abstract QueryBuilderArgs build();
   }
 
+  private static Boolean checkTableName(final String tableName) {
+    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+  }
+
+  private static Builder createBuilder() {
+    return new AutoValue_QueryBuilderArgs.Builder()
+        .setPartitionPeriod(Period.ofDays(1));
+  }
+
+  public static QueryBuilderArgs create(final String tableName) {
+    checkArgument(tableName != null, "TableName cannot be null");
+    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+
+    return createBuilder()
+        .setBaseSqlQuery(QueryBuilder.fromTablename(tableName))
+        .build();
+  }
+
+  public static QueryBuilderArgs createFromQuery(final String sqlQuery) {
+    return createBuilder()
+        .setBaseSqlQuery(QueryBuilder.fromSqlQuery(sqlQuery))
+        .build();
+  }
+
   /**
    * Returns query with limit one, so it can be used to query and fetch schema.
    * @return
@@ -97,33 +121,6 @@ public abstract class QueryBuilderArgs implements Serializable {
     return this.baseSqlQuery().copy().withLimitOne().build();
   }
 
-  private static Boolean checkTableName(String tableName) {
-    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
-  }
-
-  private static Builder builderForTableName(String tableName) {
-    checkArgument(tableName != null, "TableName cannot be null");
-    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
-
-    return createBuilder()
-        .setBaseSqlQuery(QueryBuilder.fromTablename(tableName));
-  }
-
-  private static Builder createBuilder() {
-    return new AutoValue_QueryBuilderArgs.Builder()
-        .setPartitionPeriod(Period.ofDays(1));
-  }
-
-  public static QueryBuilderArgs create(String tableName) {
-    return QueryBuilderArgs.builderForTableName(tableName).build();
-  }
-
-  public static QueryBuilderArgs createFromQuery(String sqlQuery) {
-    return createBuilder()
-        .setBaseSqlQuery(QueryBuilder.fromSqlQuery(sqlQuery))
-        .build();
-  }
-
   /**
    * Create queries to be executed for the export job.
    *
@@ -131,7 +128,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return A list of queries to be executed.
    * @throws SQLException when it fails to find out limits for splits.
    */
-  public List<String> buildQueries(Connection connection)
+  public List<String> buildQueries(final Connection connection)
       throws SQLException {
     this.partitionColumn()
         .ifPresent(

@@ -61,7 +61,7 @@ public abstract class JdbcConnectionArgs implements Serializable {
     abstract JdbcConnectionArgs build();
   }
 
-  public static JdbcConnectionArgs create(String url)
+  public static JdbcConnectionArgs create(final String url)
       throws ClassNotFoundException {
     Preconditions.checkArgument(url != null,
                   "DataSourceConfiguration.create(driverClassName, url) called "
@@ -73,11 +73,11 @@ public abstract class JdbcConnectionArgs implements Serializable {
         .build();
   }
 
-  public JdbcConnectionArgs withUsername(String username) {
+  public JdbcConnectionArgs withUsername(final String username) {
     return builder().setUsername(username).build();
   }
 
-  public JdbcConnectionArgs withPassword(String password) {
+  public JdbcConnectionArgs withPassword(final String password) {
     return builder().setPassword(password).build();
   }
 
