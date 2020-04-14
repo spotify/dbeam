@@ -753,6 +753,18 @@
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <violationSeverity>warning</violationSeverity>
                     <excludes>**\/AutoValue_*.java</excludes>
+
+                    <configLocation>google_checks.xml</configLocation>
+                    <consoleOutput>true</consoleOutput>
+                        <!-- Remove or switch to false to keep building even with checkstyle errors -->
+                    <failOnViolation>true</failOnViolation>
+                    <logViolationsToConsole>true</logViolationsToConsole>
+                    <suppressionsLocation>
+                            checkstyle-suppressions.xml
+                    </suppressionsLocation>
+                    <suppressionsFileExpression>
+                            checkstyle.suppressions.file
+                    </suppressionsFileExpression>
                 </configuration>
             </plugin>
             <plugin>
