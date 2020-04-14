@@ -32,6 +32,7 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.FileSystems;
@@ -44,39 +45,43 @@ import org.slf4j.LoggerFactory;
 public class BeamHelper {
   private static Logger LOGGER = LoggerFactory.getLogger(BeamHelper.class);
 
-  public static PipelineResult waitUntilDone(PipelineResult result,
-                                             Duration exportTimeout) {
-    PipelineResult.State state = result.waitUntilFinish(
+  public static PipelineResult waitUntilDone(final PipelineResult result,
+                                             final Duration exportTimeout) {
+    // terminal state might be null, such as:
+    // {{ @link org.apache.beam.runners.dataflow.DataflowPipelineJob.waitUntilFinish }}
+    @Nullable final PipelineResult.State terminalState = result.waitUntilFinish(
         org.joda.time.Duration.millis(
             exportTimeout.toMillis()));
-    if (!state.isTerminal()) {
+    if (terminalState == null || !terminalState.isTerminal()) {
       try {
         result.cancel();
       } catch (IOException e) {
         throw new Pipeline.PipelineExecutionException(
             new Exception(String.format(
                 "Job exceeded timeout of %s, but was not possible to cancel, "
-                + "finished with state %s",
-                exportTimeout.toString(), state.toString()), e));
+                + "finished with terminalState %s",
+                exportTimeout.toString(), terminalState), e));
       }
       throw new Pipeline.PipelineExecutionException(
           new Exception("Job cancelled after exceeding timeout " + exportTimeout.toString()));
     }
-    if (!state.equals(PipelineResult.State.DONE)) {
+    if (!terminalState.equals(PipelineResult.State.DONE)) {
       throw new Pipeline.PipelineExecutionException(
-          new Exception("Job finished with state " + state.toString()));
+          new Exception("Job finished with terminalState " + terminalState.toString()));
     }
     return result;
   }
 
-  public static void writeToFile(String filename, ByteBuffer contents) throws IOException {
+  public static void writeToFile(final String filename, final ByteBuffer contents)
+      throws IOException {
     ResourceId resourceId = FileSystems.matchNewResource(filename, false);
     try (WritableByteChannel out = FileSystems.create(resourceId, MimeTypes.TEXT)) {
       out.write(contents);
     }
   }
 
-  public static void saveStringOnSubPath(String path, String subPath, String contents)
+  public static void saveStringOnSubPath(
+      final String path, final String subPath, final String contents)
       throws IOException {
     String filename = path.replaceAll("/+$", "") + subPath;
     writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())));
@@ -84,7 +89,7 @@ public class BeamHelper {
 
   private static ObjectMapper MAPPER = new ObjectMapper();
 
-  public static void saveMetrics(Map<String, Long> metrics, String output) {
+  public static void saveMetrics(final Map<String, Long> metrics, final String output) {
     try {
       String metricsJson = MAPPER.writeValueAsString(metrics);
       LOGGER.info("Saving metrics: {}", metricsJson);

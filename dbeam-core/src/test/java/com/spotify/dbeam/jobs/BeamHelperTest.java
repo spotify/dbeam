@@ -64,7 +64,7 @@ public class BeamHelperTest {
       Assert.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
       Assert.assertEquals(
-          "java.lang.Exception: Job finished with state FAILED",
+          "java.lang.Exception: Job finished with terminalState FAILED",
           exception.getMessage()
       );
     }
@@ -86,6 +86,46 @@ public class BeamHelperTest {
       @Override
       public State waitUntilFinish(org.joda.time.Duration duration) {
         return State.RUNNING;
+      }
+
+      @Override
+      public State waitUntilFinish() {
+        return null;
+      }
+
+      @Override
+      public MetricResults metrics() {
+        return null;
+      }
+    };
+    try {
+      BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
+      Assert.fail("A PipelineExecutionException should be thrown");
+    } catch (Pipeline.PipelineExecutionException exception) {
+      Assert.assertEquals(
+          "java.lang.Exception: Job cancelled after exceeding timeout PT1M",
+          exception.getMessage()
+      );
+    }
+  }
+
+
+  @Test
+  public void shouldCancelInCaseOfNullState() {
+    PipelineResult mockResult = new PipelineResult() {
+      @Override
+      public State getState() {
+        return null;
+      }
+
+      @Override
+      public State cancel() throws IOException {
+        return null;
+      }
+
+      @Override
+      public State waitUntilFinish(org.joda.time.Duration duration) {
+        return null;
       }
 
       @Override
@@ -143,7 +183,7 @@ public class BeamHelperTest {
     } catch (Pipeline.PipelineExecutionException exception) {
       Assert.assertEquals(
           "java.lang.Exception: Job exceeded timeout of PT1M, "
-          + "but was not possible to cancel, finished with state RUNNING",
+          + "but was not possible to cancel, finished with terminalState RUNNING",
           exception.getMessage()
       );
     }
