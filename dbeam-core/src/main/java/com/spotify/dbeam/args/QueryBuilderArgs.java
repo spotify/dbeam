@@ -42,8 +42,6 @@ import java.util.Optional;
 @AutoValue
 public abstract class QueryBuilderArgs implements Serializable {
 
-  public abstract String tableName();
-
   public abstract QueryBuilder baseSqlQuery();
 
   public abstract Optional<Long> limit();
@@ -62,8 +60,6 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   @AutoValue.Builder
   public abstract static class Builder {
-
-    public abstract Builder setTableName(String tableName);
 
     public abstract Builder setBaseSqlQuery(QueryBuilder baseSqlQuery);
 
@@ -100,9 +96,12 @@ public abstract class QueryBuilderArgs implements Serializable {
     checkArgument(tableName != null, "TableName cannot be null");
     checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
 
+    return createBuilder()
+        .setBaseSqlQuery(QueryBuilder.fromTablename(tableName));
+  }
+
+  private static Builder createBuilder() {
     return new AutoValue_QueryBuilderArgs.Builder()
-        .setTableName(tableName)
-        .setBaseSqlQuery(QueryBuilder.fromTablename(tableName))
         .setPartitionPeriod(Period.ofDays(1));
   }
 
@@ -110,9 +109,9 @@ public abstract class QueryBuilderArgs implements Serializable {
     return QueryBuilderArgs.builderForTableName(tableName).build();
   }
 
-  public static QueryBuilderArgs create(String tableName, String sqlQueryOpt) {
-    return QueryBuilderArgs.builderForTableName(tableName)
-        .setBaseSqlQuery(QueryBuilder.fromSqlQuery(sqlQueryOpt))
+  public static QueryBuilderArgs createFromQuery(String sqlQuery) {
+    return createBuilder()
+        .setBaseSqlQuery(QueryBuilder.fromSqlQuery(sqlQuery))
         .build();
   }
 

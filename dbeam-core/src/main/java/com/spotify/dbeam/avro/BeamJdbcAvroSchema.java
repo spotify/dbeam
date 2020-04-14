@@ -21,6 +21,7 @@
 package com.spotify.dbeam.avro;
 
 import com.spotify.dbeam.args.JdbcExportArgs;
+import com.spotify.dbeam.options.DBeamPipelineOptions;
 import com.spotify.dbeam.options.JobNameConfiguration;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,16 +48,18 @@ public class BeamJdbcAvroSchema {
 
   public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args, Connection connection)
       throws Exception {
-    Schema generatedSchema;
-    String dbName;
     final long startTime = System.nanoTime();
-    dbName = connection.getCatalog();
-    generatedSchema = getAvroSchema(args, connection);
+    final String dbName = connection.getCatalog();
+    final Schema generatedSchema = getAvroSchema(args, connection);
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
+    final String tableName = pipeline.getOptions().as(DBeamPipelineOptions.class).getTable();
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
-    JobNameConfiguration.configureJobName(
-        pipeline.getOptions(), dbName, args.queryBuilderArgs().tableName());
+    if (tableName != null) {
+      JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, tableName);
+    } else {
+      JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, "");
+    }
     final Counter cnt =
         Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
                         "schemaElapsedTimeMs");
@@ -85,8 +88,8 @@ public class BeamJdbcAvroSchema {
             .orElseGet(
                 () ->
                     String.format(
-                        "Generate schema from JDBC ResultSet from %s %s",
-                        args.queryBuilderArgs().tableName(), dbUrl));
+                        "Generate schema from JDBC ResultSet from %s",
+                        dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
     connection, args.queryBuilderArgs().baseSqlQuery(),
     args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());

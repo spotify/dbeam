@@ -21,7 +21,6 @@
 package com.spotify.dbeam.options;
 
 import java.util.concurrent.ThreadLocalRandom;
-
 import org.apache.beam.sdk.options.ApplicationNameOptions;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.slf4j.Logger;
