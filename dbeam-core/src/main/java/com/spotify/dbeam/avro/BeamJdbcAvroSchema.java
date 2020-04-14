@@ -21,8 +21,6 @@
 package com.spotify.dbeam.avro;
 
 import com.spotify.dbeam.args.JdbcExportArgs;
-import com.spotify.dbeam.options.DBeamPipelineOptions;
-import com.spotify.dbeam.options.JobNameConfiguration;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -46,20 +44,18 @@ public class BeamJdbcAvroSchema {
 
   private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
-  public static Schema createSchema(Pipeline pipeline, JdbcExportArgs args, Connection connection)
+  /**
+   * Generate Avro schema by reading one row. Expose Beam metrics via a Beam PTransform.
+   */
+  public static Schema createSchema(final Pipeline pipeline,
+                                    final JdbcExportArgs args,
+                                    final Connection connection)
       throws Exception {
     final long startTime = System.nanoTime();
-    final String dbName = connection.getCatalog();
-    final Schema generatedSchema = getAvroSchema(args, connection);
+    final Schema generatedSchema = generateAvroSchema(args, connection);
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
-    final String tableName = pipeline.getOptions().as(DBeamPipelineOptions.class).getTable();
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
-    if (tableName != null) {
-      JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, tableName);
-    } else {
-      JobNameConfiguration.configureJobName(pipeline.getOptions(), dbName, "");
-    }
     final Counter cnt =
         Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(),
                         "schemaElapsedTimeMs");
@@ -75,12 +71,7 @@ public class BeamJdbcAvroSchema {
     return generatedSchema;
   }
 
-  public static Schema getAvroSchema(JdbcExportArgs args, Connection connection)
-      throws SQLException {
-    return args.inputAvroSchema().orElse(generateAvroSchema(args, connection));
-  }
-
-  private static Schema generateAvroSchema(JdbcExportArgs args, Connection connection)
+  private static Schema generateAvroSchema(final JdbcExportArgs args, final Connection connection)
       throws SQLException {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
@@ -95,7 +86,7 @@ public class BeamJdbcAvroSchema {
         args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
   }
 
-  public static Optional<Schema> parseOptionalInputAvroSchemaFile(String filename)
+  public static Optional<Schema> parseOptionalInputAvroSchemaFile(final String filename)
       throws IOException {
 
     if (filename == null || filename.isEmpty()) {
@@ -105,7 +96,7 @@ public class BeamJdbcAvroSchema {
     return Optional.of(parseInputAvroSchemaFile(filename));
   }
 
-  public static Schema parseInputAvroSchemaFile(String filename) throws IOException {
+  public static Schema parseInputAvroSchemaFile(final String filename) throws IOException {
     MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
     InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
 

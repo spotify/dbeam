@@ -26,8 +26,10 @@ import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
+import com.spotify.dbeam.options.DBeamPipelineOptions;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.JdbcExportPipelineOptions;
+import com.spotify.dbeam.options.JobNameConfiguration;
 import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
 import java.sql.Connection;
@@ -51,8 +53,8 @@ public class JdbcAvroJob {
   private final JdbcExportArgs jdbcExportArgs;
   private final String output;
 
-  public JdbcAvroJob(PipelineOptions pipelineOptions, Pipeline pipeline,
-                     JdbcExportArgs jdbcExportArgs, String output) {
+  public JdbcAvroJob(final PipelineOptions pipelineOptions, final Pipeline pipeline,
+                     final JdbcExportArgs jdbcExportArgs, final String output) {
     this.pipelineOptions = pipelineOptions;
     this.pipeline = pipeline;
     this.jdbcExportArgs = jdbcExportArgs;
@@ -61,7 +63,7 @@ public class JdbcAvroJob {
                                 "'output' must be defined");
   }
 
-  public static JdbcAvroJob create(PipelineOptions pipelineOptions, String output)
+  public static JdbcAvroJob create(final PipelineOptions pipelineOptions, final String output)
       throws IOException, ClassNotFoundException {
     // make sure pipeline.run() does not call waitUntilFinish
     // instead we call with an explicit duration/exportTimeout configuration
@@ -72,18 +74,18 @@ public class JdbcAvroJob {
                            output);
   }
 
-  public static JdbcAvroJob create(PipelineOptions pipelineOptions)
+  public static JdbcAvroJob create(final PipelineOptions pipelineOptions)
       throws IOException, ClassNotFoundException {
     return create(pipelineOptions,
                   pipelineOptions.as(OutputOptions.class).getOutput());
   }
 
-  public static JdbcAvroJob create(String[] cmdLineArgs)
+  public static JdbcAvroJob create(final String[] cmdLineArgs)
       throws IOException, ClassNotFoundException {
     return create(buildPipelineOptions(cmdLineArgs));
   }
 
-  public static PipelineOptions buildPipelineOptions(String[] cmdLineArgs) {
+  public static PipelineOptions buildPipelineOptions(final String[] cmdLineArgs) {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
     PipelineOptionsFactory.register(OutputOptions.class);
     return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
@@ -98,10 +100,14 @@ public class JdbcAvroJob {
     final List<String> queries;
     final Schema generatedSchema;
     try (Connection connection = jdbcExportArgs.createConnection()) {
-      generatedSchema = BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
+      generatedSchema = createSchema(connection);
       queries = jdbcExportArgs
           .queryBuilderArgs()
-          .buildQueries(jdbcExportArgs.createConnection());
+          .buildQueries(connection);
+
+      final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
+      JobNameConfiguration.configureJobName(
+          pipeline.getOptions(), connection.getCatalog(), tableName);
     }
     BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc",
                                    generatedSchema.toString(true));
@@ -118,6 +124,14 @@ public class JdbcAvroJob {
             generatedSchema,
             jdbcExportArgs.jdbcAvroOptions()
         ));
+  }
+
+  private Schema createSchema(final Connection connection) throws Exception {
+    if (this.jdbcExportArgs.inputAvroSchema().isPresent()) {
+      return this.jdbcExportArgs.inputAvroSchema().get();
+    } else {
+      return BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
+    }
   }
 
   public Pipeline getPipeline() {

@@ -20,7 +20,10 @@
 
 package com.spotify.dbeam.options;
 
+import com.google.common.base.Strings;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import org.apache.beam.sdk.options.ApplicationNameOptions;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.slf4j.Logger;
@@ -30,21 +33,24 @@ public class JobNameConfiguration {
 
   private static Logger LOGGER = LoggerFactory.getLogger(JobNameConfiguration.class);
 
-  private static String normalizeString(String str) {
+  private static String normalizeString(final String str) {
     return str.toLowerCase().replaceAll("[^a-z0-9]", "");
   }
 
-  public static void configureJobName(PipelineOptions options, String dbName, String tableName) {
+  public static void configureJobName(final PipelineOptions options, final String... parts) {
     try {
       options.as(ApplicationNameOptions.class).setAppName("JdbcAvroJob");
     } catch (Exception e) {
       LOGGER.warn("Unable to configure ApplicationName", e);
     }
     if (options.getJobName() == null || "auto".equals(options.getJobName())) {
-      String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());
-      options.setJobName(
-          String.join("-",
-                      "dbeam", normalizeString(dbName), normalizeString(tableName), randomPart));
+      final String randomPart = Integer.toHexString(ThreadLocalRandom.current().nextInt());
+      final String jobName = String.format("dbeam-%s-%s",
+          Arrays.stream(parts).filter(p -> !Strings.isNullOrEmpty(p))
+              .map(JobNameConfiguration::normalizeString)
+              .collect(Collectors.joining("-")),
+          randomPart);
+      options.setJobName(jobName);
     }
   }
 }

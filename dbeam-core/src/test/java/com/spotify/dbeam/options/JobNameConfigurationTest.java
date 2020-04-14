@@ -59,4 +59,23 @@ public class JobNameConfigurationTest {
     assertThat(pipelineOptions.getJobName(), startsWith("dbeam-somedb-sometable-"));
   }
 
+  @Test
+  public void shouldConfigureJobNameWithEmptyTableName() {
+    PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
+    pipelineOptions.setJobName(null);
+
+    JobNameConfiguration.configureJobName(pipelineOptions, "some_db", null);
+
+    Assert.assertEquals(
+        "JdbcAvroJob",
+        pipelineOptions.as(ApplicationNameOptions.class).getAppName()
+    );
+
+    assertThat(pipelineOptions.getJobName(), startsWith("dbeam-somedb-"));
+    Assert.assertEquals(
+        3,
+        pipelineOptions.getJobName().split("-").length
+    );
+  }
+
 }
