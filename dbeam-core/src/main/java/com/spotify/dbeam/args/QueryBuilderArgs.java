@@ -88,6 +88,15 @@ public abstract class QueryBuilderArgs implements Serializable {
     public abstract QueryBuilderArgs build();
   }
 
+  /**
+   * Returns query with limit one, so it can be used to query and fetch schema.
+   * @return
+   */
+  public String sqlQueryWithLimitOne() {
+    // need to copy, since baseSqlQuery is mutable
+    return this.baseSqlQuery().copy().withLimitOne().build();
+  }
+
   private static Boolean checkTableName(String tableName) {
     return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
   }

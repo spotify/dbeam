@@ -20,6 +20,20 @@
 
 package com.spotify.dbeam.avro;
 
+import com.spotify.dbeam.args.QueryBuilderArgs;
+
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Connection;
+import java.sql.JDBCType;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
 import static java.sql.Types.BINARY;
@@ -45,34 +59,13 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
-import com.spotify.dbeam.args.QueryBuilder;
-import java.sql.Connection;
-import java.sql.JDBCType;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class JdbcAvroSchema {
 
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
-          Connection connection, String tablename, String avroSchemaNamespace,
-          String avroDoc, boolean useLogicalTypes)
-      throws SQLException {
-    return createSchemaByReadingOneRow(
-            connection, QueryBuilder.fromTablename(tablename),
-            avroSchemaNamespace, avroDoc, useLogicalTypes);
-  }
-
-  public static Schema createSchemaByReadingOneRow(
       Connection connection,
-      QueryBuilder baseSqlQuery,
+      QueryBuilderArgs queryBuilderArgs,
       String avroSchemaNamespace,
       String avroDoc,
       boolean useLogicalTypes)
@@ -81,7 +74,7 @@ public class JdbcAvroSchema {
     try (Statement statement = connection.createStatement()) {
       final ResultSet
           resultSet =
-          statement.executeQuery(baseSqlQuery.copy().withLimitOne().build());
+          statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
 
       Schema schema = createAvroSchema(
           resultSet, avroSchemaNamespace, connection.getMetaData().getURL(), avroDoc,

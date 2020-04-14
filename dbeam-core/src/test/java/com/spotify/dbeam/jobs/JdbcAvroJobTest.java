@@ -54,6 +54,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+
 public class JdbcAvroJobTest {
 
   private static String CONNECTION_URL =
@@ -112,13 +114,13 @@ public class JdbcAvroJobTest {
         "--avroCodec=zstandard1"
     });
 
-    Assert.assertThat(
+    assertThat(
         listDir(new File(outputFolder)),
         Matchers.is(
             Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
                                "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
         ));
-    Assert.assertThat(
+    assertThat(
         listDir(new File(outputFolder, "_queries")),
         Matchers.is(
             Lists.newArrayList("query_0.sql")
@@ -126,7 +128,7 @@ public class JdbcAvroJobTest {
     Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
     List<GenericRecord> records =
         readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
-    Assert.assertEquals(2, records.size());
+    Assert.assertEquals("Should output correct number of records", 2, records.size());
   }
 
   @Test
@@ -147,13 +149,13 @@ public class JdbcAvroJobTest {
         "--sqlFile=" + SQL_FILE.getAbsolutePath()
     });
 
-    Assert.assertThat(
+    assertThat(
             listDir(new File(outputFolder)),
             Matchers.is(
                     Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
                             "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
             ));
-    Assert.assertThat(
+    assertThat(
             listDir(new File(outputFolder, "_queries")),
             Matchers.is(
                     Lists.newArrayList("query_0.sql")
@@ -189,13 +191,13 @@ public class JdbcAvroJobTest {
         "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
     });
 
-    Assert.assertThat(
+    assertThat(
             listDir(new File(outputFolder)),
             Matchers.is(
                     Lists.newArrayList("_AVRO_SCHEMA.avsc", "_METRICS.json",
                             "_SERVICE_METRICS.json", "_queries", "part-00000-of-00001.avro")
             ));
-    Assert.assertThat(
+    assertThat(
             listDir(new File(outputFolder, "_queries")),
             Matchers.is(
                     Lists.newArrayList("query_0.sql")
@@ -203,7 +205,7 @@ public class JdbcAvroJobTest {
     Schema schema = new Schema.Parser().parse(new File(outputFolder, "_AVRO_SCHEMA.avsc"));
     List<GenericRecord> records =
             readAvroRecords(new File(outputFolder, "part-00000-of-00001.avro"), schema);
-    Assert.assertEquals(2, records.size());
+    Assert.assertEquals("Should output correct number of records", 2, records.size());
 
     List<String> schemas = new ArrayList<>();
     try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
@@ -214,7 +216,7 @@ public class JdbcAvroJobTest {
     }
 
     String [] expectedSchemas = {"TEST_COMMAND_1", "TEST_COMMAND_2"};
-    Assert.assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
+    assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
   @Test

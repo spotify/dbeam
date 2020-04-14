@@ -91,8 +91,8 @@ public class BeamJdbcAvroSchema {
                         "Generate schema from JDBC ResultSet from %s",
                         dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
-    connection, args.queryBuilderArgs().baseSqlQuery(),
-    args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
+        connection, args.queryBuilderArgs(),
+        args.avroSchemaNamespace(), avroDoc, args.useAvroLogicalTypes());
   }
 
   public static Optional<Schema> parseOptionalInputAvroSchemaFile(String filename)

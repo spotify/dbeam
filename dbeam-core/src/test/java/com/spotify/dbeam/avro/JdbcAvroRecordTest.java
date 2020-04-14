@@ -24,6 +24,8 @@ import com.google.common.collect.Lists;
 import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
+import com.spotify.dbeam.args.QueryBuilderArgs;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -60,7 +62,7 @@ public class JdbcAvroRecordTest {
     int fieldCount = 12;
     Schema actual = JdbcAvroSchema.createSchemaByReadingOneRow(
         DbTestHelper.createConnection(CONNECTION_URL),
-        "COFFEES", "dbeam_generated",
+        QueryBuilderArgs.create("COFFEES"), "dbeam_generated",
         "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", false);
 
     Assert.assertNotNull(actual);
@@ -113,7 +115,7 @@ public class JdbcAvroRecordTest {
     int fieldCount = 12;
     Schema actual = JdbcAvroSchema.createSchemaByReadingOneRow(
         DbTestHelper.createConnection(CONNECTION_URL),
-        "COFFEES", "dbeam_generated",
+        QueryBuilderArgs.create("COFFEES"), "dbeam_generated",
         "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", true);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());

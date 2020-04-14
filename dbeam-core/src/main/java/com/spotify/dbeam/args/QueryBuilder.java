@@ -28,7 +28,7 @@ import java.util.Optional;
 /**
  * Wrapper class for raw SQL query.
  */
-public class QueryBuilder implements Serializable {
+class QueryBuilder implements Serializable {
 
   private static final char SQL_STATEMENT_TERMINATOR = ';';
   private static final String DEFAULT_SELECT_CLAUSE = "SELECT *";
