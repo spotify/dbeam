@@ -29,11 +29,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.Optional;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.junit.AfterClass;
@@ -41,33 +39,26 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class QueryBuilderArgsTest {
 
-  private static Path TEST_DIR = TestHelper.createTmpDirName("jdbc-export-args-test");
-  private static Path COFFEES_SQL_QUERY_PATH =
-      Paths.get(TEST_DIR.toString(), "coffees_query_1.sql");
-  private static String CONNECTION_URL =
+  private static final String CONNECTION_URL =
       "jdbc:h2:mem:test4;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
-  private static Connection CONNECTION;
-
+  private static Connection connection;
+  private static Path coffeesSqlQueryPath;
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
-    TEST_DIR.toFile().deleteOnExit();
-    CONNECTION =  DbTestHelper.createConnection(CONNECTION_URL);
-    Files.createDirectories(TEST_DIR);
-    Files.write(COFFEES_SQL_QUERY_PATH,
+    coffeesSqlQueryPath = TestHelper.createTmpDirPath("jdbc-export-args-test").resolve(
+        "coffees_query_1.sql");
+    Files.write(coffeesSqlQueryPath,
                 "SELECT * FROM COFFEES WHERE SIZE > 10".getBytes(StandardCharsets.UTF_8));
+    connection =  DbTestHelper.createConnection(CONNECTION_URL);
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
   @AfterClass
-  public static void afterAll() throws IOException, SQLException {
-    Files.walk(TEST_DIR)
-        .sorted(Comparator.reverseOrder())
-        .forEach(p -> p.toFile().delete());
-    CONNECTION.close();
+  public static void afterAll() throws SQLException {
+    connection.close();
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -200,7 +191,7 @@ public class QueryBuilderArgsTest {
   public void shouldConfigureLimitForSqlFile() throws IOException, SQLException {
     QueryBuilderArgs actual = pareOptions(String.format(
         "--connectionUrl=jdbc:postgresql://some_db "
-        + "--sqlFile=%s --limit=7", COFFEES_SQL_QUERY_PATH.toString()));
+        + "--sqlFile=%s --limit=7", coffeesSqlQueryPath.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
         "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query"
@@ -213,7 +204,7 @@ public class QueryBuilderArgsTest {
     QueryBuilderArgs actual = pareOptions(String.format(
         "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=7",
-        COFFEES_SQL_QUERY_PATH.toString()));
+        coffeesSqlQueryPath.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
         "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
@@ -227,7 +218,7 @@ public class QueryBuilderArgsTest {
     QueryBuilderArgs actual = pareOptions(String.format(
         "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M",
-        COFFEES_SQL_QUERY_PATH.toString()));
+        coffeesSqlQueryPath.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
         "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
@@ -246,7 +237,7 @@ public class QueryBuilderArgsTest {
     Assert.assertEquals(Lists.newArrayList(
         "SELECT * FROM COFFEES WHERE 1=1"
         + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
-                        actual.buildQueries(CONNECTION));
+                        actual.buildQueries(connection));
   }
 
   @Test
@@ -255,12 +246,12 @@ public class QueryBuilderArgsTest {
     QueryBuilderArgs actual = pareOptions(String.format(
         "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5",
-        COFFEES_SQL_QUERY_PATH.toString()));
+        coffeesSqlQueryPath.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
         "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
         + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
-                        actual.buildQueries(CONNECTION));
+                        actual.buildQueries(connection));
   }
 
   @Test
@@ -270,12 +261,12 @@ public class QueryBuilderArgsTest {
         "--connectionUrl=jdbc:postgresql://some_db "
         + "--sqlFile=%s --partition=2027-07-31 "
         + "--partitionColumn=col --partitionPeriod=P1M --limit=7",
-        COFFEES_SQL_QUERY_PATH.toString()));
+        coffeesSqlQueryPath.toString()));
 
     Assert.assertEquals(Lists.newArrayList(
         "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
         + " AND col >= '2027-07-31' AND col < '2027-08-31' LIMIT 7"),
-                        actual.buildQueries(CONNECTION));
+                        actual.buildQueries(connection));
   }
 
   private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {

@@ -20,19 +20,34 @@
 
 package com.spotify.dbeam;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class TestHelper {
 
-  public static Path createTmpDirName(String subDirNamePrefix) {
-    return Paths.get(System.getProperty("java.io.tmpdir"),
-    subDirNamePrefix + "-" + UUID.randomUUID().toString());
+  public static Path createTmpDirPath(final String subNamePrefix) throws IOException {
+    final Path path = Paths.get(System.getProperty("java.io.tmpdir"),
+        subNamePrefix + "-" + UUID.randomUUID().toString());
+    Files.createDirectories(path);
+    path.toFile().deleteOnExit();
+    return path;
   }
 
-  public static UUID byteBufferToUuid(ByteBuffer byteBuffer) {
+  public static List<String> listDir(File dir) {
+    return Arrays.stream(Objects.requireNonNull(dir.listFiles()))
+        .map(File::getName).sorted().collect(Collectors.toList());
+  }
+
+  public static UUID byteBufferToUuid(final ByteBuffer byteBuffer) {
     Long high = byteBuffer.getLong();
     Long low = byteBuffer.getLong();
 
