@@ -210,7 +210,7 @@ public class InputAvroSchemaTest {
         "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
         + "--partition=2027-07-31");
 
-    Assert.assertEquals(null, options.getAvroSchemaFilePath());
+    Assert.assertNull(options.getAvroSchemaFilePath());
   }
 
   private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {

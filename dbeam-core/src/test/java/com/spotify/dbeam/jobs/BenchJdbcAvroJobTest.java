@@ -25,6 +25,11 @@ import com.google.common.collect.Lists;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 
+import org.hamcrest.Matchers;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,11 +40,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.hamcrest.Matchers;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class BenchJdbcAvroJobTest {
 
@@ -76,7 +77,7 @@ public class BenchJdbcAvroJobTest {
         "--avroCodec=zstandard1",
         "--executions=2"
     });
-    Assert.assertThat(
+    assertThat(
         listDir(DIR),
         Matchers.is(
             Lists.newArrayList("run_0", "run_1")

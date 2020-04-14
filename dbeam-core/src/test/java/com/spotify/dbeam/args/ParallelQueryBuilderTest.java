@@ -21,6 +21,7 @@
 package com.spotify.dbeam.args;
 
 import static java.lang.String.format;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.Lists;
 
@@ -43,7 +44,7 @@ public class ParallelQueryBuilderTest {
         ParallelQueryBuilder.queriesForBounds(100, 400, 3, "sp",
                                                                       QUERY_FORMAT);
 
-    Assert.assertThat(
+    assertThat(
         actual,
         Matchers.is(
             Lists.newArrayList(
@@ -60,7 +61,7 @@ public class ParallelQueryBuilderTest {
         ParallelQueryBuilder.queriesForBounds(100, 402, 5, "sp",
                                               QUERY_FORMAT);
 
-    Assert.assertThat(
+    assertThat(
         actual,
         Matchers.is(Lists.newArrayList(
             format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 100, 161),
@@ -92,7 +93,7 @@ public class ParallelQueryBuilderTest {
         ParallelQueryBuilder.queriesForBounds(1, 1, 5, "sp",
                                               QUERY_FORMAT);
 
-    Assert.assertThat(
+    assertThat(
         actual,
         Matchers.is(Lists.newArrayList(
             format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 1)
@@ -106,7 +107,7 @@ public class ParallelQueryBuilderTest {
         ParallelQueryBuilder.queriesForBounds(1, 10, 1, "sp",
                                               QUERY_FORMAT);
 
-    Assert.assertThat(
+    assertThat(
         actual,
         Matchers.is(Lists.newArrayList(
             format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 10)
@@ -121,7 +122,7 @@ public class ParallelQueryBuilderTest {
         ParallelQueryBuilder.queriesForBounds(1, 2, 2, "sp",
                                               QUERY_FORMAT);
 
-    Assert.assertThat(
+    assertThat(
         actual,
         Matchers.is(Lists.newArrayList(
             format("%s AND sp >= %s AND sp < %s", QUERY_BASE, 1, 2),
