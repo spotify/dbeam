@@ -127,7 +127,7 @@
 
         <!--Ensure Beam SDK compatibility-->
         <!--https://github.com/apache/beam/blob/master/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy-->
-        <guava.version>28.2-android</guava.version>
+        <guava.version>28.2-jre</guava.version>
         <jackson.version>2.10.2</jackson.version>
         <slf4j.version>1.7.30</slf4j.version>
         <auto-value.version>1.7</auto-value.version>
@@ -141,7 +141,7 @@
         <opencensus.version>0.24.0</opencensus.version>
 
         <junit.version>4.13</junit.version>
-        <hamcrest.version>1.3</hamcrest.version>
+        <hamcrest.version>2.1</hamcrest.version>
     </properties>
 
     <modules>
@@ -342,6 +342,12 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-protobuf</artifactId>
                 <version>${grpc.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
@@ -391,6 +397,10 @@
                     <exclusion>
                         <groupId>com.google.http-client</groupId>
                         <artifactId>google-http-client-jackson2</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -464,7 +474,13 @@
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest-all</artifactId>
+                <artifactId>hamcrest-core</artifactId>
+                <version>${hamcrest.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest-library</artifactId>
                 <version>${hamcrest.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -776,6 +792,7 @@
                                         <excludes>
                                             <exclude>com.google.guava:guava-jdk5</exclude>
                                             <exclude>com.google.protobuf:protobuf-lite</exclude>
+                                            <exclude>org.hamcrest:hamcrest-all</exclude>
                                         </excludes>
                                     </bannedDependencies>
                                 </rules>
