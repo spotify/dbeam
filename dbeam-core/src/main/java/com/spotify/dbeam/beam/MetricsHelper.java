@@ -80,6 +80,20 @@ public class MetricsHelper {
     Map<String, Long> ret = new HashMap<>();
     ret.putAll(gauges);
     ret.putAll(counters);
+    addCalculatedMetrics(counters, ret);
     return Collections.unmodifiableMap(ret);
+  }
+
+  private static void addCalculatedMetrics(final Map<String, Long> counters,
+                                           final Map<String, Long> ret) {
+    // calculate and add KBps
+    final Long writeElapsedMs = counters.get("writeElapsedMs");
+    final Long kbps;
+    if (writeElapsedMs != null && writeElapsedMs > 0) {
+      kbps = counters.get("bytesWritten") / writeElapsedMs;
+    } else {
+      kbps = -1L;
+    }
+    ret.put("KbWritePerSec", kbps);
   }
 }

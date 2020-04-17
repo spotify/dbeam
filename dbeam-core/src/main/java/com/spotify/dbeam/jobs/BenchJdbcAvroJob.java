@@ -78,59 +78,47 @@ public class BenchJdbcAvroJob {
   }
 
   private String tsvMetrics() {
-    final List<String> columns =
-        newArrayList("recordCount", "writeElapsedMs", "msPerMillionRows", "bytesWritten");
+    final List<String> columns = newArrayList(
+        "recordCount", "writeElapsedMs", "msPerMillionRows", "bytesWritten", "KbWritePerSec");
     final Collector<CharSequence, ?, String> tabJoining = Collectors.joining("\t");
     final Stream<String> lines =
         IntStream.range(0, this.metrics.size())
-            .mapToObj(
-                i ->
-                    String.format(
-                        "run_%02d  \t%s\t% 6d",
-                        i,
-                        columns.stream()
-                            .map(c -> Optional.of(this.metrics.get(i).get(c)).orElse(0L).toString())
-                            .collect(tabJoining),
-                        this.metrics.get(i).get("bytesWritten")
-                            / this.metrics.get(i).get("writeElapsedMs")));
+            .mapToObj(i ->
+                String.format(
+                    "run_%02d  \t%s",
+                    i,
+                    columns.stream()
+                        .map(c -> String.format("% 10d",
+                            Optional.of(this.metrics.get(i).get(c)).orElse(0L)))
+                        .collect(tabJoining)));
     final List<Stats> stats =
-        Stream.concat(
-                columns.stream()
-                    .map(
-                        c ->
-                            Stats.of(
-                                (Iterable<Long>)
-                                    this.metrics.stream().map(m -> Optional.of(m.get(c)).orElse(0L))
-                                        ::iterator)),
-                Stream.of(
-                    Stats.of(
-                        (Iterable<Long>)
-                            this.metrics.stream()
-                                    .map(m -> m.get("bytesWritten") / m.get("writeElapsedMs"))
-                                ::iterator)))
+        columns.stream()
+            .map(c ->
+                Stats.of(
+                    (Iterable<Long>)
+                        this.metrics.stream().map(m -> Optional.of(m.get(c)).orElse(0L))
+                            ::iterator))
             .collect(Collectors.toList());
     final Map<String, Function<Stats, Double>> relevantStats =
         ImmutableMap.of(
-            "max    ", Stats::max,
-            "mean   ", Stats::mean,
-            "min    ", Stats::min,
-            "stddev ", Stats::populationStandardDeviation);
+            "max     ", Stats::max,
+            "mean    ", Stats::mean,
+            "min     ", Stats::min,
+            "stddev  ", Stats::populationStandardDeviation);
     final Stream<String> statsSummary =
         relevantStats.entrySet().stream()
-            .map(
-                e ->
-                    String.format(
-                        "%s\t%s",
-                        e.getKey(),
-                        stats.stream()
-                            .map(e.getValue())
-                            .map(v -> String.format("% 6.1f", v))
-                            .collect(tabJoining)));
-    return Stream.concat(
-            Stream.concat(
-                Stream.of(String.format("name   \t%s\tKBps", String.join("\t", columns))), lines),
-            statsSummary)
-        .collect(Collectors.joining("\n"));
+            .map(e ->
+                String.format(
+                    "%s\t%s",
+                    e.getKey(),
+                    stats.stream()
+                        .map(e.getValue())
+                        .map(v -> String.format("% 10.1f", v))
+                        .collect(tabJoining)));
+    return String.format("name    \t%12s\n%s",
+        String.join("\t", columns),
+        Stream.concat(lines, statsSummary)
+            .collect(Collectors.joining("\n")));
   }
 
   public static void main(String[] cmdLineArgs) {
