@@ -128,7 +128,7 @@
         <!--Ensure Beam SDK compatibility-->
         <!--https://github.com/apache/beam/blob/master/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy-->
         <guava.version>28.2-jre</guava.version>
-        <jackson.version>2.10.2</jackson.version>
+        <jackson.version>2.10.3</jackson.version>
         <slf4j.version>1.7.30</slf4j.version>
         <auto-value.version>1.7</auto-value.version>
         <protobuf.version>3.11.1</protobuf.version>
