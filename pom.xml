@@ -141,7 +141,7 @@
         <opencensus.version>0.24.0</opencensus.version>
 
         <junit.version>4.13</junit.version>
-        <hamcrest.version>2.1</hamcrest.version>
+        <hamcrest.version>2.2</hamcrest.version>
     </properties>
 
     <modules>
