@@ -24,10 +24,10 @@ import java.util.List;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 
-@Description("Configure dbeam SQL export")
+@Description("Configures the DBeam SQL export")
 public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
-  @Description("The date of the current partition.")
+  @Description("The date/timestamp of the current partition.")
   String getPartition();
 
   void setPartition(String value);
@@ -46,8 +46,8 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setSkipPartitionCheck(Boolean value);
 
   @Description(
-      "The period frequency which the export runs, used to filder based"
-          + "on current partition and also to fail exports for too old partitions.")
+      "The period frequency which the export runs, used to filter based "
+          + "on current partition and also to check if exports are running for too old partitions.")
   String getPartitionPeriod();
 
   void setPartitionPeriod(String value);
@@ -95,19 +95,22 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setAvroCodec(String value);
 
   @Description(
-      "Column used to create splits in case of parallel exports. "
-          + "Should be used with queryParallelism")
+      "A long/integer column used to create splits for parallel queries. "
+          + "Should be used with queryParallelism.")
   String getSplitColumn();
 
   void setSplitColumn(String value);
 
-  @Description("Number of queries to run in parallel for exports. Should be used with splitColumn")
+  @Description(
+      "Max number of queries to run in parallel for exports. "
+          + "Single query used if nothing specified. Should be used with splitColumn.")
   Integer getQueryParallelism();
 
   void setQueryParallelism(Integer value);
 
   @Default.String("P7D")
-  @Description("Export timeout, after this duration the export will be terminated.")
+  @Description(
+      "Export timeout, after this duration the job is cancelled and the export terminated.")
   String getExportTimeout();
 
   void setExportTimeout(String value);
@@ -117,7 +120,7 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setAvroSchemaFilePath(String value);
 
-  @Description("Precommand to be executed before query")
+  @Description("SQL commands to be executed before query.")
   List<String> getPreCommand();
 
   void setPreCommand(List<String> value);
