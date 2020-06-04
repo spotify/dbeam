@@ -20,14 +20,17 @@
 
 package com.spotify.dbeam.options;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.util.Utils;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.services.cloudkms.v1.CloudKMS;
 import com.google.api.services.cloudkms.v1.CloudKMSScopes;
 import com.google.api.services.cloudkms.v1.model.DecryptRequest;
 import com.google.api.services.cloudkms.v1.model.DecryptResponse;
+import com.google.auth.Credentials;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auto.value.AutoValue;
 import com.google.cloud.ServiceOptions;
 import com.google.common.base.CharMatcher;
@@ -88,14 +91,8 @@ public abstract class KmsDecrypter {
    */
   abstract Optional<HttpTransport> transport();
 
-  /**
-   * The {@link JsonFactory} to use for the default credentials and KMS client. Default will be used
-   * if not set.
-   */
-  abstract Optional<JsonFactory> jsonFactory();
-
-  /** The {@link GoogleCredential} to use for the KMS client. Default will be used if not set. */
-  abstract Optional<GoogleCredential> credentials();
+  /** The {@link Credentials} to use for the KMS client. Default will be used if not set. */
+  abstract Optional<Credentials> credentials();
 
   public abstract Builder builder();
 
@@ -111,9 +108,7 @@ public abstract class KmsDecrypter {
 
     public abstract Builder transport(HttpTransport transport);
 
-    public abstract Builder jsonFactory(Optional<JsonFactory> jsonFactory);
-
-    public abstract Builder credentials(Optional<GoogleCredential> credentials);
+    public abstract Builder credentials(Credentials credentials);
 
     public abstract KmsDecrypter build();
   }
@@ -151,27 +146,29 @@ public abstract class KmsDecrypter {
 
   private CloudKMS kms() throws IOException {
     final HttpTransport transport = transport().orElseGet(Utils::getDefaultTransport);
-    final JsonFactory jsonFactory = jsonFactory().orElseGet(Utils::getDefaultJsonFactory);
-    final GoogleCredential googleCredential =
+    final JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
+    final Credentials credentials =
         credentials().isPresent()
             ? credentials().get()
-            : GoogleCredential.getApplicationDefault(transport, jsonFactory);
-    return KmsDecrypter.kms(transport, jsonFactory, googleCredential);
+            : GoogleCredentials.getApplicationDefault();
+    return KmsDecrypter.kms(
+        transport, jsonFactory, new HttpCredentialsAdapter(scoped(credentials)));
   }
 
   private static CloudKMS kms(
       final HttpTransport transport,
       final JsonFactory jsonFactory,
-      final GoogleCredential credential) {
-    return new CloudKMS.Builder(transport, jsonFactory, scoped(credential))
+      final HttpRequestInitializer httpRequestInitializer) {
+    return new CloudKMS.Builder(
+        transport, jsonFactory, httpRequestInitializer)
         .setApplicationName("dbeam")
         .build();
   }
 
-  private static GoogleCredential scoped(final GoogleCredential credential) {
-    if (credential.createScopedRequired()) {
-      return credential.createScoped(CloudKMSScopes.all());
+  private static Credentials scoped(final Credentials credentials) {
+    if (credentials instanceof GoogleCredentials) {
+      return ((GoogleCredentials)credentials).createScoped(CloudKMSScopes.all());
     }
-    return credential;
+    return credentials;
   }
 }

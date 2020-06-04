@@ -20,7 +20,6 @@
 
 package com.spotify.dbeam.options;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.json.Json;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
@@ -31,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
+import org.apache.beam.sdk.extensions.gcp.auth.NoopCredentialFactory;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -74,7 +74,7 @@ public class PasswordReaderTest {
         new PasswordReader(
             KmsDecrypter.decrypter()
                 .project(Optional.of("fake_project"))
-                .credentials(Optional.of(new GoogleCredential.Builder().build()))
+                .credentials(NoopCredentialFactory.fromOptions(null).getCredential())
                 .transport(mockHttpTransport)
                 .build());
 
