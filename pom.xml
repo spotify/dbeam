@@ -194,7 +194,11 @@
                 <artifactId>beam-sdks-java-extensions-google-cloud-platform-core</artifactId>
                 <version>${beam.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.beam</groupId>
+                <artifactId>beam-sdks-java-io-amazon-web-services</artifactId>
+                <version>${beam.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.beam</groupId>
                 <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>

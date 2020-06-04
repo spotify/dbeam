@@ -45,6 +45,11 @@
         <scope>provided</scope>
       </dependency>
 
+      <dependency>
+        <groupId>org.apache.beam</groupId>
+        <artifactId>beam-sdks-java-io-amazon-web-services</artifactId>
+      </dependency>
+
       <!-- DB Deps -->
       <dependency>
         <groupId>org.postgresql</groupId>

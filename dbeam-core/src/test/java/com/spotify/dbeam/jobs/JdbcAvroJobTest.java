@@ -218,4 +218,23 @@ public class JdbcAvroJobTest {
     metering.incrementRecordCount();
     metering.exposeWriteElapsed();
   }
+
+  //@Test
+  public void shouldRunJdbcAvroJobS3() throws IOException {
+    String outputPath = "s3://com.privacyone.bigdata/2020-05-28/18";
+
+    JdbcAvroJob.main(
+        new String[] {
+          "--targetParallelism=1", // no need for more threads when testing
+          "--partition=2025-02-28",
+          "--skipPartitionCheck",
+          "--exportTimeout=PT1M",
+          "--connectionUrl=" + CONNECTION_URL,
+          "--username=",
+          "--passwordFile=" + passwordPath.toString(),
+          "--table=COFFEES",
+          "--output=" + outputPath,
+          "--avroCodec=zstandard1"
+        });
+  }
 }
