@@ -120,17 +120,17 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <beam.version>2.21.0</beam.version>
+        <beam.version>2.22.0</beam.version>
         <postgresql.version>42.2.12</postgresql.version>
         <mysql.version>8.0.19</mysql.version>
-        <socket-factory.version>1.0.14</socket-factory.version>
+        <socket-factory.version>1.0.16</socket-factory.version>
 
         <!--Ensure Beam SDK compatibility-->
-        <!--https://github.com/apache/beam/blob/release-2.21.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L367-->
+        <!--https://github.com/apache/beam/blob/release-2.22.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L367-->
         <guava.version>28.2-jre</guava.version>
         <jackson.version>2.10.2</jackson.version>
         <slf4j.version>1.7.30</slf4j.version>
-        <auto-value.version>1.7</auto-value.version>
+        <auto-value.version>1.7.1</auto-value.version>
         <protobuf.version>3.11.1</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
         <grpc.version>1.27.2</grpc.version>
@@ -139,7 +139,7 @@
         <google-clients.version>1.30.9</google-clients.version>
         <google-http-clients.version>1.34.0</google-http-clients.version>
         <google-oauth.version>1.30.6</google-oauth.version>
-        <google-auth.version>0.19.0</google-auth.version>
+        <google-auth.version>0.20.0</google-auth.version>
         <google-cloud-core.version>1.92.2</google-cloud-core.version>
         <opencensus.version>0.24.0</opencensus.version>
 
@@ -233,6 +233,10 @@
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
                         <artifactId>protobuf-java-util</artifactId>
                     </exclusion>
                     <exclusion>
@@ -299,6 +303,26 @@
                         <groupId>org.conscrypt</groupId>
                         <artifactId>conscrypt-openjdk-uber</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-stub</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-protobuf</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty-shaded</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-auth</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-alts</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -347,6 +371,13 @@
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>1.9.2</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.commons</groupId>
+                        <artifactId>commons-compress</artifactId>
+                        <!--org.apache.commons:commons-compress:1.20 available in other dependency-->
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
@@ -382,6 +413,16 @@
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-auth</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-alts</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
                 <version>${grpc.version}</version>
             </dependency>
             <dependency>
