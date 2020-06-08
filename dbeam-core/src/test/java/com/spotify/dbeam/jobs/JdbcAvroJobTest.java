@@ -49,6 +49,7 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class JdbcAvroJobTest {
@@ -219,9 +220,10 @@ public class JdbcAvroJobTest {
     metering.exposeWriteElapsed();
   }
 
-  //@Test
+  @Test
+  @Ignore // Cannot run this test towards a Amazon S3 bucket. For manual testing only.
   public void shouldRunJdbcAvroJobS3() throws IOException {
-    String outputPath = "s3://com.privacyone.bigdata/2020-05-28/18";
+    String outputPath = "s3://com.privacyone.bigdata/2020-05-28/18/";
 
     JdbcAvroJob.main(
         new String[] {
@@ -233,6 +235,7 @@ public class JdbcAvroJobTest {
           "--username=",
           "--passwordFile=" + passwordPath.toString(),
           "--table=COFFEES",
+          "--awsRegion=eu-west-1",
           "--output=" + outputPath,
           "--avroCodec=zstandard1"
         });

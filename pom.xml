@@ -198,16 +198,32 @@
                 <groupId>org.apache.beam</groupId>
                 <artifactId>beam-sdks-java-io-amazon-web-services</artifactId>
                 <version>${beam.version}</version>
+                <exclusions>
+                    <!--
+                    <exclusion>
+                        <groupId>com.amazonaws</groupId>
+                        <artifactId>aws-java-sdk-dynamodb</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.amazonaws</groupId>
+                        <artifactId>aws-java-sdk-sns</artifactId>
+                    </exclusion>
+                    -->
+                    <exclusion>
+                        <groupId>com.amazonaws</groupId>
+                        <artifactId>aws-java-sdk-sqs</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.amazonaws</groupId>
+                        <artifactId>jmespath-java</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.beam</groupId>
                 <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
                 <version>${beam.version}</version>
                 <exclusions>
-                    <exclusion>
-                        <groupId>junit</groupId>
-                        <artifactId>junit</artifactId>
-                    </exclusion>
                     <exclusion>
                         <groupId>junit</groupId>
                         <artifactId>junit</artifactId>
