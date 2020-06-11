@@ -29,7 +29,7 @@ public class JdbcConnectionUtil {
   private static Map<String, String> driverMapping =
       ImmutableMap.of(
           "postgresql", "org.postgresql.Driver",
-          "mysql", "com.mysql.jdbc.Driver",
+          "mysql", "com.mysql.cj.jdbc.Driver",
           "h2", "org.h2.Driver");
 
   public static String getDriverClass(final String url) throws ClassNotFoundException {
