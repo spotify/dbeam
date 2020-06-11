@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.time.temporal.TemporalAmount;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,7 +49,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract Optional<Instant> partition();
 
-  public abstract Period partitionPeriod();
+  public abstract TemporalAmount partitionPeriod();
 
   public abstract Optional<String> splitColumn();
 
@@ -73,7 +74,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
     public abstract Builder setPartition(Optional<Instant> partition);
 
-    public abstract Builder setPartitionPeriod(Period partitionPeriod);
+    public abstract Builder setPartitionPeriod(TemporalAmount partitionPeriod);
 
     public abstract Builder setSplitColumn(String splitColumn);
 
@@ -123,20 +124,10 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @throws SQLException when it fails to find out limits for splits.
    */
   public List<String> buildQueries(final Connection connection) throws SQLException {
-    this.partitionColumn()
-        .ifPresent(
-            partitionColumn ->
-                this.partition()
-                    .ifPresent(
-                        partition -> {
-                          final LocalDate datePartition =
-                              partition.atZone(ZoneOffset.UTC).toLocalDate();
-                          final String nextPartition =
-                              datePartition.plus(partitionPeriod()).toString();
-                          this.baseSqlQuery()
-                              .withPartitionCondition(
-                                  partitionColumn, datePartition.toString(), nextPartition);
-                        }));
+    this.partitionColumn().ifPresent(partitionColumn ->
+        this.partition().ifPresent(partition ->
+          configurePartitionCondition(partitionColumn, partition, partitionPeriod())
+        ));
     this.limit()
         .ifPresent(
             l -> this.baseSqlQuery().withLimit(queryParallelism().map(k -> l / k).orElse(l)));
@@ -152,4 +143,22 @@ public abstract class QueryBuilderArgs implements Serializable {
       return Lists.newArrayList(this.baseSqlQuery().build());
     }
   }
+
+  private void configurePartitionCondition(final String partitionColumn, final Instant partition,
+                                           final TemporalAmount partitionPeriod) {
+    if (partitionPeriod() instanceof Period) {
+      final LocalDate partitionDate = partition.atZone(ZoneOffset.UTC).toLocalDate();
+      final LocalDate nextPartition = partitionDate.plus(partitionPeriod);
+      this.baseSqlQuery().withPartitionCondition(
+          partitionColumn,
+          partitionDate.toString(),
+          nextPartition.toString());
+    } else {
+      // in case of sub daily period, use the full timestamp
+      final Instant nextPartition = partition.plus(partitionPeriod());
+      this.baseSqlQuery().withPartitionCondition(
+              partitionColumn, partition.toString(), nextPartition.toString());
+    }
+  }
+
 }

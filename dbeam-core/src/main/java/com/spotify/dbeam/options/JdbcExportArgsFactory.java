@@ -37,6 +37,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAmount;
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.beam.sdk.options.PipelineOptions;
@@ -81,10 +82,8 @@ public class JdbcExportArgsFactory {
 
   public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)
       throws IOException {
-    final Period partitionPeriod =
-        Optional.ofNullable(options.getPartitionPeriod())
-            .map(Period::parse)
-            .orElse(Period.ofDays(1));
+    final TemporalAmount partitionPeriod =
+        partitionPeriodTemporalAmount(options.getPartitionPeriod());
     Optional<Instant> partition =
         Optional.ofNullable(options.getPartition()).map(JdbcExportArgsFactory::parseInstant);
     Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
@@ -100,7 +99,8 @@ public class JdbcExportArgsFactory {
               .orElse(
                   Instant.now()
                       .atOffset(ZoneOffset.UTC)
-                      .minus(partitionPeriod.multipliedBy(2))
+                      .minus(partitionPeriod) // subtracts two partitions
+                      .minus(partitionPeriod)
                       .toInstant());
       partition.map(p -> validatePartition(p, minPartitionDateTime));
     }
@@ -126,6 +126,24 @@ public class JdbcExportArgsFactory {
         .setSplitColumn(splitColumn)
         .setQueryParallelism(queryParallelism)
         .build();
+  }
+
+  /**
+   * Defaults to a Period of 1 days in case of empty.
+   * If partitionPeriod argument is a sub day unit (e.g. hourly), then uses Duration (stored in
+   * seconds).
+   * Otherwise use Period.
+   * @param partitionPeriod partitionPeriod parameter to be parsed
+   * @return
+   */
+  private static TemporalAmount partitionPeriodTemporalAmount(final String partitionPeriod) {
+    if (partitionPeriod == null) {
+      return Period.ofDays(1);
+    } else if (partitionPeriod.contains("PT")) {
+      return Duration.parse(partitionPeriod);
+    } else {
+      return Period.parse(partitionPeriod);
+    }
   }
 
   private static QueryBuilderArgs createQueryBuilderArgs(final JdbcExportPipelineOptions options)

@@ -180,6 +180,20 @@ public class QueryBuilderArgsTest {
         actual.buildQueries(null));
   }
 
+  @Test
+  public void shouldConfigurePartitionColumnAndPartitionPeriodForHourly() throws IOException, SQLException {
+    QueryBuilderArgs actual =
+        parseOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--partition=2027-07-31T00 --partitionColumn=col --partitionPeriod=PT1H");
+
+    Assert.assertEquals(
+        Lists.newArrayList(
+            "SELECT * FROM some_table WHERE 1=1 "
+                + "AND col >= '2027-07-31T00:00:00Z' AND col < '2027-07-31T01:00:00Z'"),
+        actual.buildQueries(null));
+  }
+
   // tests for --sqlFile parameter
 
   @Test
