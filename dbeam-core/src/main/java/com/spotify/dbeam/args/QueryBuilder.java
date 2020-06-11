@@ -20,10 +20,12 @@
 
 package com.spotify.dbeam.args;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /** Wrapper class for raw SQL query. */
 class QueryBuilder implements Serializable {
@@ -36,7 +38,7 @@ class QueryBuilder implements Serializable {
 
     String getBaseSql();
 
-    QueryBase copyWithSelect(final String selectClause);
+    QueryBase withSelect(final String selectClause);
   }
 
   /**
@@ -64,7 +66,7 @@ class QueryBuilder implements Serializable {
     }
 
     @Override
-    public TableQueryBase copyWithSelect(final String selectClause) {
+    public TableQueryBase withSelect(final String selectClause) {
       return new TableQueryBase(this.tableName, selectClause);
     }
 
@@ -100,7 +102,7 @@ class QueryBuilder implements Serializable {
     }
 
     @Override
-    public UserQueryBase copyWithSelect(String selectClause) {
+    public UserQueryBase withSelect(String selectClause) {
       return new UserQueryBase(this.userSqlQuery, selectClause);
     }
 
@@ -111,27 +113,20 @@ class QueryBuilder implements Serializable {
   }
 
   private final QueryBase base;
-  private final List<String> whereConditions = new LinkedList<>();
-  private Optional<String> limitStr = Optional.empty();
+  private final List<String> whereConditions;
+  private final Optional<String> limitStr;
 
   private QueryBuilder(final QueryBase base) {
     this.base = base;
+    this.limitStr = Optional.empty();
+    this.whereConditions = ImmutableList.of();
   }
 
-  private QueryBuilder(final QueryBase base, final QueryBuilder that) {
+  private QueryBuilder(final QueryBase base, final List<String> whereConditions,
+                       final Optional<String> limitStr) {
     this.base = base;
-    this.whereConditions.addAll(that.whereConditions);
-    this.limitStr = that.limitStr;
-  }
-
-  private QueryBuilder(final QueryBuilder that) {
-    this.base = that.base;
-    this.whereConditions.addAll(that.whereConditions);
-    this.limitStr = that.limitStr;
-  }
-
-  public QueryBuilder copy() {
-    return new QueryBuilder(this);
+    this.whereConditions = whereConditions;
+    this.limitStr = limitStr;
   }
 
   public static QueryBuilder fromTablename(final String tableName) {
@@ -143,27 +138,39 @@ class QueryBuilder implements Serializable {
   }
 
   public QueryBuilder withPartitionCondition(
-      String partitionColumn, String startPointIncl, String endPointExcl) {
-    whereConditions.add(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl));
-    return this;
+      final String partitionColumn, final String startPointIncl, final String endPointExcl) {
+    return new QueryBuilder(
+        this.base,
+        Stream.concat(
+            this.whereConditions.stream(),
+            Stream.of(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl))
+        ).collect(Collectors.toList()), this.limitStr
+    );
   }
 
   private static String createSqlPartitionCondition(
-      String partitionColumn, String startPointIncl, String endPointExcl) {
+      final String partitionColumn, final String startPointIncl, final String endPointExcl) {
     return String.format(
         " AND %s >= '%s' AND %s < '%s'",
         partitionColumn, startPointIncl, partitionColumn, endPointExcl);
   }
 
   public QueryBuilder withParallelizationCondition(
-      String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
-    whereConditions.add(
-        createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl));
-    return this;
+      final String partitionColumn, final long startPointIncl,
+      final long endPoint, final boolean isEndPointExcl) {
+    return new QueryBuilder(
+        this.base,
+        Stream.concat(
+            this.whereConditions.stream(),
+            Stream.of(
+                createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl))
+        ).collect(Collectors.toList()), this.limitStr
+    );
   }
 
   private static String createSqlSplitCondition(
-      String partitionColumn, long startPointIncl, long endPoint, boolean isEndPointExcl) {
+      final String partitionColumn, final long startPointIncl,
+      final long endPoint, final boolean isEndPointExcl) {
 
     String upperBoundOperation = isEndPointExcl ? "<" : "<=";
     return String.format(
@@ -191,12 +198,10 @@ class QueryBuilder implements Serializable {
   }
 
   public QueryBuilder withLimit(long limit) {
-    limitStr = Optional.of(String.format(" LIMIT %d", limit));
-    return this;
-  }
-
-  public QueryBuilder withLimitOne() {
-    return withLimit(1L);
+    return new QueryBuilder(
+        this.base,
+        this.whereConditions, Optional.of(String.format(" LIMIT %d", limit))
+    );
   }
 
   @Override
@@ -237,6 +242,6 @@ class QueryBuilder implements Serializable {
             "SELECT MIN(%s) as %s, MAX(%s) as %s",
             splitColumn, minSplitColumnName, splitColumn, maxSplitColumnName);
 
-    return new QueryBuilder(base.copyWithSelect(selectMinMax), this);
+    return new QueryBuilder(base.withSelect(selectMinMax), this.whereConditions, this.limitStr);
   }
 }

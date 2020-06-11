@@ -78,12 +78,12 @@ public class QueryBuilderArgsTest {
   }
 
   @Test
-  public void shouldCreateValidSqlQueryFromUserQuery() {
+  public void shouldCreateValidSqlQueryFromUserQuery() throws SQLException {
     QueryBuilderArgs args = QueryBuilderArgs.createFromQuery("SELECT * FROM some_table");
 
     Assert.assertEquals(
-        "SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1",
-        args.baseSqlQuery().build());
+        Lists.newArrayList("SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1"),
+        args.buildQueries(null));
   }
 
   @Test
@@ -181,7 +181,8 @@ public class QueryBuilderArgsTest {
   }
 
   @Test
-  public void shouldConfigurePartitionColumnAndPartitionPeriodForHourly() throws IOException, SQLException {
+  public void shouldConfigurePartitionColumnAndPartitionPeriodForHourly()
+      throws IOException, SQLException {
     QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "

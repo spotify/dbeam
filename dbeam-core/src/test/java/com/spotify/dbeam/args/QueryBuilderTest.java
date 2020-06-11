@@ -46,26 +46,10 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void testCtorCopyEquals() {
-    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    QueryBuilder copy = q1.copy();
-
-    Assert.assertEquals(q1, copy);
-  }
-
-  @Test
-  public void testCtorCopyContentEquals() {
-    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    QueryBuilder copy = q1.copy();
-
-    Assert.assertEquals(q1.build(), copy.build());
-  }
-
-  @Test
   public void testCtorCopyWithConditionNotEquals() {
     QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    QueryBuilder copy = q1.copy();
-    copy.withPartitionCondition("pary", "20180101", "20180201");
+    QueryBuilder copy = q1
+        .withPartitionCondition("pary", "20180101", "20180201");
 
     Assert.assertNotEquals(q1.build(), copy.build());
   }
@@ -73,8 +57,7 @@ public class QueryBuilderTest {
   @Test
   public void testCtorCopyWithLimitNotEquals() {
     QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    QueryBuilder copy = q1.copy();
-    copy.withLimit(3L);
+    QueryBuilder copy = q1.withLimit(3L);
 
     Assert.assertNotEquals(q1.build(), copy.build());
   }
@@ -90,8 +73,7 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlWithLimit() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    wrapper.withLimit(102L);
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1").withLimit(102L);
 
     String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1 LIMIT 102";
 
@@ -100,8 +82,8 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlwithParallelization() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    wrapper.withParallelizationCondition("bucket", 10, 20, true);
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1")
+        .withParallelizationCondition("bucket", 10, 20, true);
 
     String expected =
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query"
@@ -112,8 +94,8 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlWithPartition() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    wrapper.withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
+    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1")
+        .withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
     String expected =
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1"

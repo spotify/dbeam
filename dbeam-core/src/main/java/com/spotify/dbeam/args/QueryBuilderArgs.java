@@ -41,7 +41,7 @@ import java.util.Optional;
 @AutoValue
 public abstract class QueryBuilderArgs implements Serializable {
 
-  public abstract QueryBuilder baseSqlQuery();
+  abstract QueryBuilder baseSqlQuery();
 
   public abstract Optional<Long> limit();
 
@@ -112,8 +112,7 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @return
    */
   public String sqlQueryWithLimitOne() {
-    // need to copy, since baseSqlQuery is mutable
-    return this.baseSqlQuery().copy().withLimitOne().build();
+    return this.baseSqlQuery().withLimit(1L).build();
   }
 
   /**
@@ -124,39 +123,46 @@ public abstract class QueryBuilderArgs implements Serializable {
    * @throws SQLException when it fails to find out limits for splits.
    */
   public List<String> buildQueries(final Connection connection) throws SQLException {
-    this.partitionColumn().ifPresent(partitionColumn ->
-        this.partition().ifPresent(partition ->
-          configurePartitionCondition(partitionColumn, partition, partitionPeriod())
-        ));
-    this.limit()
-        .ifPresent(
-            l -> this.baseSqlQuery().withLimit(queryParallelism().map(k -> l / k).orElse(l)));
+    QueryBuilder queryBuilder = this.baseSqlQuery();
+    if (this.partitionColumn().isPresent() && this.partition().isPresent()) {
+      queryBuilder = configurePartitionCondition(
+          this.partitionColumn().get(),
+          this.partition().get(),
+          partitionPeriod(),
+          queryBuilder);
+    }
+    if (this.limit().isPresent()) {
+      queryBuilder = queryBuilder
+          .withLimit(queryParallelism().map(k -> limit().get() / k).orElse(limit().get()));
+    }
 
     if (queryParallelism().isPresent() && splitColumn().isPresent()) {
-      long[] minMax = findInputBounds(connection, this.baseSqlQuery(), splitColumn().get());
+      long[] minMax = findInputBounds(connection, queryBuilder, splitColumn().get());
       long min = minMax[0];
       long max = minMax[1];
 
       return queriesForBounds(
-          min, max, queryParallelism().get(), splitColumn().get(), this.baseSqlQuery());
+          min, max, queryParallelism().get(), splitColumn().get(), queryBuilder);
     } else {
-      return Lists.newArrayList(this.baseSqlQuery().build());
+      return Lists.newArrayList(queryBuilder.build());
     }
   }
 
-  private void configurePartitionCondition(final String partitionColumn, final Instant partition,
-                                           final TemporalAmount partitionPeriod) {
+  private QueryBuilder configurePartitionCondition(final String partitionColumn,
+                                                   final Instant partition,
+                                                   final TemporalAmount partitionPeriod,
+                                                   final QueryBuilder queryBuilder) {
     if (partitionPeriod() instanceof Period) {
       final LocalDate partitionDate = partition.atZone(ZoneOffset.UTC).toLocalDate();
       final LocalDate nextPartition = partitionDate.plus(partitionPeriod);
-      this.baseSqlQuery().withPartitionCondition(
+      return queryBuilder.withPartitionCondition(
           partitionColumn,
           partitionDate.toString(),
           nextPartition.toString());
     } else {
       // in case of sub daily period, use the full timestamp
-      final Instant nextPartition = partition.plus(partitionPeriod());
-      this.baseSqlQuery().withPartitionCondition(
+      final Instant nextPartition = partition.plus(partitionPeriod);
+      return queryBuilder.withPartitionCondition(
               partitionColumn, partition.toString(), nextPartition.toString());
     }
   }
