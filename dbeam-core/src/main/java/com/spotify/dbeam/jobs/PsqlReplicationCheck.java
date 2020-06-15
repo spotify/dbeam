@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.time.ZoneOffset;
+import java.time.temporal.TemporalAmount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,17 +80,27 @@ public class PsqlReplicationCheck {
   }
 
   static boolean isReplicationDelayed(
-      final Instant partition, final Instant lastReplication, final Period partitionPeriod) {
-    Instant partitionPlusPartitionPeriod =
-        partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod).toInstant();
+      final Instant partition,
+      final Instant lastReplication,
+      final TemporalAmount partitionPeriod) {
+    final Instant partitionPlusPartitionPeriod = partitionPlusPeriod(partition, partitionPeriod);
     if (lastReplication.isBefore(partitionPlusPartitionPeriod)) {
       LOGGER.error(
-          "Replication was not completed for partition, " + "expected >= {}, actual = {}",
+          "Replication was not completed for partition, expected >= {}, actual = {}",
           partitionPlusPartitionPeriod,
           lastReplication);
       return true;
     }
     return false;
+  }
+
+  private static Instant partitionPlusPeriod(final Instant partition,
+                                             final TemporalAmount partitionPeriod) {
+    if (partitionPeriod instanceof Period) {
+      return partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod).toInstant();
+    } else {
+      return partition.plus(partitionPeriod);
+    }
   }
 
   static Instant queryReplication(final Connection connection, final String query)

@@ -134,6 +134,26 @@ public class PsqlReplicationCheckTest {
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
+  @Test
+  public void shouldBeDelayedWithHourlyPartitionPeriod() {
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
+    Duration partitionPeriod = Duration.ofHours(1);
+
+    Assert.assertTrue(
+        PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
+  }
+
+  @Test
+  public void shouldBeNotDelayedWithHourlyPartitionPeriod() {
+    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
+    Duration partitionPeriod = Duration.ofHours(1);
+
+    Assert.assertTrue(
+        PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
+  }
+
   @Test(expected = NotReadyException.class)
   public void shouldRunQueryAndReturnReplicationDelayed() throws Exception {
     String query =

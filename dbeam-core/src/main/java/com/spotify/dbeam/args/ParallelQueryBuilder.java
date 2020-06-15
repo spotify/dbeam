@@ -118,12 +118,11 @@ public class ParallelQueryBuilder implements Serializable {
 
     return ranges.stream()
         .map(
-            x ->
-                queryBuilder
-                    .copy() // we create a new query here
-                    .withParallelizationCondition(
-                        splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
-                    .build())
+            x -> queryBuilder
+                .withParallelizationCondition(
+                    splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
+                .build()
+        )
         .collect(Collectors.toList());
   }
 
