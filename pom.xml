@@ -140,7 +140,7 @@
         <google-http-clients.version>1.34.0</google-http-clients.version>
         <google-oauth.version>1.30.6</google-oauth.version>
         <google-auth.version>0.20.0</google-auth.version>
-        <google-cloud-core.version>1.92.2</google-cloud-core.version>
+        <google-cloud-core.version>1.93.6</google-cloud-core.version>
         <opencensus.version>0.24.0</opencensus.version>
 
         <junit.version>4.13</junit.version>
