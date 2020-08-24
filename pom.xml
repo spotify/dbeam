@@ -121,7 +121,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <beam.version>2.23.0</beam.version>
-        <postgresql.version>42.2.12</postgresql.version>
+        <postgresql.version>42.2.16</postgresql.version>
         <mysql.version>8.0.19</mysql.version>
         <socket-factory.version>1.0.16</socket-factory.version>
 
