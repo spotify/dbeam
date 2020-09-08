@@ -186,4 +186,5 @@ public class BeamHelperTest {
           exception.getMessage());
     }
   }
+
 }

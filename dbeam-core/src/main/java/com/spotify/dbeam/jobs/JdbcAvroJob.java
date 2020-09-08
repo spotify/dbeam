@@ -38,6 +38,7 @@ import org.apache.avro.Schema;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
+import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Create;
@@ -91,7 +92,10 @@ public class JdbcAvroJob {
   public static PipelineOptions buildPipelineOptions(final String[] cmdLineArgs) {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
     PipelineOptionsFactory.register(OutputOptions.class);
-    return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
+    final PipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(cmdLineArgs)
+        .withValidation().create();
+    FileSystems.setDefaultPipelineOptions(pipelineOptions);
+    return pipelineOptions;
   }
 
   public void prepareExport() throws Exception {
