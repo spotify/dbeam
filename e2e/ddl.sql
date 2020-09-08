@@ -35,8 +35,8 @@ ANALYZE demo_table;
 EXPLAIN ANALYZE SELECT * FROM demo_table;
 
 CREATE SCHEMA IF NOT EXISTS test_schema;
-DROP TABLE IF EXISTS test_schema.schema_demo_table;
-CREATE UNLOGGED TABLE test_schema.schema_demo_table
+DROP TABLE IF EXISTS test_schema.demo_table;
+CREATE UNLOGGED TABLE test_schema.demo_table
 AS
 SELECT 1::integer foo, 'bar'::text bar;
-EXPLAIN ANALYZE SELECT * FROM test_schema.schema_demo_table;
+EXPLAIN ANALYZE SELECT * FROM test_schema.demo_table;
