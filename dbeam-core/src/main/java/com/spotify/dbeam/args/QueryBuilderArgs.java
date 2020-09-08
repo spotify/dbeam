@@ -109,7 +109,7 @@ public abstract class QueryBuilderArgs implements Serializable {
     checkArgument(checkIfValidDatabaseObjectName(tableName),
             "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
     checkArgument(checkSchemaName(dbSchemaName),
-            "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+            "'dbSchema' must follow [a-zA-Z_][a-zA-Z0-9_]*");
 
     return createBuilder().setBaseSqlQuery(
             QueryBuilder.fromTablename(dbSchemaName,tableName)).build();
