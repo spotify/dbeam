@@ -37,6 +37,11 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setTable(String value);
 
+  @Description("The database schema where the input table is located (use with --table, optional).")
+  String getDbSchema();
+
+  void setDbSchema(String value);
+
   @Description("A path to a file containing a SQL query (used instead of --table parameter).")
   String getSqlFile();
 

@@ -90,6 +90,8 @@ runSuite() {
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=zstandard1
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
+  table=schema_demo_table
+  BINARY_TRANSFER='false' runDBeamDockerCon --dbSchema=test_schema --executions=3 --avroCodec=deflate1
 }
 
 light() {
