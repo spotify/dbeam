@@ -20,6 +20,7 @@
 
 package com.spotify.dbeam.options;
 
+import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.Validation;
@@ -31,4 +32,12 @@ public interface OutputOptions extends PipelineOptions {
   String getOutput();
 
   void setOutput(String value);
+
+  @Default.Boolean(false)
+  @Description("Store only the data files in output folder, skip queries,"
+          + " metrics and metadata files.")
+  Boolean getDataOnly();
+
+  void setDataOnly(Boolean value);
+
 }
