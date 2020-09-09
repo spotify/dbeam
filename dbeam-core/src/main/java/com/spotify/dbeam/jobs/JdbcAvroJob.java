@@ -115,10 +115,12 @@ public class JdbcAvroJob {
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
-    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
-    for (int i = 0; i < queries.size(); i++) {
-      BeamHelper.saveStringOnSubPath(
-          output, String.format("/_queries/query_%d.sql", i), queries.get(i));
+    if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
+      BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
+      for (int i = 0; i < queries.size(); i++) {
+        BeamHelper.saveStringOnSubPath(
+                output, String.format("/_queries/query_%d.sql", i), queries.get(i));
+      }
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
@@ -161,7 +163,10 @@ public class JdbcAvroJob {
   public PipelineResult runExport() throws Exception {
     prepareExport();
     final PipelineResult pipelineResult = runAndWait();
-    BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
+    if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
+      BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
+    }
+
     return pipelineResult;
   }
 
