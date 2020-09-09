@@ -37,6 +37,15 @@ public class QueryBuilderTest {
   }
 
   @Test
+  public void testCtorFromSchemaAndTable() {
+    QueryBuilder wrapper = QueryBuilder.fromTablename("public","abc");
+
+    String expected = "SELECT * FROM public.abc WHERE 1=1";
+
+    Assert.assertEquals(expected, wrapper.build());
+  }
+
+  @Test
   public void testCtorRawSqlWithoutWhere() {
     QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
 

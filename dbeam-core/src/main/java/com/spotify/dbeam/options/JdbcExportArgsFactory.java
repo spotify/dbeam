@@ -154,7 +154,7 @@ public class JdbcExportArgsFactory {
     if (options.getSqlFile() != null) {
       return QueryBuilderArgs.createFromQuery(BeamHelper.readFromFile(options.getSqlFile()));
     } else {
-      return QueryBuilderArgs.create(options.getTable());
+      return QueryBuilderArgs.create(options.getDbSchema(), options.getTable());
     }
   }
 
