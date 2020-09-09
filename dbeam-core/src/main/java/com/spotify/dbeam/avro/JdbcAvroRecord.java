@@ -50,6 +50,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -58,6 +59,7 @@ public class JdbcAvroRecord {
 
   static final int MAX_DIGITS_BIGINT = 19;
   private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+  static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
   @FunctionalInterface
   public interface SqlFunction<T, R> {
@@ -94,8 +96,16 @@ public class JdbcAvroRecord {
       case SMALLINT:
       case TINYINT:
         return resultSet -> resultSet.getInt(column);
-      case TIMESTAMP:
       case DATE:
+        return resultSet -> {
+          final Timestamp timestamp = resultSet.getTimestamp(column, CALENDAR);
+          if (timestamp != null) {
+            return DATE_FORMAT.format(timestamp);
+          } else {
+            return null;
+          }
+        };
+      case TIMESTAMP:
       case TIME:
       case TIME_WITH_TIMEZONE:
         return resultSet -> {
