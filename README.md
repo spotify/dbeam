@@ -53,6 +53,8 @@ com.spotify.dbeam.options.DBeamPipelineOptions:
     A path to a file containing a SQL query (used instead of --table parameter).
   --table=<String>
     The database table to query and perform the export.
+  --dbSchema=<String>
+    The database schema where the input table is located (use with --table, optional).
   --username=<String>
     Default: dbeam-extractor
     The database user name used by JDBC to authenticate.

@@ -87,19 +87,32 @@ public abstract class QueryBuilderArgs implements Serializable {
     public abstract QueryBuilderArgs build();
   }
 
-  private static Boolean checkTableName(final String tableName) {
-    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+  private static Boolean checkIfValidDatabaseObjectName(final String objectName) {
+    return objectName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
   }
+
+  private static Boolean checkSchemaName(final String dbSchemaName) {
+    return dbSchemaName == null || dbSchemaName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+  }
+
 
   private static Builder createBuilder() {
     return new AutoValue_QueryBuilderArgs.Builder().setPartitionPeriod(Period.ofDays(1));
   }
 
   public static QueryBuilderArgs create(final String tableName) {
-    checkArgument(tableName != null, "TableName cannot be null");
-    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+    return create(null,tableName);
+  }
 
-    return createBuilder().setBaseSqlQuery(QueryBuilder.fromTablename(tableName)).build();
+  public static QueryBuilderArgs create(final String dbSchemaName, final String tableName) {
+    checkArgument(tableName != null, "TableName cannot be null");
+    checkArgument(checkIfValidDatabaseObjectName(tableName),
+            "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+    checkArgument(checkSchemaName(dbSchemaName),
+            "'dbSchema' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+
+    return createBuilder().setBaseSqlQuery(
+            QueryBuilder.fromTablename(dbSchemaName,tableName)).build();
   }
 
   public static QueryBuilderArgs createFromQuery(final String sqlQuery) {
