@@ -49,30 +49,36 @@ class QueryBuilder implements Serializable {
   private static class TableQueryBase implements QueryBase {
 
     private final String tableName;
+    private final String dbSchemaName;
     private final String selectClause;
 
-    public TableQueryBase(final String tableName) {
-      this(tableName, DEFAULT_SELECT_CLAUSE);
+    public TableQueryBase(final String dbSchemaName, final String tableName) {
+      this(dbSchemaName, tableName, DEFAULT_SELECT_CLAUSE);
     }
 
-    public TableQueryBase(final String tableName, final String selectClause) {
+    public TableQueryBase(final String dbSchemaName, final String tableName,
+                          final String selectClause) {
       this.tableName = tableName;
       this.selectClause = selectClause;
+      this.dbSchemaName = dbSchemaName;
     }
 
     @Override
     public String getBaseSql() {
-      return String.format("%s FROM %s %s", selectClause, tableName, DEFAULT_WHERE_CLAUSE);
+      final String dbSchema = dbSchemaName == null ? "" : (dbSchemaName + ".");
+
+      return String.format("%s FROM %s%s %s", selectClause, dbSchema, tableName,
+              DEFAULT_WHERE_CLAUSE);
     }
 
     @Override
     public TableQueryBase withSelect(final String selectClause) {
-      return new TableQueryBase(this.tableName, selectClause);
+      return new TableQueryBase(this.dbSchemaName, this.tableName, selectClause);
     }
 
     @Override
     public int hashCode() {
-      return tableName.hashCode();
+      return (dbSchemaName + tableName).hashCode();
     }
   }
 
@@ -129,8 +135,13 @@ class QueryBuilder implements Serializable {
     this.limitStr = limitStr;
   }
 
+
   public static QueryBuilder fromTablename(final String tableName) {
-    return new QueryBuilder(new TableQueryBase(tableName));
+    return new QueryBuilder(new TableQueryBase(null,tableName));
+  }
+
+  public static QueryBuilder fromTablename(final String dbSchemaName, final String tableName) {
+    return new QueryBuilder(new TableQueryBase(dbSchemaName,tableName));
   }
 
   public static QueryBuilder fromSqlQuery(final String sqlQuery) {

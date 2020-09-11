@@ -38,6 +38,7 @@ import org.apache.avro.Schema;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
+import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Create;
@@ -91,7 +92,10 @@ public class JdbcAvroJob {
   public static PipelineOptions buildPipelineOptions(final String[] cmdLineArgs) {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
     PipelineOptionsFactory.register(OutputOptions.class);
-    return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
+    final PipelineOptions pipelineOptions = PipelineOptionsFactory.fromArgs(cmdLineArgs)
+        .withValidation().create();
+    FileSystems.setDefaultPipelineOptions(pipelineOptions);
+    return pipelineOptions;
   }
 
   public void prepareExport() throws Exception {
@@ -111,10 +115,12 @@ public class JdbcAvroJob {
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
-    BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
-    for (int i = 0; i < queries.size(); i++) {
-      BeamHelper.saveStringOnSubPath(
-          output, String.format("/_queries/query_%d.sql", i), queries.get(i));
+    if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
+      BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
+      for (int i = 0; i < queries.size(); i++) {
+        BeamHelper.saveStringOnSubPath(
+                output, String.format("/_queries/query_%d.sql", i), queries.get(i));
+      }
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
@@ -157,7 +163,10 @@ public class JdbcAvroJob {
   public PipelineResult runExport() throws Exception {
     prepareExport();
     final PipelineResult pipelineResult = runAndWait();
-    BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
+    if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
+      BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
+    }
+
     return pipelineResult;
   }
 

@@ -154,6 +154,7 @@ public class JdbcAvroSchema {
       case LONGNVARCHAR:
       case LONGVARCHAR:
       case NCHAR:
+      case DATE:
         return field.stringType().endUnion().nullDefault();
       case BIGINT:
         if (precision > 0 && precision <= JdbcAvroRecord.MAX_DIGITS_BIGINT) {
@@ -166,7 +167,6 @@ public class JdbcAvroSchema {
       case TINYINT:
         return field.intType().endUnion().nullDefault();
       case TIMESTAMP:
-      case DATE:
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
