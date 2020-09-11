@@ -42,6 +42,16 @@ public interface DBeamPipelineOptions extends PipelineOptions {
 
   void setSqlFile(String value);
 
+  @Description("A path to a file containing tables to move.")
+  String getTableList();
+
+  void setTableList(String value);
+
+  @Description("Number of threads (number of tables loaded in parallel).")
+  int getNumThreads();
+
+  void setNumThreads(int value);
+
   @Description("The database user name used by JDBC to authenticate.")
   @Default.String("dbeam-extractor")
   String getUsername();
