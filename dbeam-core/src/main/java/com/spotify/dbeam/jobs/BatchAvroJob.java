@@ -21,13 +21,14 @@
 package com.spotify.dbeam.jobs;
 
 import com.spotify.dbeam.options.DBeamPipelineOptions;
-import org.apache.beam.sdk.options.PipelineOptions;
-import org.apache.beam.sdk.options.PipelineOptionsFactory;
-
-import java.io.IOException;
+import com.spotify.dbeam.options.OutputOptions;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+import org.apache.beam.sdk.options.PipelineOptions;
 
 public class BatchAvroJob {
 
@@ -37,11 +38,22 @@ public class BatchAvroJob {
     this.job = job;
   }
 
-  public static BatchAvroJob create(final String[] cmdLineArgs)
-          throws IOException, ClassNotFoundException {
-    JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
+  public static void runExport(final String[] cmdLineArgs, String output, String schema,
+                               String table) {
 
-    return new BatchAvroJob(job);
+    try {
+      PipelineOptions pipelineOptions = JdbcAvroJob.buildPipelineOptions(cmdLineArgs);
+
+      pipelineOptions.as(DBeamPipelineOptions.class).setDbSchema(schema);
+      pipelineOptions.as(DBeamPipelineOptions.class).setTable(table);
+      pipelineOptions.as(OutputOptions.class).setOutput(Paths.get(output,schema,table).toString());
+
+      JdbcAvroJob job = JdbcAvroJob.create(pipelineOptions);
+
+      job.runExport();
+    } catch (Exception e) {
+      ExceptionHandling.handleException(e);
+    }
   }
 
   public static void main(String[] cmdLineArgs) {
@@ -50,17 +62,42 @@ public class BatchAvroJob {
 
     try {
       String tableList = options.as(DBeamPipelineOptions.class).getTableList();
+      String output = options.as(OutputOptions.class).getOutput();
+      int numThreads = options.as(DBeamPipelineOptions.class).getNumThreads();
+
+      ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
 
       try (Stream<String> stream = Files.lines(Paths.get(tableList))) {
-        stream.forEach(System.out::println);
+        stream
+            .map(x -> x.split("\\."))
+            .forEach(x -> {
+              executor.execute(new AvroJobTask(cmdLineArgs,output,x[0],x[1]));
+            });
+
       }
 
-
-    //  final BatchAvroJob batchAvroJob = create(cmdLineArgs);
-
-     // batchAvroJob.job.runExport();
+      executor.shutdown();
     } catch (Exception e) {
       ExceptionHandling.handleException(e);
+    }
+  }
+
+  static class AvroJobTask implements Runnable {
+    final String [] cmdLineArgs;
+    final String output;
+    final String schema;
+    final String table;
+
+    AvroJobTask(String[] cmdLineArgs, String output, String schema, String table) {
+      this.cmdLineArgs = cmdLineArgs;
+      this.output = output;
+      this.schema = schema;
+      this.table = table;
+    }
+
+    @Override
+    public void run() {
+      runExport(cmdLineArgs,output,schema,table);
     }
   }
 }

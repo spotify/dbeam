@@ -53,6 +53,7 @@ public interface DBeamPipelineOptions extends PipelineOptions {
   void setTableList(String value);
 
   @Description("Number of threads (number of tables loaded in parallel).")
+  @Default.Integer(1)
   int getNumThreads();
 
   void setNumThreads(int value);
