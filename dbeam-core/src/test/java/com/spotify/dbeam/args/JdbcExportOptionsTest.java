@@ -20,8 +20,10 @@
 
 package com.spotify.dbeam.args;
 
+import com.spotify.dbeam.jobs.JdbcAvroJob;
 import com.spotify.dbeam.options.JdbcExportArgsFactory;
 import com.spotify.dbeam.options.JdbcExportPipelineOptions;
+import com.spotify.dbeam.options.OutputOptions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -225,6 +227,26 @@ public class JdbcExportOptionsTest {
                 + "--password=secret --avroSchemaNamespace=ns");
 
     Assert.assertEquals("ns", options.avroSchemaNamespace());
+  }
+  
+  @Test
+  public void shouldConfigureOutputDataOnly() throws IOException, ClassNotFoundException {
+    PipelineOptions defaultDataOnlyoptions =
+        JdbcAvroJob.buildPipelineOptions(new String[] {
+            "--connectionUrl=jdbc:postgresql://some_db",
+            "--table=some_table",
+            "--password=secret"});
+
+    Assert.assertEquals(false, defaultDataOnlyoptions.as(OutputOptions.class).getDataOnly());
+
+    PipelineOptions options =
+        JdbcAvroJob.buildPipelineOptions(new String[] {
+            "--connectionUrl=jdbc:postgresql://some_db",
+            "--table=some_table",
+            "--password=secret",
+            "--dataOnly=true"});
+
+    Assert.assertEquals(true, options.as(OutputOptions.class).getDataOnly());
   }
 
   @Test
