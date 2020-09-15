@@ -113,6 +113,8 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --useAvroLogicalTypes=<Boolean>
     Default: false
     Controls whether generated Avro schema will contain logicalTypes or not.
+  --jsonPath=<filename>
+    Generates `jsonpath` file for redshift COPY command on specified path.
 ```
 
 #### Input Avro schema file

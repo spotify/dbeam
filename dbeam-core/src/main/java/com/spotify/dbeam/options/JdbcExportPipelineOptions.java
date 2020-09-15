@@ -120,6 +120,11 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setAvroSchemaFilePath(String value);
 
+  @Description("Create jsonpath file for redshift COPY command")
+  String getJsonPath();
+
+  void setJsonPath(String value);
+
   @Description("SQL commands to be executed before query.")
   List<String> getPreCommand();
 

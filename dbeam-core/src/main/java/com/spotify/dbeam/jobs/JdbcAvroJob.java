@@ -32,8 +32,12 @@ import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 import com.spotify.dbeam.options.JobNameConfiguration;
 import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.avro.Schema;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
@@ -107,14 +111,16 @@ public class JdbcAvroJob {
 
     final List<String> queries;
     final Schema generatedSchema;
+    final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
+
     try (Connection connection = jdbcExportArgs.createConnection()) {
       generatedSchema = createSchema(connection);
       queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
-      final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
+
     if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
       BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
       for (int i = 0; i < queries.size(); i++) {
@@ -122,6 +128,12 @@ public class JdbcAvroJob {
                 output, String.format("/_queries/query_%d.sql", i), queries.get(i));
       }
     }
+
+    if (pipelineOptions.as(JdbcExportPipelineOptions.class).getJsonPath() != null) {
+      final String jsonPath = pipelineOptions.as(JdbcExportPipelineOptions.class).getJsonPath();
+      BeamHelper.saveStringOnSubPath(output, jsonPath, getJsonpath(generatedSchema));
+    }
+
     LOGGER.info("Running queries: {}", queries.toString());
 
     pipeline
@@ -130,6 +142,16 @@ public class JdbcAvroJob {
             "JdbcAvroSave",
             JdbcAvroIO.createWrite(
                 output, ".avro", generatedSchema, jdbcExportArgs.jdbcAvroOptions()));
+  }
+
+  private String getJsonpath(final Schema generatedSchema) {
+    return "{ \"jsonpaths\": ["
+      + generatedSchema
+        .getFields()
+        .stream()
+        .map(s -> String.format("\"$.%s\"",s.name()))
+        .collect(Collectors.joining(","))
+      + "]}";
   }
 
   private Schema createSchema(final Connection connection) throws Exception {

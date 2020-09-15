@@ -117,10 +117,16 @@ public class JdbcAvroSchema {
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
       String columnName;
+      String cleanColumnName;
+
       if (meta.getColumnName(i).isEmpty()) {
         columnName = meta.getColumnLabel(i);
       } else {
         columnName = meta.getColumnName(i);
+      }
+
+      if (columnName.matches("^[0-9].*$")) {
+        columnName = "_" + columnName;
       }
 
       int columnType = meta.getColumnType(i);
