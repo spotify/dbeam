@@ -131,7 +131,8 @@ public class JdbcAvroJob {
 
     if (pipelineOptions.as(JdbcExportPipelineOptions.class).getJsonPath() != null) {
       final String jsonPath = pipelineOptions.as(JdbcExportPipelineOptions.class).getJsonPath();
-      BeamHelper.saveStringOnSubPath(output, jsonPath, getJsonpath(generatedSchema));
+      BeamHelper.saveStringOnSubPath(jsonPath,"/" + tableName + ".jsonpath",
+          getJsonpath(generatedSchema));
     }
 
     LOGGER.info("Running queries: {}", queries.toString());
