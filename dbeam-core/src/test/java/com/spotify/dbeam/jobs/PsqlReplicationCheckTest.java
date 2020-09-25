@@ -42,6 +42,7 @@ public class PsqlReplicationCheckTest {
         queryBuilderArgs,
         "dbeam_generated",
         Optional.empty(),
+        Optional.empty(),
         false,
         Duration.ZERO,
         Optional.empty());

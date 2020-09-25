@@ -64,6 +64,7 @@ public class JdbcAvroRecordTest {
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
             "dbeam_generated",
+            Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             false);
 
@@ -129,6 +130,7 @@ public class JdbcAvroRecordTest {
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
             "dbeam_generated",
+            Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             true);
 
@@ -139,6 +141,21 @@ public class JdbcAvroRecordTest {
   }
 
   @Test
+  public void shouldCreateSchemaWithCustomSchemaName() throws ClassNotFoundException, SQLException {
+    int fieldCount = 12;
+    Schema actual =
+        JdbcAvroSchema.createSchemaByReadingOneRow(
+            DbTestHelper.createConnection(CONNECTION_URL),
+            QueryBuilderArgs.create("COFFEES"),
+            "dbeam_generated",
+            Optional.of("CustomSchemaName"),
+            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            false);
+
+    Assert.assertEquals("CustomSchemaName", actual.getName());
+  }
+
+  @Test
   public void shouldEncodeResultSetToValidAvro()
       throws ClassNotFoundException, SQLException, IOException {
     ResultSet rs =
@@ -146,7 +163,8 @@ public class JdbcAvroRecordTest {
             .createStatement()
             .executeQuery("SELECT * FROM COFFEES");
     Schema schema =
-        JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated", "connection", "doc", false);
+        JdbcAvroSchema.createAvroSchema(
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
     JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));

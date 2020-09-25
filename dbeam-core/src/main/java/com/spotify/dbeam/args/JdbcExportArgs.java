@@ -37,6 +37,8 @@ public abstract class JdbcExportArgs implements Serializable {
 
   public abstract String avroSchemaNamespace();
 
+  public abstract Optional<String> avroSchemaName();
+
   public abstract Optional<String> avroDoc();
 
   public abstract Boolean useAvroLogicalTypes();
@@ -53,6 +55,8 @@ public abstract class JdbcExportArgs implements Serializable {
     abstract Builder setQueryBuilderArgs(QueryBuilderArgs queryBuilderArgs);
 
     abstract Builder setAvroSchemaNamespace(String avroSchemaNamespace);
+
+    abstract Builder setAvroSchemaName(Optional<String> avroSchemaName);
 
     abstract Builder setAvroDoc(Optional<String> avroDoc);
 
@@ -73,6 +77,7 @@ public abstract class JdbcExportArgs implements Serializable {
         queryBuilderArgs,
         "dbeam_generated",
         Optional.empty(),
+        Optional.empty(),
         false,
         Duration.ofDays(7),
         Optional.empty());
@@ -82,6 +87,7 @@ public abstract class JdbcExportArgs implements Serializable {
       final JdbcAvroArgs jdbcAvroArgs,
       final QueryBuilderArgs queryBuilderArgs,
       final String avroSchemaNamespace,
+      final Optional<String> avroSchemaName,
       final Optional<String> avroDoc,
       final Boolean useAvroLogicalTypes,
       final Duration exportTimeout,
@@ -90,6 +96,7 @@ public abstract class JdbcExportArgs implements Serializable {
         .setJdbcAvroOptions(jdbcAvroArgs)
         .setQueryBuilderArgs(queryBuilderArgs)
         .setAvroSchemaNamespace(avroSchemaNamespace)
+        .setAvroSchemaName(avroSchemaName)
         .setAvroDoc(avroDoc)
         .setUseAvroLogicalTypes(useAvroLogicalTypes)
         .setExportTimeout(exportTimeout)

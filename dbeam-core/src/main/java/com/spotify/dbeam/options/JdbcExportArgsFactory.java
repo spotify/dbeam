@@ -74,6 +74,7 @@ public class JdbcExportArgsFactory {
         jdbcAvroArgs,
         createQueryArgs(exportOptions),
         exportOptions.getAvroSchemaNamespace(),
+        Optional.ofNullable(exportOptions.getAvroSchemaName()),
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
         Duration.parse(exportOptions.getExportTimeout()),

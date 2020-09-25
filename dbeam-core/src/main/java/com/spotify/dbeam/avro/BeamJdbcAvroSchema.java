@@ -80,6 +80,7 @@ public class BeamJdbcAvroSchema {
         connection,
         args.queryBuilderArgs(),
         args.avroSchemaNamespace(),
+        args.avroSchemaName(),
         avroDoc,
         args.useAvroLogicalTypes());
   }
