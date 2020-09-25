@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,6 +52,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.slf4j.Logger;
@@ -65,6 +66,7 @@ public class JdbcAvroSchema {
       final Connection connection,
       final QueryBuilderArgs queryBuilderArgs,
       final String avroSchemaNamespace,
+      Optional<String> maybeSchemaName,
       final String avroDoc,
       final boolean useLogicalTypes)
       throws SQLException {
@@ -77,6 +79,7 @@ public class JdbcAvroSchema {
               resultSet,
               avroSchemaNamespace,
               connection.getMetaData().getURL(),
+              maybeSchemaName,
               avroDoc,
               useLogicalTypes);
       LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
@@ -88,14 +91,18 @@ public class JdbcAvroSchema {
       final ResultSet resultSet,
       final String avroSchemaNamespace,
       final String connectionUrl,
+      Optional<String> maybeSchemaName,
       final String avroDoc,
       final boolean useLogicalTypes)
       throws SQLException {
-    ResultSetMetaData meta = resultSet.getMetaData();
-    String tableName = "no_table_name";
 
-    if (meta.getColumnCount() > 0) {
-      tableName = normalizeForAvro(meta.getTableName(1));
+    ResultSetMetaData meta = resultSet.getMetaData();
+
+    final String tableName;
+    if (maybeSchemaName.isPresent()) {
+      tableName = maybeSchemaName.get();
+    } else {
+      tableName = getDatabaseTableName(meta);
     }
 
     SchemaBuilder.FieldAssembler<Schema> builder =
@@ -106,6 +113,16 @@ public class JdbcAvroSchema {
             .prop("connectionUrl", connectionUrl)
             .fields();
     return createAvroFields(meta, builder, useLogicalTypes).endRecord();
+  }
+
+  private static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
+    String tableName = "no_table_name";
+
+    if (meta.getColumnCount() > 0) {
+      tableName = normalizeForAvro(meta.getTableName(1));
+    }
+
+    return tableName;
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(

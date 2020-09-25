@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,6 +64,7 @@ public class JdbcAvroRecordTest {
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
             "dbeam_generated",
+            Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             false);
 
@@ -129,6 +130,7 @@ public class JdbcAvroRecordTest {
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
             "dbeam_generated",
+            Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             true);
 
@@ -146,7 +148,8 @@ public class JdbcAvroRecordTest {
             .createStatement()
             .executeQuery("SELECT * FROM COFFEES");
     Schema schema =
-        JdbcAvroSchema.createAvroSchema(rs, "dbeam_generated", "connection", "doc", false);
+        JdbcAvroSchema.createAvroSchema(
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
     JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));

@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,6 +47,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -111,6 +112,40 @@ public class JdbcAvroJobTest {
     List<GenericRecord> records =
         readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
     assertThat(records, hasSize(2));
+  }
+
+  @Test
+  public void shouldRunJdbcAvroJobWithCustomSchemaName() throws IOException {
+    Path outputPath = testDir.resolve("shouldRunJdbcAvroJobWithCustomSchemaName");
+
+    JdbcAvroJob.main(
+        new String[] {
+          "--targetParallelism=1", // no need for more threads when testing
+          "--partition=2025-02-28",
+          "--avroSchemaName=MyTable",
+          "--skipPartitionCheck",
+          "--exportTimeout=PT1M",
+          "--connectionUrl=" + CONNECTION_URL,
+          "--username=",
+          "--passwordFile=" + passwordPath.toString(),
+          "--table=COFFEES",
+          "--output=" + outputPath.toString(),
+          "--avroCodec=zstandard1"
+        });
+
+    assertThat(
+        TestHelper.listDir(outputPath.toFile()),
+        containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
+            "_METRICS.json",
+            "_SERVICE_METRICS.json",
+            "_queries",
+            "part-00000-of-00001.avro"));
+    assertThat(
+        TestHelper.listDir(outputPath.resolve("_queries").toFile()),
+        containsInAnyOrder("query_0.sql"));
+    Schema schema = new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    assertThat(schema.getName(), Matchers.is("MyTable"));
   }
 
   @Test
