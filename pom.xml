@@ -139,7 +139,6 @@
         <google-http-clients.version>1.34.0</google-http-clients.version>
         <google-oauth.version>1.31.0</google-oauth.version>
         <google-auth.version>0.20.0</google-auth.version>
-        <!--<google-cloud-core.version>1.92.2</google-cloud-core.version>-->
 
         <junit.version>4.13.1</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
@@ -322,33 +321,12 @@
             <dependency>
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-cloudkms</artifactId>
-                <version>v1-rev20200522-1.30.9</version>
-            </dependency>
-            <!--<dependency>-->
-                <!--<groupId>com.google.cloud</groupId>-->
-                <!--<artifactId>google-cloud-core</artifactId>-->
-                <!--<version>${google-cloud-core.version}</version>-->
-            <!--</dependency>-->
-
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.code.findbugs</groupId>
-                <artifactId>jsr305</artifactId>
-                <version>${findbugs.version}</version>
+                <version>v1-rev20200903-1.30.10</version>
             </dependency>
             <dependency>
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-storage</artifactId>
-                <version>v1-rev20181109-1.27.0</version>
+                <version>v1-rev20200611-${google-clients.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>
@@ -368,6 +346,21 @@
                 <version>1.4.5-6</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${findbugs.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>
