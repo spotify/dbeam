@@ -421,26 +421,6 @@
                 <version>2.3.4</version>
             </dependency>
             <dependency>
-                <groupId>com.google.api.grpc</groupId>
-                <artifactId>proto-google-common-protos</artifactId>
-                <version>${proto-google-common-protos.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.api-client</groupId>
-                <artifactId>google-api-client</artifactId>
-                <version>${google-clients.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.http-client</groupId>
-                        <artifactId>google-http-client-jackson2</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.guava</groupId>
-                        <artifactId>guava</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>com.google.http-client</groupId>
                 <artifactId>google-http-client</artifactId>
                 <version>${google-http-clients.version}</version>
