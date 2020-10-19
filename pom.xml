@@ -350,7 +350,6 @@
                 <artifactId>google-api-services-storage</artifactId>
                 <version>v1-rev20181109-1.27.0</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
@@ -363,6 +362,12 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>com.github.luben</groupId>
+                <artifactId>zstd-jni</artifactId>
+                <version>1.4.5-6</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>
