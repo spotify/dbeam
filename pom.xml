@@ -153,21 +153,20 @@
 
     <dependencyManagement>
         <dependencies>
-
-            <!-- SDK -->
             <dependency>
                 <groupId>org.apache.beam</groupId>
-                <artifactId>beam-sdks-java-core</artifactId>
+                <artifactId>beam-sdks-java-bom</artifactId>
                 <version>${beam.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
-            <!-- Log -->
+            <!-- Logs -->
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-jdk14</artifactId>
@@ -185,19 +184,8 @@
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
             </dependency>
+
             <!-- Runners -->
-
-            <dependency>
-                <groupId>org.apache.beam</groupId>
-                <artifactId>beam-runners-direct-java</artifactId>
-                <version>${beam.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.beam</groupId>
-                <artifactId>beam-sdks-java-extensions-google-cloud-platform-core</artifactId>
-                <version>${beam.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.apache.beam</groupId>
                 <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
