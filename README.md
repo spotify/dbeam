@@ -2,16 +2,16 @@
 DBeam
 =======
 
-[![Build Status](https://travis-ci.org/spotify/dbeam.svg?branch=master)](https://travis-ci.org/spotify/dbeam)
+[![Github Actions Build Status](https://github.com/spotify/dbeam/workflows/Java%20Maven/badge.svg)](https://github.com/spotify/dbeam/actions)
 [![codecov.io](https://codecov.io/github/spotify/dbeam/coverage.svg?branch=master)](https://codecov.io/github/spotify/dbeam?branch=master)
-[![GitHub license](https://img.shields.io/github/license/spotify/dbeam.svg)](./LICENSE)
+[![Apache Licensed](https://img.shields.io/github/license/spotify/dbeam.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/dbeam-core.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/dbeam-core)
 
 A connector tool to extract data from SQL databases and import into [GCS](https://cloud.google.com/storage/) using [Apache Beam](https://beam.apache.org/).
 
 This tool is runnable locally, or on any other backend supported by Apache Beam, e.g. [Cloud Dataflow](https://cloud.google.com/dataflow/).
 
-**DEVELOPMENT STATUS: Alpha. Usable in production already.**
+**DEVELOPMENT STATUS: Beta, with production usage since August 2017.**
 
 ## Overview
 
@@ -62,7 +62,9 @@ com.spotify.dbeam.options.OutputOptions:
   --output=<String>
     The path for storing the output.
   --dataOnly=<Boolean>
-    Store only the data files in output folder, skip queries, metrics and metadata files.
+    Default: false
+    Store only the data files in output folder, skip queries, metrics and
+    metadata files.
 
 com.spotify.dbeam.options.JdbcExportPipelineOptions:
     Configures the DBeam SQL export
@@ -74,12 +76,15 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
     The top-level record doc string of the generated avro schema.
   --avroSchemaFilePath=<String>
     Path to file with a target AVRO schema.
+  --avroSchemaName=<String>
+    The name of the generated avro schema. By default it uses the table name.
   --avroSchemaNamespace=<String>
     Default: dbeam_generated
     The namespace of the generated avro schema.
   --exportTimeout=<String>
     Default: P7D
-    Export timeout, after this duration the job is cancelled and the export terminated.
+    Export timeout, after this duration the job is cancelled and the export
+    terminated.
   --fetchSize=<Integer>
     Default: 10000
     Configures JDBC Statement fetch size.
@@ -94,20 +99,20 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
     The name of a date/timestamp column to filter data based on current
     partition.
   --partitionPeriod=<String>
-    The period frequency which the export runs, used to filter based on on current
+    The period frequency which the export runs, used to filter based on current
     partition and also to check if exports are running for too old partitions.
   --preCommand=<List>
     SQL commands to be executed before query.
   --queryParallelism=<Integer>
-    Max number of queries to run in parallel for exports. Single query used
-    if nothing specified. Should be used with splitColumn.
+    Max number of queries to run in parallel for exports. Single query used if
+    nothing specified. Should be used with splitColumn.
   --skipPartitionCheck=<Boolean>
     Default: false
     When partition column is not specified, fails if partition is too old; set
     this flag to ignore this check.
   --splitColumn=<String>
-    A long/integer column used to create splits for parallel queries.
-    Should be used with queryParallelism.
+    A long/integer column used to create splits for parallel queries. Should be
+    used with queryParallelism.
   --useAvroLogicalTypes=<Boolean>
     Default: false
     Controls whether generated Avro schema will contain logicalTypes or not.
@@ -120,9 +125,9 @@ properties when an output Avro schema is created.
 
 #### Following fields will be propagated from input into output schema:
 
-* `record.doc`   
-* `record.namespace`   
-* `record.field.doc`   
+* `record.doc`
+* `record.namespace`
+* `record.field.doc`
 
 
 #### DBeam Parallel Mode
@@ -146,7 +151,7 @@ For an export of a table running from a dedicated PostgresQL replica, we have se
 Building and testing can be achieved with `mvn`:
 
 ```sh
-mvn validate
+mvn verify
 ```
 
 In order to create a jar with all dependencies under `./dbeam-core/target/dbeam-core-shaded.jar` run the following:
@@ -157,7 +162,7 @@ mvn clean package -Ppack
 
 ## Usage examples
 
-Using java from the command line:
+Using Java from the command line:
 
 ```sh
 java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
@@ -254,14 +259,14 @@ For editor, [IntelliJ IDEA][idea] is recommended.
 To test and verify changes during development, run:
 
 ```sh
-mvn validate
+mvn verify
 ```
 
 Or:
 
 
 ```sh
-mvn validate -Pcoverage
+mvn verify -Pcoverage
 ```
 
 This project adheres to the [Open Code of Conduct][code-of-conduct]. By participating, you are
@@ -272,7 +277,7 @@ expected to honor this code.
 Every push to master will deploy a snapshot version to Sonatype.
 You can check the deployment in the following links:
 
-- https://travis-ci.org/spotify/dbeam/builds
+- https://github.com/spotify/dbeam/actions
 - https://oss.sonatype.org/#nexus-search;quick~dbeam-core
 
 ---

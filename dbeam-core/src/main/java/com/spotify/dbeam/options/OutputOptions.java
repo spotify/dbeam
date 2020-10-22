@@ -34,10 +34,9 @@ public interface OutputOptions extends PipelineOptions {
   void setOutput(String value);
 
   @Default.Boolean(false)
-  @Description("Store only the data files in output folder, skip queries,"
-          + " metrics and metadata files.")
+  @Description(
+      "Store only the data files in output folder, skip queries," + " metrics and metadata files.")
   Boolean getDataOnly();
 
   void setDataOnly(Boolean value);
-
 }

@@ -114,10 +114,9 @@ public class JdbcAvroJobTest {
     assertThat(records, hasSize(2));
   }
 
-
   @Test
   public void shouldRunJdbcAvroJobDataOnly() throws IOException {
-    Path outputPath = testDir.resolve("shouldRunJdbcAvroJobDataOnly");
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJobDataOnly");
 
     JdbcAvroJob.main(
         new String[] {
@@ -135,9 +134,7 @@ public class JdbcAvroJobTest {
         });
 
     assertThat(
-            TestHelper.listDir(outputPath.toFile()),
-            containsInAnyOrder(
-                    "part-00000-of-00001.avro"));
+        TestHelper.listDir(outputPath.toFile()), containsInAnyOrder("part-00000-of-00001.avro"));
   }
 
   @Test

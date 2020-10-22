@@ -229,23 +229,28 @@ public class JdbcExportOptionsTest {
 
     Assert.assertEquals("ns", options.avroSchemaNamespace());
   }
-  
+
   @Test
-  public void shouldConfigureOutputDataOnly() throws IOException, ClassNotFoundException {
-    PipelineOptions defaultDataOnlyoptions =
-        JdbcAvroJob.buildPipelineOptions(new String[] {
-            "--connectionUrl=jdbc:postgresql://some_db",
-            "--table=some_table",
-            "--password=secret"});
+  public void shouldDefaultOutputDataOnlyToFalse() throws IOException, ClassNotFoundException {
+    final PipelineOptions defaultDataOnlyoptions =
+        JdbcAvroJob.buildPipelineOptions(
+            new String[] {
+              "--connectionUrl=jdbc:postgresql://some_db", "--table=some_table", "--password=secret"
+            });
 
     Assert.assertEquals(false, defaultDataOnlyoptions.as(OutputOptions.class).getDataOnly());
+  }
 
-    PipelineOptions options =
-        JdbcAvroJob.buildPipelineOptions(new String[] {
-            "--connectionUrl=jdbc:postgresql://some_db",
-            "--table=some_table",
-            "--password=secret",
-            "--dataOnly=true"});
+  @Test
+  public void shouldConfigureOutputDataOnly() throws IOException, ClassNotFoundException {
+    final PipelineOptions options =
+        JdbcAvroJob.buildPipelineOptions(
+            new String[] {
+              "--connectionUrl=jdbc:postgresql://some_db",
+              "--table=some_table",
+              "--password=secret",
+              "--dataOnly"
+            });
 
     Assert.assertEquals(true, options.as(OutputOptions.class).getDataOnly());
   }

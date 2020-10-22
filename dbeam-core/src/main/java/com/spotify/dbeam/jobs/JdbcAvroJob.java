@@ -52,16 +52,19 @@ public class JdbcAvroJob {
   private final Pipeline pipeline;
   private final JdbcExportArgs jdbcExportArgs;
   private final String output;
+  private final boolean dataOnly;
 
   public JdbcAvroJob(
       final PipelineOptions pipelineOptions,
       final Pipeline pipeline,
       final JdbcExportArgs jdbcExportArgs,
-      final String output) {
+      final String output,
+      final boolean dataOnly) {
     this.pipelineOptions = pipelineOptions;
     this.pipeline = pipeline;
     this.jdbcExportArgs = jdbcExportArgs;
     this.output = output;
+    this.dataOnly = dataOnly;
     Preconditions.checkArgument(
         this.output != null && this.output.length() > 0, "'output' must be defined");
   }
@@ -75,7 +78,8 @@ public class JdbcAvroJob {
         pipelineOptions,
         Pipeline.create(pipelineOptions),
         JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
-        output);
+        output,
+        pipelineOptions.as(OutputOptions.class).getDataOnly());
   }
 
   public static JdbcAvroJob create(final PipelineOptions pipelineOptions)
@@ -111,11 +115,11 @@ public class JdbcAvroJob {
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
-    if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
+    if (!this.dataOnly) {
       BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", generatedSchema.toString(true));
       for (int i = 0; i < queries.size(); i++) {
         BeamHelper.saveStringOnSubPath(
-                output, String.format("/_queries/query_%d.sql", i), queries.get(i));
+            this.output, String.format("/_queries/query_%d.sql", i), queries.get(i));
       }
     }
     LOGGER.info("Running queries: {}", queries.toString());
@@ -159,7 +163,7 @@ public class JdbcAvroJob {
   public PipelineResult runExport() throws Exception {
     prepareExport();
     final PipelineResult pipelineResult = runAndWait();
-    if (!pipelineOptions.as(OutputOptions.class).getDataOnly()) {
+    if (!this.dataOnly) {
       BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
     }
 
