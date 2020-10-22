@@ -72,8 +72,7 @@ public class QueryBuilderArgsTest {
     QueryBuilderArgs.create("*invalid#name@!");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnTableNameWithDots() {
+  public void shouldNotFailOnTableNameWithDots() {
     QueryBuilderArgs.create("foo.bar");
   }
 

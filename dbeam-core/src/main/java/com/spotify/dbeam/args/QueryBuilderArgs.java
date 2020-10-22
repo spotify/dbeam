@@ -88,7 +88,7 @@ public abstract class QueryBuilderArgs implements Serializable {
   }
 
   private static Boolean checkTableName(final String tableName) {
-    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_]*$");
+    return tableName.matches("^[a-zA-Z_][a-zA-Z0-9_.]*$");
   }
 
   private static Builder createBuilder() {
@@ -97,7 +97,7 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public static QueryBuilderArgs create(final String tableName) {
     checkArgument(tableName != null, "TableName cannot be null");
-    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_]*");
+    checkArgument(checkTableName(tableName), "'table' must follow [a-zA-Z_][a-zA-Z0-9_.]*");
 
     return createBuilder().setBaseSqlQuery(QueryBuilder.fromTablename(tableName)).build();
   }
