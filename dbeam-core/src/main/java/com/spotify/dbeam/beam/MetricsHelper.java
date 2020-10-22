@@ -84,8 +84,8 @@ public class MetricsHelper {
     return Collections.unmodifiableMap(ret);
   }
 
-  private static void addCalculatedMetrics(final Map<String, Long> counters,
-                                           final Map<String, Long> ret) {
+  private static void addCalculatedMetrics(
+      final Map<String, Long> counters, final Map<String, Long> ret) {
     // calculate and add KBps
     final Long writeElapsedMs = counters.get("writeElapsedMs");
     final Long kbps;

@@ -83,7 +83,7 @@ public abstract class JdbcConnectionArgs implements Serializable {
   public Connection createConnection() throws Exception {
     Class.forName(driverClassName());
     LOGGER.info("Creating JDBC connection to {} with user {}", url(), username());
-    Connection connection = DriverManager.getConnection(url(), username(), password());
+    final Connection connection = DriverManager.getConnection(url(), username(), password());
     connection.setAutoCommit(false);
     return connection;
   }

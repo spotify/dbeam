@@ -42,15 +42,16 @@ public class ParallelQueryBuilder implements Serializable {
    * @throws SQLException when there is an exception retrieving the max and min fails.
    */
   static long[] findInputBounds(
-      Connection connection, QueryBuilder queryBuilder, String splitColumn) throws SQLException {
-    String minColumnName = "min_s";
-    String maxColumnName = "max_s";
-    String limitsQuery =
+      final Connection connection, final QueryBuilder queryBuilder, final String splitColumn)
+      throws SQLException {
+    final String minColumnName = "min_s";
+    final String maxColumnName = "max_s";
+    final String limitsQuery =
         queryBuilder
             .generateQueryToGetLimitsOfSplitColumn(splitColumn, minColumnName, maxColumnName)
             .build();
-    long min;
-    long max;
+    final long min;
+    final long max;
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(limitsQuery);
       // Check and make sure we have a record. This should ideally succeed always.
@@ -112,17 +113,21 @@ public class ParallelQueryBuilder implements Serializable {
    * @return a list of SQL queries
    */
   protected static List<String> queriesForBounds(
-      long min, long max, int parallelism, String splitColumn, QueryBuilder queryBuilder) {
+      final long min,
+      final long max,
+      final int parallelism,
+      final String splitColumn,
+      final QueryBuilder queryBuilder) {
 
-    List<QueryRange> ranges = generateRanges(min, max, parallelism);
+    final List<QueryRange> ranges = generateRanges(min, max, parallelism);
 
     return ranges.stream()
         .map(
-            x -> queryBuilder
-                .withParallelizationCondition(
-                    splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
-                .build()
-        )
+            x ->
+                queryBuilder
+                    .withParallelizationCondition(
+                        splitColumn, x.getStartPointIncl(), x.getEndPoint(), x.isEndPointExcl())
+                    .build())
         .collect(Collectors.toList());
   }
 
@@ -135,12 +140,13 @@ public class ParallelQueryBuilder implements Serializable {
    * @param parallelism max number of queries to generate
    * @return A list query ranges
    */
-  protected static List<QueryRange> generateRanges(long min, long max, int parallelism) {
+  protected static List<QueryRange> generateRanges(
+      final long min, final long max, final int parallelism) {
     // We try not to generate more than queryParallelism. Hence we don't want to loose number by
     // rounding down. Also when queryParallelism is higher than max - min, we don't want 0 ranges
     long bucketSize = (long) Math.ceil((double) (max - min) / (double) parallelism);
     bucketSize = bucketSize == 0 ? 1 : bucketSize; // If max and min is same, we export only 1 query
-    List<QueryRange> ranges = new ArrayList<>(parallelism);
+    final List<QueryRange> ranges = new ArrayList<>(parallelism);
 
     long i = min;
     while (i + bucketSize < max) {

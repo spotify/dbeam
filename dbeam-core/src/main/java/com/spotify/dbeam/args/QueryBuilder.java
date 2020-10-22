@@ -122,8 +122,8 @@ class QueryBuilder implements Serializable {
     this.whereConditions = ImmutableList.of();
   }
 
-  private QueryBuilder(final QueryBase base, final List<String> whereConditions,
-                       final Optional<String> limitStr) {
+  private QueryBuilder(
+      final QueryBase base, final List<String> whereConditions, final Optional<String> limitStr) {
     this.base = base;
     this.whereConditions = whereConditions;
     this.limitStr = limitStr;
@@ -142,10 +142,11 @@ class QueryBuilder implements Serializable {
     return new QueryBuilder(
         this.base,
         Stream.concat(
-            this.whereConditions.stream(),
-            Stream.of(createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl))
-        ).collect(Collectors.toList()), this.limitStr
-    );
+                this.whereConditions.stream(),
+                Stream.of(
+                    createSqlPartitionCondition(partitionColumn, startPointIncl, endPointExcl)))
+            .collect(Collectors.toList()),
+        this.limitStr);
   }
 
   private static String createSqlPartitionCondition(
@@ -156,21 +157,26 @@ class QueryBuilder implements Serializable {
   }
 
   public QueryBuilder withParallelizationCondition(
-      final String partitionColumn, final long startPointIncl,
-      final long endPoint, final boolean isEndPointExcl) {
+      final String partitionColumn,
+      final long startPointIncl,
+      final long endPoint,
+      final boolean isEndPointExcl) {
     return new QueryBuilder(
         this.base,
         Stream.concat(
-            this.whereConditions.stream(),
-            Stream.of(
-                createSqlSplitCondition(partitionColumn, startPointIncl, endPoint, isEndPointExcl))
-        ).collect(Collectors.toList()), this.limitStr
-    );
+                this.whereConditions.stream(),
+                Stream.of(
+                    createSqlSplitCondition(
+                        partitionColumn, startPointIncl, endPoint, isEndPointExcl)))
+            .collect(Collectors.toList()),
+        this.limitStr);
   }
 
   private static String createSqlSplitCondition(
-      final String partitionColumn, final long startPointIncl,
-      final long endPoint, final boolean isEndPointExcl) {
+      final String partitionColumn,
+      final long startPointIncl,
+      final long endPoint,
+      final boolean isEndPointExcl) {
 
     String upperBoundOperation = isEndPointExcl ? "<" : "<=";
     return String.format(
@@ -199,9 +205,7 @@ class QueryBuilder implements Serializable {
 
   public QueryBuilder withLimit(long limit) {
     return new QueryBuilder(
-        this.base,
-        this.whereConditions, Optional.of(String.format(" LIMIT %d", limit))
-    );
+        this.base, this.whereConditions, Optional.of(String.format(" LIMIT %d", limit)));
   }
 
   @Override
@@ -237,7 +241,7 @@ class QueryBuilder implements Serializable {
   public QueryBuilder generateQueryToGetLimitsOfSplitColumn(
       String splitColumn, String minSplitColumnName, String maxSplitColumnName) {
 
-    String selectMinMax =
+    final String selectMinMax =
         String.format(
             "SELECT MIN(%s) as %s, MAX(%s) as %s",
             splitColumn, minSplitColumnName, splitColumn, maxSplitColumnName);

@@ -85,9 +85,9 @@ public class JdbcExportArgsFactory {
       throws IOException {
     final TemporalAmount partitionPeriod =
         partitionPeriodTemporalAmount(options.getPartitionPeriod());
-    Optional<Instant> partition =
+    final Optional<Instant> partition =
         Optional.ofNullable(options.getPartition()).map(JdbcExportArgsFactory::parseInstant);
-    Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
+    final Optional<String> partitionColumn = Optional.ofNullable(options.getPartitionColumn());
     checkArgument(
         !partitionColumn.isPresent() || partition.isPresent(),
         "To use --partitionColumn the --partition parameter must also be configured");
@@ -130,10 +130,9 @@ public class JdbcExportArgsFactory {
   }
 
   /**
-   * Defaults to a Period of 1 days in case of empty.
-   * If partitionPeriod argument is a sub day unit (e.g. hourly), then uses Duration (stored in
-   * seconds).
-   * Otherwise use Period.
+   * Defaults to a Period of 1 days in case of empty. If partitionPeriod argument is a sub day unit
+   * (e.g. hourly), then uses Duration (stored in seconds). Otherwise use Period.
+   *
    * @param partitionPeriod partitionPeriod parameter to be parsed
    * @return
    */

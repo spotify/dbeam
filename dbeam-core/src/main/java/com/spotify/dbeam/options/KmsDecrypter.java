@@ -148,9 +148,7 @@ public abstract class KmsDecrypter {
     final HttpTransport transport = transport().orElseGet(Utils::getDefaultTransport);
     final JsonFactory jsonFactory = Utils.getDefaultJsonFactory();
     final Credentials credentials =
-        credentials().isPresent()
-            ? credentials().get()
-            : GoogleCredentials.getApplicationDefault();
+        credentials().isPresent() ? credentials().get() : GoogleCredentials.getApplicationDefault();
     return KmsDecrypter.kms(
         transport, jsonFactory, new HttpCredentialsAdapter(scoped(credentials)));
   }
@@ -159,15 +157,14 @@ public abstract class KmsDecrypter {
       final HttpTransport transport,
       final JsonFactory jsonFactory,
       final HttpRequestInitializer httpRequestInitializer) {
-    return new CloudKMS.Builder(
-        transport, jsonFactory, httpRequestInitializer)
+    return new CloudKMS.Builder(transport, jsonFactory, httpRequestInitializer)
         .setApplicationName("dbeam")
         .build();
   }
 
   private static Credentials scoped(final Credentials credentials) {
     if (credentials instanceof GoogleCredentials) {
-      return ((GoogleCredentials)credentials).createScoped(CloudKMSScopes.all());
+      return ((GoogleCredentials) credentials).createScoped(CloudKMSScopes.all());
     }
     return credentials;
   }

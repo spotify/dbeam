@@ -34,7 +34,7 @@ public class PsqlAvroJob {
 
   public static PsqlAvroJob create(final String[] cmdLineArgs)
       throws IOException, ClassNotFoundException {
-    JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
+    final JdbcAvroJob job = JdbcAvroJob.create(cmdLineArgs);
     PsqlReplicationCheck.validateOptions(job.getJdbcExportArgs());
     final PsqlReplicationCheck psqlReplicationCheck =
         PsqlReplicationCheck.create(job.getJdbcExportArgs());

@@ -74,8 +74,7 @@ public class JdbcAvroJobTest {
     passwordPath = testDir.resolve(".password");
     sqlPath = testDir.resolve("query.sql");
     passwordPath.toFile().createNewFile();
-    Files.write(
-        sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
+    Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 

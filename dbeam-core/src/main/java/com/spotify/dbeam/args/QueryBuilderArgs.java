@@ -125,15 +125,17 @@ public abstract class QueryBuilderArgs implements Serializable {
   public List<String> buildQueries(final Connection connection) throws SQLException {
     QueryBuilder queryBuilder = this.baseSqlQuery();
     if (this.partitionColumn().isPresent() && this.partition().isPresent()) {
-      queryBuilder = configurePartitionCondition(
-          this.partitionColumn().get(),
-          this.partition().get(),
-          partitionPeriod(),
-          queryBuilder);
+      queryBuilder =
+          configurePartitionCondition(
+              this.partitionColumn().get(),
+              this.partition().get(),
+              partitionPeriod(),
+              queryBuilder);
     }
     if (this.limit().isPresent()) {
-      queryBuilder = queryBuilder
-          .withLimit(queryParallelism().map(k -> limit().get() / k).orElse(limit().get()));
+      queryBuilder =
+          queryBuilder.withLimit(
+              queryParallelism().map(k -> limit().get() / k).orElse(limit().get()));
     }
 
     if (queryParallelism().isPresent() && splitColumn().isPresent()) {
@@ -148,23 +150,21 @@ public abstract class QueryBuilderArgs implements Serializable {
     }
   }
 
-  private QueryBuilder configurePartitionCondition(final String partitionColumn,
-                                                   final Instant partition,
-                                                   final TemporalAmount partitionPeriod,
-                                                   final QueryBuilder queryBuilder) {
+  private QueryBuilder configurePartitionCondition(
+      final String partitionColumn,
+      final Instant partition,
+      final TemporalAmount partitionPeriod,
+      final QueryBuilder queryBuilder) {
     if (partitionPeriod() instanceof Period) {
       final LocalDate partitionDate = partition.atZone(ZoneOffset.UTC).toLocalDate();
       final LocalDate nextPartition = partitionDate.plus(partitionPeriod);
       return queryBuilder.withPartitionCondition(
-          partitionColumn,
-          partitionDate.toString(),
-          nextPartition.toString());
+          partitionColumn, partitionDate.toString(), nextPartition.toString());
     } else {
       // in case of sub daily period, use the full timestamp
       final Instant nextPartition = partition.plus(partitionPeriod);
       return queryBuilder.withPartitionCondition(
-              partitionColumn, partition.toString(), nextPartition.toString());
+          partitionColumn, partition.toString(), nextPartition.toString());
     }
   }
-
 }

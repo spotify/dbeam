@@ -94,8 +94,8 @@ public class PsqlReplicationCheck {
     return false;
   }
 
-  private static Instant partitionPlusPeriod(final Instant partition,
-                                             final TemporalAmount partitionPeriod) {
+  private static Instant partitionPlusPeriod(
+      final Instant partition, final TemporalAmount partitionPeriod) {
     if (partitionPeriod instanceof Period) {
       return partition.atOffset(ZoneOffset.UTC).plus(partitionPeriod).toInstant();
     } else {

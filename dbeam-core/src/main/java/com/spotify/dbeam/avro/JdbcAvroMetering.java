@@ -61,9 +61,9 @@ public class JdbcAvroMetering {
     this.rowCount++;
     if ((this.rowCount % countReportEvery) == 0) {
       this.recordCount.inc(countReportEvery);
-      long elapsedNano = System.nanoTime() - this.writeIterateStartTime;
-      long msPerMillionRows = elapsedNano / rowCount;
-      long rowsPerMinute = (60 * 1000000000L) * rowCount / elapsedNano;
+      final long elapsedNano = System.nanoTime() - this.writeIterateStartTime;
+      final long msPerMillionRows = elapsedNano / rowCount;
+      final long rowsPerMinute = (60 * 1000000000L) * rowCount / elapsedNano;
       this.msPerMillionRows.set(msPerMillionRows);
       this.rowsPerMinute.set(rowsPerMinute);
       if ((this.rowCount % logEvery) == 0) {

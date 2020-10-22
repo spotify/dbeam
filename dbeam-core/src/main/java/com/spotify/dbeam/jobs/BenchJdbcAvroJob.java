@@ -78,26 +78,32 @@ public class BenchJdbcAvroJob {
   }
 
   private String tsvMetrics() {
-    final List<String> columns = newArrayList(
-        "recordCount", "writeElapsedMs", "msPerMillionRows", "bytesWritten", "KbWritePerSec");
+    final List<String> columns =
+        newArrayList(
+            "recordCount", "writeElapsedMs", "msPerMillionRows", "bytesWritten", "KbWritePerSec");
     final Collector<CharSequence, ?, String> tabJoining = Collectors.joining("\t");
     final Stream<String> lines =
         IntStream.range(0, this.metrics.size())
-            .mapToObj(i ->
-                String.format(
-                    "run_%02d  \t%s",
-                    i,
-                    columns.stream()
-                        .map(c -> String.format("% 10d",
-                            Optional.of(this.metrics.get(i).get(c)).orElse(0L)))
-                        .collect(tabJoining)));
+            .mapToObj(
+                i ->
+                    String.format(
+                        "run_%02d  \t%s",
+                        i,
+                        columns.stream()
+                            .map(
+                                c ->
+                                    String.format(
+                                        "% 10d",
+                                        Optional.of(this.metrics.get(i).get(c)).orElse(0L)))
+                            .collect(tabJoining)));
     final List<Stats> stats =
         columns.stream()
-            .map(c ->
-                Stats.of(
-                    (Iterable<Long>)
-                        this.metrics.stream().map(m -> Optional.of(m.get(c)).orElse(0L))
-                            ::iterator))
+            .map(
+                c ->
+                    Stats.of(
+                        (Iterable<Long>)
+                            this.metrics.stream().map(m -> Optional.of(m.get(c)).orElse(0L))
+                                ::iterator))
             .collect(Collectors.toList());
     final Map<String, Function<Stats, Double>> relevantStats =
         ImmutableMap.of(
@@ -107,18 +113,19 @@ public class BenchJdbcAvroJob {
             "stddev  ", Stats::populationStandardDeviation);
     final Stream<String> statsSummary =
         relevantStats.entrySet().stream()
-            .map(e ->
-                String.format(
-                    "%s\t%s",
-                    e.getKey(),
-                    stats.stream()
-                        .map(e.getValue())
-                        .map(v -> String.format("% 10.1f", v))
-                        .collect(tabJoining)));
-    return String.format("name    \t%12s\n%s",
+            .map(
+                e ->
+                    String.format(
+                        "%s\t%s",
+                        e.getKey(),
+                        stats.stream()
+                            .map(e.getValue())
+                            .map(v -> String.format("% 10.1f", v))
+                            .collect(tabJoining)));
+    return String.format(
+        "name    \t%12s\n%s",
         String.join("\t", columns),
-        Stream.concat(lines, statsSummary)
-            .collect(Collectors.joining("\n")));
+        Stream.concat(lines, statsSummary).collect(Collectors.joining("\n")));
   }
 
   public static void main(String[] cmdLineArgs) {

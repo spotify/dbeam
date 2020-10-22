@@ -96,8 +96,8 @@ public class BeamJdbcAvroSchema {
   }
 
   public static Schema parseInputAvroSchemaFile(final String filename) throws IOException {
-    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
-    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
+    final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
+    final InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
 
     return new Schema.Parser().parse(inputStream);
   }

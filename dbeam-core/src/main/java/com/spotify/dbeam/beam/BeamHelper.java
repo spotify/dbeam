@@ -76,7 +76,7 @@ public class BeamHelper {
 
   public static void writeToFile(final String filename, final ByteBuffer contents)
       throws IOException {
-    ResourceId resourceId = FileSystems.matchNewResource(filename, false);
+    final ResourceId resourceId = FileSystems.matchNewResource(filename, false);
     try (WritableByteChannel out = FileSystems.create(resourceId, MimeTypes.TEXT)) {
       out.write(contents);
     }
@@ -84,7 +84,7 @@ public class BeamHelper {
 
   public static void saveStringOnSubPath(
       final String path, final String subPath, final String contents) throws IOException {
-    String filename = path.replaceAll("/+$", "") + subPath;
+    final String filename = path.replaceAll("/+$", "") + subPath;
     writeToFile(filename, ByteBuffer.wrap(contents.getBytes(Charset.defaultCharset())));
   }
 
@@ -104,8 +104,8 @@ public class BeamHelper {
   }
 
   public static String readFromFile(final String fileSpec) throws IOException {
-    MatchResult.Metadata m = FileSystems.matchSingleFileSpec(fileSpec);
-    InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
+    final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(fileSpec);
+    final InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
     return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
   }
 }
