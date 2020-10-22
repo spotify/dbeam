@@ -50,14 +50,15 @@ public class PsqlReplicationCheckTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnInvalidDriver() throws ClassNotFoundException {
-    JdbcExportArgs args = createArgs("jdbc:mysql://some_db", QueryBuilderArgs.create("some_table"));
+    final JdbcExportArgs args =
+        createArgs("jdbc:mysql://some_db", QueryBuilderArgs.create("some_table"));
 
     PsqlReplicationCheck.validateOptions(args);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnMissingPartition() throws ClassNotFoundException {
-    JdbcExportArgs args =
+    final JdbcExportArgs args =
         createArgs("jdbc:postgresql://some_db", QueryBuilderArgs.create("some_table"));
 
     PsqlReplicationCheck.validateOptions(args);
@@ -77,9 +78,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeNotReplicationDelayedWhenReplicatedUntilEndOfPartition() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-08-01T00:00:00Z");
-    Period partitionPeriod = Period.ofDays(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-08-01T00:00:00Z");
+    final Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertFalse(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -87,9 +88,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeNotReplicationDelayedWhenReplicatedUntilEndTheNextDay() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-08-02T00:00:00Z");
-    Period partitionPeriod = Period.ofDays(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-08-02T00:00:00Z");
+    final Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertFalse(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -97,9 +98,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeReplicationDelayedWhenReplicatedUpToPartitionStart() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-07-31T00:00:00Z");
-    Period partitionPeriod = Period.ofDays(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-07-31T00:00:00Z");
+    final Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -107,9 +108,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeReplicationDelayedWhenReplicatedBeforePartitionStart() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-07-30T22:00:00Z");
-    Period partitionPeriod = Period.ofDays(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-07-30T22:00:00Z");
+    final Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -117,9 +118,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeReplicationDelayedWhenReplicatedInsidePartition() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
-    Period partitionPeriod = Period.ofDays(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
+    final Period partitionPeriod = Period.ofDays(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -127,9 +128,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldWorkWithMonthlyPartitionPeriod() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
-    Period partitionPeriod = Period.ofMonths(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
+    final Period partitionPeriod = Period.ofMonths(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -137,9 +138,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeDelayedWithHourlyPartitionPeriod() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
-    Duration partitionPeriod = Duration.ofHours(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
+    final Duration partitionPeriod = Duration.ofHours(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -147,9 +148,9 @@ public class PsqlReplicationCheckTest {
 
   @Test
   public void shouldBeNotDelayedWithHourlyPartitionPeriod() {
-    Instant partition = Instant.parse("2027-07-31T00:00:00Z");
-    Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
-    Duration partitionPeriod = Duration.ofHours(1);
+    final Instant partition = Instant.parse("2027-07-31T00:00:00Z");
+    final Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
+    final Duration partitionPeriod = Duration.ofHours(1);
 
     Assert.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
@@ -157,11 +158,11 @@ public class PsqlReplicationCheckTest {
 
   @Test(expected = NotReadyException.class)
   public void shouldRunQueryAndReturnReplicationDelayed() throws Exception {
-    String query =
+    final String query =
         "SELECT parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')"
             + " AS last_replication, "
             + "13 AS replication_delay";
-    PsqlReplicationCheck replicationCheck =
+    final PsqlReplicationCheck replicationCheck =
         new PsqlReplicationCheck(
             createArgs(
                 CONNECTION_URL,
@@ -170,9 +171,9 @@ public class PsqlReplicationCheckTest {
                     .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
                     .build()),
             query);
-    Instant expectedLastReplication = Instant.parse("2017-02-01T23:58:57Z");
+    final Instant expectedLastReplication = Instant.parse("2017-02-01T23:58:57Z");
 
-    Instant actual = replicationCheck.queryReplication();
+    final Instant actual = replicationCheck.queryReplication();
 
     Assert.assertEquals(expectedLastReplication, actual);
     Assert.assertTrue(replicationCheck.isReplicationDelayed());
@@ -185,7 +186,7 @@ public class PsqlReplicationCheckTest {
         "SELECT parsedatetime('2030-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')"
             + " AS last_replication, "
             + "13 AS replication_delay";
-    PsqlReplicationCheck replicationCheck =
+    final PsqlReplicationCheck replicationCheck =
         new PsqlReplicationCheck(
             createArgs(
                 CONNECTION_URL,
@@ -194,9 +195,9 @@ public class PsqlReplicationCheckTest {
                     .setPartition(Instant.parse("2025-02-28T00:00:00Z"))
                     .build()),
             query);
-    Instant expectedLastReplication = Instant.parse("2030-02-01T23:58:57Z");
+    final Instant expectedLastReplication = Instant.parse("2030-02-01T23:58:57Z");
 
-    Instant actual = replicationCheck.queryReplication();
+    final Instant actual = replicationCheck.queryReplication();
 
     Assert.assertEquals(expectedLastReplication, actual);
     Assert.assertFalse(replicationCheck.isReplicationDelayed());

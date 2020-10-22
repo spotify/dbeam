@@ -78,7 +78,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldCreateValidSqlQueryFromUserQuery() throws SQLException {
-    QueryBuilderArgs args = QueryBuilderArgs.createFromQuery("SELECT * FROM some_table");
+    final QueryBuilderArgs args = QueryBuilderArgs.createFromQuery("SELECT * FROM some_table");
 
     Assert.assertEquals(
         Lists.newArrayList("SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1"),
@@ -87,7 +87,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigureLimit() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions("--connectionUrl=jdbc:postgresql://some_db --table=some_table " + "--limit=7");
 
     Assert.assertEquals(
@@ -97,7 +97,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartition() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31");
@@ -109,7 +109,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionForFullIsoString() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31T13:37:59Z");
@@ -119,7 +119,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionForMonthlySchedule() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-05");
@@ -129,7 +129,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionForHourlySchedule() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-05-02T23");
@@ -139,7 +139,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionColumn() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31 --partitionColumn=col");
@@ -153,7 +153,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionColumnAndLimit() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31 --partitionColumn=col --limit=5");
@@ -167,7 +167,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionColumnAndPartitionPeriod() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M");
@@ -182,7 +182,7 @@ public class QueryBuilderArgsTest {
   @Test
   public void shouldConfigurePartitionColumnAndPartitionPeriodForHourly()
       throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31T00 --partitionColumn=col --partitionPeriod=PT1H");
@@ -198,7 +198,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigureLimitForSqlFile() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             String.format(
                 "--connectionUrl=jdbc:postgresql://some_db " + "--sqlFile=%s --limit=7",
@@ -213,7 +213,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldConfigurePartitionColumnAndLimitForSqlFile() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             String.format(
                 "--connectionUrl=jdbc:postgresql://some_db "
@@ -230,7 +230,7 @@ public class QueryBuilderArgsTest {
   @Test
   public void shouldConfigurePartitionColumnAndPartitionPeriodForSqlFile()
       throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             String.format(
                 "--connectionUrl=jdbc:postgresql://some_db "
@@ -248,7 +248,7 @@ public class QueryBuilderArgsTest {
   // tests for --queryParallelism
   @Test
   public void shouldCreateParallelQueries() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=COFFEES "
                 + "--splitColumn=ROWNUM --queryParallelism=5");
@@ -260,7 +260,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldCreateParallelQueriesWithSqlFile() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             String.format(
                 "--connectionUrl=jdbc:postgresql://some_db "
@@ -276,7 +276,7 @@ public class QueryBuilderArgsTest {
 
   @Test
   public void shouldCreateParallelQueriesWithPartitionColumn() throws IOException, SQLException {
-    QueryBuilderArgs actual =
+    final QueryBuilderArgs actual =
         parseOptions(
             String.format(
                 "--connectionUrl=jdbc:postgresql://some_db "

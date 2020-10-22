@@ -31,18 +31,18 @@ import java.util.UUID;
 public abstract class Coffee {
 
   public static Coffee create(
-      String name,
-      Optional<Integer> supId,
-      BigDecimal price,
-      Float temperature,
-      Double size,
-      Boolean isArabic,
-      Integer sales,
-      Long total,
-      java.sql.Timestamp created,
-      Optional<java.sql.Timestamp> updated,
-      UUID uid,
-      Long rownum) {
+      final String name,
+      final Optional<Integer> supId,
+      final BigDecimal price,
+      final Float temperature,
+      final Double size,
+      final Boolean isArabic,
+      final Integer sales,
+      final Long total,
+      final java.sql.Timestamp created,
+      final Optional<java.sql.Timestamp> updated,
+      final UUID uid,
+      final Long rownum) {
     return new AutoValue_Coffee(
         name,
         supId,

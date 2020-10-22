@@ -56,7 +56,8 @@ public class JdbcExportOptionsTest {
 
   JdbcExportArgs optionsFromArgs(String[] cmdLineArgs) throws IOException, ClassNotFoundException {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
-    PipelineOptions opts = PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
+    final PipelineOptions opts =
+        PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
     return JdbcExportArgsFactory.fromPipelineOptions(opts);
   }
 
@@ -89,7 +90,7 @@ public class JdbcExportOptionsTest {
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --sqlFile=" + sqlFile.getAbsolutePath());
 
-    JdbcExportArgs expected =
+    final JdbcExportArgs expected =
         JdbcExportArgs.create(
             JdbcAvroArgs.create(
                 JdbcConnectionArgs.create("jdbc:postgresql://some_db")
@@ -103,10 +104,10 @@ public class JdbcExportOptionsTest {
   @Test
   public void shouldParseWithDefaultsOnConnectionUrlAndTable()
       throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual =
+    final JdbcExportArgs actual =
         optionsFromArgs("--connectionUrl=jdbc:postgresql://some_db --table=some_table");
 
-    JdbcExportArgs expected =
+    final JdbcExportArgs expected =
         JdbcExportArgs.create(
             JdbcAvroArgs.create(
                 JdbcConnectionArgs.create("jdbc:postgresql://some_db")
@@ -118,10 +119,10 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldParseWithMySqlConnection() throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual =
+    final JdbcExportArgs actual =
         optionsFromArgs("--connectionUrl=jdbc:mysql://some_db --table=some_table");
 
-    JdbcExportArgs expected =
+    final JdbcExportArgs expected =
         JdbcExportArgs.create(
             JdbcAvroArgs.create(
                 JdbcConnectionArgs.create("jdbc:mysql://some_db").withUsername("dbeam-extractor")),
@@ -181,12 +182,12 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureUserAndPassword() throws IOException, ClassNotFoundException {
-    JdbcExportArgs actual =
+    final JdbcExportArgs actual =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--username=someuser --password=somepassword");
 
-    JdbcExportArgs expected =
+    final JdbcExportArgs expected =
         JdbcExportArgs.create(
             JdbcAvroArgs.create(
                 JdbcConnectionArgs.create("jdbc:postgresql://some_db")
@@ -199,7 +200,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureAvroLogicalTypes() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --useAvroLogicalTypes=true");
@@ -209,7 +210,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureAvroDoc() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --avroDoc=somedoc");
@@ -219,7 +220,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureAvroSchemaNamespace() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --avroSchemaNamespace=ns");
@@ -229,7 +230,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureFetchSize() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --fetchSize=1234");
@@ -241,7 +242,7 @@ public class JdbcExportOptionsTest {
   public void shouldSupportMonthlyPartitionPeriod() throws IOException, ClassNotFoundException {
     // Given handling ChronoUnit.MONTHS is not always simple
     // https://stackoverflow.com/q/39907925/1046584
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --partitionPeriod=P1M --partition=2050-12");
@@ -251,7 +252,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureDeflateCodec() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --avroCodec=deflate7");
@@ -264,7 +265,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureZstandardCodec() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --avroCodec=zstandard9");
@@ -277,7 +278,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfigureSnappyCodec() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--password=secret --avroCodec=snappy");
@@ -290,7 +291,7 @@ public class JdbcExportOptionsTest {
 
   @Test
   public void shouldConfiguraPreCommands() throws IOException, ClassNotFoundException {
-    JdbcExportArgs options =
+    final JdbcExportArgs options =
         optionsFromArgs(
             new String[] {
               "--connectionUrl=jdbc:postgresql://some_db;",

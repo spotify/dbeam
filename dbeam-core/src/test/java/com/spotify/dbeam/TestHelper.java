@@ -52,8 +52,8 @@ public class TestHelper {
   }
 
   public static UUID byteBufferToUuid(final ByteBuffer byteBuffer) {
-    Long high = byteBuffer.getLong();
-    Long low = byteBuffer.getLong();
+    final Long high = byteBuffer.getLong();
+    final Long low = byteBuffer.getLong();
 
     return new UUID(high, low);
   }

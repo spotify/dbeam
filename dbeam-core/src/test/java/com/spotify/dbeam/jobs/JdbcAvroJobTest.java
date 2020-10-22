@@ -60,9 +60,9 @@ public class JdbcAvroJobTest {
   private static Path sqlPath;
 
   private List<GenericRecord> readAvroRecords(File avroFile, Schema schema) throws IOException {
-    GenericDatumReader<GenericRecord> datum = new GenericDatumReader<>(schema);
-    DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(avroFile, datum);
-    List<GenericRecord> records =
+    final GenericDatumReader<GenericRecord> datum = new GenericDatumReader<>(schema);
+    final DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(avroFile, datum);
+    final List<GenericRecord> records =
         StreamSupport.stream(dataFileReader.spliterator(), false).collect(Collectors.toList());
     dataFileReader.close();
     return records;
@@ -74,13 +74,14 @@ public class JdbcAvroJobTest {
     passwordPath = testDir.resolve(".password");
     sqlPath = testDir.resolve("query.sql");
     passwordPath.toFile().createNewFile();
-    Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
+    Files.write(
+        sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
   @Test
   public void shouldRunJdbcAvroJob() throws IOException {
-    Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
 
     JdbcAvroJob.main(
         new String[] {
@@ -107,7 +108,8 @@ public class JdbcAvroJobTest {
     assertThat(
         TestHelper.listDir(outputPath.resolve("_queries").toFile()),
         containsInAnyOrder("query_0.sql"));
-    Schema schema = new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
     List<GenericRecord> records =
         readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
     assertThat(records, hasSize(2));
@@ -115,7 +117,7 @@ public class JdbcAvroJobTest {
 
   @Test
   public void shouldRunJdbcAvroJobSqlFile() throws IOException {
-    Path outputPath = testDir.resolve("shouldRunJdbcAvroJobSqlFile");
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJobSqlFile");
 
     JdbcAvroJob.main(
         new String[] {
@@ -142,7 +144,8 @@ public class JdbcAvroJobTest {
     assertThat(
         TestHelper.listDir(outputPath.resolve("_queries").toFile()),
         containsInAnyOrder("query_0.sql"));
-    Schema schema = new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
     List<GenericRecord> records =
         readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
     assertThat(records, hasSize(1));
@@ -153,7 +156,7 @@ public class JdbcAvroJobTest {
 
   @Test
   public void shouldRunAvroJobPreCommands() throws SQLException, ClassNotFoundException {
-    Path outputPath = testDir.resolve("shouldRunAvroJobPreCommands");
+    final Path outputPath = testDir.resolve("shouldRunAvroJobPreCommands");
 
     JdbcAvroJob.main(
         new String[] {
@@ -180,7 +183,7 @@ public class JdbcAvroJobTest {
             "_queries",
             "part-00000-of-00001.avro"));
 
-    List<String> schemas = new ArrayList<>();
+    final List<String> schemas = new ArrayList<>();
     try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
       ResultSet rs = connection.createStatement().executeQuery("SHOW SCHEMAS;");
       while (rs.next()) {
@@ -188,7 +191,7 @@ public class JdbcAvroJobTest {
       }
     }
 
-    String[] expectedSchemas = {"TEST_COMMAND_1", "TEST_COMMAND_2"};
+    final String[] expectedSchemas = {"TEST_COMMAND_1", "TEST_COMMAND_2"};
     assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
@@ -205,14 +208,14 @@ public class JdbcAvroJobTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailOnEmptyInput() throws IOException, ClassNotFoundException {
-    PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
+    final PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
     pipelineOptions.as(OutputOptions.class).setOutput("");
     JdbcAvroJob.create(PipelineOptionsFactory.create());
   }
 
   @Test
   public void shouldIncrementCounterMetrics() {
-    JdbcAvroMetering metering = new JdbcAvroMetering(1, 1);
+    final JdbcAvroMetering metering = new JdbcAvroMetering(1, 1);
     metering.startWriteMeter();
     metering.exposeWriteElapsed();
     metering.incrementRecordCount();

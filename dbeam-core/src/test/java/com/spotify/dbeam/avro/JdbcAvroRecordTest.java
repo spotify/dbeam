@@ -58,8 +58,8 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCreateSchema() throws ClassNotFoundException, SQLException {
-    int fieldCount = 12;
-    Schema actual =
+    final int fieldCount = 12;
+    final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
@@ -124,8 +124,8 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCreateSchemaWithLogicalTypes() throws ClassNotFoundException, SQLException {
-    int fieldCount = 12;
-    Schema actual =
+    final int fieldCount = 12;
+    final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
@@ -142,8 +142,7 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCreateSchemaWithCustomSchemaName() throws ClassNotFoundException, SQLException {
-    int fieldCount = 12;
-    Schema actual =
+    final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
@@ -158,17 +157,17 @@ public class JdbcAvroRecordTest {
   @Test
   public void shouldEncodeResultSetToValidAvro()
       throws ClassNotFoundException, SQLException, IOException {
-    ResultSet rs =
+    final ResultSet rs =
         DbTestHelper.createConnection(CONNECTION_URL)
             .createStatement()
             .executeQuery("SELECT * FROM COFFEES");
-    Schema schema =
+    final Schema schema =
         JdbcAvroSchema.createAvroSchema(
             rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
-    JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
-    DataFileWriter<GenericRecord> dataFileWriter =
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
+    final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     dataFileWriter.create(schema, outputStream);
     // convert and write
     while (rs.next()) {
@@ -177,14 +176,15 @@ public class JdbcAvroRecordTest {
     dataFileWriter.flush();
     outputStream.close();
     // transform to generic record
-    SeekableByteArrayInput inputStream = new SeekableByteArrayInput(outputStream.toByteArray());
-    DataFileReader<GenericRecord> dataFileReader =
+    final SeekableByteArrayInput inputStream =
+        new SeekableByteArrayInput(outputStream.toByteArray());
+    final DataFileReader<GenericRecord> dataFileReader =
         new DataFileReader<>(inputStream, new GenericDatumReader<>(schema));
     final List<GenericRecord> records =
         StreamSupport.stream(dataFileReader.spliterator(), false).collect(Collectors.toList());
 
     Assert.assertEquals(2, records.size());
-    GenericRecord record =
+    final GenericRecord record =
         records.stream()
             .filter(r -> Coffee.COFFEE1.name().equals(r.get(0).toString()))
             .findFirst()
@@ -192,7 +192,7 @@ public class JdbcAvroRecordTest {
 
     Assert.assertEquals(12, record.getSchema().getFields().size());
     Assert.assertEquals(schema, record.getSchema());
-    Coffee actual =
+    final Coffee actual =
         Coffee.create(
             record.get(0).toString(),
             Optional.ofNullable((Integer) record.get(1)),

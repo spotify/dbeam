@@ -51,7 +51,7 @@ public class InputAvroSchemaTest {
 
   @BeforeClass
   public static void beforeAll() throws IOException {
-    String jsonSchema =
+    final String jsonSchema =
         "{\n"
             + "  \"name\": \"Show\",\n"
             + "  \"doc\": \"Record description\",\n"
@@ -77,7 +77,7 @@ public class InputAvroSchemaTest {
   }
 
   private static File createTestAvroSchemaFile(final String jsonSchema) throws IOException {
-    File newTempFile = File.createTempFile("dataType1", ".avsc");
+    final File newTempFile = File.createTempFile("dataType1", ".avsc");
     newTempFile.deleteOnExit();
     Files.write(
         newTempFile.toPath(),
@@ -92,7 +92,7 @@ public class InputAvroSchemaTest {
       final String recordNamespace,
       final String[] fieldNames,
       final String[] fieldDocs) {
-    Schema inputSchema = Schema.createRecord(recordName, recordDoc, recordNamespace, false);
+    final Schema inputSchema = Schema.createRecord(recordName, recordDoc, recordNamespace, false);
     final List<Schema.Field> fields = new ArrayList<>();
     for (int i = 0; i < fieldNames.length; i++) {
       String fieldName = fieldNames[i];
@@ -111,8 +111,7 @@ public class InputAvroSchemaTest {
 
   @Test
   public void checkReadAvroSchema() throws IOException {
-
-    JdbcExportPipelineOptions options =
+    final JdbcExportPipelineOptions options =
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(avroSchemaFilePathStr);
 
@@ -131,20 +130,19 @@ public class InputAvroSchemaTest {
     // TODO
     // Check provide input string to args and verify final schema
 
-    String[] fieldNames = null;
-    String[] fieldDocs = null;
+    final String[] fieldNames = null;
+    final String[] fieldDocs = null;
     final String recordName = "COFFEE";
     final String recordDoc = "Input record doc";
     final String recordNamespace = "Input record namespace";
-    Schema inputSchema =
+    final Schema inputSchema =
         createRecordSchema(recordName, recordDoc, recordNamespace, fieldNames, fieldDocs);
   }
 
   @Test
   public void checkReadAvroSchemaWithEmptyParameter() throws IOException {
-
-    String path = "";
-    JdbcExportPipelineOptions options =
+    final String path = "";
+    final JdbcExportPipelineOptions options =
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
@@ -155,9 +153,8 @@ public class InputAvroSchemaTest {
 
   @Test
   public void checkReadAvroSchemaWithNullParameter() throws IOException {
-
-    String path = null;
-    JdbcExportPipelineOptions options =
+    final String path = null;
+    final JdbcExportPipelineOptions options =
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
@@ -168,11 +165,10 @@ public class InputAvroSchemaTest {
 
   @Test(expected = SchemaParseException.class)
   public void checkReadAvroSchemaWithInvalidFormat() throws IOException {
-
-    String invalidJson = "{";
-    File invalidFile = createTestAvroSchemaFile(invalidJson);
-    String path = invalidFile.toPath().toString();
-    JdbcExportPipelineOptions options =
+    final String invalidJson = "{";
+    final File invalidFile = createTestAvroSchemaFile(invalidJson);
+    final String path = invalidFile.toPath().toString();
+    final JdbcExportPipelineOptions options =
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
@@ -182,9 +178,8 @@ public class InputAvroSchemaTest {
 
   @Test(expected = FileNotFoundException.class)
   public void checkReadAvroSchemaWithNonExistentFile() throws IOException {
-
-    String path = "non_existent_schema.avsc";
-    JdbcExportPipelineOptions options =
+    final String path = "non_existent_schema.avsc";
+    final JdbcExportPipelineOptions options =
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
@@ -194,7 +189,7 @@ public class InputAvroSchemaTest {
 
   @Test
   public void checkValidCommandLineArgIsParsedAsOptions() throws IOException, SQLException {
-    JdbcExportPipelineOptions options =
+    final JdbcExportPipelineOptions options =
         QueryBuilderArgsTest.commandLineToOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--avroSchemaFilePath=/temp/record1.avsc --partition=2027-07-31");
@@ -204,7 +199,7 @@ public class InputAvroSchemaTest {
 
   @Test
   public void checkEmptyCommandLineArgIsParsedAsOptions() throws IOException, SQLException {
-    JdbcExportPipelineOptions options =
+    final JdbcExportPipelineOptions options =
         QueryBuilderArgsTest.commandLineToOptions(
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31");
@@ -214,7 +209,7 @@ public class InputAvroSchemaTest {
 
   private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
-    JdbcExportPipelineOptions opts =
+    final JdbcExportPipelineOptions opts =
         PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "))
             .withValidation()
             .create()

@@ -29,63 +29,65 @@ public class QueryBuilderTest {
 
   @Test
   public void testCtorFromTable() {
-    QueryBuilder wrapper = QueryBuilder.fromTablename("abc");
+    final QueryBuilder wrapper = QueryBuilder.fromTablename("abc");
 
-    String expected = "SELECT * FROM abc WHERE 1=1";
+    final String expected = "SELECT * FROM abc WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
 
   @Test
   public void testCtorRawSqlWithoutWhere() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    final QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
 
-    String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1";
+    final String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
 
   @Test
   public void testCtorCopyWithConditionNotEquals() {
-    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    QueryBuilder copy = q1
-        .withPartitionCondition("pary", "20180101", "20180201");
+    final QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    final QueryBuilder copy = q1.withPartitionCondition("pary", "20180101", "20180201");
 
     Assert.assertNotEquals(q1.build(), copy.build());
   }
 
   @Test
   public void testCtorCopyWithLimitNotEquals() {
-    QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
-    QueryBuilder copy = q1.withLimit(3L);
+    final QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
+    final QueryBuilder copy = q1.withLimit(3L);
 
     Assert.assertNotEquals(q1.build(), copy.build());
   }
 
   @Test
   public void testCtorRawSqlWithWhere() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
+    final QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1 WHERE a > 100");
 
-    String expected = "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) as user_sql_query WHERE 1=1";
+    final String expected =
+        "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) as user_sql_query WHERE 1=1";
 
     Assert.assertEquals(expected, wrapper.build());
   }
 
   @Test
   public void testRawSqlWithLimit() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1").withLimit(102L);
+    final QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1").withLimit(102L);
 
-    String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1 LIMIT 102";
+    final String expected =
+        "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1 LIMIT 102";
 
     Assert.assertEquals(expected, wrapper.build());
   }
 
   @Test
   public void testRawSqlwithParallelization() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1")
-        .withParallelizationCondition("bucket", 10, 20, true);
+    final QueryBuilder wrapper =
+        QueryBuilder.fromSqlQuery("SELECT * FROM t1")
+            .withParallelizationCondition("bucket", 10, 20, true);
 
-    String expected =
+    final String expected =
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query"
             + " WHERE 1=1 AND bucket >= 10 AND bucket < 20";
 
@@ -94,10 +96,11 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlWithPartition() {
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery("SELECT * FROM t1")
-        .withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
+    final QueryBuilder wrapper =
+        QueryBuilder.fromSqlQuery("SELECT * FROM t1")
+            .withPartitionCondition("birthDate", "2018-01-01", "2018-02-01");
 
-    String expected =
+    final String expected =
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1"
             + " AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
 
@@ -106,8 +109,9 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlMultiline() {
-    String sqlString = "SELECT a, b, c FROM t1\n" + " WHERE total > 100\n" + " AND country = 262\n";
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
+    final String sqlString =
+        "SELECT a, b, c FROM t1\n" + " WHERE total > 100\n" + " AND country = 262\n";
+    final QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
 
     String expected =
         "SELECT * FROM (SELECT a, b, c FROM t1\n WHERE total > 100\n AND country = 262\n)"
@@ -118,11 +122,11 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlWithComments() {
-    String sqlString =
+    final String sqlString =
         "-- We perform initial query here\n" + "SELECT a, b, c FROM t1\n" + " WHERE total > 100";
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
+    final QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
 
-    String expected =
+    final String expected =
         "SELECT * FROM ("
             + "-- We perform initial query here\nSELECT a, b, c FROM t1\n WHERE total > 100)"
             + " as user_sql_query WHERE 1=1";
@@ -132,7 +136,7 @@ public class QueryBuilderTest {
 
   @Test
   public void testRawSqlWithCte() {
-    String sqlString =
+    final String sqlString =
         "WITH active_orders AS\n"
             + "(\n"
             + "    SELECT *\n"
@@ -142,9 +146,9 @@ public class QueryBuilderTest {
             + "SELECT date, SUM(amount)\n"
             + "FROM active_orders\n"
             + "GROUP BY date\n";
-    QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
+    final QueryBuilder wrapper = QueryBuilder.fromSqlQuery(sqlString);
 
-    String expected =
+    final String expected =
         "SELECT * FROM ("
             + "WITH active_orders AS\n"
             + "(\n"
@@ -162,7 +166,7 @@ public class QueryBuilderTest {
 
   @Test
   public void testItRemovesTrailingSemicolon() {
-    List<String> rawInput =
+    final List<String> rawInput =
         Arrays.asList(
             "SELECT * FROM coffees WHERE size > 10",
             "SELECT * FROM coffees WHERE size > 10;",
@@ -173,7 +177,7 @@ public class QueryBuilderTest {
             "SELECT * FROM coffees WHERE size > 10\r;",
             "SELECT * FROM coffees WHERE size > 10\n\r;",
             "SELECT * FROM coffees WHERE size > 10;\n");
-    List<String> expected =
+    final List<String> expected =
         Arrays.asList(
             "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) as user_sql_query WHERE 1=1",
             "SELECT * FROM (SELECT * FROM coffees WHERE size > 10) as user_sql_query WHERE 1=1",
@@ -192,13 +196,13 @@ public class QueryBuilderTest {
 
   @Test
   public void testItGeneratesQueryForLimits() {
-    String input = "SELECT * FROM coffees WHERE size > 10";
-    String expected =
+    final String input = "SELECT * FROM coffees WHERE size > 10";
+    final String expected =
         "SELECT MIN(splitCol) as mixy, MAX(splitCol) as maxy "
             + "FROM (SELECT * FROM coffees WHERE size > 10) as user_sql_query"
             + " WHERE 1=1 AND partition >= 'a' AND partition < 'd'";
 
-    String actual =
+    final String actual =
         QueryBuilder.fromSqlQuery(input)
             .withPartitionCondition("partition", "a", "d")
             .generateQueryToGetLimitsOfSplitColumn("splitCol", "mixy", "maxy")
@@ -207,7 +211,7 @@ public class QueryBuilderTest {
   }
 
   private void execAndCompare(String rawInput, String expected) {
-    String actual = QueryBuilder.fromSqlQuery(rawInput).build();
+    final String actual = QueryBuilder.fromSqlQuery(rawInput).build();
 
     Assert.assertEquals(expected, actual);
   }
