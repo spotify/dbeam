@@ -61,6 +61,8 @@ com.spotify.dbeam.options.OutputOptions:
 
   --output=<String>
     The path for storing the output.
+  --dataOnly=<Boolean>
+    Store only the data files in output folder, skip queries, metrics and metadata files.
 
 com.spotify.dbeam.options.JdbcExportPipelineOptions:
     Configures the DBeam SQL export
