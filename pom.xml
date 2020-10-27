@@ -120,7 +120,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <beam.version>2.24.0</beam.version>
+        <beam.version>2.25.0</beam.version>
 
         <postgresql.version>42.2.18</postgresql.version>
         <mysql.version>8.0.19</mysql.version>
