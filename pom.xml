@@ -657,7 +657,7 @@
             <plugin>
               <groupId>org.jacoco</groupId>
               <artifactId>jacoco-maven-plugin</artifactId>
-              <version>0.8.5</version>
+              <version>0.8.6</version>
               <configuration>
                 <!--Configure to work on codecov-->
                 <!--https://github.com/codecov/example-java/blob/master/pom.xml-->
