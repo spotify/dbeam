@@ -133,7 +133,7 @@
         <auto-value.version>1.7.4</auto-value.version>
         <protobuf.version>3.11.1</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <grpc.version>1.27.2</grpc.version>
+        <grpc.version>1.33.0</grpc.version>
         <netty.version>4.1.51.Final</netty.version>
         <proto-google-common-protos.version>1.17.0</proto-google-common-protos.version>
         <google-clients.version>1.30.10</google-clients.version>
