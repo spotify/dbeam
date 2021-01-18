@@ -123,7 +123,7 @@
         <beam.version>2.25.0</beam.version>
 
         <postgresql.version>42.2.18</postgresql.version>
-        <mysql.version>8.0.19</mysql.version>
+        <mysql.version>8.0.23</mysql.version>
         <socket-factory.version>1.0.16</socket-factory.version>
 
         <!--Ensure Beam SDK compatibility-->
