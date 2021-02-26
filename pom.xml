@@ -120,27 +120,22 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <beam.version>2.25.0</beam.version>
-
-        <postgresql.version>42.2.18</postgresql.version>
-        <mysql.version>8.0.19</mysql.version>
-        <socket-factory.version>1.0.16</socket-factory.version>
+        <beam.version>2.28.0</beam.version>
 
         <!--Ensure Beam SDK compatibility-->
-        <!--https://github.com/apache/beam/blob/release-2.25.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L378-->
-        <guava.version>28.2-jre</guava.version>
+        <!--https://github.com/apache/beam/blob/release-2.28.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L378-->
+        <google-cloud-libaries-bom.version>13.2.0</google-cloud-libaries-bom.version>
+        <jackson.version>2.11.1</jackson.version>
+        <netty.version>4.1.59.Final</netty.version>
+        <protobuf.version>3.12.0</protobuf.version>
+        <avro.version>1.9.2</avro.version>
         <slf4j.version>1.7.30</slf4j.version>
         <auto-value.version>1.7.4</auto-value.version>
-        <protobuf.version>3.11.1</protobuf.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <grpc.version>1.27.2</grpc.version>
-        <netty.version>4.1.51.Final</netty.version>
-        <proto-google-common-protos.version>1.17.0</proto-google-common-protos.version>
         <google-clients.version>1.30.10</google-clients.version>
-        <google-http-clients.version>1.34.0</google-http-clients.version>
-        <google-oauth.version>1.31.0</google-oauth.version>
-        <google-auth.version>0.20.0</google-auth.version>
-
+        <socket-factory.version>1.1.0</socket-factory.version>
+        <postgresql.version>42.2.19</postgresql.version>
+        <mysql.version>8.0.23</mysql.version>
         <junit.version>4.13.1</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
     </properties>
@@ -148,13 +143,19 @@
     <modules>
         <module>dbeam-core</module>
     </modules>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.beam</groupId>
                 <artifactId>beam-sdks-java-bom</artifactId>
                 <version>${beam.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>${google-cloud-libaries-bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -177,12 +178,6 @@
                 <version>${slf4j.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
-            </dependency>
-
             <!-- Runners -->
             <dependency>
                 <groupId>org.apache.beam</groupId>
@@ -194,28 +189,8 @@
                         <artifactId>junit</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>junit</groupId>
-                        <artifactId>junit</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.guava</groupId>
-                        <artifactId>guava-jdk5</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>com.google.guava</groupId>
                         <artifactId>guava</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.errorprone</groupId>
-                        <artifactId>error_prone_annotations</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.code.findbugs</groupId>
-                        <artifactId>jsr305</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api.grpc</groupId>
-                        <artifactId>proto-google-common-protos</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.protobuf</groupId>
@@ -226,20 +201,36 @@
                         <artifactId>protobuf-java-util</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>com.google.cloud.datastore</groupId>
-                        <artifactId>datastore-v1-proto-client</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-core</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>com.google.apis</groupId>
                         <artifactId>google-api-services-storage</artifactId>
                     </exclusion>
                     <exclusion>
+                        <groupId>com.google.api.grpc</groupId>
+                        <artifactId>proto-google-common-protos</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.api.grpc</groupId>
+                        <artifactId>grpc-google-cloud-pubsub-v1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.api.grpc</groupId>
+                        <artifactId>proto-google-cloud-pubsublite-v1</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.api.grpc</groupId>
+                        <artifactId>grpc-google-cloud-pubsublite-v1</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>com.google.cloud</groupId>
                         <artifactId>google-cloud-spanner</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.cloud</groupId>
+                        <artifactId>google-cloud-pubsub</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.cloud</groupId>
+                        <artifactId>google-cloud-pubsublite</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.cloud</groupId>
@@ -250,16 +241,8 @@
                         <artifactId>bigtable-client-core</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>com.google.api.grpc</groupId>
-                        <artifactId>proto-google-cloud-pubsub-v1</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api.grpc</groupId>
-                        <artifactId>grpc-google-cloud-pubsub-v1</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api.grpc</groupId>
-                        <artifactId>proto-google-cloud-bigquerystorage-v1beta1</artifactId>
+                        <groupId>com.google.cloud.datastore</groupId>
+                        <artifactId>datastore-v1-proto-client</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.avro</groupId>
@@ -270,24 +253,12 @@
                         <artifactId>google-http-client</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>com.google.http-client</groupId>
-                        <artifactId>google-http-client-jackson2</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>com.google.auth</groupId>
                         <artifactId>google-auth-library-credentials</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.auth</groupId>
                         <artifactId>google-auth-library-oauth2-http</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.cloud</groupId>
-                        <artifactId>google-cloud-pubsublite</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api.grpc</groupId>
-                        <artifactId>grpc-google-cloud-pubsublite-v1</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>io.grpc</groupId>
@@ -320,26 +291,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>com.google.apis</groupId>
-                <artifactId>google-api-services-cloudkms</artifactId>
-                <version>v1-rev20200903-1.30.10</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.apis</groupId>
-                <artifactId>google-api-services-storage</artifactId>
-                <version>v1-rev20200611-${google-clients.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
-                <version>1.9.2</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.apache.commons</groupId>
-                        <artifactId>commons-compress</artifactId>
-                        <!--org.apache.commons:commons-compress:1.20 available in other dependency-->
-                    </exclusion>
-                </exclusions>
+                <version>${avro.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.luben</groupId>
@@ -347,16 +301,36 @@
                 <version>1.4.5-6</version>
             </dependency>
             <dependency>
-                <groupId>com.google.code.findbugs</groupId>
-                <artifactId>jsr305</artifactId>
-                <version>${findbugs.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.threeten</groupId>
                 <artifactId>threetenbp</artifactId>
                 <version>1.4.4</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.google.auto.value</groupId>
+                <artifactId>auto-value-annotations</artifactId>
+                <version>${auto-value.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auto.value</groupId>
+                <artifactId>auto-value</artifactId>
+                <version>${auto-value.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
@@ -373,52 +347,6 @@
                 <version>${findbugs.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-all</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-protobuf</artifactId>
-                <version>${grpc.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.guava</groupId>
-                        <artifactId>guava</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-core</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-context</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-stub</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-auth</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-alts</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
                 <version>${netty.version}</version>
@@ -426,45 +354,24 @@
             <dependency>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_annotations</artifactId>
-                <version>2.3.4</version>
+                <version>2.4.0</version>
             </dependency>
             <dependency>
-                <groupId>com.google.http-client</groupId>
-                <artifactId>google-http-client</artifactId>
-                <version>${google-http-clients.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.guava</groupId>
-                        <artifactId>guava</artifactId>
-                    </exclusion>
-                </exclusions>
+              <groupId>com.google.api.grpc</groupId>
+              <artifactId>proto-google-iam-v1</artifactId>
+                <!-- Because libraries-bom:13.2.0 brings an outadated version-->
+              <version>1.0.3</version>
             </dependency>
             <dependency>
-                <groupId>com.google.http-client</groupId>
-                <artifactId>google-http-client-test</artifactId>
-                <version>${google-http-clients.version}</version>
+                <groupId>com.google.apis</groupId>
+                <artifactId>google-api-services-cloudkms</artifactId>
+                <version>v1-rev20200903-1.30.10</version>
             </dependency>
             <dependency>
-                <groupId>com.google.oauth-client</groupId>
-                <artifactId>google-oauth-client</artifactId>
-                <version>${google-oauth.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.http-client</groupId>
-                        <artifactId>google-http-client</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.google.auto.value</groupId>
-                <artifactId>auto-value-annotations</artifactId>
-                <version>${auto-value.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.auto.value</groupId>
-                <artifactId>auto-value</artifactId>
-                <version>${auto-value.version}</version>
-                <scope>provided</scope>
+                <groupId>com.google.apis</groupId>
+                <artifactId>google-api-services-storage</artifactId>
+                <!-- Because gcsio:2.1.6 and beam-sdks-java-extensions-google-cloud-platform-core bring incompatible versions -->
+                <version>v1-rev20200611-${google-clients.version}</version>
             </dependency>
 
             <!-- DB Deps -->
@@ -512,7 +419,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>3.6.0</version>
+                <version>3.8.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
