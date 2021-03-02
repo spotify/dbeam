@@ -85,4 +85,5 @@ public class PasswordReaderTest {
 
     Assert.assertEquals(Optional.of("something_decrypted"), actualPassword);
   }
+
 }
