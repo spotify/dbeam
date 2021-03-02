@@ -129,7 +129,7 @@
         <jackson.version>2.11.1</jackson.version>
         <netty.version>4.1.59.Final</netty.version>
         <protobuf.version>3.12.0</protobuf.version>
-        <avro.version>1.9.2</avro.version>
+        <avro.version>1.10.1</avro.version>
         <slf4j.version>1.7.30</slf4j.version>
         <auto-value.version>1.7.4</auto-value.version>
         <findbugs.version>3.0.2</findbugs.version>
