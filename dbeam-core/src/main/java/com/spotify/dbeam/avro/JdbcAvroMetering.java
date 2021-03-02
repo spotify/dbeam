@@ -41,7 +41,7 @@ public class JdbcAvroMetering {
   private Gauge rowsPerMinute = Metrics.gauge(this.getClass().getCanonicalName(), "rowsPerMinute");
   private Counter bytesWritten =
       Metrics.counter(this.getClass().getCanonicalName(), "bytesWritten");
-  private int rowCount = 0;
+  private long rowCount = 0;
   private long writeIterateStartTime;
 
   public JdbcAvroMetering(int countReportEvery, int logEvery) {
