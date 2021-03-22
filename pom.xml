@@ -124,7 +124,7 @@
 
         <!--Ensure Beam SDK compatibility-->
         <!--https://github.com/apache/beam/blob/release-2.28.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L378-->
-        <google-cloud-libaries-bom.version>13.2.0</google-cloud-libaries-bom.version>
+        <google-cloud-libaries-bom.version>19.2.1</google-cloud-libaries-bom.version>
         <guava.version>29.0-jre</guava.version>
         <jackson.version>2.11.1</jackson.version>
         <netty.version>4.1.59.Final</netty.version>
