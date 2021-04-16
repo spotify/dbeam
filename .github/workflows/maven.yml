@@ -28,11 +28,17 @@ jobs:
         with:
           java-version: ${{ matrix.java_version }}
       - name: Build with Maven
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
         run: |
           mvn clean verify -Pcoverage -Ppack --file pom.xml --batch-mode -Dsytle.colors=always --errors
-          bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN -F unittests -f ./dbeam-core/target/site/jacoco/jacoco.xml -n codecov-umbrella
+      - name: Codecov upload
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./dbeam-core/target/site/jacoco/jacoco.xml
+          flags: unittests # optional
+          name: codecov-umbrella # optional
+          fail_ci_if_error: false # optional (default = false)
+          verbose: true # optional (default = false)
       - name: End to end tests
         run: ./e2e/e2e.sh
         # # https://github.com/arduino/arduino-cli/blob/5e1627de181e6737a874c8b3ea356cec248cc74c/.github/workflows/test.yaml
