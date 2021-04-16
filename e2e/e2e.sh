@@ -10,6 +10,7 @@ readonly PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null && pw
 
 # This file contatins psql views with complex types to validate and troubleshoot dbeam
 
+PSQL_DOCKER_IMAGE=postgres:10
 PSQL_USER=postgres
 PSQL_PASSWORD=mysecretpassword
 PSQL_DB=dbeam_test
@@ -19,13 +20,14 @@ startPostgres() {
     -e POSTGRES_DB=dbeam_test \
     -e POSTGRES_PASSWORD=mysecretpassword \
     -v /tmp/pgdata:/var/lib/postgresql/data \
-    -p 54321:5432/tcp -d postgres:10 || docker start dbeam-postgres
+    -p 54321:5432/tcp -d "$PSQL_DOCKER_IMAGE" || docker start dbeam-postgres
   # https://stackoverflow.com/questions/35069027/docker-wait-for-postgresql-to-be-running
-  time docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10.7 timeout 45s bash -ic 'until psql -h postgres -U postgres dbeam_test -c "select 1"; do sleep 1; done; echo "psql up and running.."'
+  time docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword "$PSQL_DOCKER_IMAGE" timeout 45s bash -xc 'until psql -h postgres -U postgres dbeam_test -c "select 1"; do sleep 1; done; echo "psql up and running.."'
   sleep 3
-  time cat "$SCRIPT_PATH/ddl.sql" \
-    | docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10 psql -h postgres -U postgres dbeam_test
-  echo '\d' | docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword postgres:10 psql -h postgres -U postgres dbeam_test
+  docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword "$PSQL_DOCKER_IMAGE" psql -h postgres -U postgres dbeam_test < "$SCRIPT_PATH/ddl.sql"
+  echo '\d' | docker run -i --rm --link dbeam-postgres:postgres -e PGPASSWORD=mysecretpassword "$PSQL_DOCKER_IMAGE" psql -h postgres -U postgres dbeam_test
+  # ensure one can connect to psql server
+  timeout 1 bash -c 'cat < /dev/null > /dev/tcp/0.0.0.0/54331'
 }
 
 dockerClean() {
@@ -38,22 +40,6 @@ export JAVA_OPTS="
 -XX:+UseParallelGC
 -Xmx1g
 -Xms1g
-"
-
-JVM11_OPTS="
--Xlog:gc*:verbose_gc.log:time
-"
-
-JVM8_OPTS="
--XX:+DisableExplicitGC
--XX:+PrintGCDetails
--XX:+PrintGCApplicationStoppedTime
--XX:+PrintGCApplicationConcurrentTime
--XX:+PrintGCDateStamps
--Xloggc:gclog.log
--XX:+UseGCLogFileRotation
--XX:NumberOfGCLogFiles=5
--XX:GCLogFileSize=2000k
 "
 
 pack() {
