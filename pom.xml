@@ -134,7 +134,7 @@
         <auto-value.version>1.7.4</auto-value.version>
         <findbugs.version>3.0.2</findbugs.version>
         <google-clients.version>1.30.10</google-clients.version>
-        <socket-factory.version>1.1.0</socket-factory.version>
+        <socket-factory.version>1.2.1</socket-factory.version>
         <postgresql.version>42.2.19</postgresql.version>
         <mysql.version>8.0.23</mysql.version>
         <junit.version>4.13.1</junit.version>
