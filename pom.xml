@@ -133,7 +133,7 @@
         <slf4j.version>1.7.30</slf4j.version>
         <auto-value.version>1.7.4</auto-value.version>
         <findbugs.version>3.0.2</findbugs.version>
-        <google-clients.version>1.30.10</google-clients.version>
+        <google-clients.version>v1-rev20210127-1.31.0</google-clients.version>
         <socket-factory.version>1.1.0</socket-factory.version>
         <postgresql.version>42.2.19</postgresql.version>
         <mysql.version>8.0.23</mysql.version>
