@@ -1,0 +1,95 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  reviewers:
+  - labianchin
+  ignore:
+  - dependency-name: com.google.cloud.sql:mysql-socket-factory
+    versions:
+    - 1.1.0
+  - dependency-name: com.google.cloud.sql:postgres-socket-factory
+    versions:
+    - 1.1.0
+  - dependency-name: io.grpc:grpc-netty-shaded
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-alts
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-auth
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-stub
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-context
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-core
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-protobuf
+    versions:
+    - 1.33.0
+  - dependency-name: io.grpc:grpc-all
+    versions:
+    - 1.33.0
+  - dependency-name: com.google.protobuf:protobuf-java-util
+    versions:
+    - 3.13.0
+  - dependency-name: com.google.protobuf:protobuf-java
+    versions:
+    - 3.13.0
+  - dependency-name: com.google.http-client:google-http-client-test
+    versions:
+    - 1.37.0
+  - dependency-name: com.google.http-client:google-http-client
+    versions:
+    - 1.37.0
+  - dependency-name: com.google.cloud:libraries-bom
+    versions:
+    - 18.0.0
+    - 18.1.0
+    - 19.0.0
+    - 19.2.0
+    - 19.2.1
+    - 20.0.0
+  - dependency-name: com.google.api.grpc:proto-google-iam-v1
+    versions:
+    - 1.0.10
+    - 1.0.11
+    - 1.0.12
+  - dependency-name: com.google.apis:google-api-services-cloudkms
+    versions:
+    - v1-rev20210106-1.31.0
+    - v1-rev20210312-1.31.0
+    - v1-rev20210331-1.31.0
+  - dependency-name: com.fasterxml.jackson.core:jackson-annotations
+    versions:
+    - 2.12.1
+  - dependency-name: com.fasterxml.jackson.core:jackson-databind
+    versions:
+    - 2.12.1
+  - dependency-name: com.fasterxml.jackson.core:jackson-core
+    versions:
+    - 2.12.1
+  - dependency-name: org.apache.avro:avro
+    versions:
+    - 1.10.1
+  - dependency-name: com.google.errorprone:error_prone_annotations
+    versions:
+    - 2.5.1
+  - dependency-name: mysql:mysql-connector-java
+    versions:
+    - 8.0.23
+  - dependency-name: com.google.oauth-client:google-oauth-client
+    versions:
+    - 1.31.4
+  - dependency-name: com.google.apis:google-api-services-storage
+    versions:
+    - v1-rev20201112-1.31.0
