@@ -48,24 +48,30 @@ jobs:
           verbose: true # optional (default = false)
       - name: End to end tests
         run: ./e2e/e2e.sh
+      - run: mkdir staging && cp target/*.jar staging
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Package
+          path: staging
         # # https://github.com/arduino/arduino-cli/blob/5e1627de181e6737a874c8b3ea356cec248cc74c/.github/workflows/test.yaml
         # # https://github.com/softprops/action-gh-release
-      - name: Deploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '1.8'
-        env:
-          GPG_KEY: ${{ secrets.GPG_KEY }}
-          GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: |
-          export GPG_TTY=$(tty)
-          export DISPLAY=:0
-          gpg --version
-          echo "$GPG_KEY" | base64 --decode --ignore-garbage | gpg --batch --fast-import -
-          echo "test" | gpg --batch --clearsign --pinentry-mode loopback || true
-          mvn --settings sonatype-settings.xml -DskipTests -Prelease deploy --batch-mode -Dsytle.colors=always --errors
-          rm -rf ~/.gnupg
+        # Disable sonatype deploy, as it requires further gpg config
+        # - name: Deploy
+        #   if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '1.8'
+        #   env:
+        #     GPG_KEY: ${{ secrets.GPG_KEY }}
+        #     GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+        #     GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        #     SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        #     SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        #   run: |
+        #     export GPG_TTY=$(tty)
+        #     export DISPLAY=:0
+        #     gpg --version
+        #     echo "$GPG_KEY" | base64 --decode --ignore-garbage | gpg --batch --fast-import -
+        #     echo "test" | gpg --batch --clearsign --pinentry-mode loopback || true
+        #     mvn --settings sonatype-settings.xml -DskipTests -Prelease deploy --batch-mode -Dsytle.colors=always --errors
+        #     rm -rf ~/.gnupg
       - name: Release
         uses: docker://softprops/action-gh-release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && matrix.java_version == '1.8'
