@@ -27,6 +27,13 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.java_version }}
+      # https://docs.github.com/en/actions/guides/building-and-testing-java-with-maven#caching-dependencies
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-java${{ matrix.java_version }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-java${{ matrix.java_version }}-m2
       - name: Build with Maven
         run: |
           mvn clean verify -Pcoverage -Ppack --file pom.xml --batch-mode -Dsytle.colors=always --errors
