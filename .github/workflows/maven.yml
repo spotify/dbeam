@@ -48,7 +48,7 @@ jobs:
           verbose: true # optional (default = false)
       - name: End to end tests
         run: ./e2e/e2e.sh
-      - run: mkdir staging && cp target/*.jar staging
+      - run: mkdir staging && cp **/target/*.jar ./staging
       - uses: actions/upload-artifact@v2
         with:
           name: Package
