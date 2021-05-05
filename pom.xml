@@ -134,7 +134,7 @@
         <findbugs.version>3.0.2</findbugs.version>
         <google-clients.version>1.31.0</google-clients.version>
         <socket-factory.version>1.1.0</socket-factory.version>
-        <postgresql.version>42.2.19</postgresql.version>
+        <postgresql.version>42.2.20</postgresql.version>
         <mysql.version>8.0.23</mysql.version>
         <junit.version>4.13.1</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
