@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -108,9 +108,7 @@ public abstract class QueryBuilderArgs implements Serializable {
     return createBuilder().setBaseSqlQuery(QueryBuilder.fromSqlQuery(sqlQuery)).build();
   }
 
-  /**
-   * Returns query with limit one, so it can be used to query and fetch schema.
-   */
+  /** Returns query with limit one, so it can be used to query and fetch schema. */
   public String sqlQueryWithLimitOne() {
     return this.baseSqlQuery().withLimit(1L).build();
   }
