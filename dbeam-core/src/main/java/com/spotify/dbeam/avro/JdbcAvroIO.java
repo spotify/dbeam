@@ -88,6 +88,7 @@ public class JdbcAvroIO {
 
   static class JdbcAvroSink<UserT> extends FileBasedSink<UserT, Void, String> {
 
+    private static final long serialVersionUID = 937707428038L;
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroArgs jdbcAvroArgs;
 
@@ -108,6 +109,7 @@ public class JdbcAvroIO {
 
   private static class JdbcAvroWriteOperation extends FileBasedSink.WriteOperation<Void, String> {
 
+    private static final long serialVersionUID = 305340251350L;
     private final DynamicAvroDestinations<?, Void, String> dynamicDestinations;
     private final JdbcAvroArgs jdbcAvroArgs;
 

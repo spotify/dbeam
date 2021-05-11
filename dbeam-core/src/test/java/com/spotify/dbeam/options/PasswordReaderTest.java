@@ -20,8 +20,8 @@
 
 package com.spotify.dbeam.options;
 
+import com.google.api.client.json.GsonFactory;
 import com.google.api.client.json.Json;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.api.services.cloudkms.v1.model.DecryptResponse;
@@ -65,7 +65,7 @@ public class PasswordReaderTest {
                     .setStatusCode(200)
                     .setContentType(Json.MEDIA_TYPE)
                     .setContent(
-                        JacksonFactory.getDefaultInstance()
+                        GsonFactory.getDefaultInstance()
                             .toByteArray(
                                 new DecryptResponse()
                                     .encodePlaintext("something_decrypted".getBytes()))))
