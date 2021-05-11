@@ -773,6 +773,13 @@
                             checkstyle.suppressions.file
                     </suppressionsFileExpression>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>8.42</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
