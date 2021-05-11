@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        java_version: ['8', '11']
+        java_version: ['8', '11', '12', '13', '14', '15', '16']
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
