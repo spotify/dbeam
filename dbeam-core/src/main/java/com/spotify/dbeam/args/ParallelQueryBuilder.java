@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 
 public class ParallelQueryBuilder implements Serializable {
 
+  private static final long serialVersionUID = 90553911340L;
+
   /**
    * Helper function which finds the min and max limits for the given split column with the
    * partition conditions.

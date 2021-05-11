@@ -30,6 +30,8 @@ import java.util.stream.Stream;
 /** Wrapper class for raw SQL query. */
 class QueryBuilder implements Serializable {
 
+  private static final long serialVersionUID = 35951701611L;
+
   private static final char SQL_STATEMENT_TERMINATOR = ';';
   private static final String DEFAULT_SELECT_CLAUSE = "SELECT *";
   private static final String DEFAULT_WHERE_CLAUSE = "WHERE 1=1";

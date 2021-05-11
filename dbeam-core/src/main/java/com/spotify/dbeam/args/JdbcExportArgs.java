@@ -31,6 +31,8 @@ import org.apache.avro.Schema;
 @AutoValue
 public abstract class JdbcExportArgs implements Serializable {
 
+  private static final long serialVersionUID = 10595393104L;
+
   public abstract JdbcAvroArgs jdbcAvroOptions();
 
   public abstract QueryBuilderArgs queryBuilderArgs();

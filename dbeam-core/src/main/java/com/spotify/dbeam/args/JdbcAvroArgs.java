@@ -32,6 +32,8 @@ import org.apache.avro.file.CodecFactory;
 @AutoValue
 public abstract class JdbcAvroArgs implements Serializable {
 
+  private static final long serialVersionUID = 774966612L;
+
   public abstract JdbcConnectionArgs jdbcConnectionConfiguration();
 
   @Nullable

@@ -56,7 +56,8 @@ public class JdbcAvroRecordConverter {
     final int columnCount = meta.getColumnCount();
 
     final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings =
-        new JdbcAvroRecord.SqlFunction[columnCount + 1];
+      (JdbcAvroRecord.SqlFunction<ResultSet, Object>[])
+        new JdbcAvroRecord.SqlFunction<?, ?>[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
       mappings[i] = JdbcAvroRecord.computeMapping(meta, i);

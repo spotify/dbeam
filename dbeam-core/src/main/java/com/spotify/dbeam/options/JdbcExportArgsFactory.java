@@ -134,7 +134,7 @@ public class JdbcExportArgsFactory {
    * (e.g. hourly), then uses Duration (stored in seconds). Otherwise use Period.
    *
    * @param partitionPeriod partitionPeriod parameter to be parsed
-   * @return
+   * @return A Period or Duration based on partitionPeriod
    */
   private static TemporalAmount partitionPeriodTemporalAmount(final String partitionPeriod) {
     if (partitionPeriod == null) {

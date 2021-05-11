@@ -22,6 +22,8 @@ package com.spotify.dbeam.jobs;
 
 public class NotReadyException extends Exception {
 
+  private static final long serialVersionUID = 123870340703L;
+
   public NotReadyException(final String message) {
     super(message);
   }

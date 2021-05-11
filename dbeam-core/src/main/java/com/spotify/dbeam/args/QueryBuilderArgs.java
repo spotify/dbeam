@@ -41,6 +41,8 @@ import java.util.Optional;
 @AutoValue
 public abstract class QueryBuilderArgs implements Serializable {
 
+  private static final long serialVersionUID = 743935710161L;
+
   abstract QueryBuilder baseSqlQuery();
 
   public abstract Optional<Long> limit();
@@ -108,8 +110,6 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   /**
    * Returns query with limit one, so it can be used to query and fetch schema.
-   *
-   * @return
    */
   public String sqlQueryWithLimitOne() {
     return this.baseSqlQuery().withLimit(1L).build();

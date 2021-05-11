@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 @AutoValue
 public abstract class JdbcConnectionArgs implements Serializable {
 
+  private static final long serialVersionUID = 280458166508L;
+
   private static Logger LOGGER = LoggerFactory.getLogger(JdbcConnectionArgs.class);
 
   public abstract String driverClassName();
