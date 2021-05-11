@@ -71,6 +71,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v2
       # https://docs.github.com/en/actions/guides/building-and-testing-java-with-maven#caching-dependencies
@@ -86,7 +87,6 @@ jobs:
           java-version: '11'
           distribution: 'adopt'  # use Corretto once supported https://github.com/actions/setup-java/issues/68
       - name: Deploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           GPG_KEY: ${{ secrets.GPG_KEY }}
           GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
@@ -103,11 +103,3 @@ jobs:
           echo "test" | gpg --batch --clearsign --pinentry-mode loopback || true
           mvn --settings ./github-settings.xml -DskipTests deploy --batch-mode -Dstyle.colors=always --errors --show-version
           rm -rf ~/.gnupg
-      - name: Release
-        uses: docker://softprops/action-gh-release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        with:
-          # body_path: ${{ github.workflow }}-CHANGELOG.txt
-          files: './dbeam-core/target/dbeam-core-*.jar,./dbeam-core/target/dbeam-core-*.jar.asc'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
