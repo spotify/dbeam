@@ -55,6 +55,13 @@ jobs:
         with:
           name: Package
           path: staging
+  update_release_draft:
+    runs-on: ubuntu-latest
+    steps:
+      # Drafts your next Release notes as Pull Requests are merged into "master"
+      - uses: release-drafter/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   deploy:
     # https://docs.github.com/en/actions/guides/publishing-java-packages-with-maven#publishing-packages-to-github-packages
     name: Deploy
