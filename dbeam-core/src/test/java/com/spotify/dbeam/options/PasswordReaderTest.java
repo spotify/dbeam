@@ -20,8 +20,8 @@
 
 package com.spotify.dbeam.options;
 
-import com.google.api.client.json.GsonFactory;
 import com.google.api.client.json.Json;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.api.services.cloudkms.v1.model.DecryptResponse;
