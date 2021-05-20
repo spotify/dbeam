@@ -127,7 +127,7 @@
         <google-cloud-libaries-bom.version>16.3.0</google-cloud-libaries-bom.version>
         <guava.version>30.1-jre</guava.version>
         <jackson.version>2.12.3</jackson.version>
-        <netty.version>4.1.63.Final</netty.version>
+        <netty.version>4.1.65.Final</netty.version>
         <protobuf.version>3.14.0</protobuf.version>
         <avro.version>1.10.2</avro.version>
         <slf4j.version>1.7.30</slf4j.version>
