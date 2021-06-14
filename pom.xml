@@ -121,20 +121,20 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <beam.version>2.29.0</beam.version>
+        <beam.version>2.30.0</beam.version>
         <!--Ensure Beam SDK compatibility-->
-        <!--https://github.com/apache/beam/blob/release-2.29.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L536-->
-        <google-cloud-libaries-bom.version>16.3.0</google-cloud-libaries-bom.version>
-        <guava.version>30.1-jre</guava.version>
+        <!--https://github.com/apache/beam/blob/release-2.30.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L536-->
+        <google-cloud-libaries-bom.version>20.0.0</google-cloud-libaries-bom.version>
+        <guava.version>30.1.1-jre</guava.version>
         <jackson.version>2.12.3</jackson.version>
-        <netty.version>4.1.63.Final</netty.version>
-        <protobuf.version>3.14.0</protobuf.version>
+        <netty.version>4.1.65.Final</netty.version>
+        <protobuf.version>3.15.5</protobuf.version>
         <avro.version>1.10.2</avro.version>
         <slf4j.version>1.7.30</slf4j.version>
         <auto-value.version>1.8.1</auto-value.version>
         <google-clients.version>1.31.0</google-clients.version>
         <socket-factory.version>1.1.0</socket-factory.version>
-        <postgresql.version>42.2.20</postgresql.version>
+        <postgresql.version>42.2.21</postgresql.version>
         <mysql.version>8.0.25</mysql.version>
         <junit.version>4.13.2</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
@@ -307,7 +307,7 @@
             <dependency>
                 <groupId>com.github.luben</groupId>
                 <artifactId>zstd-jni</artifactId>
-                <version>1.4.9-5</version>
+                <version>1.5.0-2</version>
             </dependency>
             <dependency>
                 <groupId>org.threeten</groupId>
@@ -358,7 +358,12 @@
             <dependency>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_annotations</artifactId>
-                <version>2.6.0</version>
+                <version>2.7.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.checkerframework</groupId>
+                <artifactId>checker-compat-qual</artifactId>
+                <version>2.5.5</version>
             </dependency>
             <dependency>
                 <groupId>com.google.apis</groupId>
@@ -417,7 +422,7 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>3.9.0</version>
+                <version>3.11.1</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -478,7 +483,7 @@
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-javadoc-plugin</artifactId>
-              <version>3.2.0</version>
+              <version>3.3.0</version>
               <executions>
                 <execution>
                   <id>attach-javadocs</id>
@@ -771,7 +776,7 @@
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.42</version>
+                        <version>8.43</version>
                     </dependency>
                 </dependencies>
             </plugin>
