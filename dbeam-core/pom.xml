@@ -99,6 +99,10 @@
           <groupId>com.github.luben</groupId>
           <artifactId>zstd-jni</artifactId>
       </dependency>
+      <dependency>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-compat-qual</artifactId>
+      </dependency>
 
       <!-- Test Deps -->
 
