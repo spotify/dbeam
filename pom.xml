@@ -253,18 +253,6 @@
                         <artifactId>avro</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>com.google.http-client</groupId>
-                        <artifactId>google-http-client</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.auth</groupId>
-                        <artifactId>google-auth-library-credentials</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.auth</groupId>
-                        <artifactId>google-auth-library-oauth2-http</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>io.grpc</groupId>
                         <artifactId>grpc-context</artifactId>
                     </exclusion>
