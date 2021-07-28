@@ -55,6 +55,18 @@ public class JdbcAvroSchemaTest {
   }
 
   @Test
+  public void checkTableNameForCastColumnNull() throws SQLException {
+    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn(null);
+
+    String expected = "no_table_name";
+    String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
+
+    Assert.assertEquals(expected, tableName);
+  }
+
+  @Test
   public void checkTableNameForCastAndOrdinaryColumns() throws SQLException {
     ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(2);
