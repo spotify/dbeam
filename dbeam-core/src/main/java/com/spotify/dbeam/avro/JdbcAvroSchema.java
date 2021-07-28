@@ -113,8 +113,8 @@ public class JdbcAvroSchema {
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
     final String defaultTableName = "no_table_name";
 
-    for (int i = 0; i < meta.getColumnCount(); i++) {
-      String metaTableName = meta.getTableName(i + 1);
+    for (int i = 1; i <= meta.getColumnCount(); i++) {
+      String metaTableName = meta.getTableName(i);
       if (metaTableName != null && !metaTableName.isEmpty()) {
         return normalizeForAvro(metaTableName);
       }
