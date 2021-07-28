@@ -110,12 +110,16 @@ public class JdbcAvroSchema {
     return createAvroFields(meta, builder, useLogicalTypes).endRecord();
   }
 
-  private static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
-    if (meta.getColumnCount() > 0) {
-      return normalizeForAvro(meta.getTableName(1));
-    } else {
-      return "no_table_name";
+  static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
+    final String defaultTableName = "no_table_name";
+
+    for (int i = 0; i < meta.getColumnCount(); i++) {
+      String metaTableName = meta.getTableName(i + 1);
+      if (metaTableName != null && !metaTableName.isEmpty()) {
+        return normalizeForAvro(metaTableName);
+      }
     }
+    return defaultTableName;
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
