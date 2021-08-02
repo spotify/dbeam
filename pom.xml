@@ -280,6 +280,10 @@
                         <groupId>io.grpc</groupId>
                         <artifactId>grpc-alts</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.beam</groupId>
+                        <artifactId>beam-sdks-java-io-kafka</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
@@ -301,6 +305,16 @@
                 <groupId>org.threeten</groupId>
                 <artifactId>threetenbp</artifactId>
                 <version>1.5.1</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
+            </dependency>
+            <dependency>
+                <groupId>org.osgi</groupId>
+                <artifactId>org.osgi.core</artifactId>
+                <version>6.0.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.auto.value</groupId>
