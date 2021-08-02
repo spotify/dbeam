@@ -131,7 +131,7 @@
         <protobuf.version>3.15.5</protobuf.version>
         <avro.version>1.10.2</avro.version>
         <slf4j.version>1.7.30</slf4j.version>
-        <auto-value.version>1.8.1</auto-value.version>
+        <auto-value.version>1.8.2</auto-value.version>
         <google-clients.version>1.31.0</google-clients.version>
         <socket-factory.version>1.1.0</socket-factory.version>
         <postgresql.version>42.2.23</postgresql.version>
