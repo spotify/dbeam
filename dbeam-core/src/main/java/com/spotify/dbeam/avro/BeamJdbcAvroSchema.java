@@ -45,8 +45,7 @@ public class BeamJdbcAvroSchema {
   private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
   /**
-   * Generate Avro schema by reading one row.
-   * Expose Beam metrics via a Beam PTransform.
+   * Generate Avro schema by reading one row. Expose Beam metrics via a Beam PTransform.
    *
    * @param pipeline Beam SDK pipeline, to expose metrics
    * @param args JdbcExportArgs with DBeam configuration
