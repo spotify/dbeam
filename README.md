@@ -25,6 +25,9 @@ to store the extracted data into. DBeam first makes a single select into the tar
 limit one to infer the table schema. After the schema is created the job will be launched which
 simply streams the table contents via JDBC into target location as Avro.
 
+[Generated Avro Schema Type Conversion Details](docs/type-conversion.md)
+
+
 ## dbeam-core package features
 
 - Supports both PostgreSQL and MySQL JDBC connectors

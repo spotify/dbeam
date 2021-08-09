@@ -22,8 +22,12 @@ package com.spotify.dbeam.avro;
 
 import static org.mockito.Mockito.when;
 
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Optional;
+import org.apache.avro.Schema;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -77,5 +81,85 @@ public class JdbcAvroSchemaTest {
     String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
 
     Assert.assertEquals(expected, tableName);
+  }
+
+  @Test
+  public void checkAvroTypeForSqlDateWithLogicalType() throws SQLException {
+
+    final int inputType = Types.DATE;
+    final Schema.Type outputType = Schema.Type.LONG;
+    final String expectedLogicalType = "timestamp-millis";
+    final int fieldPrecision = 0;
+
+    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+  }
+
+  @Test
+  public void checkAvroTypeForSqlBigintWithPrecisionZero() throws SQLException {
+
+    final int inputType = Types.BIGINT;
+    final Schema.Type outputType = Schema.Type.STRING;
+    final String expectedLogicalType = null;
+    final int fieldPrecision = 0;
+
+    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+  }
+
+  @Test
+  public void checkAvroTypeForSqlBitWithPrecisionOne() throws SQLException {
+
+    final int inputType = Types.BIT;
+    final Schema.Type outputType = Schema.Type.BOOLEAN;
+    final String expectedLogicalType = null;
+    final int fieldPrecision = 1;
+
+    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+  }
+
+  @Test
+  public void checkAvroTypeForSqlBitWithPrecisionTwo() throws SQLException {
+
+    final int inputType = Types.BIT;
+    final Schema.Type outputType = Schema.Type.BYTES;
+    final String expectedLogicalType = null;
+    final int fieldPrecision = 2;
+
+    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+  }
+
+  private void verifyInputVsOutputType(
+      int inputType, Schema.Type outputType, String expectedLogicalType, int fieldPrecision)
+      throws SQLException {
+    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    when(meta.getColumnName(1)).thenReturn("datex");
+    when(meta.getColumnType(1)).thenReturn(inputType);
+    when(meta.getPrecision(1)).thenReturn(fieldPrecision);
+
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    final String avroSchemaNamespace = "namespace1";
+    final String connectionUrl = "url1";
+    final Optional<String> maybeSchemaName = Optional.empty();
+    final String avroDoc = "doc1";
+    final boolean useLogicalTypes = true;
+    Schema avroSchema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet,
+            avroSchemaNamespace,
+            connectionUrl,
+            maybeSchemaName,
+            avroDoc,
+            useLogicalTypes);
+
+    Schema.Field datex = avroSchema.getField("datex");
+    Assert.assertEquals(outputType, datex.schema().getTypes().get(1).getType());
+
+    if (expectedLogicalType != null) {
+      Assert.assertEquals(
+          expectedLogicalType, datex.schema().getTypes().get(1).getProp("logicalType"));
+    }
   }
 }
