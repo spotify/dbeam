@@ -161,59 +161,67 @@ public class JdbcAvroSchema {
             SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
         field = fieldBuilder.type().unionOf().nullBuilder().endNull().and();
 
+    SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
+        setAvroColumnType(columnType, precision, useLogicalTypes, field);
+
+    return schemaFieldAssembler.endUnion().nullDefault();
+  }
+
+  private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
+      setAvroColumnType(
+          final int columnType,
+          final int precision,
+          final boolean useLogicalTypes,
+          final SchemaBuilder.BaseTypeBuilder<
+                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+              field) {
     switch (columnType) {
-      case VARCHAR:
-      case CHAR:
-      case CLOB:
-      case LONGNVARCHAR:
-      case LONGVARCHAR:
-      case NCHAR:
-        return field.stringType().endUnion().nullDefault();
       case BIGINT:
         if (precision > 0 && precision <= JdbcAvroRecord.MAX_DIGITS_BIGINT) {
-          return field.longType().endUnion().nullDefault();
+          return field.longType();
         } else {
-          return field.stringType().endUnion().nullDefault();
+          return field.stringType();
         }
       case INTEGER:
       case SMALLINT:
       case TINYINT:
-        return field.intType().endUnion().nullDefault();
+        return field.intType();
       case TIMESTAMP:
       case DATE:
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
-          return field
-              .longBuilder()
-              .prop("logicalType", "timestamp-millis")
-              .endLong()
-              .endUnion()
-              .nullDefault();
+          return field.longBuilder().prop("logicalType", "timestamp-millis").endLong();
         } else {
-          return field.longType().endUnion().nullDefault();
+          return field.longType();
         }
       case BOOLEAN:
-        return field.booleanType().endUnion().nullDefault();
+        return field.booleanType();
       case BIT:
         if (precision <= 1) {
-          return field.booleanType().endUnion().nullDefault();
+          return field.booleanType();
         } else {
-          return field.bytesType().endUnion().nullDefault();
+          return field.bytesType();
         }
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
       case ARRAY:
       case BLOB:
-        return field.bytesType().endUnion().nullDefault();
+        return field.bytesType();
       case DOUBLE:
-        return field.doubleType().endUnion().nullDefault();
+        return field.doubleType();
       case FLOAT:
       case REAL:
-        return field.floatType().endUnion().nullDefault();
+        return field.floatType();
+      case VARCHAR:
+      case CHAR:
+      case CLOB:
+      case LONGNVARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
       default:
-        return field.stringType().endUnion().nullDefault();
+        return field.stringType();
     }
   }
 
