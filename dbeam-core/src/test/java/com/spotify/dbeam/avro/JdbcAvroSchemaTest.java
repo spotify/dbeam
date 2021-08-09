@@ -22,8 +22,11 @@ package com.spotify.dbeam.avro;
 
 import static org.mockito.Mockito.when;
 
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Optional;
+import org.apache.avro.Schema;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -77,5 +80,37 @@ public class JdbcAvroSchemaTest {
     String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
 
     Assert.assertEquals(expected, tableName);
+  }
+
+  @Test
+  public void checkAvroTypeForSqlDateWithLogicalType() throws SQLException {
+    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    when(meta.getColumnName(1)).thenReturn("datex");
+    when(meta.getColumnType(1)).thenReturn(java.sql.Types.DATE);
+
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    final String avroSchemaNamespace = "namespace1";
+    final String connectionUrl = "url1";
+    final Optional<String> maybeSchemaName = Optional.empty();
+    final String avroDoc = "doc1";
+    final boolean useLogicalTypes = true;
+    Schema avroSchema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet,
+            avroSchemaNamespace,
+            connectionUrl,
+            maybeSchemaName,
+            avroDoc,
+            useLogicalTypes);
+
+    Schema.Type expected = Schema.Type.LONG;
+    Schema.Field datex = avroSchema.getField("datex");
+    Assert.assertEquals(expected, datex.schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        "timestamp-millis", datex.schema().getTypes().get(1).getProp("logicalType"));
   }
 }
