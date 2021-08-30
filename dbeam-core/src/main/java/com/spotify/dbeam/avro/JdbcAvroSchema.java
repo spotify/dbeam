@@ -161,7 +161,7 @@ public class JdbcAvroSchema {
             SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
         field = fieldBuilder.type().unionOf().nullBuilder().endNull().and();
 
-    SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
+    final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
         setAvroColumnType(columnType, precision, useLogicalTypes, field);
 
     return schemaFieldAssembler.endUnion().nullDefault();
@@ -176,6 +176,13 @@ public class JdbcAvroSchema {
                   SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
               field) {
     switch (columnType) {
+      case VARCHAR:
+      case CHAR:
+      case CLOB:
+      case LONGNVARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
+        return field.stringType();
       case BIGINT:
         if (precision > 0 && precision <= JdbcAvroRecord.MAX_DIGITS_BIGINT) {
           return field.longType();
@@ -214,12 +221,6 @@ public class JdbcAvroSchema {
       case FLOAT:
       case REAL:
         return field.floatType();
-      case VARCHAR:
-      case CHAR:
-      case CLOB:
-      case LONGNVARCHAR:
-      case LONGVARCHAR:
-      case NCHAR:
       default:
         return field.stringType();
     }
