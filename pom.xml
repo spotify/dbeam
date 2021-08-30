@@ -123,7 +123,7 @@
 
         <beam.version>2.32.0</beam.version>
         <!--Ensure Beam SDK compatibility-->
-        <!--https://github.com/apache/beam/blob/release-2.31.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L536-->
+        <!-- https://github.com/apache/beam/blob/release-2.32.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L536 -->
         <google-cloud-libaries-bom.version>20.0.0</google-cloud-libaries-bom.version>
         <guava.version>30.1.1-jre</guava.version>
         <jackson.version>2.12.3</jackson.version>
@@ -133,7 +133,7 @@
         <slf4j.version>1.7.32</slf4j.version>
         <auto-value.version>1.8.2</auto-value.version>
         <google-clients.version>1.31.0</google-clients.version>
-        <socket-factory.version>1.1.0</socket-factory.version>
+        <socket-factory.version>1.2.2</socket-factory.version>
         <postgresql.version>42.2.23</postgresql.version>
         <mysql.version>8.0.26</mysql.version>
         <junit.version>4.13.2</junit.version>
@@ -239,6 +239,10 @@
                     <exclusion>
                         <groupId>com.google.cloud</groupId>
                         <artifactId>google-cloud-bigquerystorage</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.cloud</groupId>
+                        <artifactId>google-cloud-firestore</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.cloud.bigtable</groupId>
@@ -368,9 +372,19 @@
                 <version>2.5.5</version>
             </dependency>
             <dependency>
+                <groupId>com.google.api-client</groupId>
+                <artifactId>google-api-client</artifactId>
+                <version>1.31.5</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.oauth-client</groupId>
+                <artifactId>google-oauth-client</artifactId>
+                <version>1.31.5</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-cloudkms</artifactId>
-                <version>v1-rev20210410-1.31.0</version>
+                <version>v1-rev20210410-${google-clients.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.apis</groupId>
