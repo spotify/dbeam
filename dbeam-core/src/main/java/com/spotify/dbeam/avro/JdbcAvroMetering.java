@@ -28,10 +28,12 @@ import org.slf4j.LoggerFactory;
 
 public class JdbcAvroMetering {
 
+  public static final String RECORD_COUNT_METRIC_NAME = "recordCount";
   private final int countReportEvery;
   private final int logEvery;
   private final Logger logger = LoggerFactory.getLogger(JdbcAvroMetering.class);
-  private Counter recordCount = Metrics.counter(this.getClass().getCanonicalName(), "recordCount");
+  private Counter recordCount =
+      Metrics.counter(this.getClass().getCanonicalName(), RECORD_COUNT_METRIC_NAME);
   private Counter executeQueryElapsedMs =
       Metrics.counter(this.getClass().getCanonicalName(), "executeQueryElapsedMs");
   private Counter writeElapsedMs =
