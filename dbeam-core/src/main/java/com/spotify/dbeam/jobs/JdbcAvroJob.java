@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
+import com.spotify.dbeam.avro.JdbcAvroMetering;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.options.DBeamPipelineOptions;
@@ -34,6 +35,7 @@ import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.List;
+import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
@@ -53,18 +55,21 @@ public class JdbcAvroJob {
   private final JdbcExportArgs jdbcExportArgs;
   private final String output;
   private final boolean dataOnly;
+  private final long minRows;
 
   public JdbcAvroJob(
       final PipelineOptions pipelineOptions,
       final Pipeline pipeline,
       final JdbcExportArgs jdbcExportArgs,
       final String output,
-      final boolean dataOnly) {
+      final boolean dataOnly,
+      final long minRows) {
     this.pipelineOptions = pipelineOptions;
     this.pipeline = pipeline;
     this.jdbcExportArgs = jdbcExportArgs;
     this.output = output;
     this.dataOnly = dataOnly;
+    this.minRows = minRows;
     Preconditions.checkArgument(
         this.output != null && this.output.length() > 0, "'output' must be defined");
   }
@@ -79,7 +84,8 @@ public class JdbcAvroJob {
         Pipeline.create(pipelineOptions),
         JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
         output,
-        pipelineOptions.as(OutputOptions.class).getDataOnly());
+        pipelineOptions.as(OutputOptions.class).getDataOnly(),
+        pipelineOptions.as(JdbcExportPipelineOptions.class).getMinRows());
   }
 
   public static JdbcAvroJob create(final PipelineOptions pipelineOptions)
@@ -156,6 +162,20 @@ public class JdbcAvroJob {
     return pipelineOptions;
   }
 
+  private void checkMetrics(PipelineResult pipelineResult) throws FailedValidationException {
+    final Map<String, Long> metrics = MetricsHelper.getMetrics(pipelineResult);
+    if (!this.dataOnly) {
+      BeamHelper.saveMetrics(metrics, output);
+    }
+    final Long recordCount = metrics.getOrDefault(JdbcAvroMetering.RECORD_COUNT_METRIC_NAME, 0L);
+    if (recordCount < this.minRows) {
+      throw new FailedValidationException(
+          String.format(
+              "Unexpected number of rows in the output: got %d, expecting at least %d",
+              recordCount, this.minRows));
+    }
+  }
+
   public PipelineResult runAndWait() {
     return BeamHelper.waitUntilDone(this.pipeline.run(), jdbcExportArgs.exportTimeout());
   }
@@ -163,10 +183,7 @@ public class JdbcAvroJob {
   public PipelineResult runExport() throws Exception {
     prepareExport();
     final PipelineResult pipelineResult = runAndWait();
-    if (!this.dataOnly) {
-      BeamHelper.saveMetrics(MetricsHelper.getMetrics(pipelineResult), output);
-    }
-
+    checkMetrics(pipelineResult);
     return pipelineResult;
   }
 

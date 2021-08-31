@@ -87,6 +87,7 @@ runDBeamDockerCon() {
     "--table=${table:-demo_table}" \
     "--partition=$(date +%F)" \
     "--output=$OUTPUT" \
+    "--minRows=${minRows:-1000000}" \
     "$@" 2>&1 | tee -a /tmp/debeam_e2e.log
 }
 

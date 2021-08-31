@@ -92,8 +92,9 @@ public class JdbcAvroJobTest {
           "--username=",
           "--passwordFile=" + passwordPath.toString(),
           "--table=COFFEES",
-          "--output=" + outputPath.toString(),
-          "--avroCodec=zstandard1"
+          "--output=" + outputPath,
+          "--avroCodec=zstandard1",
+          "--minRows=2"
         });
 
     assertThat(
@@ -150,7 +151,7 @@ public class JdbcAvroJobTest {
           "--connectionUrl=" + CONNECTION_URL,
           "--username=",
           "--passwordFile=" + passwordPath.toString(),
-          "--output=" + outputPath.toString(),
+          "--output=" + outputPath,
           "--avroCodec=zstandard1",
           "--sqlFile=" + sqlPath.toString()
         });
@@ -190,7 +191,7 @@ public class JdbcAvroJobTest {
           "--username=",
           "--passwordFile=" + passwordPath.toString(),
           "--table=COFFEES",
-          "--output=" + outputPath.toString(),
+          "--output=" + outputPath,
           "--avroCodec=zstandard1",
           "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_1;",
           "--preCommand=CREATE SCHEMA IF NOT EXISTS TEST_COMMAND_2;"
@@ -217,10 +218,35 @@ public class JdbcAvroJobTest {
     assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
+  @Test(expected = FailedValidationException.class)
+  public void shouldFailWithNotEnoughRows() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
+
+    JdbcAvroJob.create(
+            new String[] {
+              "--targetParallelism=1", // no need for more threads when testing
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--minRows=1000"
+            })
+        .runExport();
+  }
+
   @Test
-  public void shouldHaveDefaultExitCode() throws IOException, ClassNotFoundException {
+  public void shouldHaveDefaultExitCode() {
     Assert.assertEquals(
         Integer.valueOf(49), ExceptionHandling.exitCode(new IllegalStateException()));
+  }
+
+  @Test
+  public void shouldExit50OnFailedValidationException() {
+    Assert.assertEquals(
+        Integer.valueOf(50), ExceptionHandling.exitCode(new FailedValidationException("")));
   }
 
   @Test(expected = IllegalArgumentException.class)

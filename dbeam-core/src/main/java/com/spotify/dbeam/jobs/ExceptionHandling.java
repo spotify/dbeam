@@ -30,15 +30,20 @@ import org.slf4j.LoggerFactory;
 
 public class ExceptionHandling {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(ExceptionHandling.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandling.class);
 
-  private static final Map<Class<? extends Throwable>, Integer> EXIT_CODES =
-      ImmutableMap.of(
-          NotReadyException.class, 20,
-          IOException.class, 41,
-          IllegalArgumentException.class, 43,
-          SQLException.class, 45,
-          Pipeline.PipelineExecutionException.class, 47);
+  private static final Map<Class<? extends Throwable>, Integer> EXIT_CODES;
+
+  static {
+    ImmutableMap.Builder<Class<? extends Throwable>, Integer> builder = ImmutableMap.builder();
+    builder.put(NotReadyException.class, 20);
+    builder.put(IOException.class, 41);
+    builder.put(IllegalArgumentException.class, 43);
+    builder.put(SQLException.class, 45);
+    builder.put(Pipeline.PipelineExecutionException.class, 47);
+    builder.put(FailedValidationException.class, 50);
+    EXIT_CODES = builder.build();
+  }
 
   public static void handleException(final Throwable e) {
     LOGGER.error("Failure: ", e);

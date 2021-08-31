@@ -129,4 +129,12 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   List<String> getPreCommand();
 
   void setPreCommand(List<String> value);
+
+  @Description(
+      "Check that the output has at least this minimum number of rows. "
+          + "Otherwise fail the job.")
+  @Default.Long(-1)
+  Long getMinRows();
+
+  void setMinRows(Long value);
 }

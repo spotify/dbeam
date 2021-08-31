@@ -96,6 +96,10 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --minPartitionPeriod=<String>
     The minimum partition required for the job not to fail (when partition
     column is not specified),by default `now() - 2*partitionPeriod`.
+  --minRows=<Long>
+    Default: -1
+    Check that the output has at least this minimum number of rows. Otherwise
+    fail the job.
   --partition=<String>
     The date/timestamp of the current partition.
   --partitionColumn=<String>
@@ -287,7 +291,7 @@ You can check the deployment in the following links:
 
 ## License
 
-Copyright 2016-2020 Spotify AB.
+Copyright 2016-2021 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
 
