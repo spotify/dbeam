@@ -26,7 +26,6 @@ import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
-import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.beam.BeamHelper;
 import java.io.IOException;
 import java.time.Duration;
@@ -77,8 +76,7 @@ public class JdbcExportArgsFactory {
         Optional.ofNullable(exportOptions.getAvroSchemaName()),
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
-        Duration.parse(exportOptions.getExportTimeout()),
-        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
+        Duration.parse(exportOptions.getExportTimeout()));
   }
 
   public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)

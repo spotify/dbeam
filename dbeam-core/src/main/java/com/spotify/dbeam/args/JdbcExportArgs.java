@@ -26,7 +26,6 @@ import java.io.Serializable;
 import java.sql.Connection;
 import java.time.Duration;
 import java.util.Optional;
-import org.apache.avro.Schema;
 
 @AutoValue
 public abstract class JdbcExportArgs implements Serializable {
@@ -47,8 +46,6 @@ public abstract class JdbcExportArgs implements Serializable {
 
   public abstract Duration exportTimeout();
 
-  public abstract Optional<Schema> inputAvroSchema();
-
   @AutoValue.Builder
   abstract static class Builder {
 
@@ -66,8 +63,6 @@ public abstract class JdbcExportArgs implements Serializable {
 
     abstract Builder setExportTimeout(Duration exportTimeout);
 
-    abstract Builder setInputAvroSchema(Optional<Schema> inputAvroSchema);
-
     abstract JdbcExportArgs build();
   }
 
@@ -81,8 +76,7 @@ public abstract class JdbcExportArgs implements Serializable {
         Optional.empty(),
         Optional.empty(),
         false,
-        Duration.ofDays(7),
-        Optional.empty());
+        Duration.ofDays(7));
   }
 
   public static JdbcExportArgs create(
@@ -92,8 +86,7 @@ public abstract class JdbcExportArgs implements Serializable {
       final Optional<String> avroSchemaName,
       final Optional<String> avroDoc,
       final Boolean useAvroLogicalTypes,
-      final Duration exportTimeout,
-      final Optional<Schema> inputAvroSchema) {
+      final Duration exportTimeout) {
     return new AutoValue_JdbcExportArgs.Builder()
         .setJdbcAvroOptions(jdbcAvroArgs)
         .setQueryBuilderArgs(queryBuilderArgs)
@@ -102,7 +95,6 @@ public abstract class JdbcExportArgs implements Serializable {
         .setAvroDoc(avroDoc)
         .setUseAvroLogicalTypes(useAvroLogicalTypes)
         .setExportTimeout(exportTimeout)
-        .setInputAvroSchema(inputAvroSchema)
         .build();
   }
 

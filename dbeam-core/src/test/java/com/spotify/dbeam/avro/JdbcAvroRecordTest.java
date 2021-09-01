@@ -52,7 +52,7 @@ import org.mockito.Mockito;
 
 public class JdbcAvroRecordTest {
 
-  private static String CONNECTION_URL =
+  private static final String CONNECTION_URL =
       "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
 
   @BeforeClass
@@ -63,14 +63,19 @@ public class JdbcAvroRecordTest {
   @Test
   public void shouldCreateSchema() throws ClassNotFoundException, SQLException {
     final int fieldCount = 12;
+
+    AvroSchemaMetadataProvider provider =
+        new AvroSchemaMetadataProvider(
+            null,
+            "dbeam_generated",
+            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test");
+
     final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
-            "dbeam_generated",
-            Optional.empty(),
-            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false);
+            false,
+            provider);
 
     Assert.assertNotNull(actual);
     Assert.assertEquals("dbeam_generated", actual.getNamespace());
@@ -129,14 +134,19 @@ public class JdbcAvroRecordTest {
   @Test
   public void shouldCreateSchemaWithLogicalTypes() throws ClassNotFoundException, SQLException {
     final int fieldCount = 12;
+
+    AvroSchemaMetadataProvider provider =
+        new AvroSchemaMetadataProvider(
+            "dbeam_generated",
+            null,
+            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test");
+
     final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
-            "dbeam_generated",
-            Optional.empty(),
-            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true);
+            true,
+            provider);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -146,14 +156,19 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCreateSchemaWithCustomSchemaName() throws ClassNotFoundException, SQLException {
+
+    AvroSchemaMetadataProvider provider =
+        new AvroSchemaMetadataProvider(
+            "CustomSchemaName",
+            "dbeam_generated",
+            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test");
+
     final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
             QueryBuilderArgs.create("COFFEES"),
-            "dbeam_generated",
-            Optional.of("CustomSchemaName"),
-            "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false);
+            false,
+            provider);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
   }
@@ -165,9 +180,11 @@ public class JdbcAvroRecordTest {
         DbTestHelper.createConnection(CONNECTION_URL)
             .createStatement()
             .executeQuery("SELECT * FROM COFFEES");
-    final Schema schema =
-        JdbcAvroSchema.createAvroSchema(
-            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
+
+    AvroSchemaMetadataProvider provider =
+        new AvroSchemaMetadataProvider("dbeam_generated", null, "doc");
+
+    final Schema schema = JdbcAvroSchema.createAvroSchema(rs, "connection", false, provider);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));

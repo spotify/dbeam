@@ -27,7 +27,6 @@ import java.nio.channels.Channels;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
-import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.FileSystems;
@@ -42,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class BeamJdbcAvroSchema {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
   /**
    * Generate Avro schema by reading one row. Expose Beam metrics via a Beam PTransform.
@@ -54,10 +53,13 @@ public class BeamJdbcAvroSchema {
    * @throws Exception in case of failure to query database
    */
   public static Schema createSchema(
-      final Pipeline pipeline, final JdbcExportArgs args, final Connection connection)
+      final Pipeline pipeline,
+      final JdbcExportArgs args,
+      final Connection connection,
+      final AvroSchemaMetadataProvider provider)
       throws Exception {
     final long startTime = System.nanoTime();
-    final Schema generatedSchema = generateAvroSchema(args, connection);
+    final Schema generatedSchema = generateAvroSchema(args, connection, provider);
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
@@ -78,35 +80,24 @@ public class BeamJdbcAvroSchema {
     return generatedSchema;
   }
 
-  private static Schema generateAvroSchema(final JdbcExportArgs args, final Connection connection)
+  private static Schema generateAvroSchema(
+      final JdbcExportArgs args,
+      final Connection connection,
+      final AvroSchemaMetadataProvider provider)
       throws SQLException {
-    final String dbUrl = connection.getMetaData().getURL();
-    final String avroDoc =
-        args.avroDoc()
-            .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
-        connection,
-        args.queryBuilderArgs(),
-        args.avroSchemaNamespace(),
-        args.avroSchemaName(),
-        avroDoc,
-        args.useAvroLogicalTypes());
-  }
-
-  public static Optional<Schema> parseOptionalInputAvroSchemaFile(final String filename)
-      throws IOException {
-
-    if (filename == null || filename.isEmpty()) {
-      return Optional.empty();
-    }
-
-    return Optional.of(parseInputAvroSchemaFile(filename));
+        connection, args.queryBuilderArgs(), args.useAvroLogicalTypes(), provider);
   }
 
   public static Schema parseInputAvroSchemaFile(final String filename) throws IOException {
     final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
     final InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
 
-    return new Schema.Parser().parse(inputStream);
+    final Schema schema = new Schema.Parser().parse(inputStream);
+
+    LOGGER.info("Parsed the provided schema from: [{}]", filename);
+
+    return schema;
   }
+
 }

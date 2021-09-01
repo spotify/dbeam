@@ -18,11 +18,18 @@
  * -/-/-
  */
 
-package com.spotify.dbeam.options;
+package com.spotify.dbeam.jobs;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+import com.spotify.dbeam.JavaSqlHelper;
+import com.spotify.dbeam.args.JdbcAvroArgs;
+import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.args.QueryBuilderArgsTest;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
+import com.spotify.dbeam.options.JdbcExportPipelineOptions;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -30,18 +37,27 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.testing.TestPipeline;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class InputAvroSchemaTest {
 
@@ -86,6 +102,11 @@ public class InputAvroSchemaTest {
     return newTempFile;
   }
 
+  @AfterClass
+  public static void afterAll() throws IOException {
+    Files.delete(avroSchemaFile.toPath());
+  }
+
   private Schema createRecordSchema(
       final String recordName,
       final String recordDoc,
@@ -104,11 +125,6 @@ public class InputAvroSchemaTest {
     return inputSchema;
   }
 
-  @AfterClass
-  public static void afterAll() throws IOException {
-    Files.delete(avroSchemaFile.toPath());
-  }
-
   @Test
   public void checkReadAvroSchema() throws IOException {
     final JdbcExportPipelineOptions options =
@@ -125,18 +141,60 @@ public class InputAvroSchemaTest {
   }
 
   @Test
-  @Ignore
-  public void checkFullPath() {
-    // TODO
-    // Check provide input string to args and verify final schema
+  public void checkSuppliedAvroSchemaValidationPassed() throws Exception {
 
-    final String[] fieldNames = null;
-    final String[] fieldDocs = null;
-    final String recordName = "COFFEE";
-    final String recordDoc = "Input record doc";
-    final String recordNamespace = "Input record namespace";
-    final Schema inputSchema =
-        createRecordSchema(recordName, recordDoc, recordNamespace, fieldNames, fieldDocs);
+    int columnCountInResultSet = 2;
+    // Since our supplied schema has 2 fields, validation should fail.
+
+    Schema schema = createAndVerifySuppliedSchema(columnCountInResultSet);
+
+    Assert.assertEquals(2, schema.getFields().size());
+  }
+
+  private Schema createAndVerifySuppliedSchema(int columnCount) throws Exception {
+    final JdbcExportPipelineOptions options =
+        PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
+    options.setAvroSchemaFilePath(avroSchemaFilePathStr);
+
+    PipelineOptions pipelineOptions = options;
+    final Pipeline pipeline = TestPipeline.create();
+
+    final JdbcExportArgs jdbcExportArgs =
+        JdbcExportArgs.create(
+            // JdbcAvroArgs.create(JdbcConnectionArgs.create("dummyUrl")),
+            Mockito.mock(JdbcAvroArgs.class),
+            QueryBuilderArgs.create("dummyTable"),
+            "avroSchemaNamespace",
+            Optional.empty(),
+            Optional.empty(),
+            false,
+            Duration.ofSeconds(30));
+
+    // mocks set-up
+    DatabaseMetaData meta = Mockito.mock(DatabaseMetaData.class);
+    when(meta.getURL()).thenReturn("dummyUrl");
+
+    ResultSetMetaData rsMetaData = JavaSqlHelper.DummyResultSetMetaData.create(columnCount);
+
+    ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(rsMetaData);
+
+    Statement statement = Mockito.mock(Statement.class);
+    when(statement.executeQuery(anyString())).thenReturn(resultSet);
+
+    Connection connection = Mockito.mock(Connection.class);
+    when(connection.getMetaData()).thenReturn(meta);
+
+    when(connection.createStatement()).thenReturn(statement);
+
+    final String output = "output";
+    final boolean dataOnly = true;
+    final long minRows = -1L;
+
+    final JdbcAvroJob job =
+        new JdbcAvroJob(pipelineOptions, pipeline, jdbcExportArgs, output, dataOnly, minRows);
+
+    return job.createSchema(connection);
   }
 
   @Test
@@ -147,8 +205,6 @@ public class InputAvroSchemaTest {
     options.setAvroSchemaFilePath(path);
 
     Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    Assert.assertEquals(
-        Optional.empty(), BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
   @Test
@@ -159,8 +215,6 @@ public class InputAvroSchemaTest {
     options.setAvroSchemaFilePath(path);
 
     Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    Assert.assertEquals(
-        Optional.empty(), BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
   @Test(expected = SchemaParseException.class)
@@ -173,7 +227,7 @@ public class InputAvroSchemaTest {
     options.setAvroSchemaFilePath(path);
 
     Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path);
+    BeamJdbcAvroSchema.parseInputAvroSchemaFile(path);
   }
 
   @Test(expected = FileNotFoundException.class)
@@ -184,7 +238,7 @@ public class InputAvroSchemaTest {
     options.setAvroSchemaFilePath(path);
 
     Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path);
+    BeamJdbcAvroSchema.parseInputAvroSchemaFile(path);
   }
 
   @Test
@@ -205,15 +259,5 @@ public class InputAvroSchemaTest {
                 + "--partition=2027-07-31");
 
     Assert.assertNull(options.getAvroSchemaFilePath());
-  }
-
-  private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {
-    PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
-    final JdbcExportPipelineOptions opts =
-        PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "))
-            .withValidation()
-            .create()
-            .as(JdbcExportPipelineOptions.class);
-    return JdbcExportArgsFactory.createQueryArgs(opts);
   }
 }
