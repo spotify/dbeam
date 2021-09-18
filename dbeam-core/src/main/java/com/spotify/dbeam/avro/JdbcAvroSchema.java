@@ -122,7 +122,7 @@ public class JdbcAvroSchema {
     return defaultTableName;
   }
 
-  public static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
+  private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
       final ResultSetMetaData meta,
       final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes)
@@ -137,8 +137,8 @@ public class JdbcAvroSchema {
         columnName = meta.getColumnName(i);
       }
 
-      ColumnMetadata columnMetadata =
-          new ColumnMetadata(
+      ColumnMetaData columnMetadata =
+          new ColumnMetaData(
               columnName, meta.getColumnClassName(i), meta.getColumnType(i), meta.getPrecision(i));
       int columnType = meta.getColumnType(i);
       final String typeName = JDBCType.valueOf(columnType).getName();
@@ -157,7 +157,7 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
-      final ColumnMetadata columnMetadata,
+      final ColumnMetaData columnMetadata,
       final SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
       boolean useLogicalTypes) {
 
@@ -173,7 +173,7 @@ public class JdbcAvroSchema {
 
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
-          final ColumnMetadata columnMetadata,
+          final ColumnMetaData columnMetadata,
           final boolean useLogicalTypes,
           final SchemaBuilder.BaseTypeBuilder<
                   SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
@@ -241,13 +241,13 @@ public class JdbcAvroSchema {
     return input.replaceAll("[^A-Za-z0-9_]", "_");
   }
 
-  private static class ColumnMetadata {
+  private static class ColumnMetaData {
     public final String columnName;
     public final String columnClassName;
     public final int columnType;
     public final int precision;
 
-    private ColumnMetadata(
+    private ColumnMetaData(
         String columnName, String columnClassName, int columnType, int columnPrecision) {
       this.columnName = columnName;
       this.columnClassName = columnClassName;
