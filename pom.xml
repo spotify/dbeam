@@ -134,7 +134,7 @@
         <auto-value.version>1.8.2</auto-value.version>
         <google-clients.version>1.31.0</google-clients.version>
         <socket-factory.version>1.2.2</socket-factory.version>
-        <postgresql.version>42.2.23</postgresql.version>
+        <postgresql.version>42.3.0</postgresql.version>
         <mysql.version>8.0.26</mysql.version>
         <junit.version>4.13.2</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
