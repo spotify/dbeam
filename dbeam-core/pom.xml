@@ -26,7 +26,8 @@
       <!-- Log -->
       <dependency>
         <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
+        <artifactId>slf4j-jdk14</artifactId>
+        <scope>runtime</scope>
       </dependency>
 
       <!-- Runners -->
@@ -41,7 +42,7 @@
       </dependency>
       <dependency>
         <groupId>com.google.auto.value</groupId>
-        <artifactId>auto-value</artifactId>
+        <artifactId>auto-value-annotations</artifactId>
         <scope>provided</scope>
       </dependency>
 
@@ -68,28 +69,8 @@
           <artifactId>guava</artifactId>
       </dependency>
       <dependency>
-          <groupId>io.grpc</groupId>
-          <artifactId>grpc-protobuf</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>io.grpc</groupId>
-          <artifactId>grpc-core</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.errorprone</groupId>
-          <artifactId>error_prone_annotations</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.apis</groupId>
-          <artifactId>google-api-services-storage</artifactId>
-      </dependency>
-      <dependency>
           <groupId>com.google.apis</groupId>
           <artifactId>google-api-services-cloudkms</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.http-client</groupId>
-          <artifactId>google-http-client</artifactId>
       </dependency>
       <dependency>
           <groupId>org.apache.avro</groupId>
@@ -98,10 +79,6 @@
       <dependency>
           <groupId>com.github.luben</groupId>
           <artifactId>zstd-jni</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>org.checkerframework</groupId>
-        <artifactId>checker-compat-qual</artifactId>
       </dependency>
 
       <!-- Test Deps -->

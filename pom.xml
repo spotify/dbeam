@@ -121,21 +121,21 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <beam.version>2.32.0</beam.version>
+        <beam.version>2.35.0</beam.version>
         <!--Ensure Beam SDK compatibility-->
-        <!-- https://github.com/apache/beam/blob/release-2.32.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L536 -->
-        <google-cloud-libaries-bom.version>20.0.0</google-cloud-libaries-bom.version>
-        <guava.version>30.1.1-jre</guava.version>
-        <jackson.version>2.12.3</jackson.version>
-        <netty.version>4.1.67.Final</netty.version>
-        <protobuf.version>3.15.8</protobuf.version>
+        <!-- https://github.com/apache/beam/blob/release-2.35.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L536 -->
+        <google-cloud-libaries-bom.version>24.0.0</google-cloud-libaries-bom.version>
+        <grpc.version>1.41.1</grpc.version>
+        <guava.version>31.0.1-jre</guava.version>
+        <netty.version>4.1.72.Final</netty.version>
+        <protobuf.version>3.18.1</protobuf.version>
         <avro.version>1.10.2</avro.version>
         <slf4j.version>1.7.32</slf4j.version>
         <auto-value.version>1.8.2</auto-value.version>
-        <google-clients.version>1.31.0</google-clients.version>
+        <google-clients.version>1.32.2</google-clients.version>
         <socket-factory.version>1.2.2</socket-factory.version>
-        <postgresql.version>42.2.23</postgresql.version>
-        <mysql.version>8.0.26</mysql.version>
+        <postgresql.version>42.3.1</postgresql.version>
+        <mysql.version>8.0.27</mysql.version>
         <junit.version>4.13.2</junit.version>
         <hamcrest.version>2.2</hamcrest.version>
     </properties>
@@ -145,6 +145,13 @@
     </modules>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
             <dependency>
                 <groupId>org.apache.beam</groupId>
                 <artifactId>beam-sdks-java-bom</artifactId>
@@ -172,11 +179,6 @@
                 <version>${slf4j.version}</version>
                 <scope>runtime</scope>
             </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-simple</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
 
             <!-- Runners -->
             <dependency>
@@ -191,26 +193,6 @@
                     <exclusion>
                         <groupId>org.hamcrest</groupId>
                         <artifactId>hamcrest</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.guava</groupId>
-                        <artifactId>guava</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.protobuf</groupId>
-                        <artifactId>protobuf-java</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.protobuf</groupId>
-                        <artifactId>protobuf-java-util</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.apis</groupId>
-                        <artifactId>google-api-services-storage</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api.grpc</groupId>
-                        <artifactId>proto-google-common-protos</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.api.grpc</groupId>
@@ -255,34 +237,6 @@
                     <exclusion>
                         <groupId>org.apache.avro</groupId>
                         <artifactId>avro</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-context</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.conscrypt</groupId>
-                        <artifactId>conscrypt-openjdk-uber</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-stub</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-protobuf</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-netty-shaded</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-auth</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-alts</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.apache.beam</groupId>
@@ -332,31 +286,6 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${protobuf.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
                 <version>${netty.version}</version>
@@ -364,33 +293,27 @@
             <dependency>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_annotations</artifactId>
-                <version>2.9.0</version>
+                <version>2.10.0</version>
             </dependency>
             <dependency>
                 <groupId>org.checkerframework</groupId>
-                <artifactId>checker-compat-qual</artifactId>
-                <version>2.5.5</version>
+                <artifactId>checker-qual</artifactId>
+                <version>3.12.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.api-client</groupId>
                 <artifactId>google-api-client</artifactId>
-                <version>1.31.5</version>
+                <version>${google-clients.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.google.oauth-client</groupId>
-                <artifactId>google-oauth-client</artifactId>
-                <version>1.31.5</version>
+                <groupId>com.google.api.grpc</groupId>
+                <artifactId>proto-google-iam-v1</artifactId>
+                <version>1.1.7</version>
             </dependency>
             <dependency>
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-cloudkms</artifactId>
-                <version>v1-rev20210410-${google-clients.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.apis</groupId>
-                <artifactId>google-api-services-storage</artifactId>
-                <!--[> Because gcsio:2.1.6 and beam-sdks-java-extensions-google-cloud-platform-core bring incompatible versions <]-->
-                <version>v1-rev20210127-${google-clients.version}</version>
+                <version>v1-rev20211130-1.32.1</version>
             </dependency>
 
             <!-- DB Deps -->
