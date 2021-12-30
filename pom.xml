@@ -702,7 +702,7 @@
                     <configLocation>google_checks.xml</configLocation>
                     <consoleOutput>true</consoleOutput>
                         <!-- Remove or switch to false to keep building even with checkstyle errors -->
-                    <failOnViolation>true</failOnViolation>
+                    <failOnViolation>false</failOnViolation>
                     <logViolationsToConsole>true</logViolationsToConsole>
                     <suppressionsLocation>
                             checkstyle-suppressions.xml
@@ -712,6 +712,7 @@
                     </suppressionsFileExpression>
                 </configuration>
                 <dependencies>
+
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>

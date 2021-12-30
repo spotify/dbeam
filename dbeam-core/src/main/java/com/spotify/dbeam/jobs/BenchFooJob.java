@@ -22,8 +22,10 @@ package com.spotify.dbeam.jobs;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ObjectArrays;
+import com.google.common.collect.Queues;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import org.apache.beam.repackaged.core.org.apache.commons.lang3.RandomStringUtils;
 import org.apache.beam.runners.dataflow.DataflowClient;
 import org.apache.beam.runners.dataflow.DataflowPipelineJob;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
@@ -95,7 +97,7 @@ public class BenchFooJob {
     pipeline
             .apply("InputRange", Create.of(IntStream.range(1, executions + 1).boxed().collect(Collectors.toList())))
             .apply("GroupByKeyReshuffle", Reshuffle.viaRandomKey())
-            .apply("DoHeavyProcessing", ParDo.of(new PT1(10000)));
+            .apply("DoHeavyProcessing", ParDo.of(new PT1(1000)));
 
     this.pipelineResult = this.pipeline.run();
     return pipelineResult;
@@ -117,15 +119,15 @@ public class BenchFooJob {
   public static void main(final String[] cmdLineArgs) {
     final String[] baseArgs = ObjectArrays.concat(cmdLineArgs, new String[]{"--runner=DataflowRunner",
             "--project=spotify-dbeam", "--region=europe-west1", "--tempLocation=gs://spotify-dbeam-demo-output-n1tk7n/bench1",
-            "--autoscalingAlgorithm=NONE", "--numWorkers=4",
-            "--executions=40000"}, String.class);
+            "--autoscalingAlgorithm=NONE", "--numWorkers=2",
+            "--executions=50000"}, String.class);
     final Stream<String[]> jobParams = Stream.of(
-            new String[]{"--jobName=n1-java8", "--workerMachineType=n1-highmem-2", "--experiments=use_runner_v2", "--sdkContainerImage=apache/beam_java8_sdk:2.33.0"},
-            new String[]{"--jobName=n2d-java8", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2", "--sdkContainerImage=apache/beam_java8_sdk:2.33.0"},
-            new String[]{"--jobName=n1-java11-serialgc", "--workerMachineType=n1-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n2d-java11-serialgc", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n2d-java11-g1gc", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:17411a31b8b4b2fc0759b17cfa248bfe864530c117172d12b3542d68f41489ae"},
-            new String[]{"--jobName=n2d-java11-parallelgc", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2,use_parallel_gc", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:f2e92d4c3ced120d6ede617b4453cc16a64cb3b47067e97e965b92417893dfae"}
+            new String[]{"--jobName=n1-java8", "--workerMachineType=n1-standard-1", "--experiments=use_runner_v2", "--sdkContainerImage=apache/beam_java8_sdk:2.35.0"},
+            new String[]{"--jobName=v1-n1-java11-parallelgc", "--workerMachineType=n1-standard-1"},
+            new String[]{"--jobName=v2-n1-java11-parallelgc", "--workerMachineType=n1-standard-1", "--experiments=use_runner_v2"}
+//            new String[]{"--jobName=n1-java11-g1gc", "--workerMachineType=n1-standard-1", "--experiments=use_runner_v2", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:17411a31b8b4b2fc0759b17cfa248bfe864530c117172d12b3542d68f41489ae"},
+//            new String[]{"--jobName=n1-java11-parallelgc", "--workerMachineType=n1-standard-1", "--experiments=use_runner_v2,use_parallel_gc", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:39c1975687ebee362ccaf5fcefc93ee005c9081085438e558a4e2422ff0f0c33"},
+//            new String[]{"--jobName=n1-java11-parallelgct", "--workerMachineType=n1-standard-1", "--experiments=use_runner_v2,use_parallel_gc_tuned", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:39c1975687ebee362ccaf5fcefc93ee005c9081085438e558a4e2422ff0f0c33"}
     );
     final List<BenchFooJob> benchFooJobs = jobParams.map(args -> create(ObjectArrays.concat(baseArgs, args, String.class))).collect(Collectors.toList());
     benchFooJobs.stream().forEach(BenchFooJob::run);
@@ -142,12 +144,11 @@ public class BenchFooJob {
     private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
 
     private volatile String blackhole;
-    private volatile Queue<String> blackholeFifo;
+    private static volatile Queue<String> blackholeFifo = Queues.synchronizedQueue(EvictingQueue.create(1000*10));
     private final int loops;
 
     private PT1(final int loops) {
       this.loops = loops;
-      this.blackholeFifo = EvictingQueue.create(loops*10);
     }
 
     public static String encrypt(String value) {
@@ -188,7 +189,7 @@ public class BenchFooJob {
       final long start = System.nanoTime();
       blackhole = "";
       IntStream.range(0, loops) .mapToObj(
-              i -> heavyFn(10000000L * i + v))
+              i -> heavyFn(RandomStringUtils.randomAlphabetic(200) + (v + 10000000L * i)))
           .collect(Collectors.toList())
           .stream()
           .forEach(
@@ -202,19 +203,21 @@ public class BenchFooJob {
       processElementMs.update(durationMs);
     }
 
-    private String heavyFn(final long i) {
+    private String heavyFn(final String input) {
       return decrypt(
               encrypt(
                       encoder.encodeToString(
                               hashFunction
                                       .hashUnencodedChars(
-                                              blackhole + String.format("%10d", i))
+                                              input)
                                       .asBytes())));
     }
 
     @Setup
     public void setup() {
-      this.blackholeFifo = EvictingQueue.create(loops*10);
+      if (blackholeFifo == null) {
+        blackholeFifo = EvictingQueue.create(loops * 10);
+      }
       LOG.info("BenchFooJob setup");
       LOG.info("PIPELINE_OPTIONS: {}", System.getenv("PIPELINE_OPTIONS"));
       LOG.info("RUNNER_CAPABILITIES: {}", System.getenv("RUNNER_CAPABILITIES"));
