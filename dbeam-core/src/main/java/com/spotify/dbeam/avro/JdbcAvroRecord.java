@@ -84,12 +84,8 @@ public class JdbcAvroRecord {
       case NCHAR:
         return resultSet -> resultSet.getString(column);
       case BIGINT:
-        final int precision = meta.getPrecision(column);
-        if (precision > 0 && precision <= MAX_DIGITS_BIGINT) {
-          return resultSet -> resultSet.getLong(column);
-        }
-        // otherwise return as string
-        return resultSet -> resultSet.getString(column);
+        // In PostgreSQL, mySQL and H2, BIGINT is 8 bytes and fits into Java long
+        return resultSet -> resultSet.getLong(column);
       case INTEGER:
       case SMALLINT:
       case TINYINT:
