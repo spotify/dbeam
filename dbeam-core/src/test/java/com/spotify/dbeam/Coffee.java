@@ -110,7 +110,7 @@ public abstract class Coffee {
         + "\"SIZE\" DOUBLE NOT NULL,"
         + "\"IS_ARABIC\" BOOLEAN NOT NULL,"
         + "\"SALES\" INTEGER DEFAULT 0 NOT NULL,"
-        + "\"TOTAL\" BIGINT DEFAULT 0 NOT NULL,"
+        + "\"TOTAL\" INT8 DEFAULT 0 NOT NULL,"
         + "\"CREATED\" TIMESTAMP NOT NULL,"
         + "\"UPDATED\" TIMESTAMP,"
         + "\"UID\" UUID NOT NULL,"
