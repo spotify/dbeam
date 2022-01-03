@@ -54,7 +54,7 @@ public interface DBeamPipelineOptions extends PipelineOptions {
   void setPasswordFile(String value);
 
   @Description(
-      "A path to a file containing the database password, " + "KMS encrypted and base64 encoded.")
+      "A path to a file containing the database password, KMS encrypted and base64 encoded.")
   String getPasswordFileKmsEncrypted();
 
   void setPasswordFileKmsEncrypted(String value);
@@ -63,4 +63,9 @@ public interface DBeamPipelineOptions extends PipelineOptions {
   String getPassword();
 
   void setPassword(String value);
+
+  @Description("DBeam version")
+  String getDBeamVersion();
+
+  void setDBeamVersion(String value);
 }

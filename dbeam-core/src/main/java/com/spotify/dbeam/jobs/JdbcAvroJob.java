@@ -104,13 +104,18 @@ public class JdbcAvroJob {
     return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
   }
 
-  public void prepareExport() throws Exception {
+  private void configureVersion() {
+    final String dbeamVersion = this.getClass().getPackage().getImplementationVersion();
     LOGGER.info(
         "{} {} version {}",
         this.getClass().getPackage().getImplementationTitle(),
         this.getClass().getSimpleName(),
-        this.getClass().getPackage().getImplementationVersion());
+        dbeamVersion);
+    pipelineOptions.as(DBeamPipelineOptions.class).setDBeamVersion(dbeamVersion);
+  }
 
+  public void prepareExport() throws Exception {
+    configureVersion();
     final List<String> queries;
     final Schema generatedSchema;
     try (Connection connection = jdbcExportArgs.createConnection()) {

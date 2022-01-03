@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.hasSize;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.avro.JdbcAvroMetering;
+import com.spotify.dbeam.options.DBeamPipelineOptions;
 import com.spotify.dbeam.options.OutputOptions;
 import java.io.File;
 import java.io.IOException;
@@ -235,6 +236,28 @@ public class JdbcAvroJobTest {
               "--minRows=1000"
             })
         .runExport();
+  }
+
+  @Test
+  public void shouldConfigureDBeamVersionPipelineOptions() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
+
+    final JdbcAvroJob jdbcAvroJob =
+        JdbcAvroJob.create(
+            new String[] {
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath
+            });
+    jdbcAvroJob.prepareExport();
+
+    Assert.assertEquals(
+        this.getClass().getPackage().getImplementationVersion(),
+        jdbcAvroJob.getPipelineOptions().as(DBeamPipelineOptions.class).getDBeamVersion());
   }
 
   @Test
