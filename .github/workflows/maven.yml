@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        java_version: ['8', '11']
+        java_version: ['11']
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
@@ -51,7 +51,7 @@ jobs:
         run: ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
       - uses: actions/upload-artifact@v2
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '1.8'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '11'
         with:
           name: Package
           path: staging
