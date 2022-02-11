@@ -1,141 +1,116 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-      <artifactId>dbeam-parent</artifactId>
-      <groupId>com.spotify</groupId>
-      <version>0.10.5-SNAPSHOT</version>
-    </parent>
+  <parent>
+    <groupId>com.spotify</groupId>
+    <artifactId>dbeam-parent</artifactId>
+    <version>0.10.7-SNAPSHOT</version>
+  </parent>
+  <artifactId>dbeam-core</artifactId>
 
-    <name>DBeam Core</name>
-    <artifactId>dbeam-core</artifactId>
-    <description>
-      Top level DBeam core implementation
-    </description>
+  <name>DBeam Core</name>
+  <description>Top level DBeam core implementation</description>
 
-    <dependencies>
+  <dependencies>
 
-      <!-- SDK -->
-      <dependency>
-        <groupId>org.apache.beam</groupId>
-        <artifactId>beam-sdks-java-core</artifactId>
-      </dependency>
+    <!-- SDK -->
+    <dependency>
+      <groupId>org.apache.beam</groupId>
+      <artifactId>beam-sdks-java-core</artifactId>
+    </dependency>
 
-      <!-- Log -->
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-      </dependency>
+    <!-- Log -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-jdk14</artifactId>
+      <scope>runtime</scope>
+    </dependency>
 
-      <!-- Runners -->
+    <!-- Runners -->
 
-      <dependency>
-        <groupId>org.apache.beam</groupId>
-        <artifactId>beam-runners-direct-java</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.beam</groupId>
-        <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>com.google.auto.value</groupId>
-        <artifactId>auto-value</artifactId>
-        <scope>provided</scope>
-      </dependency>
+    <dependency>
+      <groupId>org.apache.beam</groupId>
+      <artifactId>beam-runners-direct-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.beam</groupId>
+      <artifactId>beam-runners-google-cloud-dataflow-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.auto.value</groupId>
+      <artifactId>auto-value-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
-      <!-- DB Deps -->
-      <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>mysql</groupId>
-        <artifactId>mysql-connector-java</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>com.google.cloud.sql</groupId>
-        <artifactId>postgres-socket-factory</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>com.google.cloud.sql</groupId>
-        <artifactId>mysql-socket-factory</artifactId>
-      </dependency>
+    <!-- DB Deps -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.sql</groupId>
+      <artifactId>postgres-socket-factory</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud.sql</groupId>
+      <artifactId>mysql-socket-factory</artifactId>
+    </dependency>
 
-      <dependency>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>io.grpc</groupId>
-          <artifactId>grpc-protobuf</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>io.grpc</groupId>
-          <artifactId>grpc-core</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.errorprone</groupId>
-          <artifactId>error_prone_annotations</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.apis</groupId>
-          <artifactId>google-api-services-storage</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.apis</groupId>
-          <artifactId>google-api-services-cloudkms</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.google.http-client</groupId>
-          <artifactId>google-http-client</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>org.apache.avro</groupId>
-          <artifactId>avro</artifactId>
-      </dependency>
-      <dependency>
-          <groupId>com.github.luben</groupId>
-          <artifactId>zstd-jni</artifactId>
-      </dependency>
-      <dependency>
-        <groupId>org.checkerframework</groupId>
-        <artifactId>checker-compat-qual</artifactId>
-      </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-cloudkms</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.luben</groupId>
+      <artifactId>zstd-jni</artifactId>
+    </dependency>
 
-      <!-- Test Deps -->
+    <!-- Test Deps -->
 
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest-core</artifactId>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest-library</artifactId>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.google.http-client</groupId>
-        <artifactId>google-http-client-test</artifactId>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-library</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
 </project>

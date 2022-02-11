@@ -190,12 +190,7 @@ public class JdbcAvroSchema {
       case NCHAR:
         return field.stringType();
       case BIGINT:
-        if (columnMetadata.precision > 0
-            && columnMetadata.precision <= JdbcAvroRecord.MAX_DIGITS_BIGINT) {
-          return field.longType();
-        } else {
-          return field.stringType();
-        }
+        return field.longType();
       case INTEGER:
       case SMALLINT:
       case TINYINT:

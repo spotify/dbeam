@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        java_version: ['8', '11']
+        java_version: ['11']
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
@@ -37,7 +37,7 @@ jobs:
           restore-keys: ${{ runner.os }}-java${{ matrix.java_version }}-m2
       - name: Build with Maven
         run: |
-          mvn clean verify -Pcoverage -Ppack --file pom.xml --batch-mode -Dstyle.colors=always --errors --show-version
+          mvn clean verify --activate-profiles=coverage,pack
       - name: Codecov upload
         uses: codecov/codecov-action@v1
         with:
@@ -51,7 +51,7 @@ jobs:
         run: ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
       - uses: actions/upload-artifact@v2
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '1.8'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.java_version == '11'
         with:
           name: Package
           path: staging
@@ -101,5 +101,5 @@ jobs:
           echo "$GPG_KEY" | base64 --decode --ignore-garbage | gpg --batch --fast-import -
           gpg --list-secret-keys --keyid-format LONG
           echo "test" | gpg --batch --clearsign --pinentry-mode loopback || true
-          mvn --settings ./github-settings.xml -DskipTests deploy --batch-mode -Dstyle.colors=always --errors --show-version
+          mvn --settings ./github-settings.xml -DskipTests deploy
           rm -rf ~/.gnupg

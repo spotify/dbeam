@@ -85,7 +85,6 @@ public class JdbcAvroSchemaTest {
 
   @Test
   public void checkAvroTypeForSqlDateWithLogicalType() throws SQLException {
-
     final int inputType = Types.DATE;
     final Schema.Type outputType = Schema.Type.LONG;
     final String expectedLogicalType = "timestamp-millis";
@@ -96,9 +95,8 @@ public class JdbcAvroSchemaTest {
 
   @Test
   public void checkAvroTypeForSqlBigintWithPrecisionZero() throws SQLException {
-
     final int inputType = Types.BIGINT;
-    final Schema.Type outputType = Schema.Type.STRING;
+    final Schema.Type outputType = Schema.Type.LONG;
     final String expectedLogicalType = null;
     final int fieldPrecision = 0;
 
@@ -107,7 +105,6 @@ public class JdbcAvroSchemaTest {
 
   @Test
   public void checkAvroTypeForSqlBitWithPrecisionOne() throws SQLException {
-
     final int inputType = Types.BIT;
     final Schema.Type outputType = Schema.Type.BOOLEAN;
     final String expectedLogicalType = null;
@@ -118,7 +115,6 @@ public class JdbcAvroSchemaTest {
 
   @Test
   public void checkAvroTypeForSqlBitWithPrecisionTwo() throws SQLException {
-
     final int inputType = Types.BIT;
     final Schema.Type outputType = Schema.Type.BYTES;
     final String expectedLogicalType = null;
