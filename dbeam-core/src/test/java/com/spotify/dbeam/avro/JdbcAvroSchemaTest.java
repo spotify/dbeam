@@ -124,14 +124,19 @@ public class JdbcAvroSchemaTest {
   }
 
   private void verifyInputVsOutputType(
-      int inputType, Schema.Type outputType, String expectedLogicalType, int fieldPrecision)
+      int inputColumnType,
+      Schema.Type outputColumnType,
+      String expectedLogicalType,
+      int fieldPrecision)
       throws SQLException {
     ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(1);
-    when(meta.getTableName(1)).thenReturn("test_table");
-    when(meta.getColumnName(1)).thenReturn("datex");
-    when(meta.getColumnType(1)).thenReturn(inputType);
-    when(meta.getPrecision(1)).thenReturn(fieldPrecision);
+    int columnNum = 1;
+    when(meta.getColumnCount()).thenReturn(columnNum);
+    when(meta.getTableName(columnNum)).thenReturn("test_table");
+    when(meta.getColumnName(columnNum)).thenReturn("datex");
+    when(meta.getColumnType(columnNum)).thenReturn(inputColumnType);
+    when(meta.getColumnClassName(columnNum)).thenReturn("java.lang.Long"); // the same value for all
+    when(meta.getPrecision(columnNum)).thenReturn(fieldPrecision);
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
@@ -151,11 +156,23 @@ public class JdbcAvroSchemaTest {
             useLogicalTypes);
 
     Schema.Field datex = avroSchema.getField("datex");
-    Assert.assertEquals(outputType, datex.schema().getTypes().get(1).getType());
+    Assert.assertEquals(outputColumnType, datex.schema().getTypes().get(columnNum).getType());
 
     if (expectedLogicalType != null) {
       Assert.assertEquals(
-          expectedLogicalType, datex.schema().getTypes().get(1).getProp("logicalType"));
+          expectedLogicalType, datex.schema().getTypes().get(columnNum).getProp("logicalType"));
     }
+  }
+
+  @Test
+  public void verifySqlTypeUnsignedIntConvertedToAvroLong() throws SQLException {
+
+    final int inputType = java.sql.Types.INTEGER;
+    final Schema.Type outputType = Schema.Type.LONG;
+
+    final String expectedLogicalType = null;
+    final int fieldPrecision = 10;
+
+    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
   }
 }

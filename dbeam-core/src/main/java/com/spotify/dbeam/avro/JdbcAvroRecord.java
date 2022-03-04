@@ -75,6 +75,9 @@ public class JdbcAvroRecord {
 
   static SqlFunction<ResultSet, Object> computeMapping(
       final ResultSetMetaData meta, final int column) throws SQLException {
+    
+    final String LongClassName = Long.class.getCanonicalName();
+    final String columnClassName = meta.getColumnClassName(column);
     switch (meta.getColumnType(column)) {
       case VARCHAR:
       case CHAR:
@@ -89,6 +92,9 @@ public class JdbcAvroRecord {
       case INTEGER:
       case SMALLINT:
       case TINYINT:
+        if (LongClassName.equals(columnClassName)) {
+          return resultSet -> resultSet.getLong(column);
+        }
         return resultSet -> resultSet.getInt(column);
       case TIMESTAMP:
       case DATE:

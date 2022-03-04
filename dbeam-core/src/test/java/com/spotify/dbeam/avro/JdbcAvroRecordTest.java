@@ -20,6 +20,8 @@
 
 package com.spotify.dbeam.avro;
 
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.Lists;
 import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
@@ -29,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
@@ -45,6 +48,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class JdbcAvroRecordTest {
 
@@ -207,5 +211,26 @@ public class JdbcAvroRecordTest {
             TestHelper.byteBufferToUuid((ByteBuffer) record.get(10)),
             (Long) record.get(11));
     Assert.assertEquals(Coffee.COFFEE1, actual);
+  }
+
+  @Test
+  public void shouldCorrectlyEncodeUnsignedIntToAvroLong() throws SQLException {
+
+    long valueUnderTest = 2190526558L; // MySQL Type INT Maximum Value Signed = 2147483647L
+    int columnNum = 1;
+
+    ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
+    when(metadata.getColumnType(columnNum)).thenReturn(java.sql.Types.INTEGER);
+    when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
+    
+    JdbcAvroRecord.SqlFunction<ResultSet, Object> func =
+        JdbcAvroRecord.computeMapping(metadata, columnNum);
+
+    ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);
+    Object result = func.apply(resultSet);
+
+    Assert.assertEquals(Long.class, result.getClass());
+    Assert.assertEquals(valueUnderTest, ((Long) result).longValue());
   }
 }
