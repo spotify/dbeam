@@ -215,7 +215,7 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCorrectlyEncodeUnsignedIntToAvroLong() throws SQLException {
-    // Note: UNSIGNED is not part of SQL standard and not supported by H2
+    // Note: UNSIGNED is not part of SQL standard and not supported by H2 and PSQL
     // https://github.com/h2database/h2database/issues/739
     // Still, testing here via mocks since MySQL has support for it
     final long valueUnderTest = 2190526558L; // MySQL Type INT Maximum Value Signed = 2147483647L

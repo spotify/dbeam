@@ -166,6 +166,18 @@ public class JdbcAvroSchema {
     return builder;
   }
 
+  /**
+   * Creates Avro field schema based on JDBC MetaData
+   *
+   * <p>For database specific types implementation, check the following:
+   *
+   * <ul>
+   *   <li>{@link org.postgresql.jdbc.TypeInfoCache }
+   *   <li>{@link com.mysql.cj.MysqlType }
+   *   <li>{@link org.h2.value.TypeInfo }
+   * </ul>
+   *
+   */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
           final int columnType,
@@ -205,6 +217,9 @@ public class JdbcAvroSchema {
       case BOOLEAN:
         return field.booleanType();
       case BIT:
+        // Note that bit types can take a param/typemod qualifying its length
+        // some further docs:
+        // https://www.postgresql.org/docs/8.2/datatype-bit.html
         if (precision <= 1) {
           return field.booleanType();
         } else {
