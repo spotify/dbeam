@@ -215,20 +215,22 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCorrectlyEncodeUnsignedIntToAvroLong() throws SQLException {
+    // Note: UNSIGNED is not part of SQL standard and not supported by H2
+    // https://github.com/h2database/h2database/issues/739
+    // Still, testing here via mocks since MySQL has support for it
+    final long valueUnderTest = 2190526558L; // MySQL Type INT Maximum Value Signed = 2147483647L
+    final int columnNum = 1;
 
-    long valueUnderTest = 2190526558L; // MySQL Type INT Maximum Value Signed = 2147483647L
-    int columnNum = 1;
-
-    ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
+    final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
     when(metadata.getColumnType(columnNum)).thenReturn(java.sql.Types.INTEGER);
     when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
 
-    JdbcAvroRecord.SqlFunction<ResultSet, Object> func =
+    final JdbcAvroRecord.SqlFunction<ResultSet, Object> mapping =
         JdbcAvroRecord.computeMapping(metadata, columnNum);
 
-    ResultSet resultSet = Mockito.mock(ResultSet.class);
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);
-    Object result = func.apply(resultSet);
+    final Object result = mapping.apply(resultSet);
 
     Assert.assertEquals(Long.class, result.getClass());
     Assert.assertEquals(valueUnderTest, ((Long) result).longValue());
