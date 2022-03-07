@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 
 public class JdbcAvroSchema {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
       final Connection connection,
@@ -137,40 +137,52 @@ public class JdbcAvroSchema {
         columnName = meta.getColumnName(i);
       }
 
-      int columnType = meta.getColumnType(i);
+      final int columnType = meta.getColumnType(i);
       final String typeName = JDBCType.valueOf(columnType).getName();
+      final String columnClassName = meta.getColumnClassName(i);
       final SchemaBuilder.FieldBuilder<Schema> field =
           builder
               .name(normalizeForAvro(columnName))
-              .doc(String.format("From sqlType %d %s", columnType, typeName))
+              .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
               .prop("columnName", columnName)
               .prop("sqlCode", String.valueOf(columnType))
-              .prop("typeName", typeName);
-      fieldAvroType(columnType, meta.getPrecision(i), field, useLogicalTypes);
+              .prop("typeName", typeName)
+              .prop("columnClassName", columnClassName);
+
+      final SchemaBuilder.BaseTypeBuilder<
+              SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+          fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
+
+      final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
+          setAvroColumnType(
+              columnType,
+              meta.getPrecision(i),
+              columnClassName,
+              useLogicalTypes,
+              fieldSchemaBuilder);
+
+      schemaFieldAssembler.endUnion().nullDefault();
     }
     return builder;
   }
 
-  private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
-      final int columnType,
-      final int precision,
-      final SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
-      boolean useLogicalTypes) {
-
-    final SchemaBuilder.BaseTypeBuilder<
-            SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-        field = fieldBuilder.type().unionOf().nullBuilder().endNull().and();
-
-    final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
-        setAvroColumnType(columnType, precision, useLogicalTypes, field);
-
-    return schemaFieldAssembler.endUnion().nullDefault();
-  }
-
+  /**
+   * Creates Avro field schema based on JDBC MetaData
+   *
+   * <p>For database specific types implementation, check the following:
+   *
+   * <ul>
+   *   <li>{@link org.postgresql.jdbc.TypeInfoCache }
+   *   <li>{@link com.mysql.cj.MysqlType }
+   *   <li>{@link org.h2.value.TypeInfo }
+   * </ul>
+   *
+   */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
           final int columnType,
           final int precision,
+          final String columnClassName,
           final boolean useLogicalTypes,
           final SchemaBuilder.BaseTypeBuilder<
                   SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
@@ -188,7 +200,11 @@ public class JdbcAvroSchema {
       case INTEGER:
       case SMALLINT:
       case TINYINT:
-        return field.intType();
+        if (Long.class.getCanonicalName().equals(columnClassName)) {
+          return field.longType();
+        } else {
+          return field.intType();
+        }
       case TIMESTAMP:
       case DATE:
       case TIME:
@@ -201,6 +217,9 @@ public class JdbcAvroSchema {
       case BOOLEAN:
         return field.booleanType();
       case BIT:
+        // Note that bit types can take a param/typemod qualifying its length
+        // some further docs:
+        // https://www.postgresql.org/docs/8.2/datatype-bit.html
         if (precision <= 1) {
           return field.booleanType();
         } else {

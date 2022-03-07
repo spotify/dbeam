@@ -56,7 +56,6 @@ import java.util.TimeZone;
 
 public class JdbcAvroRecord {
 
-  static final int MAX_DIGITS_BIGINT = 19;
   private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
 
   @FunctionalInterface
@@ -89,6 +88,9 @@ public class JdbcAvroRecord {
       case INTEGER:
       case SMALLINT:
       case TINYINT:
+        if (Long.class.getCanonicalName().equals(meta.getColumnClassName(column))) {
+          return resultSet -> resultSet.getLong(column);
+        }
         return resultSet -> resultSet.getInt(column);
       case TIMESTAMP:
       case DATE:

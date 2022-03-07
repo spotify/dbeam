@@ -34,128 +34,140 @@ import org.mockito.Mockito;
 
 public class JdbcAvroSchemaTest {
 
+  public static final int COLUMN_NUM = 1;
+
   @Test
-  public void checkTableNameForOrdinaryColumn() throws SQLException {
-    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+  public void shouldGetDatabaseTableNameFromMetaData() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn("test_table");
 
-    String expected = "test_table";
-    String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
-
-    Assert.assertEquals(expected, tableName);
+    Assert.assertEquals("test_table", JdbcAvroSchema.getDatabaseTableName(meta));
   }
 
   @Test
-  public void checkTableNameForCastColumn() throws SQLException {
-    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+  public void shouldDefaultTableNameWhenMetaDataHasEmptyTableName() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn("");
 
-    String expected = "no_table_name";
-    String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
-
-    Assert.assertEquals(expected, tableName);
+    Assert.assertEquals("no_table_name", JdbcAvroSchema.getDatabaseTableName(meta));
   }
 
   @Test
-  public void checkTableNameForCastColumnNull() throws SQLException {
-    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+  public void shouldDefaultTableNameWhenMetaDataHasNullTableName() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn(null);
 
-    String expected = "no_table_name";
-    String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
-
-    Assert.assertEquals(expected, tableName);
+    Assert.assertEquals("no_table_name", JdbcAvroSchema.getDatabaseTableName(meta));
   }
 
   @Test
-  public void checkTableNameForCastAndOrdinaryColumns() throws SQLException {
-    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+  public void shouldGetDatabaseTableNameFromFirstNonNullMetaData() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(2);
     when(meta.getTableName(1)).thenReturn("");
     when(meta.getTableName(2)).thenReturn("test_table");
 
-    String expected = "test_table";
-    String tableName = JdbcAvroSchema.getDatabaseTableName(meta);
-
-    Assert.assertEquals(expected, tableName);
+    Assert.assertEquals("test_table", JdbcAvroSchema.getDatabaseTableName(meta));
   }
 
   @Test
-  public void checkAvroTypeForSqlDateWithLogicalType() throws SQLException {
-    final int inputType = Types.DATE;
-    final Schema.Type outputType = Schema.Type.LONG;
-    final String expectedLogicalType = "timestamp-millis";
-    final int fieldPrecision = 0;
+  public void shouldConvertDateSqlTypeWithAvroLogicalType() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.DATE);
 
-    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, true);
+
+    Assert.assertEquals(Schema.Type.LONG, fieldSchema.getType());
+    Assert.assertEquals("timestamp-millis", fieldSchema.getProp("logicalType"));
   }
 
   @Test
-  public void checkAvroTypeForSqlBigintWithPrecisionZero() throws SQLException {
-    final int inputType = Types.BIGINT;
-    final Schema.Type outputType = Schema.Type.LONG;
-    final String expectedLogicalType = null;
-    final int fieldPrecision = 0;
+  public void shouldConvertDateSqlTypeWithoutAvroLogicalType() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.DATE);
 
-    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.LONG, fieldSchema.getType());
+    Assert.assertNull(fieldSchema.getProp("logicalType"));
   }
 
   @Test
-  public void checkAvroTypeForSqlBitWithPrecisionOne() throws SQLException {
-    final int inputType = Types.BIT;
-    final Schema.Type outputType = Schema.Type.BOOLEAN;
-    final String expectedLogicalType = null;
-    final int fieldPrecision = 1;
+  public void shouldConvertBigIntSqlTypeToLong() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.BIGINT);
 
-    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.LONG, fieldSchema.getType());
   }
 
   @Test
-  public void checkAvroTypeForSqlBitWithPrecisionTwo() throws SQLException {
-    final int inputType = Types.BIT;
-    final Schema.Type outputType = Schema.Type.BYTES;
-    final String expectedLogicalType = null;
-    final int fieldPrecision = 2;
+  public void shouldConvertBitSqlTypeWithNoPrecisionToBoolean() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.BIT);
 
-    verifyInputVsOutputType(inputType, outputType, expectedLogicalType, fieldPrecision);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.BOOLEAN, fieldSchema.getType());
   }
 
-  private void verifyInputVsOutputType(
-      int inputType, Schema.Type outputType, String expectedLogicalType, int fieldPrecision)
-      throws SQLException {
-    ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(1);
-    when(meta.getTableName(1)).thenReturn("test_table");
-    when(meta.getColumnName(1)).thenReturn("datex");
-    when(meta.getColumnType(1)).thenReturn(inputType);
-    when(meta.getPrecision(1)).thenReturn(fieldPrecision);
+  @Test
+  public void shouldConvertBitSqlTypeWithPrecision2ToBytes() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.BIT);
+    when(resultSet.getMetaData().getPrecision(COLUMN_NUM)).thenReturn(2);
+
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.BYTES, fieldSchema.getType());
+  }
+
+  @Test
+  public void shouldConvertIntegerWithLongColumnClassNameToLong() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.INTEGER);
+    when(resultSet.getMetaData().getColumnClassName(COLUMN_NUM)).thenReturn("java.lang.Long");
+
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.LONG, fieldSchema.getType());
+  }
+
+  @Test
+  public void shouldConvertIntegerSqlTypeToInteger() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.INTEGER);
+
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.INT, fieldSchema.getType());
+  }
+
+  @Test
+  public void shouldDefaultConversionToStringType() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.SQLXML);
+
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.STRING, fieldSchema.getType());
+  }
+
+  private Schema createAvroSchemaForSingleField(
+      final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
+    Schema avroSchema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes);
+
+    return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
+  }
+
+  private ResultSet buildMockResultSet(final int inputColumnType) throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(COLUMN_NUM);
+    when(meta.getTableName(COLUMN_NUM)).thenReturn("test_table");
+    when(meta.getColumnName(COLUMN_NUM)).thenReturn("column1");
+    when(meta.getColumnType(COLUMN_NUM)).thenReturn(inputColumnType);
+    when(meta.getColumnClassName(COLUMN_NUM)).thenReturn("foobar");
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
-
-    final String avroSchemaNamespace = "namespace1";
-    final String connectionUrl = "url1";
-    final Optional<String> maybeSchemaName = Optional.empty();
-    final String avroDoc = "doc1";
-    final boolean useLogicalTypes = true;
-    Schema avroSchema =
-        JdbcAvroSchema.createAvroSchema(
-            resultSet,
-            avroSchemaNamespace,
-            connectionUrl,
-            maybeSchemaName,
-            avroDoc,
-            useLogicalTypes);
-
-    Schema.Field datex = avroSchema.getField("datex");
-    Assert.assertEquals(outputType, datex.schema().getTypes().get(1).getType());
-
-    if (expectedLogicalType != null) {
-      Assert.assertEquals(
-          expectedLogicalType, datex.schema().getTypes().get(1).getProp("logicalType"));
-    }
+    return resultSet;
   }
 }
