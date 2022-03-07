@@ -80,7 +80,7 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --avroSchemaFilePath=<String>
     Path to file with a target AVRO schema.
   --avroSchemaName=<String>
-    The name of the generated avro schema. By default it uses the table name.
+    The name of the generated avro schema, the table name by default.
   --avroSchemaNamespace=<String>
     Default: dbeam_generated
     The namespace of the generated avro schema.

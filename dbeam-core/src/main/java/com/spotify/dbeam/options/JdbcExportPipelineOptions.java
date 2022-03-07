@@ -71,7 +71,7 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setAvroSchemaNamespace(String value);
 
-  @Description("The name of the generated avro schema. By default it uses the table name.")
+  @Description("The name of the generated avro schema. The table name by default.")
   String getAvroSchemaName();
 
   void setAvroSchemaName(String value);
