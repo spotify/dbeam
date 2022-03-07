@@ -222,7 +222,7 @@ public class JdbcAvroRecordTest {
     ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
     when(metadata.getColumnType(columnNum)).thenReturn(java.sql.Types.INTEGER);
     when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
-    
+
     JdbcAvroRecord.SqlFunction<ResultSet, Object> func =
         JdbcAvroRecord.computeMapping(metadata, columnNum);
 

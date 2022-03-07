@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 
 public class JdbcAvroSchema {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcAvroSchema.class);
 
   public static Schema createSchemaByReadingOneRow(
       final Connection connection,
@@ -137,51 +137,45 @@ public class JdbcAvroSchema {
         columnName = meta.getColumnName(i);
       }
 
-      ColumnMetaData columnMetadata =
-          new ColumnMetaData(
-              columnName, meta.getColumnClassName(i), meta.getColumnType(i), meta.getPrecision(i));
-      int columnType = meta.getColumnType(i);
+      final int columnType = meta.getColumnType(i);
       final String typeName = JDBCType.valueOf(columnType).getName();
+      final String columnClassName = meta.getColumnClassName(i);
       final SchemaBuilder.FieldBuilder<Schema> field =
           builder
               .name(normalizeForAvro(columnName))
-              .doc(
-                  String.format(
-                      "From sqlType %d %s (%s)", columnType, typeName, meta.getColumnTypeName(i)))
+              .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
               .prop("columnName", columnName)
               .prop("sqlCode", String.valueOf(columnType))
-              .prop("typeName", typeName);
-      fieldAvroType(columnMetadata, field, useLogicalTypes);
+              .prop("typeName", typeName)
+              .prop("columnClassName", columnClassName);
+
+      final SchemaBuilder.BaseTypeBuilder<
+              SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+          fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
+
+      final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
+          setAvroColumnType(
+              columnType,
+              meta.getPrecision(i),
+              columnClassName,
+              useLogicalTypes,
+              fieldSchemaBuilder);
+
+      schemaFieldAssembler.endUnion().nullDefault();
     }
     return builder;
   }
 
-  private static SchemaBuilder.FieldAssembler<Schema> fieldAvroType(
-      final ColumnMetaData columnMetadata,
-      final SchemaBuilder.FieldBuilder<Schema> fieldBuilder,
-      boolean useLogicalTypes) {
-
-    final SchemaBuilder.BaseTypeBuilder<
-            SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-        field = fieldBuilder.type().unionOf().nullBuilder().endNull().and();
-
-    final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
-        setAvroColumnType(columnMetadata, useLogicalTypes, field);
-
-    return schemaFieldAssembler.endUnion().nullDefault();
-  }
-
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
-          final ColumnMetaData columnMetadata,
+          final int columnType,
+          final int precision,
+          final String columnClassName,
           final boolean useLogicalTypes,
           final SchemaBuilder.BaseTypeBuilder<
                   SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
               field) {
-
-    final String LongClassName = Long.class.getCanonicalName();
-
-    switch (columnMetadata.columnType) {
+    switch (columnType) {
       case VARCHAR:
       case CHAR:
       case CLOB:
@@ -194,7 +188,7 @@ public class JdbcAvroSchema {
       case INTEGER:
       case SMALLINT:
       case TINYINT:
-        if (LongClassName.equals(columnMetadata.columnClassName)) {
+        if (Long.class.getCanonicalName().equals(columnClassName)) {
           return field.longType();
         } else {
           return field.intType();
@@ -211,7 +205,7 @@ public class JdbcAvroSchema {
       case BOOLEAN:
         return field.booleanType();
       case BIT:
-        if (columnMetadata.precision <= 1) {
+        if (precision <= 1) {
           return field.booleanType();
         } else {
           return field.bytesType();
@@ -234,20 +228,5 @@ public class JdbcAvroSchema {
 
   private static String normalizeForAvro(final String input) {
     return input.replaceAll("[^A-Za-z0-9_]", "_");
-  }
-
-  private static class ColumnMetaData {
-    public final String columnName;
-    public final String columnClassName;
-    public final int columnType;
-    public final int precision;
-
-    private ColumnMetaData(
-        String columnName, String columnClassName, int columnType, int columnPrecision) {
-      this.columnName = columnName;
-      this.columnClassName = columnClassName;
-      this.columnType = columnType;
-      this.precision = columnPrecision;
-    }
   }
 }
