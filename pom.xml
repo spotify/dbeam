@@ -104,7 +104,7 @@
     <beam.version>2.37.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.37.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
-    <google-clients.version>1.32.2</google-clients.version>
+    <google-clients.version>1.33.2</google-clients.version>
     <google-cloud-libaries-bom.version>24.2.0</google-cloud-libaries-bom.version>
     <grpc.version>1.43.2</grpc.version>
     <guava.version>31.0.1-jre</guava.version>
