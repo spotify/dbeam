@@ -11,7 +11,7 @@ A connector tool to extract data from SQL databases and import into [GCS](https:
 
 This tool is runnable locally, or on any other backend supported by Apache Beam, e.g. [Cloud Dataflow](https://cloud.google.com/dataflow/).
 
-**DEVELOPMENT STATUS: Beta, with production usage since August 2017.**
+**DEVELOPMENT STATUS: Mature, maintained and used in production since August 2017. No major features or development planned.**
 
 ## Overview
 
@@ -291,7 +291,7 @@ You can check the deployment in the following links:
 
 ## License
 
-Copyright 2016-2021 Spotify AB.
+Copyright 2016-2022 Spotify AB.
 
 Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
 
