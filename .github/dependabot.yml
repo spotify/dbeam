@@ -1,22 +1,26 @@
 version: 2
 updates:
-- package-ecosystem: maven
-  directory: "/"
-  schedule:
-    interval: daily
-    time: "04:00"
-  open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: com.google.cloud.sql:mysql-socket-factory
-  - dependency-name: com.google.cloud.sql:postgres-socket-factory
-  - dependency-name: com.google.protobuf:protobuf-java-util
-  - dependency-name: com.google.protobuf:protobuf-java
-  - dependency-name: com.google.http-client:google-http-client-test
-  - dependency-name: com.google.http-client:google-http-client
-  - dependency-name: com.google.cloud:libraries-bom
-  - dependency-name: com.google.api.grpc:proto-google-iam-v1
-  - dependency-name: com.fasterxml.jackson.core:jackson-annotations
-  - dependency-name: com.fasterxml.jackson.core:jackson-databind
-  - dependency-name: com.fasterxml.jackson.core:jackson-core
-  - dependency-name: com.google.oauth-client:google-oauth-client
-  - dependency-name: com.google.apis:google-api-services-storage
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "05:00"
+      timezone: "Europe/Stockholm"
+    open-pull-requests-limit: 16
+    ignore:
+      # Ignore some artifacts, since these need to be in sync with Beam SDK
+      - dependency-name: com.fasterxml.jackson.core:jackson-annotations
+      - dependency-name: com.fasterxml.jackson.core:jackson-core
+      - dependency-name: com.fasterxml.jackson.core:jackson-databind
+      - dependency-name: com.google.api-client:google-api-client
+      - dependency-name: com.google.api.grpc:proto-google-iam-v1
+      - dependency-name: com.google.apis:google-api-services-storage
+      - dependency-name: com.google.cloud.sql:mysql-socket-factory
+      - dependency-name: com.google.cloud.sql:postgres-socket-factory
+      - dependency-name: com.google.cloud:libraries-bom
+      - dependency-name: com.google.http-client:google-http-client
+      - dependency-name: com.google.http-client:google-http-client-test
+      - dependency-name: com.google.oauth-client:google-oauth-client
+      - dependency-name: com.google.protobuf:protobuf-java
+      - dependency-name: com.google.protobuf:protobuf-java-util
+      - dependency-name: io.grpc:grpc-bom
