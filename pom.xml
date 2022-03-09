@@ -112,7 +112,7 @@
     <junit.version>4.13.2</junit.version>
     <maven.compiler.release>8</maven.compiler.release>
     <mysql.version>8.0.28</mysql.version>
-    <netty.version>4.1.72.Final</netty.version>
+    <netty.version>4.1.74.Final</netty.version>
     <postgresql.version>42.3.3</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
