@@ -53,6 +53,7 @@ public class JavaSqlHelper {
         when(rsMetaData.getTableName(i + 1)).thenReturn(tableNames[i]);
         when(rsMetaData.getColumnName(i + 1)).thenReturn(columnNames[i]);
         when(rsMetaData.getColumnType(i + 1)).thenReturn(columnTypes[i]);
+        when(rsMetaData.getColumnClassName(i + 1)).thenReturn("dummy");
       }
       return rsMetaData;
     }

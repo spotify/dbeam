@@ -139,7 +139,9 @@ public class JdbcAvroSchema {
               .name(normalizeForAvro(columnName))
               .doc(
                   provider.getFieldDoc(
-                      columnName, String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName)))
+                      columnName,
+                      String.format(
+                          "From sqlType %d %s (%s)", columnType, typeName, columnClassName)))
               .prop("columnName", columnName)
               .prop("sqlCode", String.valueOf(columnType))
               .prop("typeName", typeName)
@@ -172,7 +174,6 @@ public class JdbcAvroSchema {
    *   <li>{@link com.mysql.cj.MysqlType }
    *   <li>{@link org.h2.value.TypeInfo }
    * </ul>
-   *
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(

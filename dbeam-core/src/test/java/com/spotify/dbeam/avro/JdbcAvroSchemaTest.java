@@ -26,7 +26,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Optional;
 import org.apache.avro.Schema;
 import org.junit.Assert;
 import org.junit.Test;
@@ -151,9 +150,15 @@ public class JdbcAvroSchemaTest {
 
   private Schema createAvroSchemaForSingleField(
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
+    final String avroSchemaNamespace = "namespace1";
+    final String connectionUrl = "url1";
+    final String schemaName = null;
+    final String avroDoc = "doc1";
+    AvroSchemaMetadataProvider provider =
+            new AvroSchemaMetadataProvider(avroSchemaNamespace, schemaName, avroDoc);    
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
-            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes);
+            resultSet, connectionUrl, useLogicalTypes, provider);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }
