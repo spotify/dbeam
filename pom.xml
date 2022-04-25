@@ -101,27 +101,35 @@
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.10.2</avro.version>
 
-    <beam.version>2.37.0</beam.version>
+    <beam.version>2.38.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.37.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
+    <!-- https://github.com/apache/beam/blob/release-2.38.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
     <google-clients.version>1.32.2</google-clients.version>
-    <google-cloud-libaries-bom.version>24.2.0</google-cloud-libaries-bom.version>
-    <grpc.version>1.43.2</grpc.version>
+    <google-cloud-libaries-bom.version>24.4.0</google-cloud-libaries-bom.version>
+    <grpc.version>1.44.0</grpc.version>
     <guava.version>31.0.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
+    <jackson.version>2.13.2.20220328</jackson.version>
     <maven.compiler.release>8</maven.compiler.release>
     <mysql.version>8.0.28</mysql.version>
-    <netty.version>4.1.72.Final</netty.version>
+    <netty.version>4.1.76.Final</netty.version>
     <postgresql.version>42.3.3</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <protobuf.version>3.19.2</protobuf.version>
+    <protobuf.version>3.19.3</protobuf.version>
     <slf4j.version>1.7.36</slf4j.version>
     <socket-factory.version>1.2.2</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-bom</artifactId>
@@ -256,7 +264,7 @@
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
-        <version>1.5.2-1</version>
+        <version>1.5.2-2</version>
       </dependency>
       <dependency>
         <groupId>org.threeten</groupId>
@@ -360,7 +368,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>4.3.1</version>
+        <version>4.4.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -406,7 +414,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.10.0</version>
+          <version>3.10.1</version>
           <executions>
             <execution>
               <goals>
@@ -467,7 +475,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.2.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
@@ -555,7 +563,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>9.3</version>
+            <version>10.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -645,7 +653,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>3.2.4</version>
+            <version>3.3.0</version>
             <executions>
               <execution>
                 <id>bundle-and-repackage</id>
