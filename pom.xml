@@ -107,7 +107,7 @@
     <google-clients.version>1.32.2</google-clients.version>
     <google-cloud-libaries-bom.version>24.4.0</google-cloud-libaries-bom.version>
     <grpc.version>1.44.0</grpc.version>
-    <guava.version>31.0.1-jre</guava.version>
+    <guava.version>31.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.13.2.20220328</jackson.version>
