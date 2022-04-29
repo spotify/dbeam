@@ -320,7 +320,7 @@
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-cloudkms</artifactId>
-        <version>v1-rev20211130-1.32.1</version>
+        <version>v1-rev20220415-1.32.1</version>
       </dependency>
 
       <!-- DB Deps -->
