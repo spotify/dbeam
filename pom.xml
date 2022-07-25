@@ -112,7 +112,7 @@
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.13.3</jackson.version>
-    <mysql.version>8.0.28</mysql.version>
+    <mysql.version>8.0.29</mysql.version>
     <netty.version>4.1.76.Final</netty.version>
     <postgresql.version>42.4.0</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
