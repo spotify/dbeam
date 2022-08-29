@@ -102,9 +102,9 @@
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.10.2</avro.version>
 
-    <beam.version>2.40.0</beam.version>
+    <beam.version>2.41.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.40.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
+    <!-- https://github.com/apache/beam/blob/release-2.41.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
     <google-clients.version>1.32.2</google-clients.version>
     <google-cloud-libaries-bom.version>25.2.0</google-cloud-libaries-bom.version>
     <grpc.version>1.45.1</grpc.version>
@@ -112,9 +112,9 @@
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.13.3</jackson.version>
-    <mysql.version>8.0.29</mysql.version>
-    <netty.version>4.1.79.Final</netty.version>
-    <postgresql.version>42.4.0</postgresql.version>
+    <mysql.version>8.0.30</mysql.version>
+    <netty.version>4.1.80.Final</netty.version>
+    <postgresql.version>42.5.0</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <protobuf.version>3.19.4</protobuf.version>
@@ -207,6 +207,10 @@
           </exclusion>
           <exclusion>
             <groupId>com.google.api.grpc</groupId>
+            <artifactId>proto-google-cloud-datastore-v1</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.api.grpc</groupId>
             <artifactId>proto-google-cloud-pubsublite-v1</artifactId>
           </exclusion>
           <exclusion>
@@ -269,7 +273,7 @@
       <dependency>
         <groupId>org.threeten</groupId>
         <artifactId>threetenbp</artifactId>
-        <version>1.6.0</version>
+        <version>1.6.1</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
@@ -300,12 +304,12 @@
       <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
-        <version>2.13.1</version>
+        <version>2.15.0</version>
       </dependency>
       <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
-        <version>3.23.0</version>
+        <version>3.24.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.api-client</groupId>
@@ -368,7 +372,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>4.6.1</version>
+        <version>4.7.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -451,7 +455,7 @@
 
         <plugin>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.12.0</version>
+          <version>3.12.1</version>
         </plugin>
 
         <plugin>
@@ -475,7 +479,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.4.0</version>
+          <version>3.4.1</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
@@ -545,7 +549,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.2.0</version>
         <configuration>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <violationSeverity>warning</violationSeverity>
@@ -563,7 +567,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.3.1</version>
+            <version>10.3.3</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -617,7 +621,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.4.0</version>
+            <version>3.4.1</version>
             <configuration>
               <source>8</source>
             </configuration>
