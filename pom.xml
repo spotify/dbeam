@@ -121,7 +121,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <protobuf.version>3.19.4</protobuf.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <socket-factory.version>1.2.2</socket-factory.version>
+    <socket-factory.version>1.5.0</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -324,9 +324,9 @@
         <version>3.24.0</version>
       </dependency>
       <dependency>
-        <groupId>com.google.api-client</groupId>
-        <artifactId>google-api-client</artifactId>
-        <version>${google-clients.version}</version>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-compat-qual</artifactId>
+        <version>2.5.5</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
