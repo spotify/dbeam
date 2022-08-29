@@ -101,12 +101,14 @@
     <maven.compiler.release>8</maven.compiler.release>
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.1</avro.version>
+    <bouncycastle.version>1.70</bouncycastle.version>
 
     <beam.version>2.41.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.41.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
     <google-clients.version>1.32.2</google-clients.version>
     <google-cloud-libaries-bom.version>25.2.0</google-cloud-libaries-bom.version>
+    <google-oauth-clients.version>1.33.3</google-oauth-clients.version>
     <grpc.version>1.45.1</grpc.version>
     <guava.version>31.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
@@ -138,6 +140,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${google-cloud-libaries-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.apache.beam</groupId>
         <artifactId>beam-sdks-java-bom</artifactId>
         <version>${beam.version}</version>
@@ -145,11 +154,14 @@
         <scope>import</scope>
       </dependency>
       <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>libraries-bom</artifactId>
-        <version>${google-cloud-libaries-bom.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
       </dependency>
 
       <!-- Logs -->
