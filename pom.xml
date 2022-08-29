@@ -102,9 +102,9 @@
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.10.2</avro.version>
 
-    <beam.version>2.40.0</beam.version>
+    <beam.version>2.41.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.40.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
+    <!-- https://github.com/apache/beam/blob/release-2.41.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
     <google-clients.version>1.32.2</google-clients.version>
     <google-cloud-libaries-bom.version>25.2.0</google-cloud-libaries-bom.version>
     <grpc.version>1.45.1</grpc.version>
@@ -204,6 +204,10 @@
           <exclusion>
             <groupId>com.google.api.grpc</groupId>
             <artifactId>grpc-google-cloud-pubsub-v1</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>com.google.api.grpc</groupId>
+            <artifactId>proto-google-cloud-datastore-v1</artifactId>
           </exclusion>
           <exclusion>
             <groupId>com.google.api.grpc</groupId>
