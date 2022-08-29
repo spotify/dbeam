@@ -100,7 +100,7 @@
   <properties>
     <maven.compiler.release>8</maven.compiler.release>
     <auto-value.version>1.9</auto-value.version>
-    <avro.version>1.10.2</avro.version>
+    <avro.version>1.11.1</avro.version>
 
     <beam.version>2.41.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
