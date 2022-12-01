@@ -106,7 +106,7 @@
     <beam.version>2.41.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.41.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
-    <google-clients.version>1.35.2</google-clients.version>
+    <google-clients.version>2.1.0</google-clients.version>
     <google-cloud-libaries-bom.version>25.2.0</google-cloud-libaries-bom.version>
     <google-http-clients.version>1.42.2</google-http-clients.version>
     <google-oauth-clients.version>1.34.1</google-oauth-clients.version>
