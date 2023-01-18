@@ -171,6 +171,19 @@ public class InputAvroSchemaTest {
             Duration.ofSeconds(30));
 
     // mocks set-up
+    Connection connection = getMockConnection(columnCount);
+
+    final String output = "output";
+    final boolean dataOnly = true;
+    final long minRows = -1L;
+
+    final JdbcAvroJob job =
+        new JdbcAvroJob(pipelineOptions, pipeline, jdbcExportArgs, output, dataOnly, minRows);
+
+    return job.createSchema(connection);
+  }
+
+  public static Connection getMockConnection(int columnCount) throws SQLException {
     DatabaseMetaData meta = Mockito.mock(DatabaseMetaData.class);
     when(meta.getURL()).thenReturn("dummyUrl");
 
@@ -184,17 +197,8 @@ public class InputAvroSchemaTest {
 
     Connection connection = Mockito.mock(Connection.class);
     when(connection.getMetaData()).thenReturn(meta);
-
     when(connection.createStatement()).thenReturn(statement);
-
-    final String output = "output";
-    final boolean dataOnly = true;
-    final long minRows = -1L;
-
-    final JdbcAvroJob job =
-        new JdbcAvroJob(pipelineOptions, pipeline, jdbcExportArgs, output, dataOnly, minRows);
-
-    return job.createSchema(connection);
+    return connection;
   }
 
   @Test

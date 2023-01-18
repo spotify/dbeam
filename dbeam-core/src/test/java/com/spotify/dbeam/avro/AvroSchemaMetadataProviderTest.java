@@ -20,6 +20,8 @@
 
 package com.spotify.dbeam.avro;
 
+import java.util.Arrays;
+import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.junit.Assert;
@@ -31,17 +33,22 @@ public class AvroSchemaMetadataProviderTest {
   @BeforeClass
   public static void beforeAll() {}
 
-  public static Schema createProvidedSchema() {
+  public static Schema createProvidedSchema(List<String> fieldNames) {
     final SchemaBuilder.FieldAssembler<Schema> builder =
         SchemaBuilder.record("providedSchemaName")
             .namespace("providedSchemaNamespace")
             .doc("providedSchemaDoc")
             .fields();
 
-    for (int i = 1; i <= 2; i++) {
-      String fieldName = "field" + i;
-      builder.name(fieldName).doc("Doc for " + fieldName).type().stringType().noDefault();
-    }
+    fieldNames.stream()
+        .forEach(
+            fieldName ->
+                builder
+                    .name(fieldName)
+                    .doc("Doc for " + fieldName)
+                    .type()
+                    .stringType()
+                    .noDefault());
     return builder.endRecord();
   }
 
@@ -70,7 +77,8 @@ public class AvroSchemaMetadataProviderTest {
   @Test
   public void verifyProviderWithSchema() {
 
-    Schema providedSchema = createProvidedSchema();
+    List<String> fieldNames = Arrays.asList("field1", "field2");
+    Schema providedSchema = createProvidedSchema(fieldNames);
 
     AvroSchemaMetadataProvider provider =
         new AvroSchemaMetadataProvider(providedSchema, null, "schemaNamespace", null);

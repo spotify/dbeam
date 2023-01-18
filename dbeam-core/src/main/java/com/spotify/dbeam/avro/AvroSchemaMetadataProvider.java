@@ -73,7 +73,7 @@ public class AvroSchemaMetadataProvider {
       if (field != null) {
         return field.doc();
       } else {
-        LOGGER.warn("Field [{}] not found in a provided schema", fieldName);
+        LOGGER.warn("Field [{}] not found in the provided schema", fieldName);
         return defaultVal;
       }
     } else {
