@@ -40,15 +40,9 @@ public class AvroSchemaMetadataProviderTest {
             .doc("providedSchemaDoc")
             .fields();
 
-    fieldNames.stream()
-        .forEach(
-            fieldName ->
-                builder
-                    .name(fieldName)
-                    .doc("Doc for " + fieldName)
-                    .type()
-                    .stringType()
-                    .noDefault());
+    fieldNames.forEach(
+        fieldName ->
+            builder.name(fieldName).doc("Doc for " + fieldName).type().stringType().noDefault());
     return builder.endRecord();
   }
 

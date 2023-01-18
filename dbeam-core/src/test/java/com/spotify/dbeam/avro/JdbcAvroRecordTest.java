@@ -204,15 +204,6 @@ public class JdbcAvroRecordTest {
         "From sqlType 1 CHAR (dummy)", actualSchema.getField("dummyColumnName2").doc());
   }
 
-  private List<Schema.Field> addNewField(Schema providedSchema, Schema.Field newField) {
-    List<Schema.Field> newFields =
-        providedSchema.getFields().stream()
-            .map(field -> new Schema.Field(field.name(), providedSchema, field.doc()))
-            .collect(Collectors.toList());
-    newFields.add(newField);
-    return newFields;
-  }
-
   @Test
   public void shouldEncodeResultSetToValidAvro()
       throws ClassNotFoundException, SQLException, IOException {
