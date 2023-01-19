@@ -98,7 +98,7 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>8</maven.compiler.release>
+    <maven.compiler.release>11</maven.compiler.release>
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.1</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
