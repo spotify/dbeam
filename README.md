@@ -127,7 +127,7 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
 
 #### Input Avro schema file
 
-If provided an input Avro schema file, dbeam will read input schema file and use some of the 
+If provided an input Avro schema file, dbeam will read input schema file and use some 
 properties when an output Avro schema is created.
 
 #### Following fields will be propagated from input into output schema:
@@ -236,8 +236,11 @@ java \
   ...
 ```
 
-## Using as a library
+## Java version
 
+dbeam expects Java runtime version 11 for execution and JDK >=11 for development.
+
+## Using as a library
 
 To include DBeam library in a mvn project add the following dependency in `pom.xml`:
 
