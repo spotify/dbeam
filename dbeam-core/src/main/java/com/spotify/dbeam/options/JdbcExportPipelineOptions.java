@@ -87,6 +87,10 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setUseAvroLogicalTypes(Boolean value);
 
+  @Default.Boolean(false)
+  @Description("Controls whether generated Avro schema will contain not null types.")
+  Boolean isUseAvroNotNullTypes();
+
   @Default.Integer(10000)
   @Description("Configures JDBC Statement fetch size.")
   Integer getFetchSize();

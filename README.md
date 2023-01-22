@@ -123,6 +123,9 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --useAvroLogicalTypes=<Boolean>
     Default: false
     Controls whether generated Avro schema will contain logicalTypes or not.
+  --supportAvroNotNullTypes=<Boolean>
+    Default: false
+    Controls whether generated Avro schema will support not null types.
 ```
 
 #### Input Avro schema file

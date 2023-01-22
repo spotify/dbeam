@@ -45,6 +45,8 @@ public abstract class JdbcExportArgs implements Serializable {
 
   public abstract Boolean useAvroLogicalTypes();
 
+  public abstract Boolean useAvroNotNullTypes();
+  
   public abstract Duration exportTimeout();
 
   public abstract Optional<Schema> inputAvroSchema();
@@ -63,6 +65,8 @@ public abstract class JdbcExportArgs implements Serializable {
     abstract Builder setAvroDoc(Optional<String> avroDoc);
 
     abstract Builder setUseAvroLogicalTypes(Boolean useAvroLogicalTypes);
+
+    abstract Builder setUseAvroNotNullTypes(Boolean useAvroNotNullTypes);
 
     abstract Builder setExportTimeout(Duration exportTimeout);
 

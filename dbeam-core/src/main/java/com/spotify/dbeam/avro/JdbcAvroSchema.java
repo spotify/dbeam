@@ -149,6 +149,19 @@ public class JdbcAvroSchema {
               .prop("typeName", typeName)
               .prop("columnClassName", columnClassName);
 
+      // new Schema.Field(); // TODO
+      if (isNotNullColumn(meta.isNullable(i))) {
+        final SchemaBuilder.FieldTypeBuilder<Schema>
+                fieldSchemaBuilder2 = field.type().stringType().noDefault();
+        setAvroColumnType(
+                columnType,
+                meta.getPrecision(i),
+                columnClassName,
+                useLogicalTypes,
+                fieldSchemaBuilder2);
+
+      }
+      else {
       final SchemaBuilder.BaseTypeBuilder<
               SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
@@ -162,8 +175,13 @@ public class JdbcAvroSchema {
               fieldSchemaBuilder);
 
       schemaFieldAssembler.endUnion().nullDefault();
+      }
     }
     return builder;
+  }
+
+  private static boolean isNotNullColumn(final int nullabilityStatus) {
+    final boolean isNullableType = nullabilityStatus == ResultSetMetaData.columnNoNulls;
   }
 
   /**
@@ -178,15 +196,14 @@ public class JdbcAvroSchema {
    * </ul>
    *
    */
-  private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
+  private static <R>
+  R
       setAvroColumnType(
           final int columnType,
           final int precision,
           final String columnClassName,
           final boolean useLogicalTypes,
-          final SchemaBuilder.BaseTypeBuilder<
-                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-              field) {
+          org.apache.avro.SchemaBuilder.BaseTypeBuilder<R> field) {
     switch (columnType) {
       case VARCHAR:
       case CHAR:
