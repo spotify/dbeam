@@ -92,7 +92,9 @@ public class JdbcAvroSchemaTest {
     final Schema fieldSchema = avroSchema.getField("column1").schema();
 
     Assert.assertEquals(Schema.Type.UNION, fieldSchema.getType());
-    Assert.assertEquals(Arrays.asList(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)), fieldSchema.getTypes());
+    Assert.assertEquals(
+        Arrays.asList(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)),
+        fieldSchema.getTypes());
   }
 
   @Test
@@ -172,15 +174,15 @@ public class JdbcAvroSchemaTest {
     Assert.assertEquals(Schema.Type.STRING, fieldSchema.getType());
   }
 
-  private Schema createAvroSchema(
-          final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
+  private Schema createAvroSchema(final ResultSet resultSet, final boolean useLogicalTypes)
+      throws SQLException {
     Schema avroSchema =
-            JdbcAvroSchema.createAvroSchema(
-                    resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes);
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes, false);
 
     return avroSchema;
   }
-  
+
   private Schema createAvroSchemaForSingleField(
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
     Schema avroSchema = createAvroSchema(resultSet, useLogicalTypes);
@@ -192,19 +194,20 @@ public class JdbcAvroSchemaTest {
     return buildMockResultSetWithNotNull(inputColumnType, false);
   }
 
-  private ResultSet buildMockResultSetWithNotNull(final int inputColumnType, final boolean isNotNull) throws SQLException {
+  private ResultSet buildMockResultSetWithNotNull(
+      final int inputColumnType, final boolean isNotNull) throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(COLUMN_NUM);
     when(meta.getTableName(COLUMN_NUM)).thenReturn("test_table");
     when(meta.getColumnName(COLUMN_NUM)).thenReturn("column1");
     when(meta.getColumnType(COLUMN_NUM)).thenReturn(inputColumnType);
     when(meta.getColumnClassName(COLUMN_NUM)).thenReturn("foobar");
-    final int isNullableType = isNotNull ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
+    final int isNullableType =
+        isNotNull ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
     when(meta.isNullable(COLUMN_NUM)).thenReturn(isNullableType);
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
     return resultSet;
   }
-  
 }

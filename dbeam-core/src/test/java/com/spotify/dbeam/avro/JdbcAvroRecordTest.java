@@ -70,6 +70,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            false,
             false);
 
     Assert.assertNotNull(actual);
@@ -136,7 +137,8 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true);
+            true,
+            false);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -153,6 +155,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.of("CustomSchemaName"),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            false,
             false);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
@@ -167,7 +170,7 @@ public class JdbcAvroRecordTest {
             .executeQuery("SELECT * FROM COFFEES");
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
-            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));

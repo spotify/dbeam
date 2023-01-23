@@ -90,7 +90,8 @@ public class BeamJdbcAvroSchema {
         args.avroSchemaNamespace(),
         args.avroSchemaName(),
         avroDoc,
-        args.useAvroLogicalTypes());
+        args.useAvroLogicalTypes(),
+        args.useAvroNotNullTypes());
   }
 
   public static Optional<Schema> parseOptionalInputAvroSchemaFile(final String filename)
