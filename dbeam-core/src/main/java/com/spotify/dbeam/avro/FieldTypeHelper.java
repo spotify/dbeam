@@ -85,7 +85,7 @@ public class FieldTypeHelper {
   public static SchemaBuilder.FieldAssembler<Schema> setDoubleType(
       final SchemaBuilder.FieldTypeBuilder<Schema> field, final boolean useNotNullTypes) {
     return useNotNullTypes
-        ? field.floatType().noDefault()
-        : field.unionOf().nullBuilder().endNull().and().floatType().endUnion().nullDefault();
+        ? field.doubleType().noDefault()
+        : field.unionOf().nullBuilder().endNull().and().doubleType().endUnion().nullDefault();
   }
 }

@@ -89,23 +89,24 @@ public class JdbcAvroSchemaTest {
     final ResultSet resultSet = buildMockResultSetWithNotNull(Types.NCHAR, false);
 
     final Schema avroSchema = createAvroSchema(resultSet, true);
-    final Schema fieldSchema = avroSchema.getField("column1").schema();
+    final Schema.Field field = avroSchema.getField("column1");
 
-    Assert.assertEquals(Schema.Type.UNION, fieldSchema.getType());
+    Assert.assertEquals(Schema.Type.UNION, field.schema().getType());
     Assert.assertEquals(
         Arrays.asList(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)),
-        fieldSchema.getTypes());
+        field.schema().getTypes());
+    Assert.assertTrue(field.hasDefaultValue()); // null represented as NullNode()
   }
 
   @Test
   public void shouldConvertNotNullSqlTypeToAvroNotNullType() throws SQLException {
     final ResultSet resultSet = buildMockResultSetWithNotNull(Types.NCHAR, true);
 
-    final Schema avroSchema = createAvroSchema(resultSet, true);
-    final Schema fieldSchema = avroSchema.getField("column1").schema();
+    final Schema avroSchema = createAvroSchema(resultSet, false, true);
+    final Schema.Field field = avroSchema.getField("column1");
 
-    Assert.assertEquals(Schema.Type.STRING, fieldSchema.getType());
-    Assert.assertEquals(Arrays.asList(Schema.create(Schema.Type.STRING)), fieldSchema.getTypes());
+    Assert.assertEquals(Schema.Type.STRING, field.schema().getType());
+    Assert.assertFalse(field.hasDefaultValue()); // no default value set
   }
 
   @Test
@@ -176,9 +177,21 @@ public class JdbcAvroSchemaTest {
 
   private Schema createAvroSchema(final ResultSet resultSet, final boolean useLogicalTypes)
       throws SQLException {
+    return createAvroSchema(resultSet, useLogicalTypes, false);
+  }
+
+  private Schema createAvroSchema(
+      final ResultSet resultSet, final boolean useLogicalTypes, final boolean useNotNullTypes)
+      throws SQLException {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
-            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes, false);
+            resultSet,
+            "namespace1",
+            "url1",
+            Optional.empty(),
+            "doc1",
+            useLogicalTypes,
+            useNotNullTypes);
 
     return avroSchema;
   }

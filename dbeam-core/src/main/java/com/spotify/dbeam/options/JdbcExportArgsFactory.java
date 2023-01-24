@@ -77,6 +77,7 @@ public class JdbcExportArgsFactory {
         Optional.ofNullable(exportOptions.getAvroSchemaName()),
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
+        exportOptions.isUseAvroNotNullTypes(),
         Duration.parse(exportOptions.getExportTimeout()),
         BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
   }
