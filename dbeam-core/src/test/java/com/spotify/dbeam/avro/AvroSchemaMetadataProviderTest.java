@@ -33,11 +33,26 @@ public class AvroSchemaMetadataProviderTest {
   @BeforeClass
   public static void beforeAll() {}
 
-  public static Schema createProvidedSchema(List<String> fieldNames) {
+  public static Schema createProvidedSchemaWithDoc(
+      final List<String> fieldNames, final String schemaDoc) {
+    return createProvidedSchema(fieldNames, "providedSchemaName", schemaDoc);
+  }
+
+  public static Schema createProvidedSchemaWithName(
+      final List<String> fieldNames, final String schemaName) {
+    return createProvidedSchema(fieldNames, schemaName, "providedSchemaDoc");
+  }
+
+  public static Schema createProvidedSchema(final List<String> fieldNames) {
+    return createProvidedSchema(fieldNames, "providedSchemaName", "providedSchemaDoc");
+  }
+
+  public static Schema createProvidedSchema(
+      final List<String> fieldNames, final String schemaName, final String schemaDoc) {
     final SchemaBuilder.FieldAssembler<Schema> builder =
-        SchemaBuilder.record("providedSchemaName")
+        SchemaBuilder.record(schemaName)
             .namespace("providedSchemaNamespace")
-            .doc("providedSchemaDoc")
+            .doc(schemaDoc)
             .fields();
 
     fieldNames.forEach(
@@ -83,5 +98,80 @@ public class AvroSchemaMetadataProviderTest {
     Assert.assertEquals("Doc for field1", provider.getFieldDoc("field1", "dummy"));
     Assert.assertEquals("Doc for field2", provider.getFieldDoc("field2", "dummy"));
     Assert.assertEquals("default", provider.getFieldDoc("field3", "default"));
+  }
+
+  private static AvroSchemaMetadataProvider getAvroSchemaMetadataProviderWithDoc(
+      String providedSchemaDoc, String commandLineSchemaDoc) {
+    List<String> fieldNames = Arrays.asList("field1", "field2");
+    Schema providedSchema = createProvidedSchemaWithDoc(fieldNames, providedSchemaDoc);
+
+    return new AvroSchemaMetadataProvider(
+        providedSchema, null, "schemaNamespace", commandLineSchemaDoc);
+  }
+
+  @Test
+  public void verifyProviderWithSchemaAndNoSchemaDocUsesCommandLineDoc() {
+
+    final String providedSchemaDoc = null; // not provided
+    final String commandLineSchemaDoc = "Custom Doc";
+    final String generatedSchemaDoc = "GeneratedDoc";
+    final AvroSchemaMetadataProvider provider =
+        getAvroSchemaMetadataProviderWithDoc(providedSchemaDoc, commandLineSchemaDoc);
+
+    Assert.assertEquals(commandLineSchemaDoc, provider.avroDoc(generatedSchemaDoc));
+  }
+
+  @Test
+  public void verifyProviderWithSchemaAndEmptySchemaDocUsesSchemaDoc() {
+
+    final String providedSchemaDoc = ""; // empty
+    final String commandLineSchemaDoc = "Custom Doc";
+    final String generatedSchemaDoc = "GeneratedDoc";
+    final AvroSchemaMetadataProvider provider =
+        getAvroSchemaMetadataProviderWithDoc(providedSchemaDoc, commandLineSchemaDoc);
+
+    Assert.assertEquals(providedSchemaDoc, provider.avroDoc(generatedSchemaDoc));
+  }
+
+  @Test
+  public void verifyProviderWithSchemaAndNoSchemaDocAndNoCommandLineDocUsesGeneratedDoc() {
+
+    final String providedSchemaDoc = null; // not provided
+    final String commandLineSchemaDoc = null;
+    final String generatedSchemaDoc = "GeneratedDoc";
+    final AvroSchemaMetadataProvider provider =
+        getAvroSchemaMetadataProviderWithDoc(providedSchemaDoc, commandLineSchemaDoc);
+
+    Assert.assertEquals(generatedSchemaDoc, provider.avroDoc(generatedSchemaDoc));
+  }
+
+  private static AvroSchemaMetadataProvider getAvroSchemaMetadataProviderWithName(
+      String providedSchemaName, String commandLineSchemaName) {
+    List<String> fieldNames = Arrays.asList("field1", "field2");
+    Schema providedSchema = createProvidedSchemaWithName(fieldNames, providedSchemaName);
+
+    return new AvroSchemaMetadataProvider(
+        providedSchema, commandLineSchemaName, "schemaNamespace", "DummyDoc");
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void verifyProviderWithSchemaAndNoSchemaNameThrowsException() {
+
+    final String providedSchemaName = null; // not provided
+    final String commandLineSchemaName = "Custom Name";
+    final String generatedSchemaName = "GeneratedName";
+    getAvroSchemaMetadataProviderWithName(providedSchemaName, commandLineSchemaName);
+  }
+
+  @Test
+  public void verifyProviderWithSchemaAndNoSchemaNameAndNoCommandLineNameUsesGeneratedName() {
+
+    final String providedSchemaName = "ProvidedName";
+    final String commandLineSchemaName = "Custom Name";
+    final String generatedSchemaName = "GeneratedName";
+    final AvroSchemaMetadataProvider provider =
+        getAvroSchemaMetadataProviderWithName(providedSchemaName, commandLineSchemaName);
+
+    Assert.assertEquals(providedSchemaName, provider.avroSchemaName(generatedSchemaName));
   }
 }

@@ -51,20 +51,21 @@ public class AvroSchemaMetadataProvider {
   }
 
   public String avroDoc(final String defaultVal) {
-    return (provided != null) ? provided.getDoc() : (avroDoc != null) ? avroDoc : defaultVal;
+    return (provided != null && provided.getDoc() != null)
+        ? provided.getDoc()
+        : (avroDoc != null) ? avroDoc : defaultVal;
   }
 
   public String avroSchemaName(final String defaultVal) {
-    if (provided != null) {
-      String name = provided.getName();
-      return (name != null) ? name : defaultVal;
-    } else {
-      return avroSchemaName != null ? avroSchemaName : defaultVal;
-    }
+    return (provided != null && provided.getName() != null)
+        ? provided.getName()
+        : (avroSchemaName != null) ? avroSchemaName : defaultVal;
   }
 
   public String avroSchemaNamespace() {
-    return (provided != null) ? provided.getNamespace() : avroSchemaNamespace;
+    return (provided != null && provided.getNamespace() != null)
+        ? provided.getNamespace()
+        : avroSchemaNamespace;
   }
 
   public String getFieldDoc(final String fieldName, final String defaultVal) {
@@ -73,7 +74,8 @@ public class AvroSchemaMetadataProvider {
       if (field != null) {
         return field.doc();
       } else {
-        LOGGER.warn("Field [{}] not found in the provided schema", fieldName);
+        LOGGER.warn(
+            "Field [{}] not found in the provided schema [{}]", fieldName, provided.getName());
         return defaultVal;
       }
     } else {

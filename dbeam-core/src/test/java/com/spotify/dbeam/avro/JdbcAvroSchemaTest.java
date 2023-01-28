@@ -155,10 +155,9 @@ public class JdbcAvroSchemaTest {
     final String schemaName = null;
     final String avroDoc = "doc1";
     AvroSchemaMetadataProvider provider =
-            new AvroSchemaMetadataProvider(avroSchemaNamespace, schemaName, avroDoc);    
+        new AvroSchemaMetadataProvider(avroSchemaNamespace, schemaName, avroDoc);
     Schema avroSchema =
-        JdbcAvroSchema.createAvroSchema(
-            resultSet, connectionUrl, useLogicalTypes, provider);
+        JdbcAvroSchema.createAvroSchema(resultSet, connectionUrl, useLogicalTypes, provider);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }

@@ -125,17 +125,23 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
     Controls whether generated Avro schema will contain logicalTypes or not.
 ```
 
-#### Input Avro schema file
+#### Input (provided) Avro schema file
 
-If provided an input Avro schema file, dbeam will read input schema file and use some of the 
+If there is a provided input Avro schema file (using `--avroSchemaFilePath` parameter), dbeam will read input schema file and use some of the 
 properties when an output Avro schema is created.
 
-#### Following fields will be propagated from input into output schema:
+#### Following fields will be propagated from a provided input schema into the output schema:
 
-* `record.doc`
+* `record.name`
 * `record.namespace`
+* `record.doc`
 * `record.field.doc`
 
+#### Precedence rules: Avro record `doc` value
+Avro record `doc` value can be set using three means (in order of precedence):
+1. From a provided Avro schema `record.doc`
+2. From a command line parameter  (`--avroDoc`)
+3. An automatically generated value 
 
 #### DBeam Parallel Mode
 
