@@ -122,15 +122,11 @@ public class JdbcAvroSchema {
       final AvroSchemaMetadataProvider provider)
       throws SQLException {
 
+    final StringBuilder sqlMetadataLog = new StringBuilder("Sql ResultSet metadata: { ");
+    
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
-      final String columnName;
-      if (meta.getColumnName(i).isEmpty()) {
-        columnName = meta.getColumnLabel(i);
-      } else {
-        columnName = meta.getColumnName(i);
-      }
-
+      final String columnName = getColumnName(meta, i);
       final int columnType = meta.getColumnType(i);
       final String typeName = JDBCType.valueOf(columnType).getName();
       final String columnClassName = meta.getColumnClassName(i);
@@ -160,8 +156,23 @@ public class JdbcAvroSchema {
               fieldSchemaBuilder);
 
       schemaFieldAssembler.endUnion().nullDefault();
+
+      sqlMetadataLog.append(String.format("#[%d] name[%s] type[%s], ", i, columnName, typeName));
     }
+
+    LOGGER.info(sqlMetadataLog.append(" }").toString());
+    
     return builder;
+  }
+
+  private static String getColumnName(ResultSetMetaData meta, int i) throws SQLException {
+    final String columnName;
+    if (meta.getColumnName(i).isEmpty()) {
+      columnName = meta.getColumnLabel(i);
+    } else {
+      columnName = meta.getColumnName(i);
+    }
+    return columnName;
   }
 
   /**
