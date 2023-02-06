@@ -20,6 +20,8 @@
 
 package com.spotify.dbeam.jobs;
 
+import static com.spotify.dbeam.avro.TestAvroSchemas.getSchemaWithFieldsInWrongOrder;
+import static com.spotify.dbeam.avro.TestAvroSchemas.getSchemaWithMissingField;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -38,6 +40,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -45,6 +48,8 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.tool.DataFileReadTool;
+import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.hamcrest.CoreMatchers;
@@ -236,6 +241,88 @@ public class JdbcAvroJobTest {
               "--minRows=1000"
             })
         .runExport();
+  }
+
+  // @Ignore
+  @Test
+  // @Test(expected = AvroRuntimeException.class)
+  public void shouldFailDueToMissingFieldInSchema() throws Exception {
+    final Path providedSchemaFile = testDir.resolve("provided_schema.avsc");
+    Files.write(providedSchemaFile, getSchemaWithMissingField().getBytes());
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
+    final String outputAvroFile =
+        outputPath.resolve("part-00000-of-00001.avro").toAbsolutePath().toString();
+
+    /*
+     * SQL SELECT has columns: COF_NAME, plus many others ...
+     * Avro schema has fields: COF_NAME (fewer than expected).
+     * This scenario produces an Avro file, which seems to OK,
+     * but an exception is thrown when one tries to read it.
+     * org.apache.avro.AvroRuntimeException: Malformed data. Length is negative: -50
+     */
+
+    String[] cmdLineArgs = {
+      "--targetParallelism=1",
+      "--partition=2025-02-28",
+      "--skipPartitionCheck",
+      "--connectionUrl=" + CONNECTION_URL,
+      "--username=",
+      "--passwordFile=" + passwordPath.toString(),
+      "--table=COFFEES",
+      "--output=" + outputPath,
+      "--avroSchemaFilePath=" + providedSchemaFile
+    };
+
+    PipelineResult pipelineResult = JdbcAvroJob.create(cmdLineArgs).runExport();
+
+    Assert.assertEquals(PipelineResult.State.DONE, pipelineResult.getState());
+
+    int result =
+        new DataFileReadTool()
+            .run(System.in, System.out, System.err, Arrays.asList("--head", outputAvroFile));
+    Assert.assertEquals(0, result); // old school :)
+    Assert.fail("Should not reach this stage");
+  }
+
+  // @Ignore
+  @Test
+  // @Test(expected = ArrayIndexOutOfBoundsException.class)
+  public void shouldFailDueToProvidedSchemaWithFieldInWrongOrder() throws Exception {
+    final Path providedSchemaFile = testDir.resolve("provided_schema.avsc");
+    Files.write(providedSchemaFile, getSchemaWithFieldsInWrongOrder().getBytes());
+    final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
+    final String outputAvroFile =
+        outputPath.resolve("part-00000-of-00001.avro").toAbsolutePath().toString();
+
+    /*
+     * SQL SELECT has columns: COF_NAME, SIZE, TOTAL
+     * Avro schema has fields: TOTAL, COF_NAME, SIZE (another order).
+     * This scenario produces an Avro file, which seems to OK,
+     * but an exception is thrown when one tries to read it.
+     * java.lang.ArrayIndexOutOfBoundsException: Index -50 out of bounds for length 2
+     */
+
+    String[] cmdLineArgs = {
+      "--targetParallelism=1",
+      "--partition=2025-02-28",
+      "--skipPartitionCheck",
+      "--connectionUrl=" + CONNECTION_URL,
+      "--username=",
+      "--passwordFile=" + passwordPath,
+      "--sqlFile=" + sqlPath,
+      "--output=" + outputPath,
+      "--avroSchemaFilePath=" + providedSchemaFile
+    };
+
+    PipelineResult pipelineResult = JdbcAvroJob.create(cmdLineArgs).runExport();
+
+    Assert.assertEquals(PipelineResult.State.DONE, pipelineResult.getState());
+
+    int result =
+        new DataFileReadTool()
+            .run(System.in, System.out, System.err, Arrays.asList("--head", outputAvroFile));
+    Assert.assertEquals(0, result); // old school :)
+    Assert.fail("Should not reach this stage");
   }
 
   @Test

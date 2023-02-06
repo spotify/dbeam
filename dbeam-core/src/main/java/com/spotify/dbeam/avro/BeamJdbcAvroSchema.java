@@ -107,6 +107,8 @@ public class BeamJdbcAvroSchema {
     final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
     final InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
 
-    return new Schema.Parser().parse(inputStream);
+    Schema schema = new Schema.Parser().parse(inputStream);
+    LOGGER.info("Read provided Avro schema from file[{}] [{}]", filename, schema.toString(false));
+    return schema;
   }
 }

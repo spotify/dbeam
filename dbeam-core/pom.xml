@@ -111,6 +111,12 @@
       <artifactId>google-http-client-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro-tools</artifactId>
+      <version>1.11.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>
