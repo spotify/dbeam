@@ -145,7 +145,7 @@ public class JdbcAvroSchema {
       final String columnName = getColumnName(meta, i);
 
       final int columnType = meta.getColumnType(i);
-      final String typeName = JDBCType.valueOf(columnType).getName();
+      final String typeName = getSqlTypeName(columnType);
       final String columnClassName = meta.getColumnClassName(i);
       final SchemaBuilder.FieldBuilder<Schema> field =
           builder
@@ -169,6 +169,10 @@ public class JdbcAvroSchema {
           fieldSchemaBuilder);
     }
     return builder;
+  }
+
+  public static String getSqlTypeName(int columnType) {
+    return JDBCType.valueOf(columnType).getName();
   }
 
   private static String getColumnName(ResultSetMetaData meta, int i) throws SQLException {

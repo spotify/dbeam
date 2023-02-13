@@ -20,6 +20,7 @@
 
 package com.spotify.dbeam.avro;
 
+import static com.spotify.dbeam.avro.JdbcAvroSchema.getSqlTypeName;
 import static org.mockito.Mockito.when;
 
 import java.sql.ResultSet;
@@ -34,6 +35,60 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class JdbcAvroSchemaTest {
+
+  /** Stores type mapping SQL type => Avro type. */
+  private static class TypeMapping {
+    private final int sqlType;
+    private final Schema.Type avroType;
+
+    public TypeMapping(int sqlType, Schema.Type avroType) {
+      this.sqlType = sqlType;
+      this.avroType = avroType;
+    }
+  }
+
+  private static final TypeMapping[] allSqlTypes =
+      new TypeMapping[] {
+        new TypeMapping(java.sql.Types.BIT, Schema.Type.BOOLEAN),
+        new TypeMapping(java.sql.Types.TINYINT, Schema.Type.INT),
+        new TypeMapping(java.sql.Types.SMALLINT, Schema.Type.INT),
+        new TypeMapping(java.sql.Types.INTEGER, Schema.Type.INT),
+        new TypeMapping(java.sql.Types.BIGINT, Schema.Type.LONG),
+        new TypeMapping(java.sql.Types.FLOAT, Schema.Type.FLOAT),
+        new TypeMapping(java.sql.Types.REAL, Schema.Type.FLOAT),
+        new TypeMapping(java.sql.Types.DOUBLE, Schema.Type.DOUBLE),
+        new TypeMapping(java.sql.Types.NUMERIC, Schema.Type.STRING), // default TODO ?
+        new TypeMapping(java.sql.Types.DECIMAL, Schema.Type.STRING), // default TODO ?
+        new TypeMapping(java.sql.Types.CHAR, Schema.Type.STRING),
+        new TypeMapping(java.sql.Types.VARCHAR, Schema.Type.STRING),
+        new TypeMapping(java.sql.Types.LONGVARCHAR, Schema.Type.STRING),
+        new TypeMapping(java.sql.Types.DATE, Schema.Type.LONG),
+        new TypeMapping(java.sql.Types.TIME, Schema.Type.LONG),
+        new TypeMapping(java.sql.Types.TIMESTAMP, Schema.Type.LONG),
+        new TypeMapping(java.sql.Types.BINARY, Schema.Type.BYTES),
+        new TypeMapping(java.sql.Types.VARBINARY, Schema.Type.BYTES),
+        new TypeMapping(java.sql.Types.LONGVARBINARY, Schema.Type.BYTES),
+        new TypeMapping(java.sql.Types.NULL, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.OTHER, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.JAVA_OBJECT, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.DISTINCT, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.STRUCT, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.ARRAY, Schema.Type.BYTES),
+        new TypeMapping(java.sql.Types.BLOB, Schema.Type.BYTES),
+        new TypeMapping(java.sql.Types.CLOB, Schema.Type.STRING),
+        new TypeMapping(java.sql.Types.REF, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.DATALINK, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.BOOLEAN, Schema.Type.BOOLEAN),
+        new TypeMapping(java.sql.Types.ROWID, Schema.Type.STRING), // default
+        new TypeMapping(java.sql.Types.NCHAR, Schema.Type.STRING),
+        new TypeMapping(java.sql.Types.NVARCHAR, Schema.Type.STRING), // default TODO ?
+        new TypeMapping(java.sql.Types.LONGNVARCHAR, Schema.Type.STRING),
+        new TypeMapping(java.sql.Types.NCLOB, Schema.Type.STRING), // default TODO ?
+        new TypeMapping(java.sql.Types.SQLXML, Schema.Type.STRING), // default TODO ?
+        new TypeMapping(java.sql.Types.REF_CURSOR, Schema.Type.STRING), // default ?
+        new TypeMapping(java.sql.Types.TIME_WITH_TIMEZONE, Schema.Type.LONG),
+        new TypeMapping(java.sql.Types.TIMESTAMP_WITH_TIMEZONE, Schema.Type.STRING) // default TODO ?
+      };
 
   public static final int COLUMN_NUM = 1;
 
@@ -100,13 +155,24 @@ public class JdbcAvroSchemaTest {
 
   @Test
   public void shouldConvertNotNullSqlTypeToAvroNotNullType() throws SQLException {
-    final ResultSet resultSet = buildMockResultSetWithNotNull(Types.NCHAR, true);
+    for (int i = 0; i < allSqlTypes.length; i++) {
+      TypeMapping typeMapping = allSqlTypes[i];
+      int sqlType = typeMapping.sqlType;
+      Schema.Type expectedAvroType = typeMapping.avroType;
 
-    final Schema avroSchema = createAvroSchema(resultSet, false, true);
-    final Schema.Field field = avroSchema.getField("column1");
+      final ResultSet resultSet = buildMockResultSetWithNotNull(sqlType, true);
 
-    Assert.assertEquals(Schema.Type.STRING, field.schema().getType());
-    Assert.assertFalse(field.hasDefaultValue()); // no default value set
+      final boolean useNotNullTypes = true;
+      final Schema avroSchema = createAvroSchema(resultSet, false, useNotNullTypes);
+      final Schema.Field field = avroSchema.getField("column1");
+
+      String message =
+          String.format(
+              "Mapping #[%d] SQL [%d][%s] => Avro [%s] failed",
+              i, sqlType, getSqlTypeName(sqlType), expectedAvroType);
+      Assert.assertEquals(message, expectedAvroType, field.schema().getType());
+      Assert.assertFalse(field.hasDefaultValue()); // no default value set
+    }
   }
 
   @Test
