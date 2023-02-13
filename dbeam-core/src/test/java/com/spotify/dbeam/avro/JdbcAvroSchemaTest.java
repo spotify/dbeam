@@ -87,7 +87,8 @@ public class JdbcAvroSchemaTest {
         new TypeMapping(java.sql.Types.SQLXML, Schema.Type.STRING), // default TODO ?
         new TypeMapping(java.sql.Types.REF_CURSOR, Schema.Type.STRING), // default ?
         new TypeMapping(java.sql.Types.TIME_WITH_TIMEZONE, Schema.Type.LONG),
-        new TypeMapping(java.sql.Types.TIMESTAMP_WITH_TIMEZONE, Schema.Type.STRING) // default TODO ?
+        new TypeMapping(
+            java.sql.Types.TIMESTAMP_WITH_TIMEZONE, Schema.Type.STRING) // default TODO ?
       };
 
   public static final int COLUMN_NUM = 1;
