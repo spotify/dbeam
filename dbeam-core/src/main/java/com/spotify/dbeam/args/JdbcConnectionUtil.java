@@ -30,6 +30,7 @@ public class JdbcConnectionUtil {
       ImmutableMap.of(
           "postgresql", "org.postgresql.Driver",
           "mysql", "com.mysql.cj.jdbc.Driver",
+          "mariadb", "org.mariadb.jdbc.Driver",
           "h2", "org.h2.Driver");
 
   public static String getDriverClass(final String url) throws ClassNotFoundException {

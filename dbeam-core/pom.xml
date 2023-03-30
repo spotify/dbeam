@@ -54,6 +54,10 @@
       <artifactId>mysql-connector-java</artifactId>
     </dependency>
     <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.cloud.sql</groupId>
       <artifactId>postgres-socket-factory</artifactId>
     </dependency>
