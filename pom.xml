@@ -120,7 +120,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <protobuf.version>3.21.12</protobuf.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <socket-factory.version>1.10.0</socket-factory.version>
+    <socket-factory.version>1.11.0</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -695,7 +695,7 @@
                     </filter>
                   </filters>
                   <transformers>
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                       <mainClass>com.spotify.dbeam.jobs.JdbcAvroJob</mainClass>
                     </transformer>
