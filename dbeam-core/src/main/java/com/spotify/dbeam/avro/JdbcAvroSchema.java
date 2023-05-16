@@ -20,14 +20,6 @@
 
 package com.spotify.dbeam.avro;
 
-import static com.spotify.dbeam.avro.FieldTypeHelper.setBooleanType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setBytesType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setDoubleType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setFloatType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setIntType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setLongLogicalType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setLongType;
-import static com.spotify.dbeam.avro.FieldTypeHelper.setStringType;
 import static java.sql.Types.ARRAY;
 import static java.sql.Types.BIGINT;
 import static java.sql.Types.BINARY;
@@ -215,50 +207,50 @@ public class JdbcAvroSchema {
       case LONGNVARCHAR:
       case LONGVARCHAR:
       case NCHAR:
-        return setStringType(field, useNotNullTypes);
+        return FieldTypeHelper.setStringType(field, useNotNullTypes);
       case BIGINT:
-        return setLongType(field, useNotNullTypes);
+        return FieldTypeHelper.setLongType(field, useNotNullTypes);
       case INTEGER:
       case SMALLINT:
       case TINYINT:
         if (Long.class.getCanonicalName().equals(columnClassName)) {
-          return setLongType(field, useNotNullTypes);
+          return FieldTypeHelper.setLongType(field, useNotNullTypes);
         } else {
-          return setIntType(field, useNotNullTypes);
+          return FieldTypeHelper.setIntType(field, useNotNullTypes);
         }
       case TIMESTAMP:
       case DATE:
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
-          return setLongLogicalType(field, useNotNullTypes);
+          return FieldTypeHelper.setLongLogicalType(field, useNotNullTypes);
         } else {
-          return setLongType(field, useNotNullTypes);
+          return FieldTypeHelper.setLongType(field, useNotNullTypes);
         }
       case BOOLEAN:
-        return setBooleanType(field, useNotNullTypes);
+        return FieldTypeHelper.setBooleanType(field, useNotNullTypes);
       case BIT:
         // Note that bit types can take a param/typemod qualifying its length
         // some further docs:
         // https://www.postgresql.org/docs/8.2/datatype-bit.html
         if (precision <= 1) {
-          return setBooleanType(field, useNotNullTypes);
+          return FieldTypeHelper.setBooleanType(field, useNotNullTypes);
         } else {
-          return setBytesType(field, useNotNullTypes);
+          return FieldTypeHelper.setBytesType(field, useNotNullTypes);
         }
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
       case ARRAY:
       case BLOB:
-        return setBytesType(field, useNotNullTypes);
+        return FieldTypeHelper.setBytesType(field, useNotNullTypes);
       case DOUBLE:
-        return setDoubleType(field, useNotNullTypes);
+        return FieldTypeHelper.setDoubleType(field, useNotNullTypes);
       case FLOAT:
       case REAL:
-        return setFloatType(field, useNotNullTypes);
+        return FieldTypeHelper.setFloatType(field, useNotNullTypes);
       default:
-        return setStringType(field, useNotNullTypes);
+        return FieldTypeHelper.setStringType(field, useNotNullTypes);
     }
   }
 

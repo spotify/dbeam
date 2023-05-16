@@ -20,9 +20,6 @@
 
 package com.spotify.dbeam.avro;
 
-import static com.spotify.dbeam.avro.JdbcAvroSchema.getSqlTypeName;
-import static org.mockito.Mockito.when;
-
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -41,7 +38,7 @@ public class JdbcAvroSchemaTest {
     private final int sqlType;
     private final Schema.Type avroType;
 
-    public TypeMapping(int sqlType, Schema.Type avroType) {
+    public TypeMapping(final int sqlType, final Schema.Type avroType) {
       this.sqlType = sqlType;
       this.avroType = avroType;
     }
@@ -96,8 +93,8 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldGetDatabaseTableNameFromMetaData() throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(1);
-    when(meta.getTableName(1)).thenReturn("test_table");
+    Mockito.when(meta.getColumnCount()).thenReturn(1);
+    Mockito.when(meta.getTableName(1)).thenReturn("test_table");
 
     Assert.assertEquals("test_table", JdbcAvroSchema.getDatabaseTableName(meta));
   }
@@ -105,8 +102,8 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldDefaultTableNameWhenMetaDataHasEmptyTableName() throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(1);
-    when(meta.getTableName(1)).thenReturn("");
+    Mockito.when(meta.getColumnCount()).thenReturn(1);
+    Mockito.when(meta.getTableName(1)).thenReturn("");
 
     Assert.assertEquals("no_table_name", JdbcAvroSchema.getDatabaseTableName(meta));
   }
@@ -114,8 +111,8 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldDefaultTableNameWhenMetaDataHasNullTableName() throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(1);
-    when(meta.getTableName(1)).thenReturn(null);
+    Mockito.when(meta.getColumnCount()).thenReturn(1);
+    Mockito.when(meta.getTableName(1)).thenReturn(null);
 
     Assert.assertEquals("no_table_name", JdbcAvroSchema.getDatabaseTableName(meta));
   }
@@ -123,9 +120,9 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldGetDatabaseTableNameFromFirstNonNullMetaData() throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(2);
-    when(meta.getTableName(1)).thenReturn("");
-    when(meta.getTableName(2)).thenReturn("test_table");
+    Mockito.when(meta.getColumnCount()).thenReturn(2);
+    Mockito.when(meta.getTableName(1)).thenReturn("");
+    Mockito.when(meta.getTableName(2)).thenReturn("test_table");
 
     Assert.assertEquals("test_table", JdbcAvroSchema.getDatabaseTableName(meta));
   }
@@ -170,7 +167,7 @@ public class JdbcAvroSchemaTest {
       String message =
           String.format(
               "Mapping #[%d] SQL [%d][%s] => Avro [%s] failed",
-              i, sqlType, getSqlTypeName(sqlType), expectedAvroType);
+              i, sqlType, JdbcAvroSchema.getSqlTypeName(sqlType), expectedAvroType);
       Assert.assertEquals(message, expectedAvroType, field.schema().getType());
       Assert.assertFalse(field.hasDefaultValue()); // no default value set
     }
@@ -207,7 +204,7 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldConvertBitSqlTypeWithPrecision2ToBytes() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.BIT);
-    when(resultSet.getMetaData().getPrecision(COLUMN_NUM)).thenReturn(2);
+    Mockito.when(resultSet.getMetaData().getPrecision(COLUMN_NUM)).thenReturn(2);
 
     final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
 
@@ -217,7 +214,8 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldConvertIntegerWithLongColumnClassNameToLong() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.INTEGER);
-    when(resultSet.getMetaData().getColumnClassName(COLUMN_NUM)).thenReturn("java.lang.Long");
+    Mockito.when(resultSet.getMetaData().getColumnClassName(COLUMN_NUM))
+            .thenReturn("java.lang.Long");
 
     final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
 
@@ -250,17 +248,15 @@ public class JdbcAvroSchemaTest {
   private Schema createAvroSchema(
       final ResultSet resultSet, final boolean useLogicalTypes, final boolean useNotNullTypes)
       throws SQLException {
-    Schema avroSchema =
-        JdbcAvroSchema.createAvroSchema(
-            resultSet,
-            "namespace1",
-            "url1",
-            Optional.empty(),
-            "doc1",
-            useLogicalTypes,
-            useNotNullTypes);
 
-    return avroSchema;
+    return JdbcAvroSchema.createAvroSchema(
+        resultSet,
+        "namespace1",
+        "url1",
+        Optional.empty(),
+        "doc1",
+        useLogicalTypes,
+        useNotNullTypes);
   }
 
   private Schema createAvroSchemaForSingleField(
@@ -277,17 +273,17 @@ public class JdbcAvroSchemaTest {
   private ResultSet buildMockResultSetWithNotNull(
       final int inputColumnType, final boolean isNotNull) throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(COLUMN_NUM);
-    when(meta.getTableName(COLUMN_NUM)).thenReturn("test_table");
-    when(meta.getColumnName(COLUMN_NUM)).thenReturn("column1");
-    when(meta.getColumnType(COLUMN_NUM)).thenReturn(inputColumnType);
-    when(meta.getColumnClassName(COLUMN_NUM)).thenReturn("foobar");
+    Mockito.when(meta.getColumnCount()).thenReturn(COLUMN_NUM);
+    Mockito.when(meta.getTableName(COLUMN_NUM)).thenReturn("test_table");
+    Mockito.when(meta.getColumnName(COLUMN_NUM)).thenReturn("column1");
+    Mockito.when(meta.getColumnType(COLUMN_NUM)).thenReturn(inputColumnType);
+    Mockito.when(meta.getColumnClassName(COLUMN_NUM)).thenReturn("foobar");
     final int isNullableType =
         isNotNull ? ResultSetMetaData.columnNoNulls : ResultSetMetaData.columnNullable;
-    when(meta.isNullable(COLUMN_NUM)).thenReturn(isNullableType);
+    Mockito.when(meta.isNullable(COLUMN_NUM)).thenReturn(isNullableType);
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
-    when(resultSet.getMetaData()).thenReturn(meta);
+    Mockito.when(resultSet.getMetaData()).thenReturn(meta);
     return resultSet;
   }
 }

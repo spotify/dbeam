@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class BeamJdbcAvroSchema {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BeamJdbcAvroSchema.class);
 
   /**
    * Generate Avro schema by reading one row. Expose Beam metrics via a Beam PTransform.
