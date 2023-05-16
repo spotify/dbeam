@@ -175,8 +175,9 @@ public class JdbcAvroSchema {
   }
 
   private static boolean isNotNullColumn(
-      final boolean useNotNullTypes, final int nullabilityStatus) {
-    return useNotNullTypes && (nullabilityStatus == ResultSetMetaData.columnNoNulls);
+      final boolean globalSettingUseNotNullTypes, final int columnNullabilityStatus) {
+    return globalSettingUseNotNullTypes
+        && (columnNullabilityStatus == ResultSetMetaData.columnNoNulls);
   }
 
   /**
