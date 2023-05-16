@@ -163,18 +163,15 @@ public class JdbcAvroSchema {
     return builder;
   }
 
-  public static String getSqlTypeName(int columnType) {
+  public static String getSqlTypeName(final int columnType) {
     return JDBCType.valueOf(columnType).getName();
   }
 
-  private static String getColumnName(ResultSetMetaData meta, int i) throws SQLException {
-    final String columnName;
-    if (meta.getColumnName(i).isEmpty()) {
-      columnName = meta.getColumnLabel(i);
-    } else {
-      columnName = meta.getColumnName(i);
-    }
-    return columnName;
+  private static String getColumnName(final ResultSetMetaData meta, final int columnIndex)
+      throws SQLException {
+    return (meta.getColumnName(columnIndex).isEmpty())
+        ? meta.getColumnLabel(columnIndex)
+        : meta.getColumnName(columnIndex);
   }
 
   private static boolean isNotNullColumn(
