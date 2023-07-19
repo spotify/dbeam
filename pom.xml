@@ -103,22 +103,21 @@
     <avro.version>1.11.1</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
 
-    <beam.version>2.46.0</beam.version>
+    <beam.version>2.49.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.46.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L449 -->
-    <google-cloud-libaries-bom.version>26.8.0</google-cloud-libaries-bom.version>
-    <google-http-clients.version>1.42.2</google-http-clients.version>
-    <grpc.version>1.52.1</grpc.version>
-    <guava.version>31.1-jre</guava.version>
+    <!-- https://github.com/apache/beam/blob/release-2.49.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L517 -->
+    <google-cloud-libaries-bom.version>26.17.0</google-cloud-libaries-bom.version>
+    <grpc.version>1.55.1</grpc.version>
+    <guava.version>32.1.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
-    <jackson.version>2.14.2</jackson.version>
+    <jackson.version>2.14.3</jackson.version>
     <mysql.version>8.0.32</mysql.version>
     <netty.version>4.1.94.Final</netty.version>
     <postgresql.version>42.6.0</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <protobuf.version>3.21.12</protobuf.version>
+    <protobuf.version>3.23.4</protobuf.version>
     <slf4j.version>2.0.7</slf4j.version>
     <socket-factory.version>1.10.0</socket-factory.version>
   </properties>
