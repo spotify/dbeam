@@ -99,7 +99,7 @@
 
   <properties>
     <maven.compiler.release>8</maven.compiler.release>
-    <auto-value.version>1.10.1</auto-value.version>
+    <auto-value.version>1.10.2</auto-value.version>
     <avro.version>1.11.1</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
 
