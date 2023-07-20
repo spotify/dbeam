@@ -119,7 +119,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <protobuf.version>3.23.4</protobuf.version>
     <slf4j.version>2.0.7</slf4j.version>
-    <socket-factory.version>1.10.0</socket-factory.version>
+    <socket-factory.version>1.12.0</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -356,7 +356,8 @@
       </dependency>
       <dependency>
         <groupId>com.google.cloud.sql</groupId>
-        <artifactId>mysql-socket-factory</artifactId>
+        <!--Note: https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/issues/1243-->
+        <artifactId>mysql-socket-factory-connector-j-8</artifactId>
         <version>${socket-factory.version}</version>
       </dependency>
 
