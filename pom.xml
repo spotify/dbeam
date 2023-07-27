@@ -102,27 +102,87 @@
     <auto-value.version>1.10.2</auto-value.version>
     <avro.version>1.11.1</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
-
-    <beam.version>2.49.0</beam.version>
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.49.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L517 -->
-    <google-cloud-libaries-bom.version>26.17.0</google-cloud-libaries-bom.version>
-    <grpc.version>1.55.1</grpc.version>
+    <beam.version>2.49.0</beam.version>
+    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.20.0/index.html-->
+    <!--Note: uses jackson-core:2.15.2, grpc-api:1.56.1, protobuf-java 3.23.2-->
+    <google-cloud-libraries-bom.version>26.20.0</google-cloud-libraries-bom.version>
     <guava.version>32.1.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
-    <jackson.version>2.14.3</jackson.version>
+    <jackson.version>2.15.2</jackson.version>
     <mysql.version>8.0.32</mysql.version>
-    <netty.version>4.1.95.Final</netty.version>
+    <netty.version>4.1.96.Final</netty.version>
     <postgresql.version>42.6.0</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <protobuf.version>3.23.4</protobuf.version>
     <slf4j.version>2.0.7</slf4j.version>
     <socket-factory.version>1.12.0</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
+      <!-- overrides to resolve dependency conflicts - start-->
+      <dependency>
+          <groupId>io.opencensus</groupId>
+          <artifactId>opencensus-contrib-grpc-metrics</artifactId>
+          <version>0.31.1</version>
+      </dependency>
+      <dependency>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+          <version>2.10.14</version>
+      </dependency>
+      <dependency>
+        <groupId>org.threeten</groupId>
+        <artifactId>threetenbp</artifactId>
+        <version>1.6.8</version>
+      </dependency>
+      <dependency>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-qual</artifactId>
+        <version>3.36.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>4.4.16</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.14</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>2.20.0</version>
+      </dependency>
+      <!-- overrides to resolve dependency conflicts - end-->
+      <!-- overrides with vulnerability fixes - start-->
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>1.1.10.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava-bom</artifactId>
+        <version>${guava.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <!-- overrides with vulnerability fixes - end-->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
@@ -138,28 +198,11 @@
         <type>pom</type>
       </dependency>
       <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-bom</artifactId>
-        <version>${grpc.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
         <groupId>com.google.cloud</groupId>
         <artifactId>libraries-bom</artifactId>
-        <version>${google-cloud-libaries-bom.version}</version>
+        <version>${google-cloud-libraries-bom.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk15on</artifactId>
-        <version>${bouncycastle.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk15on</artifactId>
-        <version>${bouncycastle.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -171,11 +214,6 @@
         <artifactId>slf4j-jdk14</artifactId>
         <version>${slf4j.version}</version>
         <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.xerial.snappy</groupId>
-        <artifactId>snappy-java</artifactId>
-        <version>1.1.10.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.beam</groupId>
@@ -280,11 +318,6 @@
         </exclusions>
       </dependency>
       <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.apache.avro</groupId>
         <artifactId>avro</artifactId>
         <version>${avro.version}</version>
@@ -293,11 +326,6 @@
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
         <version>1.5.5-5</version>
-      </dependency>
-      <dependency>
-        <groupId>org.threeten</groupId>
-        <artifactId>threetenbp</artifactId>
-        <version>1.6.8</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.value</groupId>
@@ -309,31 +337,6 @@
         <artifactId>auto-value</artifactId>
         <version>${auto-value.version}</version>
         <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.google.errorprone</groupId>
-        <artifactId>error_prone_annotations</artifactId>
-        <version>2.20.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.checkerframework</groupId>
-        <artifactId>checker-qual</artifactId>
-        <version>3.36.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.checkerframework</groupId>
-        <artifactId>checker-compat-qual</artifactId>
-        <version>2.5.5</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpcore</artifactId>
-        <version>4.4.16</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>com.google.apis</groupId>

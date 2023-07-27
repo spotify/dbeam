@@ -14,7 +14,6 @@
   <description>Top level DBeam core implementation</description>
 
   <dependencies>
-
     <!-- SDK -->
     <dependency>
       <groupId>org.apache.beam</groupId>
