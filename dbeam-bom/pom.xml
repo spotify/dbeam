@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.spotify</groupId>
+    <artifactId>dbeam-parent</artifactId>
+    <version>0.10.16-SNAPSHOT</version>
+  </parent>
+  <artifactId>dbeam-bom</artifactId>
+  <packaging>pom</packaging>
+
+  <name>DBeam BOM</name>
+  <description>A BOM with Beam SDK, GCP, gRPC and other dependencies for DBeam</description>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.spotify</groupId>
+        <artifactId>dbeam-core</artifactId>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <!-- execute dependency:tree and save the output to a file -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-help-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>generate-effective-pom</id>
+            <goals>
+              <goal>effective-pom</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <output>${project.build.directory}/effective-pom.txt</output>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>attach-effective-pom</id>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <artifacts>
+                <!-- when installed/deployed, the file is named like ${artifactId}-${version}.<type> below. The name of the file in ${project.build.directory} is not used. -->
+                  <artifact>
+                    <file>${project.build.directory}/effective-pom.txt</file>
+                    <type>xml</type>
+                    <classifier>effective-pom</classifier>
+                  </artifact>
+                </artifacts>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
+  </project>
