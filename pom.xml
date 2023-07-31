@@ -76,6 +76,7 @@
 
   <modules>
     <module>dbeam-core</module>
+    <module>dbeam-bom</module>
   </modules>
 
   <scm>
