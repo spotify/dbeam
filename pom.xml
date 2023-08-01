@@ -109,7 +109,7 @@
     <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.20.0/index.html-->
     <!--Note: uses jackson-core:2.15.2, grpc-api:1.56.1, protobuf-java 3.23.2-->
     <google-cloud-libraries-bom.version>26.20.0</google-cloud-libraries-bom.version>
-    <guava.version>32.1.1-jre</guava.version>
+    <guava.version>32.1.2-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.15.2</jackson.version>
