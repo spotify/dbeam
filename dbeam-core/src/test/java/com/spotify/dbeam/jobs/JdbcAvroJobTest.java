@@ -289,7 +289,7 @@ public class JdbcAvroJobTest {
   // @Test(expected = ArrayIndexOutOfBoundsException.class)
   public void shouldFailDueToProvidedSchemaWithFieldInWrongOrder() throws Exception {
     final Path providedSchemaFile = testDir.resolve("provided_schema.avsc");
-    Files.write(providedSchemaFile, getSchemaWithFieldsInWrongOrder().getBytes());
+    Files.write(providedSchemaFile, TestAvroSchemas.getSchemaWithFieldsInWrongOrder().getBytes());
     final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
     final String outputAvroFile =
         outputPath.resolve("part-00000-of-00001.avro").toAbsolutePath().toString();
