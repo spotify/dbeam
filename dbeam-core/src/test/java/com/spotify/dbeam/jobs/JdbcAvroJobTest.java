@@ -248,7 +248,7 @@ public class JdbcAvroJobTest {
   // @Test(expected = AvroRuntimeException.class)
   public void shouldFailDueToMissingFieldInSchema() throws Exception {
     final Path providedSchemaFile = testDir.resolve("provided_schema.avsc");
-    Files.write(providedSchemaFile, getSchemaWithMissingField().getBytes());
+    Files.write(providedSchemaFile, TestAvroSchemas.getSchemaWithMissingField().getBytes());
     final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
     final String outputAvroFile =
         outputPath.resolve("part-00000-of-00001.avro").toAbsolutePath().toString();
