@@ -112,7 +112,7 @@
     <guava.version>32.1.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
-    <jackson.version>2.15.2</jackson.version>
+    <jackson.version>2.15.3</jackson.version>
     <mysql.version>8.2.0</mysql.version>
     <netty.version>4.1.96.Final</netty.version>
     <postgresql.version>42.6.0</postgresql.version>
