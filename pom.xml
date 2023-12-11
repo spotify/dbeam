@@ -101,7 +101,7 @@
   <properties>
     <maven.compiler.release>8</maven.compiler.release>
     <auto-value.version>1.10.4</auto-value.version>
-    <avro.version>1.11.1</avro.version>
+    <avro.version>1.11.3</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.49.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L517 -->
