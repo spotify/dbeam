@@ -104,12 +104,12 @@
     <avro.version>1.11.3</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.49.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L517 -->
-    <beam.version>2.49.0</beam.version>
+    <!-- https://github.com/apache/beam/blob/release-2.52.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
+    <beam.version>2.52.0</beam.version>
     <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.20.0/index.html-->
     <!--Note: uses jackson-core:2.15.2, grpc-api:1.56.1, protobuf-java 3.23.2-->
-    <google-cloud-libraries-bom.version>26.20.0</google-cloud-libraries-bom.version>
-    <guava.version>32.1.1-jre</guava.version>
+    <google-cloud-libraries-bom.version>26.23.0</google-cloud-libraries-bom.version>
+    <guava.version>32.1.2-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.15.3</jackson.version>
