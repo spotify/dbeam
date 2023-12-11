@@ -115,7 +115,7 @@
     <jackson.version>2.15.3</jackson.version>
     <mysql.version>8.2.0</mysql.version>
     <netty.version>4.1.100.Final</netty.version>
-    <postgresql.version>42.6.0</postgresql.version>
+    <postgresql.version>42.7.1</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <slf4j.version>2.0.9</slf4j.version>
@@ -142,7 +142,7 @@
       <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
-        <version>3.39.0</version>
+        <version>3.41.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
