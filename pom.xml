@@ -104,35 +104,34 @@
     <avro.version>1.11.3</avro.version>
     <bouncycastle.version>1.70</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.52.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
-    <beam.version>2.52.0</beam.version>
-    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.20.0/index.html-->
-    <!--Note: uses jackson-core:2.15.2, grpc-api:1.56.1, protobuf-java 3.23.2-->
-    <google-cloud-libraries-bom.version>26.23.0</google-cloud-libraries-bom.version>
-    <guava.version>32.1.2-jre</guava.version>
+    <!-- https://github.com/apache/beam/blob/release-2.54.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
+    <beam.version>2.54.0</beam.version>
+    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.32.0/index.html -->
+    <google-cloud-libraries-bom.version>26.32.0</google-cloud-libraries-bom.version>
+    <guava.version>33.0.0-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.16.1</jackson.version>
-    <mysql.version>8.2.0</mysql.version>
+    <mysql.version>8.3.0</mysql.version>
     <netty.version>4.1.107.Final</netty.version>
     <postgresql.version>42.7.1</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <slf4j.version>2.0.12</slf4j.version>
-    <socket-factory.version>1.12.0</socket-factory.version>
+    <socket-factory.version>1.15.1</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
       <!-- overrides to resolve dependency conflicts - start-->
       <dependency>
-          <groupId>io.opencensus</groupId>
-          <artifactId>opencensus-contrib-grpc-metrics</artifactId>
-          <version>0.31.1</version>
+        <groupId>io.opencensus</groupId>
+        <artifactId>opencensus-contrib-grpc-metrics</artifactId>
+        <version>0.31.1</version>
       </dependency>
       <dependency>
-          <groupId>joda-time</groupId>
-          <artifactId>joda-time</artifactId>
-          <version>2.12.7</version>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.12.7</version>
       </dependency>
       <dependency>
         <groupId>org.threeten</groupId>
@@ -158,6 +157,16 @@
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
         <version>2.24.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.apis</groupId>
+        <artifactId>google-api-services-storage</artifactId>
+        <version>v1-rev20240202-2.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>1.16.0</version>
       </dependency>
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
@@ -188,8 +197,8 @@
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
         <version>${netty.version}</version>
-        <type>pom</type>
         <scope>import</scope>
+        <type>pom</type>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
@@ -316,6 +325,10 @@
             <groupId>io.opencensus</groupId>
             <artifactId>opencensus-exporter-stats-stackdriver</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -342,7 +355,7 @@
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-cloudkms</artifactId>
-        <version>v1-rev20231012-2.0.0</version>
+        <version>v1-rev20231212-2.0.0</version>
       </dependency>
 
       <!-- DB Deps -->
