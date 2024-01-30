@@ -114,7 +114,7 @@
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.16.1</jackson.version>
     <mysql.version>8.2.0</mysql.version>
-    <netty.version>4.1.104.Final</netty.version>
+    <netty.version>4.1.106.Final</netty.version>
     <postgresql.version>42.7.1</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
