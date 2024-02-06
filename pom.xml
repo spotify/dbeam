@@ -118,7 +118,7 @@
     <postgresql.version>42.7.1</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <slf4j.version>2.0.11</slf4j.version>
+    <slf4j.version>2.0.12</slf4j.version>
     <socket-factory.version>1.12.0</socket-factory.version>
   </properties>
   <dependencyManagement>
