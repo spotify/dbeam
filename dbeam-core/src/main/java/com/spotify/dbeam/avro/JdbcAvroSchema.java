@@ -29,6 +29,7 @@ import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
 import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
@@ -157,6 +158,7 @@ public class JdbcAvroSchema {
           setAvroColumnType(
               columnType,
               meta.getPrecision(i),
+              meta.getScale(i),
               columnClassName,
               useLogicalTypes,
               fieldSchemaBuilder);
@@ -182,6 +184,7 @@ public class JdbcAvroSchema {
       setAvroColumnType(
           final int columnType,
           final int precision,
+          final int scale,
           final String columnClassName,
           final boolean useLogicalTypes,
           final SchemaBuilder.BaseTypeBuilder<
@@ -236,6 +239,12 @@ public class JdbcAvroSchema {
       case FLOAT:
       case REAL:
         return field.floatType();
+      case DECIMAL:
+        return field.bytesBuilder()
+                 .prop("logicalType", "decimal")
+                 .prop("precision", precision)
+                 .prop("scale", scale)
+                 .endBytes();
       default:
         return field.stringType();
     }

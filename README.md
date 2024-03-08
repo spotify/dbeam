@@ -7,6 +7,29 @@ DBeam
 [![Apache Licensed](https://img.shields.io/github/license/spotify/dbeam.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/dbeam-core.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/dbeam-core)
 
+This is SRD's fork of `https://github.com/spotify/dbeam`.
+
+# Using the Docker image to generate schemas
+You can build the docker image locally by simply executing
+
+```bash
+docker build -t <image_name> .
+```
+
+To generate the Avro schema of MySQL table, first create a folder to store the schema files on the host, e.g. `
+and execute
+
+```bash
+docker run -it -v <host_dir>:/dbeam/output_dir --output=/dbeam/output_dir/<table_name> \
+--username=<username> --password=<password> \
+--connectionUrl=jdbc:mysql://<db_host>:<post>/<db_name> --limit=0 \
+--table=<table_name>
+```
+
+The Avro schema file will be stored as `<host_dir>/<table_name>/_AVRO_SCHEMA.avsc_`.
+
+# Original README
+
 A connector tool to extract data from SQL databases and import into [GCS](https://cloud.google.com/storage/) using [Apache Beam](https://beam.apache.org/).
 
 This tool is runnable locally, or on any other backend supported by Apache Beam, e.g. [Cloud Dataflow](https://cloud.google.com/dataflow/).
@@ -127,7 +150,7 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
 
 #### Input Avro schema file
 
-If provided an input Avro schema file, dbeam will read input schema file and use some of the 
+If provided an input Avro schema file, dbeam will read input schema file and use some of the
 properties when an output Avro schema is created.
 
 #### Following fields will be propagated from input into output schema:
@@ -144,7 +167,7 @@ This is a pre-alpha feature currently under development and experimentation.
 Read queries used by dbeam to extract data generally don't place any locks, and hence multiple read queries
 can run in parallel. When running in parallel mode with `--queryParallelism` specified, dbeam looks for
 `--splitColumn` argument to find the max and min values in that column. The max and min are then used
-as range bounds for generating `queryParallelism` number of queries which are then run in parallel to read data. 
+as range bounds for generating `queryParallelism` number of queries which are then run in parallel to read data.
 Since the splitColumn is used to calculate the query bounds, and dbeam needs to calculate intermediate
 bounds for each query, the type of the column must be long / int. It is assumed that the distribution of values on the `splitColumn` is sufficiently random and sequential. Example if the min and max of the split column is divided equally into query parallelism parts, each part would contain approximately equal number of records. Having skews in this data would result in straggling queries, and hence wont provide much improvement. Having the records sequential would help in having the queries run faster and it would reduce random disk seeks.
 
