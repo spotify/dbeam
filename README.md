@@ -2,9 +2,10 @@
 DBeam
 =======
 
-[![Github Actions Build Status](https://github.com/spotify/dbeam/workflows/Java%20Maven/badge.svg)](https://github.com/spotify/dbeam/actions)
+[![Github Actions Build Status](https://github.com/spotify/dbeam/actions/workflows/maven.yml/badge.svg)](https://github.com/spotify/dbeam/actions/workflows/maven.yml)
 [![codecov.io](https://codecov.io/github/spotify/dbeam/coverage.svg?branch=master)](https://codecov.io/github/spotify/dbeam?branch=master)
 [![Apache Licensed](https://img.shields.io/github/license/spotify/dbeam.svg)](https://opensource.org/licenses/Apache-2.0)
+[![GitHub tag](https://img.shields.io/github/tag/spotify/dbeam)](https://github.com/spotify/dbeam/releases/?include_prereleases&sort=semver)
 [![Maven Central](https://img.shields.io/maven-central/v/com.spotify/dbeam-core.svg)](https://maven-badges.herokuapp.com/maven-central/com.spotify/dbeam-core)
 
 A connector tool to extract data from SQL databases and import into [GCS](https://cloud.google.com/storage/) using [Apache Beam](https://beam.apache.org/).
