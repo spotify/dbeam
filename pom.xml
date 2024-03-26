@@ -104,11 +104,11 @@
     <avro.version>1.11.3</avro.version>
     <bouncycastle.version>1.77</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.54.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
-    <beam.version>2.54.0</beam.version>
-    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.32.0/index.html -->
-    <google-cloud-libraries-bom.version>26.32.0</google-cloud-libraries-bom.version>
-    <guava.version>33.0.0-jre</guava.version>
+    <!-- https://github.com/apache/beam/blob/release-2.55.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
+    <beam.version>2.55.0</beam.version>
+    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.34.0/index.html -->
+    <google-cloud-libraries-bom.version>26.34.0</google-cloud-libraries-bom.version>
+    <guava.version>33.1.0-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.16.2</jackson.version>
@@ -161,12 +161,27 @@
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-storage</artifactId>
-        <version>v1-rev20240202-2.0.0</version>
+        <version>v1-rev20240209-2.0.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>1.16.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.26.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>1.14.12</version>
       </dependency>
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
@@ -249,12 +264,6 @@
         <groupId>org.apache.beam</groupId>
         <artifactId>beam-runners-direct-java</artifactId>
         <version>${beam.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.beam</groupId>
@@ -264,10 +273,6 @@
           <exclusion>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
           </exclusion>
           <exclusion>
             <groupId>com.google.api.grpc</groupId>
@@ -379,6 +384,14 @@
         <!--Note: https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/issues/1243-->
         <artifactId>mysql-socket-factory-connector-j-8</artifactId>
         <version>${socket-factory.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>${hamcrest.version}</version>
+        <!-- Needed for PipelineOptionRegistrar auto-service that registered TestPipelineOptions interfaces-->
+        <!--https://github.com/apache/beam/issues/18593-->
+        <!--https://github.com/apache/beam/pull/30637/files-->
       </dependency>
 
       <!-- Test Deps -->

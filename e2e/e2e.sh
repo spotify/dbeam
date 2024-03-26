@@ -10,12 +10,12 @@ readonly PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null && pw
 
 # This file contatins psql views with complex types to validate and troubleshoot dbeam
 
-PSQL_DOCKER_IMAGE=postgres:10
+PSQL_DOCKER_IMAGE=postgres:16
 PSQL_USER=postgres
-PSQL_PASSWORD=mysecretpassword
+PSQL_PASSWORD=tempandnotasecret
 PSQL_DB=dbeam_test
 DOCKER_NETWORK=dbeam1-network
-JAVA_DOCKER_IMAGE=gcr.io/distroless/java:11
+JAVA_DOCKER_IMAGE=gcr.io/distroless/java17-debian12
 
 startPostgres() {
   set -o xtrace
@@ -26,7 +26,7 @@ startPostgres() {
   docker run --detach --name dbeam-postgres \
     --net "$DOCKER_NETWORK" \
     --env "POSTGRES_DB=dbeam_test" \
-    --env "POSTGRES_PASSWORD=mysecretpassword" \
+    --env "POSTGRES_PASSWORD=$PSQL_PASSWORD" \
     --mount="type=bind,source=/tmp/pgdata,target=/var/lib/postgresql/data" \
     --publish="54321:5432/tcp" "$PSQL_DOCKER_IMAGE" || docker start dbeam-postgres
   sleep 1
@@ -35,13 +35,13 @@ startPostgres() {
   # https://stackoverflow.com/questions/35069027/docker-wait-for-postgresql-to-be-running
   time docker run --interactive --rm \
     --net "$DOCKER_NETWORK" \
-    --env "PGPASSWORD=mysecretpassword" \
+    --env "PGPASSWORD=$PSQL_PASSWORD" \
     "$PSQL_DOCKER_IMAGE" \
     timeout 45s bash -xc 'until psql -h dbeam-postgres -U postgres dbeam_test -c "select 1"; do sleep 1; done; echo "psql up and running.."'
   sleep 3
   time docker run --interactive --rm \
     --net "$DOCKER_NETWORK" \
-    --env "PGPASSWORD=mysecretpassword" \
+    --env "PGPASSWORD=$PSQL_PASSWORD" \
     "$PSQL_DOCKER_IMAGE" \
     timeout 30s psql -h dbeam-postgres -U postgres dbeam_test < "$SCRIPT_PATH/ddl.sql"
   timeout 1 bash -c "cat < /dev/null > /dev/tcp/0.0.0.0/54321" && echo "success"
