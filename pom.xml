@@ -106,9 +106,9 @@
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.55.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
     <beam.version>2.55.0</beam.version>
-    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.32.0/index.html -->
-    <google-cloud-libraries-bom.version>26.32.0</google-cloud-libraries-bom.version>
-    <guava.version>33.0.0-jre</guava.version>
+    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.34.0/index.html -->
+    <google-cloud-libraries-bom.version>26.34.0</google-cloud-libraries-bom.version>
+    <guava.version>33.1.0-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.16.2</jackson.version>
@@ -161,7 +161,7 @@
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-storage</artifactId>
-        <version>v1-rev20240205-2.0.0</version>
+        <version>v1-rev20240209-2.0.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
