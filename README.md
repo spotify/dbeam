@@ -287,6 +287,14 @@ You can check the deployment in the following links:
 - https://github.com/spotify/dbeam/actions
 - https://oss.sonatype.org/#nexus-search;quick~dbeam-core
 
+## Future roadmap
+
+DBeam is mature, maintained and used in production since August 2017. No major features or development planned.
+Like Redis/[Redict](https://andrewkelley.me/post/redis-renamed-to-redict.html), DBeam can be considered a finished product.
+
+> It can be maintained for decades to come with minimal effort. It can continue to provide a high amount of value for a low amount of labor.
+
+
 ---
 
 ## License
