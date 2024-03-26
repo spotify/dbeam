@@ -249,12 +249,6 @@
         <groupId>org.apache.beam</groupId>
         <artifactId>beam-runners-direct-java</artifactId>
         <version>${beam.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.beam</groupId>
@@ -264,10 +258,6 @@
           <exclusion>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
           </exclusion>
           <exclusion>
             <groupId>com.google.api.grpc</groupId>
@@ -379,6 +369,14 @@
         <!--Note: https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/issues/1243-->
         <artifactId>mysql-socket-factory-connector-j-8</artifactId>
         <version>${socket-factory.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest</artifactId>
+        <version>${hamcrest.version}</version>
+        <!-- Needed for PipelineOptionRegistrar auto-service that registered TestPipelineOptions interfaces-->
+        <!--https://github.com/apache/beam/issues/18593-->
+        <!--https://github.com/apache/beam/pull/30637/files-->
       </dependency>
 
       <!-- Test Deps -->
