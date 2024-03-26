@@ -17,22 +17,22 @@ on:
 
 jobs:
   test:
-    name: CI on JDK ${{ matrix.java_version }} and ${{ matrix.os }}
+    name: mvn JDK ${{ matrix.java_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        java_version: ['11', '17']
+        java_version: ['11', '17', '21']
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK ${{ matrix.java_version }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java_version }}
           distribution: 'adopt'  # use Corretto once supported https://github.com/actions/setup-java/issues/68
       # https://docs.github.com/en/actions/guides/building-and-testing-java-with-maven#caching-dependencies
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-java${{ matrix.java_version }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -41,7 +41,7 @@ jobs:
         run: |
           mvn clean verify --activate-profiles=coverage,pack
       - name: Codecov upload
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./dbeam-core/target/site/jacoco/jacoco.xml
@@ -50,20 +50,15 @@ jobs:
           fail_ci_if_error: false # optional (default = false)
           verbose: true # optional (default = false)
       - name: End to end tests
+        if: matrix.java_version == '17'
         run: ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
-      - uses: actions/upload-artifact@v3
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && matrix.java_version == '11'
+        if: matrix.java_version == '17'
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && matrix.java_version == '17'
         with:
           name: Package
           path: staging
-  update_release_draft:
-    runs-on: ubuntu-latest
-    steps:
-      # Drafts your next Release notes as Pull Requests are merged into "main"
-      - uses: release-drafter/release-drafter@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   deploy:
     # https://docs.github.com/en/actions/guides/publishing-java-packages-with-maven#publishing-packages-to-github-packages
     name: Deploy
@@ -73,18 +68,19 @@ jobs:
     permissions:
       contents: read
       packages: write
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    # Disable it, since it was failing on sonatype deploy. TODO: fix
+    if: false && github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # https://docs.github.com/en/actions/guides/building-and-testing-java-with-maven#caching-dependencies
       - name: Cache Maven packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2
           key: Linux-java11-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: Linux-java11-m2
       - name: Set up JDK 11
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'adopt'  # use Corretto once supported https://github.com/actions/setup-java/issues/68
