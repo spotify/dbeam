@@ -25,12 +25,22 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CountingOutputStream;
 import com.spotify.dbeam.args.JdbcAvroArgs;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -138,6 +148,7 @@ public class JdbcAvroIO {
     private Connection connection;
     private JdbcAvroMetering metering;
     private CountingOutputStream countingOutputStream;
+    private BlockingQueue<ByteBuffer> queue;
 
     JdbcAvroWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -147,6 +158,7 @@ public class JdbcAvroIO {
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
       this.metering = JdbcAvroMetering.create();
+      this.queue = new LinkedBlockingDeque<>(jdbcAvroArgs.fetchSize() * 4);
     }
 
     public Void getDestination() {
@@ -156,7 +168,7 @@ public class JdbcAvroIO {
     @SuppressWarnings("deprecation") // uses internal test functionality.
     @Override
     protected void prepareWrite(final WritableByteChannel channel) throws Exception {
-      LOGGER.info("jdbcavroio : Preparing write...");
+      LOGGER.debug("jdbcavroio : Preparing write...");
       connection = jdbcAvroArgs.jdbcConnectionConfiguration().createConnection();
       final Void destination = getDestination();
       final Schema schema = dynamicDestinations.getSchema(destination);
@@ -167,7 +179,7 @@ public class JdbcAvroIO {
       dataFileWriter.setMeta("created_by", this.getClass().getCanonicalName());
       this.countingOutputStream = new CountingOutputStream(Channels.newOutputStream(channel));
       dataFileWriter.create(schema, this.countingOutputStream);
-      LOGGER.info("jdbcavroio : Write prepared");
+      LOGGER.debug("jdbcavroio : Write prepared");
     }
 
     private ResultSet executeQuery(final String query) throws Exception {
@@ -201,22 +213,34 @@ public class JdbcAvroIO {
     public void write(final String query) throws Exception {
       checkArgument(dataFileWriter != null, "Avro DataFileWriter was not properly created");
       LOGGER.info("jdbcavroio : Starting write...");
+      final ExecutorService executorService = Executors.newSingleThreadExecutor();
       try (ResultSet resultSet = executeQuery(query)) {
+        final Future<?> future = executorService.submit(new AvroWriter(dataFileWriter, queue));
         metering.startWriteMeter();
-        final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet);
-        while (resultSet.next()) {
-          dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
-          this.metering.incrementRecordCount();
-        }
+        convertAllResultSet(resultSet, JdbcAvroRecordConverter.create(resultSet));
+        queue.put(ByteBuffer.allocate(0)); // write final record, so that consumer stops
+        final long startTime2 = System.nanoTime();
+        future.get();
+        executorService.shutdown();
+        LOGGER.info(String.format("jdbcavroio : Waited %5.2f seconds for finishing write operation",
+                                  (System.nanoTime() - startTime2) / (1000000000.0)));
         this.dataFileWriter.flush();
         this.metering.exposeWriteElapsed();
         this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());
       }
     }
 
+    private void convertAllResultSet(ResultSet resultSet, JdbcAvroRecordConverter converter)
+        throws SQLException, InterruptedException, IOException {
+      while (resultSet.next()) {
+        queue.put(converter.convertResultSetIntoAvroBytes());
+        this.metering.incrementRecordCount();
+      }
+    }
+
     @Override
     protected void finishWrite() throws Exception {
-      LOGGER.info("jdbcavroio : Closing connection, flushing writer...");
+      LOGGER.debug("jdbcavroio : Closing connection, flushing writer...");
       if (connection != null) {
         connection.close();
       }
