@@ -20,8 +20,6 @@
 
 package com.spotify.dbeam.avro;
 
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.Lists;
 import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
@@ -52,7 +50,7 @@ import org.mockito.Mockito;
 
 public class JdbcAvroRecordTest {
 
-  private static String CONNECTION_URL =
+  private static final String CONNECTION_URL =
       "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
 
   @BeforeClass
@@ -70,6 +68,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            false,
             false);
 
     Assert.assertNotNull(actual);
@@ -136,7 +135,8 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true);
+            true,
+            false);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -153,6 +153,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.of("CustomSchemaName"),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
+            false,
             false);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
@@ -167,7 +168,7 @@ public class JdbcAvroRecordTest {
             .executeQuery("SELECT * FROM COFFEES");
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
-            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
@@ -222,14 +223,14 @@ public class JdbcAvroRecordTest {
     final int columnNum = 1;
 
     final ResultSetMetaData metadata = Mockito.mock(ResultSetMetaData.class);
-    when(metadata.getColumnType(columnNum)).thenReturn(java.sql.Types.INTEGER);
-    when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
+    Mockito.when(metadata.getColumnType(columnNum)).thenReturn(java.sql.Types.INTEGER);
+    Mockito.when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
 
     final JdbcAvroRecord.SqlFunction<ResultSet, Object> mapping =
         JdbcAvroRecord.computeMapping(metadata, columnNum);
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
-    when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);
+    Mockito.when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);
     final Object result = mapping.apply(resultSet);
 
     Assert.assertEquals(Long.class, result.getClass());
