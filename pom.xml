@@ -104,21 +104,22 @@
     <avro.version>1.11.3</avro.version>
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.55.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L600 -->
-    <beam.version>2.55.1</beam.version>
-    <!--https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.34.0/index.html -->
-    <google-cloud-libraries-bom.version>26.34.0</google-cloud-libraries-bom.version>
+    <!-- https://github.com/apache/beam/blob/release-2.56.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
+    <beam.version>2.56.0</beam.version>
+    <!-- https://github.com/googleapis/java-cloud-bom/releases -->
+    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.37.0/index.html -->
+    <google-cloud-libraries-bom.version>26.37.0</google-cloud-libraries-bom.version>
     <guava.version>33.2.0-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
-    <jackson.version>2.16.2</jackson.version>
-    <mysql.version>8.3.0</mysql.version>
+    <jackson.version>2.17.0</jackson.version>
+    <mysql.version>8.4.0</mysql.version>
     <netty.version>4.1.109.Final</netty.version>
     <postgresql.version>42.7.3</postgresql.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <slf4j.version>2.0.13</slf4j.version>
-    <socket-factory.version>1.15.1</socket-factory.version>
+    <socket-factory.version>1.18.0</socket-factory.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -161,7 +162,7 @@
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-storage</artifactId>
-        <version>v1-rev20240209-2.0.0</version>
+        <version>v1-rev20240311-2.0.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
