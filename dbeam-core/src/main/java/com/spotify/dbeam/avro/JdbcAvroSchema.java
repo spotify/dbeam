@@ -174,7 +174,7 @@ public class JdbcAvroSchema {
    * <ul>
    *   <li>{@link org.postgresql.jdbc.TypeInfoCache }
    *   <li>{@link com.mysql.cj.MysqlType }
-   *   <li>{@link org.h2.value.TypeInfo }
+   *   <li>org.h2.value.Value
    * </ul>
    *
    */
