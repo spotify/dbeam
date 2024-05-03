@@ -646,6 +646,7 @@
                     <arg>--batch</arg>
                     <arg>--pinentry-mode</arg>
                     <arg>loopback</arg>
+                    <arg>--no-tty</arg>
                   </gpgArguments>
                 </configuration>
               </execution>
