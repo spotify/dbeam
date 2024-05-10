@@ -95,7 +95,7 @@ public class BenchFooJob {
     pipeline
             .apply("InputRange", Create.of(IntStream.range(1, executions + 1).boxed().collect(Collectors.toList())))
             .apply("GroupByKeyReshuffle", Reshuffle.viaRandomKey())
-            .apply("DoHeavyProcessing", ParDo.of(new PT1(10000)));
+            .apply("DoHeavyProcessing", ParDo.of(new PT1(1000)));
 
     this.pipelineResult = this.pipeline.run();
     return pipelineResult;
@@ -120,12 +120,14 @@ public class BenchFooJob {
             "--autoscalingAlgorithm=NONE", "--numWorkers=4",
             "--executions=40000"}, String.class);
     final Stream<String[]> jobParams = Stream.of(
-            new String[]{"--jobName=n1-java8", "--workerMachineType=n1-highmem-2", "--experiments=use_runner_v2", "--sdkContainerImage=apache/beam_java8_sdk:2.33.0"},
-            new String[]{"--jobName=n2d-java8", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2", "--sdkContainerImage=apache/beam_java8_sdk:2.33.0"},
-            new String[]{"--jobName=n1-java11-serialgc", "--workerMachineType=n1-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n2d-java11-serialgc", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n2d-java11-g1gc", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:17411a31b8b4b2fc0759b17cfa248bfe864530c117172d12b3542d68f41489ae"},
-            new String[]{"--jobName=n2d-java11-parallelgc", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2,use_parallel_gc", "--sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:f2e92d4c3ced120d6ede617b4453cc16a64cb3b47067e97e965b92417893dfae"}
+            new String[]{"--jobName=n1-java21", "--workerMachineType=n1-standard-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=n2d-java21", "--workerMachineType=n2d-standard-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=e2-java21", "--workerMachineType=e2-standard-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=n1-highmem-java21", "--workerMachineType=n1-highmem-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=n2d-highmem-java21", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=e2-highmem-java21", "--workerMachineType=e2-highmem-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=t2a-java21", "--workerMachineType=t2a-standard-2", "--experiments=use_runner_v2"},
+            new String[]{"--jobName=t2d-java21", "--workerMachineType=t2d-standard-2", "--experiments=use_runner_v2"}
     );
     final List<BenchFooJob> benchFooJobs = jobParams.map(args -> create(ObjectArrays.concat(baseArgs, args, String.class))).collect(Collectors.toList());
     benchFooJobs.stream().forEach(BenchFooJob::run);
