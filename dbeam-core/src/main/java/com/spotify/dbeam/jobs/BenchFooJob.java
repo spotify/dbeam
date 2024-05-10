@@ -24,6 +24,19 @@ import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import java.io.IOException;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.util.Base64;
+import java.util.List;
+import java.util.Queue;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import javax.management.ObjectName;
 import org.apache.beam.runners.dataflow.DataflowClient;
 import org.apache.beam.runners.dataflow.DataflowPipelineJob;
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
@@ -43,27 +56,13 @@ import org.apache.beam.sdk.transforms.Reshuffle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.management.ObjectName;
-import java.io.IOException;
-import java.lang.management.GarbageCollectorMXBean;
-import java.lang.management.ManagementFactory;
-import java.util.Base64;
-import java.util.List;
-import java.util.Queue;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 public class BenchFooJob {
   private static final Logger LOG = LoggerFactory.getLogger(BenchFooJob.class);
 
   private static final Counter totalProcessElementMs =
-          Metrics.counter(BenchFooJob.class.getCanonicalName(), "totalProcessElementMs");
+      Metrics.counter(BenchFooJob.class.getCanonicalName(), "totalProcessElementMs");
   private static final Distribution processElementMs =
-          Metrics.distribution(BenchFooJob.class.getCanonicalName(), "processElementMs");
+      Metrics.distribution(BenchFooJob.class.getCanonicalName(), "processElementMs");
   private PipelineResult pipelineResult;
 
   public interface BenchJdbcAvroOptions extends PipelineOptions {
@@ -86,16 +85,19 @@ public class BenchFooJob {
 
   public static BenchFooJob create(final String[] cmdLineArgs) {
     PipelineOptionsFactory.register(BenchJdbcAvroOptions.class);
-    PipelineOptions options = PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
+    PipelineOptions options =
+        PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
     return new BenchFooJob(options);
   }
 
   public PipelineResult run() {
     final int executions = pipelineOptions.as(BenchJdbcAvroOptions.class).getExecutions();
     pipeline
-            .apply("InputRange", Create.of(IntStream.range(1, executions + 1).boxed().collect(Collectors.toList())))
-            .apply("GroupByKeyReshuffle", Reshuffle.viaRandomKey())
-            .apply("DoHeavyProcessing", ParDo.of(new PT1(1000)));
+        .apply(
+            "InputRange",
+            Create.of(IntStream.range(1, executions + 1).boxed().collect(Collectors.toList())))
+        .apply("GroupByKeyReshuffle", Reshuffle.viaRandomKey())
+        .apply("DoHeavyProcessing", ParDo.of(new PT1(1000)));
 
     this.pipelineResult = this.pipeline.run();
     return pipelineResult;
@@ -104,10 +106,18 @@ public class BenchFooJob {
   public PipelineResult waitUntilFinish() {
     Preconditions.checkNotNull(this.pipelineResult);
     pipelineResult.waitUntilFinish();
-    LOG.info("Metrics for {}: {}", this.pipelineOptions.getJobName(), pipelineResult.metrics().allMetrics().toString());
+    LOG.info(
+        "Metrics for {}: {}",
+        this.pipelineOptions.getJobName(),
+        pipelineResult.metrics().allMetrics().toString());
     try {
-      LOG.info("Dataflow Metrics for {}: {}", this.pipelineOptions.getJobName(),
-              this.dataflowClient.getJobMetrics(((DataflowPipelineJob) pipelineResult).getJobId()).getMetrics().toString());
+      LOG.info(
+          "Dataflow Metrics for {}: {}",
+          this.pipelineOptions.getJobName(),
+          this.dataflowClient
+              .getJobMetrics(((DataflowPipelineJob) pipelineResult).getJobId())
+              .getMetrics()
+              .toString());
     } catch (IOException e) {
       LOG.error("??", e);
     }
@@ -115,24 +125,70 @@ public class BenchFooJob {
   }
 
   public static void main(final String[] cmdLineArgs) {
-    final String[] baseArgs = ObjectArrays.concat(cmdLineArgs, new String[]{"--runner=DataflowRunner",
-            "--project=spotify-dbeam", "--region=europe-west1", "--tempLocation=gs://spotify-dbeam-demo-output-n1tk7n/bench1",
-            "--autoscalingAlgorithm=NONE", "--numWorkers=4",
-            "--executions=40000"}, String.class);
-    final Stream<String[]> jobParams = Stream.of(
-            new String[]{"--jobName=n1-java21", "--workerMachineType=n1-standard-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n2d-java21", "--workerMachineType=n2d-standard-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=e2-java21", "--workerMachineType=e2-standard-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n1-highmem-java21", "--workerMachineType=n1-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=n2d-highmem-java21", "--workerMachineType=n2d-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=e2-highmem-java21", "--workerMachineType=e2-highmem-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=t2a-java21", "--workerMachineType=t2a-standard-2", "--experiments=use_runner_v2"},
-            new String[]{"--jobName=t2d-java21", "--workerMachineType=t2d-standard-2", "--experiments=use_runner_v2"}
-    );
-    final List<BenchFooJob> benchFooJobs = jobParams.map(args -> create(ObjectArrays.concat(baseArgs, args, String.class))).collect(Collectors.toList());
+    final String[] baseArgs =
+        ObjectArrays.concat(
+            cmdLineArgs,
+            new String[] {
+              "--runner=DataflowRunner",
+              "--project=spotify-dbeam",
+              "--region=europe-west1",
+              "--tempLocation=gs://spotify-dbeam-demo-output-n1tk7n/bench1",
+              "--autoscalingAlgorithm=NONE",
+              "--numWorkers=4",
+              "--executions=40000"
+            },
+            String.class);
+    final Stream<String[]> jobParams =
+        Stream.of(
+            new String[] {
+              "--jobName=n1-java21",
+              "--workerMachineType=n1-standard-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=n2d-java21",
+              "--workerMachineType=n2d-standard-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=e2-java21",
+              "--workerMachineType=e2-standard-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=n1-highmem-java21",
+              "--workerMachineType=n1-highmem-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=n2d-highmem-java21",
+              "--workerMachineType=n2d-highmem-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=e2-highmem-java21",
+              "--workerMachineType=e2-highmem-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=t2a-java21",
+              "--workerMachineType=t2a-standard-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=t2d-java21",
+              "--workerMachineType=t2d-standard-2",
+              "--experiments=use_runner_v2"
+            });
+    final List<BenchFooJob> benchFooJobs =
+        jobParams
+            .map(args -> create(ObjectArrays.concat(baseArgs, args, String.class)))
+            .collect(Collectors.toList());
     benchFooJobs.stream().forEach(BenchFooJob::run);
     benchFooJobs.stream().forEach(BenchFooJob::waitUntilFinish);
-    // --runner=DataflowRunner --project=spotify-dbeam --region=europe-west1 --executions=100000 --numWorkers=10 --workerMachineType=n2d-highmem-2 --experiments=use_runner_v2 --sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:17411a31b8b4b2fc0759b17cfa248bfe864530c117172d12b3542d68f41489ae
+    // --runner=DataflowRunner --project=spotify-dbeam --region=europe-west1 --executions=100000
+    // --numWorkers=10 --workerMachineType=n2d-highmem-2 --experiments=use_runner_v2
+    // --sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:17411a31b8b4b2fc0759b17cfa248bfe864530c117172d12b3542d68f41489ae
   }
 
   private static class PT1 extends DoFn<Integer, String> {
@@ -149,7 +205,7 @@ public class BenchFooJob {
 
     private PT1(final int loops) {
       this.loops = loops;
-      this.blackholeFifo = EvictingQueue.create(loops*10);
+      this.blackholeFifo = EvictingQueue.create(loops * 10);
     }
 
     public static String encrypt(String value) {
@@ -189,8 +245,8 @@ public class BenchFooJob {
     public void processElement(@Element Integer v, OutputReceiver<String> out) {
       final long start = System.nanoTime();
       blackhole = "";
-      IntStream.range(0, loops) .mapToObj(
-              i -> heavyFn(10000000L * i + v))
+      IntStream.range(0, loops)
+          .mapToObj(i -> heavyFn(10000000L * i + v))
           .collect(Collectors.toList())
           .stream()
           .forEach(
@@ -206,17 +262,16 @@ public class BenchFooJob {
 
     private String heavyFn(final long i) {
       return decrypt(
-              encrypt(
-                      encoder.encodeToString(
-                              hashFunction
-                                      .hashUnencodedChars(
-                                              blackhole + String.format("%10d", i))
-                                      .asBytes())));
+          encrypt(
+              encoder.encodeToString(
+                  hashFunction
+                      .hashUnencodedChars(blackhole + String.format("%10d", i))
+                      .asBytes())));
     }
 
     @Setup
     public void setup() {
-      this.blackholeFifo = EvictingQueue.create(loops*10);
+      this.blackholeFifo = EvictingQueue.create(loops * 10);
       LOG.info("BenchFooJob setup");
       LOG.info("PIPELINE_OPTIONS: {}", System.getenv("PIPELINE_OPTIONS"));
       LOG.info("RUNNER_CAPABILITIES: {}", System.getenv("RUNNER_CAPABILITIES"));
@@ -225,9 +280,13 @@ public class BenchFooJob {
       LOG.info("maxMemory: {}", Runtime.getRuntime().maxMemory());
       // https://issues.apache.org/jira/browse/BEAM-13073
       try {
-        Object flags = ManagementFactory.getPlatformMBeanServer().invoke(
-                ObjectName.getInstance("com.sun.management:type=DiagnosticCommand"),
-                "vmFlags", new Object[] { null }, new String[] { "[Ljava.lang.String;" });
+        Object flags =
+            ManagementFactory.getPlatformMBeanServer()
+                .invoke(
+                    ObjectName.getInstance("com.sun.management:type=DiagnosticCommand"),
+                    "vmFlags",
+                    new Object[] {null},
+                    new String[] {"[Ljava.lang.String;"});
         for (String f : ((String) flags).split("\\s+")) {
           LOG.info(f);
         }
@@ -237,7 +296,8 @@ public class BenchFooJob {
       final List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
       for (GarbageCollectorMXBean gcMxBean : gcMxBeans) {
         // print GC info
-        // The purpouse of this to troubleshoot that Dataflow runtime is not using suboptimal SerialGC
+        // The purpouse of this to troubleshoot that Dataflow runtime is not using suboptimal
+        // SerialGC
         LOG.info("{} : {}", gcMxBean.getName(), gcMxBean.getObjectName());
       }
     }
