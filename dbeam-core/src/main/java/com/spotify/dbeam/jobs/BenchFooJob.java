@@ -17,6 +17,7 @@
  * limitations under the License.
  * -/-/-
  */
+
 package com.spotify.dbeam.jobs;
 
 import com.google.common.base.Preconditions;
@@ -97,7 +98,7 @@ public class BenchFooJob {
             "InputRange",
             Create.of(IntStream.range(1, executions + 1).boxed().collect(Collectors.toList())))
         .apply("GroupByKeyReshuffle", Reshuffle.viaRandomKey())
-        .apply("DoHeavyProcessing", ParDo.of(new PT1(1000)));
+        .apply("DoHeavyProcessing", ParDo.of(new PT1(5000)));
 
     this.pipelineResult = this.pipeline.run();
     return pipelineResult;
@@ -131,52 +132,62 @@ public class BenchFooJob {
             new String[] {
               "--runner=DataflowRunner",
               "--project=spotify-dbeam",
-              "--region=europe-west1",
+              "--region=europe-west4",
               "--tempLocation=gs://spotify-dbeam-demo-output-n1tk7n/bench1",
               "--autoscalingAlgorithm=NONE",
-              "--numWorkers=4",
-              "--executions=40000"
+              "--numWorkers=5",
+              "--executions=100000"
             },
             String.class);
     final Stream<String[]> jobParams =
         Stream.of(
             new String[] {
-              "--jobName=n1-java21",
+              "--jobName=v4-n1-java21",
               "--workerMachineType=n1-standard-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=n2d-java21",
+              "--jobName=v4-n2d-java21",
               "--workerMachineType=n2d-standard-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=e2-java21",
+              "--jobName=v4-n2-java21",
+              "--workerMachineType=n2-standard-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=v4-e2-java21",
               "--workerMachineType=e2-standard-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=n1-highmem-java21",
+              "--jobName=v4-n1-highmem-java21",
               "--workerMachineType=n1-highmem-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=n2d-highmem-java21",
+              "--jobName=v4-n2-highmem-java21",
+              "--workerMachineType=n2-highmem-2",
+              "--experiments=use_runner_v2"
+            },
+            new String[] {
+              "--jobName=v4-n2d-highmem-java21",
               "--workerMachineType=n2d-highmem-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=e2-highmem-java21",
+              "--jobName=v4-e2-highmem-java21",
               "--workerMachineType=e2-highmem-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=t2a-java21",
+              "--jobName=v4-t2a-java21",
               "--workerMachineType=t2a-standard-2",
               "--experiments=use_runner_v2"
             },
             new String[] {
-              "--jobName=t2d-java21",
+              "--jobName=v4-t2d-java21",
               "--workerMachineType=t2d-standard-2",
               "--experiments=use_runner_v2"
             });
@@ -188,7 +199,6 @@ public class BenchFooJob {
     benchFooJobs.stream().forEach(BenchFooJob::waitUntilFinish);
     // --runner=DataflowRunner --project=spotify-dbeam --region=europe-west1 --executions=100000
     // --numWorkers=10 --workerMachineType=n2d-highmem-2 --experiments=use_runner_v2
-    // --sdkContainerImage=gcr.io/spotify-dbeam/apache/beam_java11_sdk@sha256:17411a31b8b4b2fc0759b17cfa248bfe864530c117172d12b3542d68f41489ae
   }
 
   private static class PT1 extends DoFn<Integer, String> {
