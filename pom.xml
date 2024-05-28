@@ -672,7 +672,7 @@
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
             <!--Using newer versions leads failure: https://issues.sonatype.org/browse/NEXUS-31301-->
-            <version>1.6.13</version>
+            <version>1.7.0</version>
             <extensions>true</extensions>
             <configuration>
               <serverId>ossrh</serverId>
