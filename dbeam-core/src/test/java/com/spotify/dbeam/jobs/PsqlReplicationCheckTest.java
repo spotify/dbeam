@@ -44,8 +44,7 @@ public class PsqlReplicationCheckTest {
         Optional.empty(),
         Optional.empty(),
         false,
-        Duration.ZERO,
-        Optional.empty());
+        Duration.ZERO);
   }
 
   @Test(expected = IllegalArgumentException.class)
