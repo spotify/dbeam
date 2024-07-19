@@ -68,7 +68,8 @@ public class JdbcAvroSchema {
       final String avroSchemaNamespace,
       final Optional<String> schemaName,
       final String avroDoc,
-      final boolean useLogicalTypes)
+      final boolean useLogicalTypes,
+      final boolean useNotNullTypes)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
@@ -81,7 +82,8 @@ public class JdbcAvroSchema {
               connection.getMetaData().getURL(),
               schemaName,
               avroDoc,
-              useLogicalTypes);
+              useLogicalTypes,
+              useNotNullTypes);
       LOGGER.info("Schema created successfully. Generated schema: {}", schema.toString());
       return schema;
     }
@@ -93,7 +95,8 @@ public class JdbcAvroSchema {
       final String connectionUrl,
       final Optional<String> maybeSchemaName,
       final String avroDoc,
-      final boolean useLogicalTypes)
+      final boolean useLogicalTypes,
+      final boolean useNotNullTypes)
       throws SQLException {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
@@ -107,7 +110,7 @@ public class JdbcAvroSchema {
             .prop("tableName", tableName)
             .prop("connectionUrl", connectionUrl)
             .fields();
-    return createAvroFields(meta, builder, useLogicalTypes).endRecord();
+    return createAvroFields(meta, builder, useLogicalTypes, useNotNullTypes).endRecord();
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
@@ -125,20 +128,16 @@ public class JdbcAvroSchema {
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
       final ResultSetMetaData meta,
       final SchemaBuilder.FieldAssembler<Schema> builder,
-      final boolean useLogicalTypes)
+      final boolean useLogicalTypes,
+      final boolean useNotNullTypes)
       throws SQLException {
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
-      final String columnName;
-      if (meta.getColumnName(i).isEmpty()) {
-        columnName = meta.getColumnLabel(i);
-      } else {
-        columnName = meta.getColumnName(i);
-      }
+      final String columnName = getColumnName(meta, i);
 
       final int columnType = meta.getColumnType(i);
-      final String typeName = JDBCType.valueOf(columnType).getName();
+      final String typeName = getSqlTypeName(columnType);
       final String columnClassName = meta.getColumnClassName(i);
       final SchemaBuilder.FieldBuilder<Schema> field =
           builder
@@ -149,21 +148,36 @@ public class JdbcAvroSchema {
               .prop("typeName", typeName)
               .prop("columnClassName", columnClassName);
 
-      final SchemaBuilder.BaseTypeBuilder<
-              SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-          fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
+      final boolean isNullTypeSupported = isNotNullColumn(useNotNullTypes, meta.isNullable(i));
 
-      final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
-          setAvroColumnType(
-              columnType,
-              meta.getPrecision(i),
-              columnClassName,
-              useLogicalTypes,
-              fieldSchemaBuilder);
+      final SchemaBuilder.FieldTypeBuilder<Schema> fieldSchemaBuilder = field.type();
 
-      schemaFieldAssembler.endUnion().nullDefault();
+      setAvroColumnType(
+          columnType,
+          meta.getPrecision(i),
+          columnClassName,
+          useLogicalTypes,
+          isNullTypeSupported,
+          fieldSchemaBuilder);
     }
     return builder;
+  }
+
+  public static String getSqlTypeName(final int columnType) {
+    return JDBCType.valueOf(columnType).getName();
+  }
+
+  private static String getColumnName(final ResultSetMetaData meta, final int columnIndex)
+      throws SQLException {
+    return (meta.getColumnName(columnIndex).isEmpty())
+        ? meta.getColumnLabel(columnIndex)
+        : meta.getColumnName(columnIndex);
+  }
+
+  private static boolean isNotNullColumn(
+      final boolean globalSettingUseNotNullTypes, final int columnNullabilityStatus) {
+    return globalSettingUseNotNullTypes
+        && (columnNullabilityStatus == ResultSetMetaData.columnNoNulls);
   }
 
   /**
@@ -176,17 +190,14 @@ public class JdbcAvroSchema {
    *   <li>{@link com.mysql.cj.MysqlType }
    *   <li>org.h2.value.Value
    * </ul>
-   *
    */
-  private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
-      setAvroColumnType(
-          final int columnType,
-          final int precision,
-          final String columnClassName,
-          final boolean useLogicalTypes,
-          final SchemaBuilder.BaseTypeBuilder<
-                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-              field) {
+  private static SchemaBuilder.FieldAssembler<Schema> setAvroColumnType(
+      final int columnType,
+      final int precision,
+      final String columnClassName,
+      final boolean useLogicalTypes,
+      final boolean useNotNullTypes,
+      final SchemaBuilder.FieldTypeBuilder<Schema> field) {
     switch (columnType) {
       case VARCHAR:
       case CHAR:
@@ -194,50 +205,50 @@ public class JdbcAvroSchema {
       case LONGNVARCHAR:
       case LONGVARCHAR:
       case NCHAR:
-        return field.stringType();
+        return FieldTypeHelper.setStringType(field, useNotNullTypes);
       case BIGINT:
-        return field.longType();
+        return FieldTypeHelper.setLongType(field, useNotNullTypes);
       case INTEGER:
       case SMALLINT:
       case TINYINT:
         if (Long.class.getCanonicalName().equals(columnClassName)) {
-          return field.longType();
+          return FieldTypeHelper.setLongType(field, useNotNullTypes);
         } else {
-          return field.intType();
+          return FieldTypeHelper.setIntType(field, useNotNullTypes);
         }
       case TIMESTAMP:
       case DATE:
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
-          return field.longBuilder().prop("logicalType", "timestamp-millis").endLong();
+          return FieldTypeHelper.setLongLogicalType(field, useNotNullTypes);
         } else {
-          return field.longType();
+          return FieldTypeHelper.setLongType(field, useNotNullTypes);
         }
       case BOOLEAN:
-        return field.booleanType();
+        return FieldTypeHelper.setBooleanType(field, useNotNullTypes);
       case BIT:
         // Note that bit types can take a param/typemod qualifying its length
         // some further docs:
         // https://www.postgresql.org/docs/8.2/datatype-bit.html
         if (precision <= 1) {
-          return field.booleanType();
+          return FieldTypeHelper.setBooleanType(field, useNotNullTypes);
         } else {
-          return field.bytesType();
+          return FieldTypeHelper.setBytesType(field, useNotNullTypes);
         }
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
       case ARRAY:
       case BLOB:
-        return field.bytesType();
+        return FieldTypeHelper.setBytesType(field, useNotNullTypes);
       case DOUBLE:
-        return field.doubleType();
+        return FieldTypeHelper.setDoubleType(field, useNotNullTypes);
       case FLOAT:
       case REAL:
-        return field.floatType();
+        return FieldTypeHelper.setFloatType(field, useNotNullTypes);
       default:
-        return field.stringType();
+        return FieldTypeHelper.setStringType(field, useNotNullTypes);
     }
   }
 
