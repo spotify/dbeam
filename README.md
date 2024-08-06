@@ -20,13 +20,34 @@ To generate the Avro schema of MySQL table, first create a folder to store the s
 and execute
 
 ```bash
-docker run -it -v <host_dir>:/dbeam/output_dir --output=/dbeam/output_dir/<table_name> \
+docker run -it -v <host_dir>/shared_dir:/dbeam/shared_dir/output_dir --output=/dbeam/shared_dir/output_dir/<table_name> \
 --username=<username> --password=<password> \
 --connectionUrl=jdbc:mysql://<db_host>:<post>/<db_name> --limit=0 \
 --table=<table_name>
 ```
 
-The Avro schema file will be stored as `<host_dir>/<table_name>/_AVRO_SCHEMA.avsc_`.
+The Avro schema file will be stored as `<host_dir>/shared_dir/<table_name>/_AVRO_SCHEMA.avsc_`.
+
+# Convert SQL queries to Avro files
+This tool is also useful for converting data in SQL databases to Avro files, which retains data types.
+It supports executing arbitrary SQL queries. First store the SQL query in a file, for example
+
+```
+--example_query.sql
+
+SELECT * from <table_name> LIMIT 1000
+```
+and store in the shared directory, for example `<host_dir>/shared_dir/example_query.sql`.
+
+To convert to Avro files, execute
+
+```bash
+docker run -it -v <host_dir>/shared_dir:/dbeam/shared_dir/output_dir --output=/dbeam/shared_dir/output_dir/<table_name> \
+--username=<username> --password=<password> \
+--connectionUrl=jdbc:mysql://<db_host>:<post>/<db_name>
+--sqlFile=<host_dir>/shared_dir/example_query.sql
+--dataOnly
+```
 
 # Original README
 

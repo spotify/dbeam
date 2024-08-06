@@ -14,4 +14,4 @@ RUN mvn clean package -Ppack
 
 RUN mkdir output_dir
 
-ENTRYPOINT ["java", "-cp", "./dbeam-core/target/dbeam-core-shaded.jar", "com.spotify.dbeam.jobs.JdbcAvroJob", "--output=./output_dir"]
+ENTRYPOINT ["java", "-cp", "./dbeam-core/target/dbeam-core-shaded.jar", "com.spotify.dbeam.jobs.JdbcAvroJob"]
