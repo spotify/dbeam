@@ -104,7 +104,7 @@ public class JdbcAvroRecordTest {
     Assert.assertEquals(
         Schema.Type.INT, actual.getField("SUP_ID").schema().getTypes().get(1).getType());
     Assert.assertEquals(
-        Schema.Type.STRING, actual.getField("PRICE").schema().getTypes().get(1).getType());
+        Schema.Type.BYTES, actual.getField("PRICE").schema().getTypes().get(1).getType());
     Assert.assertEquals(
         Schema.Type.FLOAT, actual.getField("TEMPERATURE").schema().getTypes().get(1).getType());
     Assert.assertEquals(
@@ -196,11 +196,12 @@ public class JdbcAvroRecordTest {
 
     Assert.assertEquals(12, record.getSchema().getFields().size());
     Assert.assertEquals(schema, record.getSchema());
+    String priceString = new String(((ByteBuffer) record.get(2)).array(), "UTF-8");
     final Coffee actual =
         Coffee.create(
             record.get(0).toString(),
             Optional.ofNullable((Integer) record.get(1)),
-            new java.math.BigDecimal(record.get(2).toString()),
+            new java.math.BigDecimal(priceString),
             (Float) record.get(3),
             (Double) record.get(4),
             (Boolean) record.get(5),
