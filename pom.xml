@@ -105,7 +105,7 @@
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
     <!-- https://github.com/apache/beam/blob/release-2.57.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
-    <beam.version>2.57.0</beam.version>
+    <beam.version>2.58.0</beam.version>
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
     <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.39.0/index.html -->
     <google-cloud-libraries-bom.version>26.39.0</google-cloud-libraries-bom.version>
