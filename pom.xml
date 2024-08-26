@@ -104,11 +104,11 @@
     <avro.version>1.11.3</avro.version>
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.57.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
-    <beam.version>2.57.0</beam.version>
+    <!-- https://github.com/apache/beam/blob/release-2.58.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
+    <beam.version>2.58.1</beam.version>
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
-    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.39.0/index.html -->
-    <google-cloud-libraries-bom.version>26.39.0</google-cloud-libraries-bom.version>
+    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.44.0/index.html -->
+    <google-cloud-libraries-bom.version>26.44.0</google-cloud-libraries-bom.version>
     <guava.version>33.2.1-jre</guava.version>
     <hamcrest.version>2.2</hamcrest.version>
     <junit.version>4.13.2</junit.version>
@@ -157,12 +157,12 @@
       <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
-        <version>2.29.1</version>
+        <version>2.29.2</version>
       </dependency>
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-storage</artifactId>
-        <version>v1-rev20240319-2.0.0</version>
+        <version>v1-rev20240706-2.0.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
