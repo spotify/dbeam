@@ -109,7 +109,7 @@
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
     <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.45.0/index.html -->
     <google-cloud-libraries-bom.version>26.45.0</google-cloud-libraries-bom.version>
-    <guava.version>33.3.0-jre</guava.version>
+    <guava.version>33.3.1-jre</guava.version>
     <hamcrest.version>3.0</hamcrest.version>
     <junit.version>4.13.2</junit.version>
     <jackson.version>2.17.2</jackson.version>
