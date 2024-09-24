@@ -45,6 +45,8 @@ public abstract class JdbcExportArgs implements Serializable {
 
   public abstract Boolean useAvroLogicalTypes();
 
+  public abstract Boolean useAvroNotNullTypes();
+
   public abstract Duration exportTimeout();
 
   public abstract Optional<Schema> inputAvroSchema();
@@ -64,6 +66,8 @@ public abstract class JdbcExportArgs implements Serializable {
 
     abstract Builder setUseAvroLogicalTypes(Boolean useAvroLogicalTypes);
 
+    abstract Builder setUseAvroNotNullTypes(Boolean useAvroNotNullTypes);
+
     abstract Builder setExportTimeout(Duration exportTimeout);
 
     abstract Builder setInputAvroSchema(Optional<Schema> inputAvroSchema);
@@ -81,6 +85,7 @@ public abstract class JdbcExportArgs implements Serializable {
         Optional.empty(),
         Optional.empty(),
         false,
+        false,
         Duration.ofDays(7),
         Optional.empty());
   }
@@ -92,6 +97,7 @@ public abstract class JdbcExportArgs implements Serializable {
       final Optional<String> avroSchemaName,
       final Optional<String> avroDoc,
       final Boolean useAvroLogicalTypes,
+      final Boolean useAvroNotNullTypes,
       final Duration exportTimeout,
       final Optional<Schema> inputAvroSchema) {
     return new AutoValue_JdbcExportArgs.Builder()
@@ -101,6 +107,7 @@ public abstract class JdbcExportArgs implements Serializable {
         .setAvroSchemaName(avroSchemaName)
         .setAvroDoc(avroDoc)
         .setUseAvroLogicalTypes(useAvroLogicalTypes)
+        .setUseAvroNotNullTypes(useAvroNotNullTypes)
         .setExportTimeout(exportTimeout)
         .setInputAvroSchema(inputAvroSchema)
         .build();
