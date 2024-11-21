@@ -292,18 +292,6 @@
             <artifactId>junit</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.arrow</groupId>
-            <artifactId>arrow-vector</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-          </exclusion>
-          <exclusion>
             <groupId>com.google.api.grpc</groupId>
             <artifactId>grpc-google-cloud-pubsub-v1</artifactId>
           </exclusion>
@@ -558,7 +546,9 @@
                   <requireUpperBoundDeps>
                     <excludes>
                       <!-- managed by beam BOM -->
+                      <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
                       <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                      <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
                       <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
                       <exclude>com.google.auto.value:auto-value</exclude>
                       <exclude>com.google.auto.value:auto-value-annotations</exclude>

@@ -43,5 +43,3 @@ updates:
       - dependency-name: joda-time:joda-time
       # sync with libraries-bom
       - dependency-name: io.opencensus:opencensus-contrib-grpc-metrics
-
-
