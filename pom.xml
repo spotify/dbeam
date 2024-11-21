@@ -131,7 +131,7 @@
     <opencensus.version>0.31.1</opencensus.version>
 
     <!-- other deps -->
-    <avro.version>1.11.3</avro.version>
+    <avro.version>1.11.4</avro.version>
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <junit.version>4.13.2</junit.version>
     <mysql.version>8.4.0</mysql.version>
@@ -550,6 +550,7 @@
                       <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
                       <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
                       <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
+                      <exclude>com.github.luben:zstd-jni</exclude>
                       <exclude>com.google.auto.value:auto-value</exclude>
                       <exclude>com.google.auto.value:auto-value-annotations</exclude>
                       <exclude>com.google.errorprone:error_prone_annotations</exclude>
