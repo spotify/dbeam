@@ -22,6 +22,7 @@ package com.spotify.dbeam.jobs;
 
 import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
+import com.spotify.dbeam.avro.AvroSchemaMetadataProvider;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
 import com.spotify.dbeam.avro.JdbcAvroMetering;
@@ -143,12 +144,30 @@ public class JdbcAvroJob {
                 output, ".avro", generatedSchema, jdbcExportArgs.jdbcAvroOptions()));
   }
 
-  private Schema createSchema(final Connection connection) throws Exception {
-    if (this.jdbcExportArgs.inputAvroSchema().isPresent()) {
-      return this.jdbcExportArgs.inputAvroSchema().get();
-    } else {
-      return BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
+  Schema createSchema(final Connection connection) throws Exception {
+
+    AvroSchemaMetadataProvider metadataProvider =
+        new AvroSchemaMetadataProvider(
+            getProvidedSchema(),
+            jdbcExportArgs.avroSchemaName().orElse(null),
+            jdbcExportArgs.avroSchemaNamespace(),
+            jdbcExportArgs.avroDoc().orElse(null));
+
+    Schema generatedSchema =
+        BeamJdbcAvroSchema.createSchema(
+            this.pipeline, jdbcExportArgs, connection, metadataProvider);
+
+    return generatedSchema;
+  }
+
+  Schema getProvidedSchema() throws IOException {
+    String avroSchemaFilePath =
+        pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroSchemaFilePath();
+    if (avroSchemaFilePath != null && !avroSchemaFilePath.isEmpty()) {
+      return BeamJdbcAvroSchema.parseInputAvroSchemaFile(avroSchemaFilePath);
     }
+
+    return null;
   }
 
   public Pipeline getPipeline() {
