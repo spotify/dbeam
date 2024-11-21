@@ -291,6 +291,19 @@ public class QueryBuilderArgsTest {
         actual.buildQueries(connection));
   }
 
+  @Test
+  public void testSqlQueryWithLimitOne() throws IOException, SQLException {
+    final QueryBuilderArgs actual =
+        parseOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db --sqlFile=%s",
+                coffeesSqlQueryPath.toString()));
+    Assert.assertEquals(
+        "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10)"
+            + " as user_sql_query WHERE 1=1 LIMIT 1",
+        actual.sqlQueryWithLimitOne());
+  }
+
   private QueryBuilderArgs parseOptions(String cmdLineArgs) throws IOException {
     JdbcExportPipelineOptions opts = commandLineToOptions(cmdLineArgs);
     return JdbcExportArgsFactory.createQueryArgs(opts);
