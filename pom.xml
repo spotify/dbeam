@@ -108,6 +108,7 @@
     <beam.version>2.60.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
+    <avro.version>1.11.3</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <commons-codec.version>1.17.1</commons-codec.version> <!-- libraries-bom version -->
     <commons-compress.version>1.26.2</commons-compress.version>
@@ -131,7 +132,6 @@
     <opencensus.version>0.31.1</opencensus.version>
 
     <!-- other deps -->
-    <avro.version>1.11.4</avro.version>
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <junit.version>4.13.2</junit.version>
     <mysql.version>8.4.0</mysql.version>
@@ -143,6 +143,11 @@
     <dependencies>
       <!-- overrides to resolve dependency conflicts - start-->
       <!-- from beam bom -->
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
@@ -258,11 +263,6 @@
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-cloudkms</artifactId>
         <version>v1-rev20240314-2.0.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.avro</groupId>
-        <artifactId>avro</artifactId>
-        <version>${avro.version}</version>
       </dependency>
 
       <!-- Runners -->
@@ -557,6 +557,7 @@
                       <exclude>com.google.guava:guava</exclude>
                       <exclude>commons-codec:commons-codec</exclude>
                       <exclude>joda-time:joda-time</exclude>
+                      <exclude>org.apache.avro:avro</exclude>
                       <exclude>org.apache.commons:commons-compress</exclude>
                       <exclude>org.apache.httpcomponents:httpcore</exclude>
                       <exclude>org.apache.httpcomponents:httpclient</exclude>
