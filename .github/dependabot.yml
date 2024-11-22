@@ -12,15 +12,34 @@ updates:
       - dependency-name: com.fasterxml.jackson.core:jackson-annotations
       - dependency-name: com.fasterxml.jackson.core:jackson-core
       - dependency-name: com.fasterxml.jackson.core:jackson-databind
+      - dependency-name: com.fasterxml.jackson:jackson-bom
+      - dependency-name: com.github.luben:zstd-jni
       - dependency-name: com.google.api-client:google-api-client
       - dependency-name: com.google.api.grpc:proto-google-iam-v1
       - dependency-name: com.google.apis:google-api-services-storage
+      - dependency-name: com.google.auto.value:auto-value
+      - dependency-name: com.google.auto.value:auto-value-annotations
       - dependency-name: com.google.cloud.sql:mysql-socket-factory
       - dependency-name: com.google.cloud.sql:postgres-socket-factory
       - dependency-name: com.google.cloud:libraries-bom
+      - dependency-name: com.google.errorprone:error_prone_annotations
+      - dependency-name: com.google.guava:guava-bom
       - dependency-name: com.google.http-client:google-http-client
       - dependency-name: com.google.http-client:google-http-client-test
       - dependency-name: com.google.oauth-client:google-oauth-client
       - dependency-name: com.google.protobuf:protobuf-java
       - dependency-name: com.google.protobuf:protobuf-java-util
+      - dependency-name: commons-codec:commons-codec
+      - dependency-name: org.apache.beam:beam-sdks-java-bom # manually bump this
+      - dependency-name: org.apache.commons:commons-compress
+      - dependency-name: org.apache.httpcomponents:httpcore
+      - dependency-name: org.apache.httpcomponents:httpclient
+      - dependency-name: org.checkerframework:checker-qual
+      - dependency-name: org.slf4j:slf4j-api
+      - dependency-name: org.slf4j:slf4j-jdk14
+      - dependency-name: org.threeten:threetenbp
       - dependency-name: io.grpc:grpc-bom
+      - dependency-name: io.netty:netty-bom
+      - dependency-name: joda-time:joda-time
+      # sync with libraries-bom
+      - dependency-name: io.opencensus:opencensus-contrib-grpc-metrics
