@@ -74,6 +74,8 @@ public class JdbcAvroSchema {
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
 
+      resultSet.next();
+
       final Schema schema =
           createAvroSchema(
               resultSet,
@@ -107,7 +109,7 @@ public class JdbcAvroSchema {
             .prop("tableName", tableName)
             .prop("connectionUrl", connectionUrl)
             .fields();
-    return createAvroFields(meta, builder, useLogicalTypes).endRecord();
+    return createAvroFields(resultSet, builder, useLogicalTypes).endRecord();
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
@@ -123,10 +125,12 @@ public class JdbcAvroSchema {
   }
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
-      final ResultSetMetaData meta,
-      final SchemaBuilder.FieldAssembler<Schema> builder,
+      final ResultSet resultSet,
+        final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes)
       throws SQLException {
+
+    ResultSetMetaData meta = resultSet.getMetaData();
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
@@ -153,9 +157,15 @@ public class JdbcAvroSchema {
               SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
+      Integer arrayItemType = null;
+      if (columnType == ARRAY) {
+        arrayItemType = resultSet.getArray(i).getBaseType();
+      }
+
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           setAvroColumnType(
               columnType,
+              arrayItemType,
               meta.getPrecision(i),
               columnClassName,
               useLogicalTypes,
@@ -181,6 +191,7 @@ public class JdbcAvroSchema {
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
           final int columnType,
+          final Integer arrayItemType,
           final int precision,
           final String columnClassName,
           final boolean useLogicalTypes,
@@ -225,10 +236,12 @@ public class JdbcAvroSchema {
         } else {
           return field.bytesType();
         }
+      case ARRAY:
+        return setAvroColumnType(arrayItemType, null, precision, columnClassName,
+            useLogicalTypes, field.array().items());
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
-      case ARRAY:
       case BLOB:
         return field.bytesType();
       case DOUBLE:
