@@ -144,7 +144,8 @@ public class JdbcAvroSchema {
       final int columnType = meta.getColumnType(i);
       final String typeName = JDBCType.valueOf(columnType).getName();
       final String columnClassName = meta.getColumnClassName(i);
-      final SchemaBuilder.FieldBuilder<Schema> field =
+      final String columnTypeName = meta.getColumnTypeName(i);
+      SchemaBuilder.FieldBuilder<Schema> field =
           builder
               .name(normalizeForAvro(columnName))
               .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
@@ -153,14 +154,16 @@ public class JdbcAvroSchema {
               .prop("typeName", typeName)
               .prop("columnClassName", columnClassName);
 
+      if (columnTypeName != null) {
+        field = field.prop("columnTypeName", columnTypeName);
+      }
+
       final SchemaBuilder.BaseTypeBuilder<
               SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
-      Integer arrayItemType = null;
-      if (columnType == ARRAY) {
-        arrayItemType = resultSet.getArray(i).getBaseType();
-      }
+      Integer arrayItemType = resultSet.isFirst() && columnType == ARRAY ?
+                                                   resultSet.getArray(i).getBaseType() : null;
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           setAvroColumnType(
