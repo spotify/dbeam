@@ -112,10 +112,14 @@ public class JdbcAvroRecord {
         } else {
           return resultSet -> nullableBytes(resultSet.getBytes(column));
         }
+      case ARRAY:
+        return resultSet -> {
+//          java.sql.Array arr = resultSet.getArray(column);
+          return resultSet.getArray(column);
+        };
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
-      case ARRAY:
       case BLOB:
         return resultSet -> nullableBytes(resultSet.getBytes(column));
       case DOUBLE:
