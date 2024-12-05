@@ -104,7 +104,8 @@ public class JdbcAvroRecordConverter {
     return ByteBuffer.wrap(out.getBufffer(), 0, out.size());
   }
 
-  private void writeValue(Object value, BinaryEncoder binaryEncoder) throws SQLException, IOException {
+  private void writeValue(Object value, BinaryEncoder binaryEncoder)
+      throws SQLException, IOException {
     if (value instanceof String) {
       binaryEncoder.writeString((String) value);
     } else if (value instanceof Long) {
@@ -121,7 +122,7 @@ public class JdbcAvroRecordConverter {
       binaryEncoder.writeFloat((Float) value);
     } else if (value instanceof java.sql.Array) {
       binaryEncoder.writeArrayStart();
-      Object[] array = (Object[])((java.sql.Array)value).getArray();
+      Object[] array = (Object[]) ((java.sql.Array) value).getArray();
       binaryEncoder.setItemCount(array.length);
       for (Object arrayItem : array) {
         binaryEncoder.startItem();

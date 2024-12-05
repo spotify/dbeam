@@ -110,7 +110,7 @@ public abstract class Coffee {
         updated().orElse(null),
         uid(),
         rownum(),
-        String.join(",", intArr().stream().map(x -> (CharSequence)x.toString())::iterator),
+        String.join(",", intArr().stream().map(x -> (CharSequence) x.toString())::iterator),
         String.join("','", textArr()));
   }
 
@@ -156,7 +156,9 @@ public abstract class Coffee {
             add("rock");
             add("scissors");
             add("paper");
-          }});
+          }}
+      );
+
   public static Coffee COFFEE2 =
       create(
           "colombian caffee",
@@ -180,5 +182,6 @@ public abstract class Coffee {
             add("scissors");
             add("paper");
             add("rock");
-          }});
+          }}
+      );
 }

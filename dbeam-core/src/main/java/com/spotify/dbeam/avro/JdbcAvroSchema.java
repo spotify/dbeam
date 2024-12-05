@@ -162,8 +162,8 @@ public class JdbcAvroSchema {
               SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
-      Integer arrayItemType = resultSet.isFirst() && columnType == ARRAY ?
-                                                   resultSet.getArray(i).getBaseType() : null;
+      Integer arrayItemType = resultSet.isFirst() && columnType == ARRAY
+                              ? resultSet.getArray(i).getBaseType() : null;
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           setAvroColumnType(

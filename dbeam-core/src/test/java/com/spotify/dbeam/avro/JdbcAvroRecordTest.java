@@ -207,7 +207,7 @@ public class JdbcAvroRecordTest {
     Assert.assertEquals(14, record.getSchema().getFields().size());
     Assert.assertEquals(schema, record.getSchema());
     List<String> actualTxtArray =
-        ((GenericData.Array<Utf8>)record.get(13)).stream().map(x -> x.toString()).collect(
+        ((GenericData.Array<Utf8>) record.get(13)).stream().map(x -> x.toString()).collect(
         Collectors.toList());
     final Coffee actual =
         Coffee.create(
@@ -223,7 +223,7 @@ public class JdbcAvroRecordTest {
             Optional.ofNullable((Long) record.get(9)).map(Timestamp::new),
             TestHelper.byteBufferToUuid((ByteBuffer) record.get(10)),
             (Long) record.get(11),
-            new ArrayList<>((GenericData.Array<Integer>)record.get(12)),
+            new ArrayList<>((GenericData.Array<Integer>) record.get(12)),
             actualTxtArray);
     Assert.assertEquals(Coffee.COFFEE1, actual);
   }
