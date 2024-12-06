@@ -7,7 +7,6 @@ set -o pipefail
 
 readonly SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 readonly PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null && pwd)"
-readonly MOUNT_OUTPUT=0
 
 # This file contatins psql views with complex types to validate and troubleshoot dbeam
 
@@ -66,12 +65,9 @@ pack() {
 }
 
 run_docker_dbeam() {
-  OUTPUT_MOUNT_EXP=""
-  if [ "$MOUNT_OUTPUT" -eq 1 ]; then
-    OUTPUT_MOUNT_EXP=--mount="type=bind,source=$SCRIPT_PATH,target=$SCRIPT_PATH"
-  fi
   time docker run --interactive --rm \
     --net="$DOCKER_NETWORK" \
+    --mount="type=bind,source=$PROJECT_PATH/dbeam-core/target,target=/dbeam" \
     --mount="type=bind,source=$SCRIPT_PATH,target=$SCRIPT_PATH" \
     --memory=1G \
     --entrypoint=/usr/bin/java \
