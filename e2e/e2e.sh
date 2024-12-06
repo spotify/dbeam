@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-echo $1
-
 # fail on error
 set -o errexit
 set -o nounset
