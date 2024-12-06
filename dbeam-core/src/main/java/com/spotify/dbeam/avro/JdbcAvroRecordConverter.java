@@ -97,24 +97,39 @@ public class JdbcAvroRecordConverter {
         binaryEncoder.writeNull();
       } else {
         binaryEncoder.writeIndex(1);
-        if (value instanceof String) {
-          binaryEncoder.writeString((String) value);
-        } else if (value instanceof Long) {
-          binaryEncoder.writeLong((Long) value);
-        } else if (value instanceof Integer) {
-          binaryEncoder.writeInt((Integer) value);
-        } else if (value instanceof Boolean) {
-          binaryEncoder.writeBoolean((Boolean) value);
-        } else if (value instanceof ByteBuffer) {
-          binaryEncoder.writeBytes((ByteBuffer) value);
-        } else if (value instanceof Double) {
-          binaryEncoder.writeDouble((Double) value);
-        } else if (value instanceof Float) {
-          binaryEncoder.writeFloat((Float) value);
-        }
+        writeValue(value, binaryEncoder);
       }
     }
     binaryEncoder.flush();
     return ByteBuffer.wrap(out.getBufffer(), 0, out.size());
+  }
+
+  private void writeValue(Object value, BinaryEncoder binaryEncoder)
+      throws SQLException, IOException {
+    if (value instanceof String) {
+      binaryEncoder.writeString((String) value);
+    } else if (value instanceof Long) {
+      binaryEncoder.writeLong((Long) value);
+    } else if (value instanceof Integer) {
+      binaryEncoder.writeInt((Integer) value);
+    } else if (value instanceof Boolean) {
+      binaryEncoder.writeBoolean((Boolean) value);
+    } else if (value instanceof ByteBuffer) {
+      binaryEncoder.writeBytes((ByteBuffer) value);
+    } else if (value instanceof Double) {
+      binaryEncoder.writeDouble((Double) value);
+    } else if (value instanceof Float) {
+      binaryEncoder.writeFloat((Float) value);
+    } else if (value instanceof java.sql.Array) {
+      binaryEncoder.writeArrayStart();
+      Object[] array = (Object[]) ((java.sql.Array) value).getArray();
+      binaryEncoder.setItemCount(array.length);
+      for (Object arrayItem : array) {
+        binaryEncoder.startItem();
+        writeValue(arrayItem, binaryEncoder);
+      }
+
+      binaryEncoder.writeArrayEnd();
+    }
   }
 }

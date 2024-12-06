@@ -34,6 +34,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -42,9 +45,11 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.file.SeekableByteArrayInput;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,7 +67,7 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCreateSchema() throws ClassNotFoundException, SQLException {
-    final int fieldCount = 12;
+    final int fieldCount = 14;
     final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
@@ -92,7 +97,9 @@ public class JdbcAvroRecordTest {
             "CREATED",
             "UPDATED",
             "UID",
-            "ROWNUM"),
+            "ROWNUM",
+            "INT_ARR",
+            "TEXT_ARR"),
         actual.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()));
     for (Schema.Field f : actual.getFields()) {
       Assert.assertEquals(Schema.Type.UNION, f.schema().getType());
@@ -128,7 +135,7 @@ public class JdbcAvroRecordTest {
 
   @Test
   public void shouldCreateSchemaWithLogicalTypes() throws ClassNotFoundException, SQLException {
-    final int fieldCount = 12;
+    final int fieldCount = 14;
     final Schema actual =
         JdbcAvroSchema.createSchemaByReadingOneRow(
             DbTestHelper.createConnection(CONNECTION_URL),
@@ -163,8 +170,10 @@ public class JdbcAvroRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     final ResultSet rs =
         DbTestHelper.createConnection(CONNECTION_URL)
-            .createStatement()
+            .createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)
             .executeQuery("SELECT * FROM COFFEES");
+
+    rs.first();
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
             rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
@@ -173,6 +182,7 @@ public class JdbcAvroRecordTest {
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
     final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     dataFileWriter.create(schema, outputStream);
+    rs.previous();
     // convert and write
     while (rs.next()) {
       dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
@@ -194,8 +204,11 @@ public class JdbcAvroRecordTest {
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("not found"));
 
-    Assert.assertEquals(12, record.getSchema().getFields().size());
+    Assert.assertEquals(14, record.getSchema().getFields().size());
     Assert.assertEquals(schema, record.getSchema());
+    List<String> actualTxtArray =
+        ((GenericData.Array<Utf8>) record.get(13)).stream().map(x -> x.toString()).collect(
+        Collectors.toList());
     final Coffee actual =
         Coffee.create(
             record.get(0).toString(),
@@ -209,7 +222,9 @@ public class JdbcAvroRecordTest {
             new java.sql.Timestamp((Long) record.get(8)),
             Optional.ofNullable((Long) record.get(9)).map(Timestamp::new),
             TestHelper.byteBufferToUuid((ByteBuffer) record.get(10)),
-            (Long) record.get(11));
+            (Long) record.get(11),
+            new ArrayList<>((GenericData.Array<Integer>) record.get(12)),
+            actualTxtArray);
     Assert.assertEquals(Coffee.COFFEE1, actual);
   }
 
