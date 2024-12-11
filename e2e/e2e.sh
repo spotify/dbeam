@@ -68,6 +68,7 @@ run_docker_dbeam() {
   time docker run --interactive --rm \
     --net="$DOCKER_NETWORK" \
     --mount="type=bind,source=$PROJECT_PATH/dbeam-core/target,target=/dbeam" \
+    --mount="type=bind,source=$SCRIPT_PATH,target=$SCRIPT_PATH" \
     --memory=1G \
     --entrypoint=/usr/bin/java \
     "$JAVA_DOCKER_IMAGE" \
