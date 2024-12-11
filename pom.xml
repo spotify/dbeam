@@ -136,7 +136,7 @@
     <junit.version>4.13.2</junit.version>
     <mysql.version>8.4.0</mysql.version>
     <postgresql.version>42.7.4</postgresql.version>
-    <socket-factory.version>1.18.0</socket-factory.version>
+    <socket-factory.version>1.21.0</socket-factory.version>
   </properties>
 
   <dependencyManagement>
