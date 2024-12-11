@@ -104,13 +104,13 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- apache beam BOM -->
-    <!-- https://github.com/apache/beam/blob/release-2.60.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
-    <beam.version>2.60.0</beam.version>
+    <!-- https://github.com/apache/beam/blob/release-2.61.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
+    <beam.version>2.61.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.3</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
-    <commons-codec.version>1.17.1</commons-codec.version> <!-- libraries-bom version -->
+    <commons-codec.version>1.17.1</commons-codec.version>
     <commons-compress.version>1.26.2</commons-compress.version>
     <errorprone.version>2.10.0</errorprone.version>
     <guava.version>33.1.0-jre</guava.version>
