@@ -100,131 +100,53 @@
 
   <properties>
     <maven.compiler.release>8</maven.compiler.release>
-    <auto-value.version>1.11.0</auto-value.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- apache beam BOM -->
+    <!-- https://github.com/apache/beam/blob/release-2.61.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
+    <beam.version>2.61.0</beam.version>
+    <!-- versions from beam -->
+    <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.3</avro.version>
-    <bouncycastle.version>1.78.1</bouncycastle.version>
-    <!--Ensure Beam SDK compatibility-->
-    <!-- https://github.com/apache/beam/blob/release-2.59.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
-    <beam.version>2.59.0</beam.version>
+    <checker-qual.version>3.42.0</checker-qual.version>
+    <commons-codec.version>1.17.1</commons-codec.version>
+    <commons-compress.version>1.26.2</commons-compress.version>
+    <errorprone.version>2.10.0</errorprone.version>
+    <guava.version>33.1.0-jre</guava.version>
+    <hamcrest.version>2.1</hamcrest.version>
+    <httpclient.version>4.5.13</httpclient.version>
+    <httpcore.version>4.4.14</httpcore.version>
+    <jackson.version>2.15.4</jackson.version>
+    <joda-time.version>2.10.14</joda-time.version>
+    <netty.version>4.1.100.Final</netty.version>
+    <slf4j.version>1.7.30</slf4j.version>
+    <threetenbp.version>1.6.8</threetenbp.version>
+    <zstd-jni.version>1.5.6-3</zstd-jni.version>
+
+    <!-- GCP BOM -->
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
     <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.45.0/index.html -->
     <google-cloud-libraries-bom.version>26.45.0</google-cloud-libraries-bom.version>
-    <guava.version>33.3.0-jre</guava.version>
-    <hamcrest.version>3.0</hamcrest.version>
+    <!-- versions from GCP bom -->
+    <opencensus.version>0.31.1</opencensus.version>
+
+    <!-- other deps -->
+    <bouncycastle.version>1.78.1</bouncycastle.version>
     <junit.version>4.13.2</junit.version>
-    <jackson.version>2.17.2</jackson.version>
     <mysql.version>9.1.0</mysql.version>
-    <netty.version>4.1.113.Final</netty.version>
     <postgresql.version>42.7.4</postgresql.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <slf4j.version>2.0.16</slf4j.version>
     <socket-factory.version>1.18.0</socket-factory.version>
   </properties>
+
   <dependencyManagement>
     <dependencies>
       <!-- overrides to resolve dependency conflicts - start-->
+      <!-- from beam bom -->
       <dependency>
-        <groupId>io.opencensus</groupId>
-        <artifactId>opencensus-contrib-grpc-metrics</artifactId>
-        <version>0.31.1</version>
-      </dependency>
-      <dependency>
-        <groupId>joda-time</groupId>
-        <artifactId>joda-time</artifactId>
-        <version>2.12.7</version>
-      </dependency>
-      <dependency>
-        <groupId>org.threeten</groupId>
-        <artifactId>threetenbp</artifactId>
-        <version>1.7.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.checkerframework</groupId>
-        <artifactId>checker-qual</artifactId>
-        <version>3.47.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpcore</artifactId>
-        <version>4.4.16</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>4.5.14</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.errorprone</groupId>
-        <artifactId>error_prone_annotations</artifactId>
-        <version>2.32.0</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.apis</groupId>
-        <artifactId>google-api-services-storage</artifactId>
-        <version>v1-rev20240809-2.0.0</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-codec</groupId>
-        <artifactId>commons-codec</artifactId>
-        <version>1.17.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-compress</artifactId>
-        <version>1.26.2</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.17.0</version>
-      </dependency>
-      <dependency>
-        <groupId>net.bytebuddy</groupId>
-        <artifactId>byte-buddy</artifactId>
-        <version>1.15.1</version>
-      </dependency>
-      <!-- overrides to resolve dependency conflicts - end-->
-      <!-- overrides with vulnerability fixes - start-->
-      <dependency>
-        <groupId>org.xerial.snappy</groupId>
-        <artifactId>snappy-java</artifactId>
-        <version>1.1.10.7</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk18on</artifactId>
-        <version>${bouncycastle.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk18on</artifactId>
-        <version>${bouncycastle.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava-bom</artifactId>
-        <version>${guava.version}</version>
-        <scope>import</scope>
-        <type>pom</type>
-      </dependency>
-      <!-- overrides with vulnerability fixes - end-->
-      <dependency>
-        <groupId>com.google.apis</groupId>
-        <artifactId>google-api-services-cloudkms</artifactId>
-        <version>v1-rev20240314-2.0.0</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.luben</groupId>
-        <artifactId>zstd-jni</artifactId>
-        <version>1.5.6-6</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>${netty.version}</version>
-        <scope>import</scope>
-        <type>pom</type>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro</artifactId>
+        <version>${avro.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
@@ -234,11 +156,62 @@
         <type>pom</type>
       </dependency>
       <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>libraries-bom</artifactId>
-        <version>${google-cloud-libraries-bom.version}</version>
-        <type>pom</type>
+        <groupId>com.github.luben</groupId>
+        <artifactId>zstd-jni</artifactId>
+        <version>${zstd-jni.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto.value</groupId>
+        <artifactId>auto-value</artifactId>
+        <version>${auto-value.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto.value</groupId>
+        <artifactId>auto-value-annotations</artifactId>
+        <version>${auto-value.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_annotations</artifactId>
+        <version>${errorprone.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava-bom</artifactId>
+        <version>${guava.version}</version>
         <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>${joda-time.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>${commons-compress.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${httpcore.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${httpclient.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-qual</artifactId>
+        <version>${checker-qual.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -252,11 +225,44 @@
         <scope>runtime</scope>
       </dependency>
       <dependency>
+        <groupId>org.threeten</groupId>
+        <artifactId>threetenbp</artifactId>
+        <version>${threetenbp.version}</version>
+      </dependency>
+      <!-- from libraries-bom -->
+      <dependency>
+        <groupId>io.opencensus</groupId>
+        <artifactId>opencensus-contrib-grpc-metrics</artifactId>
+        <version>${opencensus.version}</version>
+      </dependency>
+      <!-- overrides to resolve dependency conflicts - end-->
+      <!-- overrides with vulnerability fixes - start-->
+      <!-- overrides with vulnerability fixes - end-->
+      <dependency>
         <groupId>org.apache.beam</groupId>
         <artifactId>beam-sdks-java-bom</artifactId>
         <version>${beam.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${google-cloud-libraries-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>com.google.apis</groupId>
+        <artifactId>google-api-services-cloudkms</artifactId>
+        <version>v1-rev20240314-2.0.0</version>
       </dependency>
 
       <!-- Runners -->
@@ -347,22 +353,6 @@
           </exclusion>
         </exclusions>
       </dependency>
-      <dependency>
-        <groupId>org.apache.avro</groupId>
-        <artifactId>avro</artifactId>
-        <version>${avro.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.auto.value</groupId>
-        <artifactId>auto-value-annotations</artifactId>
-        <version>${auto-value.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.auto.value</groupId>
-        <artifactId>auto-value</artifactId>
-        <version>${auto-value.version}</version>
-        <scope>provided</scope>
-      </dependency>
 
       <!-- DB Deps -->
       <dependency>
@@ -396,7 +386,6 @@
       </dependency>
 
       <!-- Test Deps -->
-
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
@@ -554,6 +543,32 @@
                     <!-- Keep aligned with prerequisite section below. -->
                     <version>[3.3.9,)</version>
                   </requireMavenVersion>
+                  <requireUpperBoundDeps>
+                    <excludes>
+                      <!-- managed by beam BOM -->
+                      <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
+                      <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                      <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                      <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
+                      <exclude>com.github.luben:zstd-jni</exclude>
+                      <exclude>com.google.auto.value:auto-value</exclude>
+                      <exclude>com.google.auto.value:auto-value-annotations</exclude>
+                      <exclude>com.google.errorprone:error_prone_annotations</exclude>
+                      <exclude>com.google.guava:guava</exclude>
+                      <exclude>commons-codec:commons-codec</exclude>
+                      <exclude>joda-time:joda-time</exclude>
+                      <exclude>org.apache.avro:avro</exclude>
+                      <exclude>org.apache.commons:commons-compress</exclude>
+                      <exclude>org.apache.httpcomponents:httpcore</exclude>
+                      <exclude>org.apache.httpcomponents:httpclient</exclude>
+                      <exclude>org.checkerframework:checker-qual</exclude>
+                      <exclude>org.slf4j:slf4j-api</exclude>
+                      <exclude>org.slf4j:slf4j-jdk14</exclude>
+                      <exclude>org.threeten:threetenbp</exclude>
+                      <!-- managed by libraries-bom -->
+                      <exclude>io.opencensus:opencensus-contrib-grpc-metrics</exclude>
+                    </excludes>
+                  </requireUpperBoundDeps>
                 </rules>
               </configuration>
             </execution>
@@ -613,7 +628,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.18.1</version>
+            <version>10.20.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -633,7 +648,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.2.6</version>
+            <version>3.2.7</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -655,7 +670,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.10.0</version>
+            <version>3.11.1</version>
             <configuration>
               <source>8</source>
             </configuration>
@@ -717,7 +732,7 @@
                     </filter>
                   </filters>
                   <transformers>
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                       <mainClass>com.spotify.dbeam.jobs.JdbcAvroJob</mainClass>
                     </transformer>

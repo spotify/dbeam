@@ -22,9 +22,12 @@ package com.spotify.dbeam;
 
 import com.google.auto.value.AutoValue;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // A fictitious DB model to test different SQL types
 @AutoValue
@@ -42,7 +45,9 @@ public abstract class Coffee {
       final java.sql.Timestamp created,
       final Optional<java.sql.Timestamp> updated,
       final UUID uid,
-      final Long rownum) {
+      final Long rownum,
+      final List<Integer> intArr,
+      final List<String> textArr) {
     return new AutoValue_Coffee(
         name,
         supId,
@@ -55,7 +60,9 @@ public abstract class Coffee {
         created,
         updated,
         uid,
-        rownum);
+        rownum,
+        new ArrayList<>(intArr),
+        new ArrayList<>(textArr));
   }
 
   public abstract String name();
@@ -82,10 +89,15 @@ public abstract class Coffee {
 
   public abstract Long rownum();
 
+  public abstract List<Integer> intArr();
+
+  public abstract List<String> textArr();
+
   public String insertStatement() {
     return String.format(
         Locale.ENGLISH,
-        "INSERT INTO COFFEES " + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d)",
+        "INSERT INTO COFFEES " + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d,"
+        + " ARRAY [%s], ARRAY ['%s'])",
         name(),
         supId().orElse(null),
         price().toString(),
@@ -97,7 +109,9 @@ public abstract class Coffee {
         created(),
         updated().orElse(null),
         uid(),
-        rownum());
+        rownum(),
+        String.join(",", intArr().stream().map(x -> (CharSequence) x.toString())::iterator),
+        String.join("','", textArr()));
   }
 
   public static String ddl() {
@@ -114,7 +128,9 @@ public abstract class Coffee {
         + "\"CREATED\" TIMESTAMP NOT NULL,"
         + "\"UPDATED\" TIMESTAMP,"
         + "\"UID\" UUID NOT NULL,"
-        + "\"ROWNUM\" BIGINT NOT NULL);";
+        + "\"ROWNUM\" BIGINT NOT NULL,"
+        + "\"INT_ARR\" INTEGER ARRAY NOT NULL,"
+        + "\"TEXT_ARR\" VARCHAR ARRAY NOT NULL);";
   }
 
   public static Coffee COFFEE1 =
@@ -130,7 +146,19 @@ public abstract class Coffee {
           new java.sql.Timestamp(1488300933000L),
           Optional.empty(),
           UUID.fromString("123e4567-e89b-12d3-a456-426655440000"),
-          1L);
+          1L,
+          new ArrayList<Integer>() {{
+            add(5);
+            add(7);
+            add(11);
+          }},
+          new ArrayList<String>() {{
+            add("rock");
+            add("scissors");
+            add("paper");
+          }}
+      );
+
   public static Coffee COFFEE2 =
       create(
           "colombian caffee",
@@ -144,5 +172,16 @@ public abstract class Coffee {
           new java.sql.Timestamp(1488300723000L),
           Optional.empty(),
           UUID.fromString("123e4567-e89b-a456-12d3-426655440000"),
-          2L);
+          2L,
+          new ArrayList<Integer>() {{
+            add(7);
+            add(11);
+            add(23);
+          }},
+          new ArrayList<String>() {{
+            add("scissors");
+            add("paper");
+            add("rock");
+          }}
+      );
 }
