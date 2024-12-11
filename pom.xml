@@ -114,7 +114,7 @@
     <commons-compress.version>1.26.2</commons-compress.version>
     <errorprone.version>2.10.0</errorprone.version>
     <guava.version>33.1.0-jre</guava.version>
-    <hamcrest.version>2.1</hamcrest.version>
+    <hamcrest.version>3.0</hamcrest.version>
     <httpclient.version>4.5.13</httpclient.version>
     <httpcore.version>4.4.14</httpcore.version>
     <jackson.version>2.15.4</jackson.version>
