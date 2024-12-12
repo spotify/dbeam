@@ -189,7 +189,6 @@ public class JdbcAvroSchema {
    *   <li>{@link com.mysql.cj.MysqlType }
    *   <li>org.h2.value.Value
    * </ul>
-   *
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
