@@ -32,13 +32,10 @@ public class JdbcConnectionUtil {
           "postgresql", "org.postgresql.Driver",
           "mysql", "com.mysql.cj.jdbc.Driver",
           "mariadb", "org.mariadb.jdbc.Driver",
-          "h2", "org.h2.Driver"
-      );
+          "h2", "org.h2.Driver");
 
   private static String driverPrefixes =
-      driverMapping.keySet().stream()
-          .map(k -> "jdbc:" + k)
-          .collect(Collectors.joining(", "));
+      driverMapping.keySet().stream().map(k -> "jdbc:" + k).collect(Collectors.joining(", "));
 
   public static String getDriverClass(final String url) throws ClassNotFoundException {
     final String[] parts = url.split(":", 3);
@@ -46,8 +43,7 @@ public class JdbcConnectionUtil {
         parts.length > 1 && "jdbc".equals(parts[0]) && driverMapping.containsKey(parts[1]),
         "Invalid jdbc connection URL: %s. Expected one of %s as prefix.",
         url,
-        driverPrefixes
-    );
+        driverPrefixes);
     return Class.forName(driverMapping.get(parts[1])).getCanonicalName();
   }
 }

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 // A fictitious DB model to test different SQL types
 @AutoValue
@@ -96,8 +95,9 @@ public abstract class Coffee {
   public String insertStatement() {
     return String.format(
         Locale.ENGLISH,
-        "INSERT INTO COFFEES " + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d,"
-        + " ARRAY [%s], ARRAY ['%s'])",
+        "INSERT INTO COFFEES "
+            + "VALUES ('%s', %s, '%s', %f, %f, %b, %d, %d, '%s', %s, '%s', %d,"
+            + " ARRAY [%s], ARRAY ['%s'])",
         name(),
         supId().orElse(null),
         price().toString(),
@@ -147,17 +147,20 @@ public abstract class Coffee {
           Optional.empty(),
           UUID.fromString("123e4567-e89b-12d3-a456-426655440000"),
           1L,
-          new ArrayList<Integer>() {{
-            add(5);
-            add(7);
-            add(11);
-          }},
-          new ArrayList<String>() {{
-            add("rock");
-            add("scissors");
-            add("paper");
-          }}
-      );
+          new ArrayList<Integer>() {
+            {
+              add(5);
+              add(7);
+              add(11);
+            }
+          },
+          new ArrayList<String>() {
+            {
+              add("rock");
+              add("scissors");
+              add("paper");
+            }
+          });
 
   public static Coffee COFFEE2 =
       create(
@@ -173,15 +176,18 @@ public abstract class Coffee {
           Optional.empty(),
           UUID.fromString("123e4567-e89b-a456-12d3-426655440000"),
           2L,
-          new ArrayList<Integer>() {{
-            add(7);
-            add(11);
-            add(23);
-          }},
-          new ArrayList<String>() {{
-            add("scissors");
-            add("paper");
-            add("rock");
-          }}
-      );
+          new ArrayList<Integer>() {
+            {
+              add(7);
+              add(11);
+              add(23);
+            }
+          },
+          new ArrayList<String>() {
+            {
+              add("scissors");
+              add("paper");
+              add("rock");
+            }
+          });
 }

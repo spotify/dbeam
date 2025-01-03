@@ -126,7 +126,7 @@ public class JdbcAvroSchema {
 
   private static SchemaBuilder.FieldAssembler<Schema> createAvroFields(
       final ResultSet resultSet,
-        final SchemaBuilder.FieldAssembler<Schema> builder,
+      final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes)
       throws SQLException {
 
@@ -162,8 +162,8 @@ public class JdbcAvroSchema {
               SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
-      Integer arrayItemType = resultSet.isFirst() && columnType == ARRAY
-                              ? resultSet.getArray(i).getBaseType() : null;
+      Integer arrayItemType =
+          resultSet.isFirst() && columnType == ARRAY ? resultSet.getArray(i).getBaseType() : null;
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           setAvroColumnType(
@@ -189,7 +189,6 @@ public class JdbcAvroSchema {
    *   <li>{@link com.mysql.cj.MysqlType }
    *   <li>org.h2.value.Value
    * </ul>
-   *
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
@@ -240,8 +239,13 @@ public class JdbcAvroSchema {
           return field.bytesType();
         }
       case ARRAY:
-        return setAvroColumnType(arrayItemType, null, precision, columnClassName,
-            useLogicalTypes, field.array().items());
+        return setAvroColumnType(
+            arrayItemType,
+            null,
+            precision,
+            columnClassName,
+            useLogicalTypes,
+            field.array().items());
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
