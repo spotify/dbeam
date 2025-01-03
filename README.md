@@ -16,7 +16,7 @@ This tool is runnable locally, or on any other backend supported by Apache Beam,
 
 ## Overview
 
-DBeam is tool based that reads all the data from single SQL database table,
+DBeam is a tool that reads all the data from single SQL database table,
 converts the data into [Avro](https://avro.apache.org/) and stores it into
 appointed location, usually in GCS.
 It runs as a single threaded [Apache Beam](https://beam.apache.org/) pipeline.
@@ -33,7 +33,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 - Supports both PostgreSQL and MySQL JDBC connectors
 - Supports [Google CloudSQL](https://cloud.google.com/sql/) managed databases
-- Currently output only to Avro format
+- Currently outputs only to Avro format
 - Reads database from an external password file (`--passwordFile`) or an external [KMS](https://cloud.google.com/kms/) encrypted password file (`--passwordFileKmsEncrypted`)
 - Can filter only records of the current day with the `--partitionColumn` parameter
 - Check and fail on too old partition dates. Snapshot dumps are not filtered by a given date/partition, when running for a too old partition, the job fails to avoid new data in old partitions. (can be disabled with `--skipPartitionCheck`)
@@ -236,6 +236,10 @@ java \
   com.spotify.dbeam.jobs.JdbcAvroJob \
   ...
 ```
+
+### IAM authentication
+
+When using Google Cloud, [IAM authentication](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/blob/main/docs/jdbc.md#iam-authentication) may be used by adding `enableIamAuth=true` to the JDBC URL, providing a dummy password, and following the appropriate rules for user naming with respect to the Service Account name.
 
 ## Using as a library
 
