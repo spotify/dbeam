@@ -31,7 +31,7 @@ simply streams the table contents via JDBC into target location as Avro.
 
 ## dbeam-core package features
 
-- Supports both PostgreSQL and MySQL JDBC connectors
+- Supports both PostgreSQL, MySQL, MariaDB, and H2 JDBC connectors
 - Supports [Google CloudSQL](https://cloud.google.com/sql/) managed databases
 - Currently outputs only to Avro format
 - Reads database from an external password file (`--passwordFile`) or an external [KMS](https://cloud.google.com/kms/) encrypted password file (`--passwordFileKmsEncrypted`)

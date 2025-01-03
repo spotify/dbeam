@@ -35,8 +35,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -207,8 +205,8 @@ public class JdbcAvroRecordTest {
     Assert.assertEquals(14, record.getSchema().getFields().size());
     Assert.assertEquals(schema, record.getSchema());
     List<String> actualTxtArray =
-        ((GenericData.Array<Utf8>) record.get(13)).stream().map(x -> x.toString()).collect(
-        Collectors.toList());
+        ((GenericData.Array<Utf8>) record.get(13))
+            .stream().map(x -> x.toString()).collect(Collectors.toList());
     final Coffee actual =
         Coffee.create(
             record.get(0).toString(),

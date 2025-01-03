@@ -23,6 +23,7 @@ package com.spotify.dbeam.args;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class JdbcConnectionUtil {
 
@@ -30,14 +31,19 @@ public class JdbcConnectionUtil {
       ImmutableMap.of(
           "postgresql", "org.postgresql.Driver",
           "mysql", "com.mysql.cj.jdbc.Driver",
+          "mariadb", "org.mariadb.jdbc.Driver",
           "h2", "org.h2.Driver");
+
+  private static String driverPrefixes =
+      driverMapping.keySet().stream().map(k -> "jdbc:" + k).collect(Collectors.joining(", "));
 
   public static String getDriverClass(final String url) throws ClassNotFoundException {
     final String[] parts = url.split(":", 3);
     Preconditions.checkArgument(
-        parts.length > 1 && "jdbc".equals(parts[0]) && driverMapping.get(parts[1]) != null,
-        "Invalid jdbc connection URL: %s. Expect jdbc:postgresql or jdbc:mysql as prefix.",
-        url);
+        parts.length > 1 && "jdbc".equals(parts[0]) && driverMapping.containsKey(parts[1]),
+        "Invalid jdbc connection URL: %s. Expected one of %s as prefix.",
+        url,
+        driverPrefixes);
     return Class.forName(driverMapping.get(parts[1])).getCanonicalName();
   }
 }
