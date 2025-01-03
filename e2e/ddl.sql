@@ -1,5 +1,5 @@
 
--- This file contatins psql views with complex types to validate and troubleshoot dbeam
+-- This file contains psql views with complex types to validate and troubleshoot dbeam
 -- import with:
 -- psql -f ddl.sql postgres
 

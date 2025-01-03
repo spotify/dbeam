@@ -135,6 +135,7 @@
     <bouncycastle.version>1.78.1</bouncycastle.version>
     <junit.version>4.13.2</junit.version>
     <mysql.version>8.4.0</mysql.version>
+    <mariadb.version>3.5.1</mariadb.version>
     <postgresql.version>42.7.4</postgresql.version>
     <socket-factory.version>1.18.0</socket-factory.version>
   </properties>
@@ -366,6 +367,11 @@
         <version>${mysql.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>${mariadb.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.google.cloud.sql</groupId>
         <artifactId>postgres-socket-factory</artifactId>
         <version>${socket-factory.version}</version>
@@ -374,6 +380,11 @@
         <groupId>com.google.cloud.sql</groupId>
         <!--Note: https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/issues/1243-->
         <artifactId>mysql-socket-factory-connector-j-8</artifactId>
+        <version>${socket-factory.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud.sql</groupId>
+        <artifactId>mariadb-socket-factory</artifactId>
         <version>${socket-factory.version}</version>
       </dependency>
       <dependency>
