@@ -105,7 +105,7 @@
 
     <!-- apache beam BOM -->
     <!-- https://github.com/apache/beam/blob/release-2.61.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
-    <beam.version>2.61.0</beam.version>
+    <beam.version>2.62.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.3</avro.version>
