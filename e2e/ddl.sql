@@ -27,7 +27,8 @@ SELECT
     random() * (timestamp '2010-01-01 00:00:00' -
       timestamp '2020-01-01 00:00:00') AS timestamp2,
   E'\\000'::bytea AS bytes_field,
-  ARRAY['foo', 'bar']::text[] AS arr1
+  ARRAY['foo', 'bar']::text[] AS arr1,
+  ARRAY[gen_random_uuid(), gen_random_uuid()]::uuid[] AS arr2
 FROM
   generate_series(1,1000000) a(n)
   ;

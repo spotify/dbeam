@@ -26,10 +26,12 @@ import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.UUID;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 
 public class JdbcAvroRecordConverter {
+
   private final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings;
   private final int columnCount;
   private final ResultSet resultSet;
@@ -108,6 +110,8 @@ public class JdbcAvroRecordConverter {
       throws SQLException, IOException {
     if (value instanceof String) {
       binaryEncoder.writeString((String) value);
+    } else if (value instanceof UUID) {
+      binaryEncoder.writeString(value.toString());
     } else if (value instanceof Long) {
       binaryEncoder.writeLong((Long) value);
     } else if (value instanceof Integer) {
@@ -130,6 +134,8 @@ public class JdbcAvroRecordConverter {
       }
 
       binaryEncoder.writeArrayEnd();
+    } else {
+      throw new RuntimeException("Value of type " + value.getClass() + " is not supported");
     }
   }
 }
