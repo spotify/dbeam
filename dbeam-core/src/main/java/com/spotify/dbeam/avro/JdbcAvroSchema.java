@@ -36,6 +36,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.SMALLINT;
 import static java.sql.Types.TIME;
@@ -46,12 +47,14 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -162,15 +165,16 @@ public class JdbcAvroSchema {
               SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
-      Integer arrayItemType =
-          resultSet.isFirst() && columnType == ARRAY ? resultSet.getArray(i).getBaseType() : null;
+      Array arrayInstance =
+          resultSet.isFirst() && columnType == ARRAY ? resultSet.getArray(i) : null;
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           setAvroColumnType(
               columnType,
-              arrayItemType,
+              arrayInstance,
               meta.getPrecision(i),
               columnClassName,
+              columnTypeName,
               useLogicalTypes,
               fieldSchemaBuilder);
 
@@ -193,13 +197,21 @@ public class JdbcAvroSchema {
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       setAvroColumnType(
           final int columnType,
-          final Integer arrayItemType,
+          final Array arrayInstance,
           final int precision,
           final String columnClassName,
+          final String columnTypeName,
           final boolean useLogicalTypes,
           final SchemaBuilder.BaseTypeBuilder<
                   SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-              field) {
+              field) throws SQLException {
+    if (arrayInstance != null) {
+      LOGGER.warn("{} column type {} columnClassName {} arrayBaseType {} arrayBaseTypeName",
+          columnType,
+          columnClassName
+          , arrayInstance.getBaseType(), arrayInstance.getBaseTypeName());
+    }
+
     switch (columnType) {
       case VARCHAR:
       case CHAR:
@@ -240,10 +252,11 @@ public class JdbcAvroSchema {
         }
       case ARRAY:
         return setAvroColumnType(
-            arrayItemType,
+            arrayInstance.getBaseType(),
             null,
             precision,
             columnClassName,
+            arrayInstance.getBaseTypeName(),
             useLogicalTypes,
             field.array().items());
       case BINARY:
@@ -256,6 +269,12 @@ public class JdbcAvroSchema {
       case FLOAT:
       case REAL:
         return field.floatType();
+      case OTHER:
+        if (useLogicalTypes && Objects.equals(columnTypeName, "uuid")) {
+          return field.stringBuilder().prop("logicalType", "uuid").endString();
+        } else {
+          return field.stringType();
+        }
       default:
         return field.stringType();
     }

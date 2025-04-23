@@ -36,6 +36,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.SMALLINT;
 import static java.sql.Types.TIME;
@@ -52,6 +53,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Objects;
 import java.util.TimeZone;
 
 public class JdbcAvroRecord {
@@ -124,6 +126,12 @@ public class JdbcAvroRecord {
       case FLOAT:
       case REAL:
         return resultSet -> resultSet.getFloat(column);
+      case OTHER:
+        if (Objects.equals(meta.getColumnTypeName(column), "uuid")) {
+          return resultSet -> resultSet.getObject(column);
+        } else {
+          return resultSet -> resultSet.getString(column);
+        }
       default:
         return resultSet -> resultSet.getString(column);
     }
