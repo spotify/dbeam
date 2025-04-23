@@ -27,16 +27,20 @@ import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.avro.Schema;
@@ -47,6 +51,9 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.util.Utf8;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -57,6 +64,14 @@ public class JdbcAvroRecordTest {
 
   private static String CONNECTION_URL =
       "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
+
+  public static GenericRecord readFirstGenericRecord(byte[] avroDocBytes, Schema schema)
+      throws IOException {
+    SeekableByteArrayInput inputStream = new SeekableByteArrayInput(avroDocBytes);
+    DataFileReader<GenericRecord> dataReader = new DataFileReader<>(inputStream,
+        new GenericDatumReader<>(schema));
+    return dataReader.next();
+  }
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException {
@@ -161,6 +176,34 @@ public class JdbcAvroRecordTest {
             false);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
+  }
+
+  @Test
+  public void shouldEncodeUUIDValue() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getColumnType(1)).thenReturn(Types.OTHER);
+    when(meta.getColumnName(1)).thenReturn("test1");
+    when(meta.getColumnClassName(1)).thenReturn("java.util.UUID");
+    when(meta.getColumnTypeName(1)).thenReturn("uuid");
+
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+    final UUID expected = UUID.randomUUID();
+    when(resultSet.getObject(1)).thenReturn(expected);
+    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", true);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet);
+
+    DataFileWriter<GenericRecord> dataFileWriter =
+        new DataFileWriter<>(new GenericDatumWriter<>(schema));
+    ByteArrayOutputStream avroOutputStream = new ByteArrayOutputStream();
+    dataFileWriter.create(schema, avroOutputStream);
+    dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
+    dataFileWriter.close();
+
+    final GenericRecord rec = readFirstGenericRecord(avroOutputStream.toByteArray(), schema);
+    Assert.assertEquals(rec.get("test1"), new Utf8(expected.toString()));
   }
 
   @Test

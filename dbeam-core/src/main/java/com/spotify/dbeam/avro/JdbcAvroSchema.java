@@ -208,8 +208,8 @@ public class JdbcAvroSchema {
     if (arrayInstance != null) {
       LOGGER.warn("{} column type {} columnClassName {} arrayBaseType {} arrayBaseTypeName",
           columnType,
-          columnClassName
-          , arrayInstance.getBaseType(), arrayInstance.getBaseTypeName());
+          columnClassName,
+          arrayInstance.getBaseType(), arrayInstance.getBaseTypeName());
     }
 
     switch (columnType) {
