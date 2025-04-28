@@ -77,11 +77,12 @@ public class TestHelper {
     when(meta.getColumnTypeName(columnIdx)).thenReturn(columnTypeName);
   }
 
-  public static Array mockDbArray(int baseType, String baseTypeName, Object array) throws SQLException {
+  public static Array mockDbArray(int baseType, String baseTypeName, Object array)
+      throws SQLException {
     Array arr = Mockito.mock(Array.class);
-    when(arr.getBaseType()).thenReturn(baseType);//Types.OTHER);
-    when(arr.getBaseTypeName()).thenReturn(baseTypeName);//"uuid");
-    when(arr.getArray()).thenReturn(array);//"uuid");
+    when(arr.getBaseType()).thenReturn(baseType);
+    when(arr.getBaseTypeName()).thenReturn(baseTypeName);
+    when(arr.getArray()).thenReturn(array);
     return arr;
   }
 }

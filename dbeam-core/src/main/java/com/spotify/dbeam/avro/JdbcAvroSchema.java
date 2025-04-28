@@ -93,8 +93,8 @@ public class JdbcAvroSchema {
               avroDoc,
               useLogicalTypes,
               arrayAsBytes);
-      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayAsBytes={}, " +
-                  "Generated schema: {}", useLogicalTypes, arrayAsBytes, schema.toString());
+      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayAsBytes={}, "
+                  + "Generated schema: {}", useLogicalTypes, arrayAsBytes, schema.toString());
       return schema;
     }
   }

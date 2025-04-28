@@ -46,10 +46,13 @@ public class JdbcAvroRecordConverter {
     this.resultSet = resultSet;
   }
 
-  public static JdbcAvroRecordConverter create(final ResultSet resultSet, final boolean arrayAsBytes)
+  public static JdbcAvroRecordConverter create(final ResultSet resultSet,
+                                               final boolean arrayAsBytes)
       throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet, arrayAsBytes), resultSet.getMetaData().getColumnCount(), resultSet);
+        computeAllMappings(resultSet, arrayAsBytes),
+        resultSet.getMetaData().getColumnCount(),
+        resultSet);
   }
 
   @SuppressWarnings("unchecked")
