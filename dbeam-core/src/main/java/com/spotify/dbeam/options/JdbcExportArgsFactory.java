@@ -68,7 +68,8 @@ public class JdbcExportArgsFactory {
                 .withPassword(PasswordReader.INSTANCE.readPassword(exportOptions).orElse(null)),
             exportOptions.getFetchSize(),
             exportOptions.getAvroCodec(),
-            Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()));
+            Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()),
+            exportOptions.isArrayAsBytes());
 
     return JdbcExportArgs.create(
         jdbcAvroArgs,

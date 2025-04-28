@@ -20,31 +20,7 @@
 
 package com.spotify.dbeam.avro;
 
-import static java.sql.Types.ARRAY;
-import static java.sql.Types.BIGINT;
-import static java.sql.Types.BINARY;
-import static java.sql.Types.BIT;
-import static java.sql.Types.BLOB;
-import static java.sql.Types.BOOLEAN;
-import static java.sql.Types.CHAR;
-import static java.sql.Types.CLOB;
-import static java.sql.Types.DATE;
-import static java.sql.Types.DOUBLE;
-import static java.sql.Types.FLOAT;
-import static java.sql.Types.INTEGER;
-import static java.sql.Types.LONGNVARCHAR;
-import static java.sql.Types.LONGVARBINARY;
-import static java.sql.Types.LONGVARCHAR;
-import static java.sql.Types.NCHAR;
-import static java.sql.Types.OTHER;
-import static java.sql.Types.REAL;
-import static java.sql.Types.SMALLINT;
-import static java.sql.Types.TIME;
-import static java.sql.Types.TIMESTAMP;
-import static java.sql.Types.TIME_WITH_TIMEZONE;
-import static java.sql.Types.TINYINT;
-import static java.sql.Types.VARBINARY;
-import static java.sql.Types.VARCHAR;
+import static java.sql.Types.*;
 
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
@@ -75,7 +51,7 @@ public class JdbcAvroRecord {
   }
 
   static SqlFunction<ResultSet, Object> computeMapping(
-      final ResultSetMetaData meta, final int column) throws SQLException {
+      final ResultSetMetaData meta, final int column, final boolean arrayAsBytes) throws SQLException {
     switch (meta.getColumnType(column)) {
       case VARCHAR:
       case CHAR:
@@ -115,7 +91,11 @@ public class JdbcAvroRecord {
           return resultSet -> nullableBytes(resultSet.getBytes(column));
         }
       case ARRAY:
-        return resultSet -> resultSet.getArray(column);
+        if (arrayAsBytes) {
+          return resultSet -> nullableBytes(resultSet.getBytes(column));
+        } else {
+          return resultSet -> resultSet.getArray(column);
+        }
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:

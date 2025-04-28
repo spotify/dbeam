@@ -29,8 +29,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JdbcAvroRecordConverter {
 
@@ -38,7 +36,6 @@ public class JdbcAvroRecordConverter {
   private final int columnCount;
   private final ResultSet resultSet;
   private final EncoderFactory encoderFactory = EncoderFactory.get();
-  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcAvroRecordConverter.class);
 
   public JdbcAvroRecordConverter(
       final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings,
@@ -49,14 +46,15 @@ public class JdbcAvroRecordConverter {
     this.resultSet = resultSet;
   }
 
-  public static JdbcAvroRecordConverter create(final ResultSet resultSet) throws SQLException {
+  public static JdbcAvroRecordConverter create(final ResultSet resultSet, final boolean arrayAsBytes)
+      throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet), resultSet.getMetaData().getColumnCount(), resultSet);
+        computeAllMappings(resultSet, arrayAsBytes), resultSet.getMetaData().getColumnCount(), resultSet);
   }
 
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet) throws SQLException {
+      final ResultSet resultSet, final boolean arrayAsBytes) throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
 
@@ -65,7 +63,7 @@ public class JdbcAvroRecordConverter {
             new JdbcAvroRecord.SqlFunction<?, ?>[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      mappings[i] = JdbcAvroRecord.computeMapping(meta, i);
+      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayAsBytes);
     }
     return mappings;
   }

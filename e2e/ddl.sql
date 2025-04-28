@@ -17,7 +17,8 @@ SELECT
     random() * (timestamp '2010-01-01 00:00:00' -
       timestamp '2020-01-01 00:00:00') AS timestamp1,
   (trunc(random() * 10)::integer + 1) AS tag_field_id,
-  'const' AS flag1,
+  'const'::text AS flag1,
+  'const'::varchar AS flag2,
   array_to_string(array
     (SELECT substr('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', trunc(random() * 62)::integer + 1, 1)
     FROM   generate_series(1, 12)), '') AS random_str2,
@@ -30,7 +31,7 @@ SELECT
   E'\\000'::bytea AS bytes_field,
   ARRAY['foo', 'bar']::text[] AS arr1,
   ARRAY[42, 777]::integer[] AS arr2,
-  ARRAY['foo', 'bar']::varchar[] AS arr3,
+  ARRAY['foo', 'bar']::varchar(12)[] AS arr3,
   ARRAY[gen_random_uuid(), gen_random_uuid()]::uuid[] AS arr4
 FROM
   generate_series(1,1000000) a(n)

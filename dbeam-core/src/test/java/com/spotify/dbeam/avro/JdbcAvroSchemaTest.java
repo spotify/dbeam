@@ -153,7 +153,7 @@ public class JdbcAvroSchemaTest {
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
-            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes);
+            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes, false);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }

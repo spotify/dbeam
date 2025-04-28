@@ -32,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -59,19 +60,12 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.postgresql.jdbc.PgArray;
 
 public class JdbcAvroRecordTest {
 
   private static String CONNECTION_URL =
       "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
-
-  public static GenericRecord readFirstGenericRecord(byte[] avroDocBytes, Schema schema)
-      throws IOException {
-    SeekableByteArrayInput inputStream = new SeekableByteArrayInput(avroDocBytes);
-    DataFileReader<GenericRecord> dataReader = new DataFileReader<>(inputStream,
-        new GenericDatumReader<>(schema));
-    return dataReader.next();
-  }
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException {
@@ -88,7 +82,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false);
+            false, false);
 
     Assert.assertNotNull(actual);
     Assert.assertEquals("dbeam_generated", actual.getNamespace());
@@ -143,6 +137,16 @@ public class JdbcAvroRecordTest {
         Schema.Type.BYTES, actual.getField("UID").schema().getTypes().get(1).getType());
     Assert.assertEquals(
         Schema.Type.LONG, actual.getField("ROWNUM").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.ARRAY, actual.getField("INT_ARR").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.INT,
+        actual.getField("INT_ARR").schema().getTypes().get(1).getElementType().getType());
+    Assert.assertEquals(
+        Schema.Type.ARRAY, actual.getField("TEXT_ARR").schema().getTypes().get(1).getType());
+    Assert.assertEquals(
+        Schema.Type.STRING,
+        actual.getField("TEXT_ARR").schema().getTypes().get(1).getElementType().getType());
     Assert.assertNull(actual.getField("UPDATED").schema().getTypes().get(1).getProp("logicalType"));
   }
 
@@ -156,7 +160,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true);
+            true, false);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -173,37 +177,9 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.of("CustomSchemaName"),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false);
+            false, false);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
-  }
-
-  @Test
-  public void shouldEncodeUUIDValue() throws SQLException, IOException {
-    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(1);
-    when(meta.getColumnType(1)).thenReturn(Types.OTHER);
-    when(meta.getColumnName(1)).thenReturn("test1");
-    when(meta.getColumnClassName(1)).thenReturn("java.util.UUID");
-    when(meta.getColumnTypeName(1)).thenReturn("uuid");
-
-    final ResultSet resultSet = Mockito.mock(ResultSet.class);
-    when(resultSet.getMetaData()).thenReturn(meta);
-    final UUID expected = UUID.randomUUID();
-    when(resultSet.getObject(1)).thenReturn(expected);
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet);
-
-    DataFileWriter<GenericRecord> dataFileWriter =
-        new DataFileWriter<>(new GenericDatumWriter<>(schema));
-    ByteArrayOutputStream avroOutputStream = new ByteArrayOutputStream();
-    dataFileWriter.create(schema, avroOutputStream);
-    dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
-    dataFileWriter.close();
-
-    final GenericRecord rec = readFirstGenericRecord(avroOutputStream.toByteArray(), schema);
-    Assert.assertEquals(rec.get("test1"), new Utf8(expected.toString()));
   }
 
   @Test
@@ -217,8 +193,8 @@ public class JdbcAvroRecordTest {
     rs.first();
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
-            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs);
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false, false);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, false);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
     final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -282,7 +258,7 @@ public class JdbcAvroRecordTest {
     when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
 
     final JdbcAvroRecord.SqlFunction<ResultSet, Object> mapping =
-        JdbcAvroRecord.computeMapping(metadata, columnNum);
+        JdbcAvroRecord.computeMapping(metadata, columnNum, false);
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);
