@@ -22,6 +22,7 @@ package com.spotify.dbeam.avro;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -47,17 +48,17 @@ public class JdbcAvroRecordConverter {
   }
 
   public static JdbcAvroRecordConverter create(final ResultSet resultSet,
-                                               final boolean arrayAsBytes)
+                                               final String arrayMode)
       throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet, arrayAsBytes),
+        computeAllMappings(resultSet, arrayMode),
         resultSet.getMetaData().getColumnCount(),
         resultSet);
   }
 
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet, final boolean arrayAsBytes) throws SQLException {
+      final ResultSet resultSet, final String arrayMode) throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
 
@@ -66,7 +67,7 @@ public class JdbcAvroRecordConverter {
             new JdbcAvroRecord.SqlFunction<?, ?>[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayAsBytes);
+      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayMode);
     }
     return mappings;
   }
@@ -103,14 +104,14 @@ public class JdbcAvroRecordConverter {
         binaryEncoder.writeNull();
       } else {
         binaryEncoder.writeIndex(1);
-        writeValue(value, binaryEncoder);
+        writeValue(value, resultSet.getMetaData().getColumnName(i), binaryEncoder);
       }
     }
     binaryEncoder.flush();
     return ByteBuffer.wrap(out.getBufffer(), 0, out.size());
   }
 
-  private void writeValue(Object value, BinaryEncoder binaryEncoder)
+  private void writeValue(Object value, String column, BinaryEncoder binaryEncoder)
       throws SQLException, IOException {
     if (value instanceof String) {
       binaryEncoder.writeString((String) value);
@@ -134,12 +135,13 @@ public class JdbcAvroRecordConverter {
       binaryEncoder.setItemCount(array.length);
       for (Object arrayItem : array) {
         binaryEncoder.startItem();
-        writeValue(arrayItem, binaryEncoder);
+        writeValue(arrayItem, column, binaryEncoder);
       }
 
       binaryEncoder.writeArrayEnd();
     } else {
-      throw new RuntimeException("Value of type " + value.getClass() + " is not supported");
+      throw new RuntimeException("Value of type " + value.getClass()
+                                 + " in column " + column + " is not supported");
     }
   }
 }

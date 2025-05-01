@@ -87,11 +87,11 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setUseAvroLogicalTypes(Boolean value);
 
-  @Default.Boolean(false)
-  @Description("Legacy mode to write all arrays as bytes to AVRO/")
-  Boolean isArrayAsBytes();
+  @Default.String("typed_first_tow")
+  @Description("Configures how arrays are treated: bytes, typed_first_tow, typed_postgres")
+  String getArrayMode();
 
-  void setArrayAsBytes(Boolean value);
+  void setArrayMode(String value);
 
   @Default.Integer(10000)
   @Description("Configures JDBC Statement fetch size.")

@@ -27,6 +27,7 @@ import com.spotify.dbeam.Coffee;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -82,7 +83,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false, false);
+            false, ArrayHandlingMode.TypedMetaFromFirstRow);
 
     Assert.assertNotNull(actual);
     Assert.assertEquals("dbeam_generated", actual.getNamespace());
@@ -160,7 +161,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true, false);
+            true, ArrayHandlingMode.TypedMetaFromFirstRow);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -177,7 +178,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.of("CustomSchemaName"),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false, false);
+            false, ArrayHandlingMode.TypedMetaFromFirstRow);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
   }
@@ -191,10 +192,12 @@ public class JdbcAvroRecordTest {
             .executeQuery("SELECT * FROM COFFEES");
 
     rs.first();
+    String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
-            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, false);
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc",
+            false, arrayMode);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, arrayMode);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
     final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -258,7 +261,7 @@ public class JdbcAvroRecordTest {
     when(metadata.getColumnClassName(columnNum)).thenReturn("java.lang.Long");
 
     final JdbcAvroRecord.SqlFunction<ResultSet, Object> mapping =
-        JdbcAvroRecord.computeMapping(metadata, columnNum, false);
+        JdbcAvroRecord.computeMapping(metadata, columnNum, ArrayHandlingMode.TypedMetaFromFirstRow);
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);

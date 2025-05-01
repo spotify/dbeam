@@ -22,6 +22,8 @@ startPostgres() {
   docker --version
   docker network create "$DOCKER_NETWORK" || true
 
+  rm -rf /tmp/pgdata || true
+
   mkdir -p /tmp/pgdata
   docker run --detach --name dbeam-postgres \
     --net "$DOCKER_NETWORK" \
@@ -48,8 +50,8 @@ startPostgres() {
 }
 
 dockerClean() {
-  docker rm -f dbeam-postgres
-  docker network rm "$DOCKER_NETWORK"
+  docker rm -f dbeam-postgres || true
+  docker network rm "$DOCKER_NETWORK" || true
 }
 
 JAVA_OPTS=(
@@ -97,12 +99,14 @@ runSuite() {
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=zstandard1
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=bytes
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
 }
 
 light() {
   pack
   table=demo_table
-  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
+  BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
 }
 
 
@@ -110,6 +114,7 @@ main() {
   if [[ $# -gt 0 ]]; then
     "$@"
   else
+    dockerClean
     # pack  # assume pack already ran before
     time startPostgres
 

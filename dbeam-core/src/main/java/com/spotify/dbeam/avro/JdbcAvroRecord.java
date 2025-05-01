@@ -22,6 +22,7 @@ package com.spotify.dbeam.avro;
 
 import static java.sql.Types.*;
 
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -52,7 +53,7 @@ public class JdbcAvroRecord {
 
   static SqlFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta,
                                                        final int column,
-                                                       final boolean arrayAsBytes)
+                                                       final String arrayMode)
       throws SQLException {
     switch (meta.getColumnType(column)) {
       case VARCHAR:
@@ -93,7 +94,7 @@ public class JdbcAvroRecord {
           return resultSet -> nullableBytes(resultSet.getBytes(column));
         }
       case ARRAY:
-        if (arrayAsBytes) {
+        if (arrayMode.equals(ArrayHandlingMode.Bytes)) {
           return resultSet -> nullableBytes(resultSet.getBytes(column));
         } else {
           return resultSet -> resultSet.getArray(column);

@@ -51,6 +51,7 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.JDBCType;
@@ -76,11 +77,15 @@ public class JdbcAvroSchema {
       final Optional<String> schemaName,
       final String avroDoc,
       final boolean useLogicalTypes,
-      final boolean arrayAsBytes)
+      final String arrayMode)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
+
+      if (!resultSet.isBeforeFirst()) {
+        LOGGER.warn("When attempting to derive AVRO schema DB query returned no results");
+      }
 
       resultSet.next();
 
@@ -92,9 +97,9 @@ public class JdbcAvroSchema {
               schemaName,
               avroDoc,
               useLogicalTypes,
-              arrayAsBytes);
-      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayAsBytes={}, "
-                  + "Generated schema: {}", useLogicalTypes, arrayAsBytes, schema.toString());
+              arrayMode);
+      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayMode={}, "
+                  + "Generated schema: {}", useLogicalTypes, arrayMode, schema.toString());
       return schema;
     }
   }
@@ -106,7 +111,7 @@ public class JdbcAvroSchema {
       final Optional<String> maybeSchemaName,
       final String avroDoc,
       final boolean useLogicalTypes,
-      final boolean arrayAsBytes)
+      final String arrayMode)
       throws SQLException {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
@@ -120,7 +125,7 @@ public class JdbcAvroSchema {
             .prop("tableName", tableName)
             .prop("connectionUrl", connectionUrl)
             .fields();
-    return createAvroFields(resultSet, builder, useLogicalTypes, arrayAsBytes).endRecord();
+    return createAvroFields(resultSet, builder, useLogicalTypes, arrayMode).endRecord();
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
@@ -139,7 +144,7 @@ public class JdbcAvroSchema {
       final ResultSet resultSet,
       final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes,
-      final boolean arrayAsBytes)
+      final String arrayMode)
       throws SQLException {
 
     ResultSetMetaData meta = resultSet.getMetaData();
@@ -175,17 +180,19 @@ public class JdbcAvroSchema {
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
       Array arrayInstance =
-          resultSet.isFirst() && columnType == ARRAY ? resultSet.getArray(i) : null;
+          resultSet.isFirst() && columnType == ARRAY
+          && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
+          ? resultSet.getArray(i) : null;
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
-          setAvroColumnType(
+          buildAvroFieldType(
               columnType,
               arrayInstance,
               meta.getPrecision(i),
               columnClassName,
               columnTypeName,
               useLogicalTypes,
-              arrayAsBytes,
+              arrayMode,
               fieldSchemaBuilder);
 
       schemaFieldAssembler.endUnion().nullDefault();
@@ -205,15 +212,15 @@ public class JdbcAvroSchema {
    * </ul>
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
-      setAvroColumnType(
-          final int columnType,
-          final Array arrayInstance,
-          final int precision,
-          final String columnClassName,
-          final String columnTypeName,
-          final boolean useLogicalTypes,
-          final boolean arrayAsBytes,
-          final SchemaBuilder.BaseTypeBuilder<
+      buildAvroFieldType(
+        final int columnType,
+        final Array arrayInstance,
+        final int precision,
+        final String columnClassName,
+        final String columnTypeName,
+        final boolean useLogicalTypes,
+        final String arrayMode,
+        final SchemaBuilder.BaseTypeBuilder<
                   SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
               field) throws SQLException {
     switch (columnType) {
@@ -248,21 +255,32 @@ public class JdbcAvroSchema {
           return field.bytesType();
         }
       case ARRAY:
-        if (arrayAsBytes) {
+        if (arrayMode.equals(ArrayHandlingMode.Bytes)) {
           return field.bytesType();
         }
+
+        if (arrayMode.equals(ArrayHandlingMode.TypedMetaPostgres)) {
+          if (!columnTypeName.startsWith("_")) {
+            throw new RuntimeException("columnTypeName=" + columnTypeName
+                                       + " should start with '_'");
+          }
+
+          return buildAvroFieldTypeFromPGType(columnTypeName.substring(1),
+              useLogicalTypes, field.array().items());
+        }
+
         if (arrayInstance == null) {
           throw new RuntimeException(
               "When inspecting ARRAY column type its first value is NULL");
         }
-        return setAvroColumnType(
+        return buildAvroFieldType(
             arrayInstance.getBaseType(),
             null,
             precision,
             columnClassName,
             arrayInstance.getBaseTypeName(),
             useLogicalTypes,
-            arrayAsBytes,
+            arrayMode,
             field.array().items());
       case BINARY:
       case VARBINARY:
@@ -295,6 +313,34 @@ public class JdbcAvroSchema {
       case NCHAR:
       default:
         return field.stringType();
+    }
+  }
+
+  private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
+      buildAvroFieldTypeFromPGType(
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final SchemaBuilder.BaseTypeBuilder<
+          SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+          field) {
+    switch (columnTypeName) {
+      case "uuid":
+        if (useLogicalTypes) {
+          return field.stringBuilder().prop("logicalType", "uuid").endString();
+        } else {
+          return field.stringType();
+        }
+      case "int":
+      case "int4":
+        return field.intType();
+      case "int8":
+        return field.longType();
+      case "varchar":
+      case "char":
+      case "text":
+        return field.stringType();
+      default:
+        throw new RuntimeException("Postgres type '" + columnTypeName + "' is not supported");
     }
   }
 

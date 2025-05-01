@@ -31,10 +31,13 @@ SELECT
   E'\\000'::bytea AS bytes_field,
   ARRAY['foo', 'bar']::text[] AS arr1,
   ARRAY[42, 777]::integer[] AS arr2,
-  ARRAY['foo', 'bar']::varchar(12)[] AS arr3,
-  ARRAY[gen_random_uuid(), gen_random_uuid()]::uuid[] AS arr4
+  ARRAY[21474836471, 21474836479]::bigint[] AS arr3,
+-- TODO: ADD normal numeric support
+--   ARRAY[1.99, 5.99]::numeric[] AS arr4,
+  ARRAY['foo', 'bar']::varchar(12)[] AS arr5,
+  ARRAY[gen_random_uuid(), gen_random_uuid()]::uuid[] AS arr6
 FROM
   generate_series(1,1000000) a(n)
-  ;
+;
 ANALYZE demo_table;
 EXPLAIN ANALYZE SELECT * FROM demo_table;

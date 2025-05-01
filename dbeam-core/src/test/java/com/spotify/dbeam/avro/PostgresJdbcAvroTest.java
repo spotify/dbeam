@@ -23,6 +23,7 @@ package com.spotify.dbeam.avro;
 import static org.mockito.Mockito.when;
 
 import com.spotify.dbeam.TestHelper;
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -31,6 +32,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.avro.Schema;
@@ -48,20 +51,40 @@ import org.mockito.Mockito;
 
 public class PostgresJdbcAvroTest {
 
-  public static GenericRecord bytesToGenericRecord(Schema schema,
-                                                             ByteBuffer avroRecordBytes)
+  public static List<GenericRecord> bytesToGenericRecords(Schema schema,
+                                                          ByteBuffer... avroRecordBytes)
       throws IOException {
     DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
     ByteArrayOutputStream avroOutputStream = new ByteArrayOutputStream();
     dataFileWriter.create(schema, avroOutputStream);
-    dataFileWriter.appendEncoded(avroRecordBytes);
+    for (ByteBuffer b : avroRecordBytes) {
+      dataFileWriter.appendEncoded(b);
+    }
+
     dataFileWriter.close();
 
     SeekableByteArrayInput inputStream = new SeekableByteArrayInput(avroOutputStream.toByteArray());
+    List<GenericRecord> genericRecords = new ArrayList<>();
     DataFileReader<GenericRecord> dataReader = new DataFileReader<>(inputStream,
         new GenericDatumReader<>(schema));
-    return dataReader.next();
+    while (dataReader.hasNext()) {
+      genericRecords.add(dataReader.next());
+    }
+    return genericRecords;
+  }
+
+  public void assertGenericRecordArrayField(GenericRecord record, String fieldName,
+                                       String expectedItem) {
+    assertGenericRecordArrayField(record, fieldName, new Utf8(expectedItem));
+  }
+
+  public void assertGenericRecordArrayField(GenericRecord record, String fieldName,
+                                       Object expectedItem) {
+    final GenericData.Array<GenericRecord> arrayValue =
+        (GenericData.Array<GenericRecord>) record.get(fieldName);
+    Assert.assertEquals(1, arrayValue.size());
+    Assert.assertEquals(expectedItem, arrayValue.get(0));
   }
 
   @Test
@@ -79,12 +102,13 @@ public class PostgresJdbcAvroTest {
     when(resultSet.getArray(2)).thenReturn(arrayMock);
     when(resultSet.isFirst()).thenReturn(true);
 
+    String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, false);
+        Optional.empty(), "doc", true, arrayMode);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode);
 
-    GenericRecord actualRecord = bytesToGenericRecord(schema,
-        converter.convertResultSetIntoAvroBytes());
+    GenericRecord actualRecord = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes()).get(0);
     Assert.assertEquals(actualRecord.get("uuid_field"), new Utf8(uuidExpected.toString()));
     final GenericData.Array<GenericRecord> arrayValue =
         (GenericData.Array<GenericRecord>) actualRecord.get("array_field");
@@ -112,12 +136,13 @@ public class PostgresJdbcAvroTest {
     when(resultSet.getArray(3)).thenReturn(arrayMock2);
     when(resultSet.isFirst()).thenReturn(true);
 
+    String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, false);
+        Optional.empty(), "doc", true, arrayMode);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode);
 
-    GenericRecord actualRecord = bytesToGenericRecord(schema,
-        converter.convertResultSetIntoAvroBytes());
+    GenericRecord actualRecord = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes()).get(0);
     Assert.assertEquals(actualRecord.get("text_field"), new Utf8("some_text_42"));
     final GenericData.Array<GenericRecord> arrayValue1 =
         (GenericData.Array<GenericRecord>) actualRecord.get("array_field1");
@@ -141,11 +166,11 @@ public class PostgresJdbcAvroTest {
 
     Assert.assertThrows(RuntimeException.class, () -> JdbcAvroSchema.createAvroSchema(resultSet,
         "ns", "conn_url",
-        Optional.empty(), "doc", true, false));
+        Optional.empty(), "doc", true, ArrayHandlingMode.TypedMetaFromFirstRow));
   }
 
   @Test
-  public void shouldHandleArrayWithNulls() throws SQLException, IOException {
+  public void shouldHandleArrayWithNullsUsingArrayAsBytes() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(1);
     TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "array_field", "java.sql.Array", "_uuid");
@@ -155,15 +180,55 @@ public class PostgresJdbcAvroTest {
     byte[] expectedValue = new byte[] {1, 2, 3};
     when(resultSet.getBytes(1)).thenReturn(expectedValue);
     when(resultSet.isFirst()).thenReturn(true);
-    boolean arrayAsBytes = true;
+    String arrayMode = ArrayHandlingMode.Bytes;
 
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayAsBytes);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet,
-        arrayAsBytes);
-    GenericRecord actualRecord = bytesToGenericRecord(schema,
-        converter.convertResultSetIntoAvroBytes());
+        Optional.empty(), "doc", true, arrayMode);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode);
+    GenericRecord actualRecord = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes()).get(0);
     Assert.assertArrayEquals(expectedValue,
         ((java.nio.ByteBuffer) actualRecord.get("array_field")).array());
+  }
+
+  @Test
+  public void shouldHandleArrayWithNullsWithoutReadingFirstRow() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(3);
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "array_field_varchar", "java.sql.Array",
+        "_varchar");
+    TestHelper.mockResultSetMeta(meta, 2, Types.ARRAY, "array_field_text", "java.sql.Array",
+        "_text");
+    TestHelper.mockResultSetMeta(meta, 3, Types.ARRAY, "array_field_uuid", "java.sql.Array",
+        "_uuid");
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+    final Array arrayMock1 = TestHelper.mockDbArray(Types.VARCHAR, "varchar",
+        new String[] {"some_varchar_42"});
+    when(resultSet.getArray(1)).thenReturn(null, arrayMock1);
+    final Array arrayMock2 = TestHelper.mockDbArray(Types.VARCHAR, "text",
+        new String[] {"some_text_42"});
+    when(resultSet.getArray(2)).thenReturn(null, arrayMock2);
+    final UUID uuidExpected = UUID.randomUUID();
+    final Array arrayMock3 = TestHelper.mockDbArray(Types.VARCHAR, "uuid",
+        new UUID[] {uuidExpected});
+    when(resultSet.getArray(3)).thenReturn(null, arrayMock3);
+    when(resultSet.next()).thenReturn(true, true, false);
+    when(resultSet.isFirst()).thenReturn(true);
+    String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
+
+    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", true, arrayMode);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode);
+    List<GenericRecord> actualRecords = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes());
+
+    Assert.assertNull(actualRecords.get(0).get("array_field_varchar"));
+    Assert.assertNull(actualRecords.get(0).get("array_field_text"));
+    Assert.assertNull(actualRecords.get(0).get("array_field_uuid"));
+    assertGenericRecordArrayField(actualRecords.get(1), "array_field_varchar", "some_varchar_42");
+    assertGenericRecordArrayField(actualRecords.get(1), "array_field_text", "some_text_42");
+    assertGenericRecordArrayField(actualRecords.get(1), "array_field_uuid",
+        uuidExpected.toString());
   }
 }

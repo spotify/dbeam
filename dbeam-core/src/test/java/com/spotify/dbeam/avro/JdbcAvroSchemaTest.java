@@ -22,6 +22,7 @@ package com.spotify.dbeam.avro;
 
 import static org.mockito.Mockito.when;
 
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -153,7 +154,8 @@ public class JdbcAvroSchemaTest {
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
-            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes, false);
+            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes,
+            ArrayHandlingMode.TypedMetaFromFirstRow);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }

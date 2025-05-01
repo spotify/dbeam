@@ -69,7 +69,7 @@ public class JdbcExportArgsFactory {
             exportOptions.getFetchSize(),
             exportOptions.getAvroCodec(),
             Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()),
-            exportOptions.isArrayAsBytes());
+            ArrayHandlingMode.validateValue(exportOptions.getArrayMode()));
 
     return JdbcExportArgs.create(
         jdbcAvroArgs,
