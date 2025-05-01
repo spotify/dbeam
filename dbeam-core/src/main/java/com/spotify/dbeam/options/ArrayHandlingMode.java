@@ -25,7 +25,7 @@ import java.util.List;
 
 public class ArrayHandlingMode {
   public static final String Bytes = "bytes";
-  public static final String TypedMetaFromFirstRow = "typed_first_tow";
+  public static final String TypedMetaFromFirstRow = "typed_first_row";
   public static final String TypedMetaPostgres = "typed_postgres";
 
   public static String validateValue(String value) {
