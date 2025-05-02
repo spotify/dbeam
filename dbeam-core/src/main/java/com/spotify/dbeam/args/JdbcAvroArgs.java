@@ -97,7 +97,8 @@ public abstract class JdbcAvroArgs implements Serializable {
   }
 
   public static JdbcAvroArgs create(final JdbcConnectionArgs jdbcConnectionArgs) {
-    return create(jdbcConnectionArgs, 10000, "deflate6", Collections.emptyList(), "false");
+    return create(jdbcConnectionArgs, 10000, "deflate6", Collections.emptyList(),
+        "typed_first_row");
   }
 
   public interface StatementPreparator extends Serializable {

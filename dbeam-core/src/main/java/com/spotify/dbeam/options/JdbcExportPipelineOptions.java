@@ -87,8 +87,8 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setUseAvroLogicalTypes(Boolean value);
 
-  @Default.String("typed_first_tow")
-  @Description("Configures how arrays are treated: bytes, typed_first_tow, typed_postgres")
+  @Default.String("typed_first_row")
+  @Description("Configures how arrays are treated: bytes, typed_first_row, typed_postgres")
   String getArrayMode();
 
   void setArrayMode(String value);
