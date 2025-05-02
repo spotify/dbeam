@@ -124,7 +124,7 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --useAvroLogicalTypes=<Boolean>
     Default: false
     Controls whether generated Avro schema will contain logicalTypes or not.
-  --arrayMode=<Boolean>
+  --arrayMode=<String>
     Default: typed_first_tow
     Configures how arrays are treated:
     - "bytes": serialize as byte array
