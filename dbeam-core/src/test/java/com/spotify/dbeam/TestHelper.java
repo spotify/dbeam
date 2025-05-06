@@ -67,6 +67,32 @@ public class TestHelper {
     return new UUID(high, low);
   }
 
+  public static void mockArrayColumn(ResultSetMetaData meta, ResultSet resultSet,
+                                     int columnIdx, String columnName,
+                                     String columnTypeName, int arrayType, String arrayTypeName,
+                                     Object array1, Object... arrays)
+      throws SQLException {
+    mockResultSetMeta(meta, columnIdx, Types.ARRAY, columnName, "java.sql.Array",
+        columnTypeName);
+    Array res1;
+    if (array1 == null) {
+      res1 = null;
+    } else {
+      res1 = TestHelper.mockDbArray(arrayType, arrayTypeName, array1);
+    }
+
+    Array[] resX = new Array[arrays.length];
+    for (int i = 0; i < arrays.length; i++) {
+      Object arr = arrays[i];
+      if (arr == null) {
+        resX[i] = null;
+      } else {
+        resX[i] = TestHelper.mockDbArray(arrayType, arrayTypeName, arr);
+      }
+    }
+    when(resultSet.getArray(columnIdx)).thenReturn(res1, resX);
+  }
+
   public static void mockResultSetMeta(ResultSetMetaData meta, int columnIdx, int columnType,
                                        String columnName,
                                        String columnClassName, String columnTypeName)

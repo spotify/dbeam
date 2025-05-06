@@ -22,7 +22,6 @@ package com.spotify.dbeam.avro;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -113,7 +112,9 @@ public class JdbcAvroRecordConverter {
 
   private void writeValue(Object value, String column, BinaryEncoder binaryEncoder)
       throws SQLException, IOException {
-    if (value instanceof String) {
+    if (value == null) {
+      binaryEncoder.writeNull();
+    } else if (value instanceof String) {
       binaryEncoder.writeString((String) value);
     } else if (value instanceof UUID) {
       binaryEncoder.writeString(value.toString());
@@ -140,8 +141,9 @@ public class JdbcAvroRecordConverter {
 
       binaryEncoder.writeArrayEnd();
     } else {
-      throw new RuntimeException("Value of type " + value.getClass()
-                                 + " in column " + column + " is not supported");
+      throw new RuntimeException(
+          String.format("Value of type %s in column %s is not supported", value.getClass(),
+              column));
     }
   }
 }

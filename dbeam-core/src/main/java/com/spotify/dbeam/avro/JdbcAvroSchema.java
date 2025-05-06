@@ -186,6 +186,7 @@ public class JdbcAvroSchema {
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           buildAvroFieldType(
+              columnName,
               columnType,
               arrayInstance,
               meta.getPrecision(i),
@@ -213,6 +214,7 @@ public class JdbcAvroSchema {
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       buildAvroFieldType(
+        final String columnName,
         final int columnType,
         final Array arrayInstance,
         final int precision,
@@ -261,7 +263,8 @@ public class JdbcAvroSchema {
 
         if (arrayMode.equals(ArrayHandlingMode.TypedMetaPostgres)) {
           if (!columnTypeName.startsWith("_")) {
-            throw new RuntimeException("columnTypeName=" + columnTypeName
+            throw new RuntimeException("columnName=" + columnName
+                                       + " columnTypeName=" + columnTypeName
                                        + " should start with '_'");
           }
 
@@ -271,9 +274,11 @@ public class JdbcAvroSchema {
 
         if (arrayInstance == null) {
           throw new RuntimeException(
-              "When inspecting ARRAY column type its first value is NULL");
+              "When inspecting ARRAY column type in '" + columnName
+              + "' its first value is NULL");
         }
         return buildAvroFieldType(
+            columnName,
             arrayInstance.getBaseType(),
             null,
             precision,

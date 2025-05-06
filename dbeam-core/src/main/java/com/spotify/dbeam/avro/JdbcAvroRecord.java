@@ -112,9 +112,8 @@ public class JdbcAvroRecord {
       case OTHER:
         if (Objects.equals(meta.getColumnTypeName(column), "uuid")) {
           return resultSet -> resultSet.getObject(column);
-        } else {
-          return resultSet -> resultSet.getString(column);
         }
+        return resultSet -> resultSet.getString(column);
       default:
         return resultSet -> resultSet.getString(column);
     }
