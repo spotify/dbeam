@@ -56,7 +56,7 @@ jobs:
           mkdir -p /opt/avro
           mv avro-tools-1.11.3.jar /opt/avro/
           chmod +x /opt/avro/avro-tools-1.11.3.jar
-          echo alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar' >> ~/.bashrc
+          echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'" > ~/.bashrc
       - name: End to end tests
         shell: bash
         if: matrix.java_version == '17'
