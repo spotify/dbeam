@@ -2,6 +2,7 @@
 
 shopt -s expand_aliases
 source ~/.bashrc
+alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'
 
 # fail on error
 set -o errexit
