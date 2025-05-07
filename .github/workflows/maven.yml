@@ -60,7 +60,9 @@ jobs:
       - name: End to end tests
         shell: bash
         if: matrix.java_version == '17'
-        run: ./e2e/e2e.sh
+        run: |
+          cat ~/.bashrc
+          ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
         if: matrix.java_version == '17'
       - uses: actions/upload-artifact@v4
