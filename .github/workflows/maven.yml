@@ -59,7 +59,8 @@ jobs:
       - name: End to end tests
         if: matrix.java_version == '17'
         run: |
-          echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'"
+          echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'" >> ~/.bashrc
+          source ~/.bashrc
           ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
         if: matrix.java_version == '17'
