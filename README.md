@@ -129,7 +129,10 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
     Configures how arrays are treated:
     - "bytes": serialize as byte array
     - "typed_first_row": read first row to get array item type from java.sql.Array
-    - "typed_postgres": read columnTypeName in metadata to get Postgres specific array item type 
+    - "typed_postgres": read columnTypeName in metadata to get Postgres specific array item type
+  --nullableArrayItems=<Boolean>
+    Default: false
+    Controls whether array items should be nullable, ignored if arrayMode is 'bytes'. 
 ```
 
 #### Input Avro schema file

@@ -77,7 +77,8 @@ public class JdbcAvroSchema {
       final Optional<String> schemaName,
       final String avroDoc,
       final boolean useLogicalTypes,
-      final String arrayMode)
+      final String arrayMode,
+      final boolean nullableArrayItems)
       throws SQLException {
     LOGGER.debug("Creating Avro schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
@@ -97,7 +98,8 @@ public class JdbcAvroSchema {
               schemaName,
               avroDoc,
               useLogicalTypes,
-              arrayMode);
+              arrayMode,
+              nullableArrayItems);
       LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayMode={}, "
                   + "Generated schema: {}", useLogicalTypes, arrayMode, schema.toString());
       return schema;
@@ -111,7 +113,8 @@ public class JdbcAvroSchema {
       final Optional<String> maybeSchemaName,
       final String avroDoc,
       final boolean useLogicalTypes,
-      final String arrayMode)
+      final String arrayMode,
+      final boolean nullableArrayItems)
       throws SQLException {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
@@ -125,7 +128,8 @@ public class JdbcAvroSchema {
             .prop("tableName", tableName)
             .prop("connectionUrl", connectionUrl)
             .fields();
-    return createAvroFields(resultSet, builder, useLogicalTypes, arrayMode).endRecord();
+    return createAvroFields(resultSet, builder, useLogicalTypes, arrayMode, nullableArrayItems)
+        .endRecord();
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
@@ -144,7 +148,8 @@ public class JdbcAvroSchema {
       final ResultSet resultSet,
       final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes,
-      final String arrayMode)
+      final String arrayMode,
+      final boolean nullableArrayItems)
       throws SQLException {
 
     ResultSetMetaData meta = resultSet.getMetaData();
@@ -194,6 +199,7 @@ public class JdbcAvroSchema {
               columnTypeName,
               useLogicalTypes,
               arrayMode,
+              nullableArrayItems,
               fieldSchemaBuilder);
 
       schemaFieldAssembler.endUnion().nullDefault();
@@ -214,17 +220,17 @@ public class JdbcAvroSchema {
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       buildAvroFieldType(
-        final String columnName,
-        final int columnType,
-        final Array arrayInstance,
-        final int precision,
-        final String columnClassName,
-        final String columnTypeName,
-        final boolean useLogicalTypes,
-        final String arrayMode,
-        final SchemaBuilder.BaseTypeBuilder<
-                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-              field) throws SQLException {
+      final String columnName,
+      final int columnType,
+      final Array arrayInstance,
+      final int precision,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final String arrayMode,
+      final boolean nullableArrayItems,
+      final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
+          SchemaBuilder.NullDefault<Schema>>> field) throws SQLException {
     switch (columnType) {
       case BIGINT:
         return field.longType();
@@ -269,7 +275,7 @@ public class JdbcAvroSchema {
           }
 
           return buildAvroFieldTypeFromPGType(columnTypeName.substring(1),
-              useLogicalTypes, field.array().items());
+              useLogicalTypes, buildArrayItems(nullableArrayItems, field));
         }
 
         if (arrayInstance == null) {
@@ -286,7 +292,8 @@ public class JdbcAvroSchema {
             arrayInstance.getBaseTypeName(),
             useLogicalTypes,
             arrayMode,
-            field.array().items());
+            nullableArrayItems,
+            buildArrayItems(nullableArrayItems, field));
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
@@ -318,6 +325,19 @@ public class JdbcAvroSchema {
       case NCHAR:
       default:
         return field.stringType();
+    }
+  }
+
+  private static SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
+      SchemaBuilder.NullDefault<Schema>>>
+      buildArrayItems(
+      final boolean nullableArrayItems,
+      final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
+          SchemaBuilder.NullDefault<Schema>>> field) {
+    if (nullableArrayItems) {
+      return field.array().items().nullable();
+    } else {
+      return field.array().items();
     }
   }
 

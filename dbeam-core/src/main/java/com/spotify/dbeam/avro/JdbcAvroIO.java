@@ -206,7 +206,7 @@ public class JdbcAvroIO {
       try (ResultSet resultSet = executeQuery(query)) {
         metering.startWriteMeter();
         final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet,
-            this.jdbcAvroArgs.arrayMode());
+            this.jdbcAvroArgs.arrayMode(), this.jdbcAvroArgs.nullableArrayItems());
         while (resultSet.next()) {
           dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
           this.metering.incrementRecordCount();

@@ -88,10 +88,16 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   void setUseAvroLogicalTypes(Boolean value);
 
   @Default.String("typed_first_row")
-  @Description("Configures how arrays are treated: bytes, typed_first_row, typed_postgres")
+  @Description("Configures how arrays are treated: bytes, typed_first_row, typed_postgres.")
   String getArrayMode();
 
   void setArrayMode(String value);
+
+  @Default.Boolean(false)
+  @Description("Controls whether array items should be nullable, ignored if arrayMode is 'bytes'.")
+  Boolean isNullableArrayItems();
+
+  void setNullableArrayItems(Boolean value);
 
   @Default.Integer(10000)
   @Description("Configures JDBC Statement fetch size.")

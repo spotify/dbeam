@@ -49,6 +49,13 @@ jobs:
           name: codecov-umbrella # optional
           fail_ci_if_error: false # optional (default = false)
           verbose: true # optional (default = false)
+      - name: Install avro tools
+        if: matrix.java_version == '17'
+        run: |
+          wget https://dlcdn.apache.org/avro/avro-1.11.3/java/avro-tools-1.11.3.jar
+          mkdir -p /opt/avro
+          mv avro-tools-1.11.3.jar /opt/avro/
+          chmod +x /opt/avro/avro-tools-1.11.3.jar
       - name: End to end tests
         if: matrix.java_version == '17'
         run: ./e2e/e2e.sh

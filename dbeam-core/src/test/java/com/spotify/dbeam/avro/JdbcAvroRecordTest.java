@@ -83,7 +83,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false, ArrayHandlingMode.TypedMetaFromFirstRow);
+            false, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
     Assert.assertNotNull(actual);
     Assert.assertEquals("dbeam_generated", actual.getNamespace());
@@ -141,7 +141,7 @@ public class JdbcAvroRecordTest {
     Assert.assertEquals(
         Schema.Type.ARRAY, actual.getField("INT_ARR").schema().getTypes().get(1).getType());
     Assert.assertEquals(
-        Schema.Type.INT,
+        Schema.Type.INT, ///// MAKE THIS UNION
         actual.getField("INT_ARR").schema().getTypes().get(1).getElementType().getType());
     Assert.assertEquals(
         Schema.Type.ARRAY, actual.getField("TEXT_ARR").schema().getTypes().get(1).getType());
@@ -161,7 +161,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true, ArrayHandlingMode.TypedMetaFromFirstRow);
+            true, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -178,7 +178,7 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.of("CustomSchemaName"),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false, ArrayHandlingMode.TypedMetaFromFirstRow);
+            false, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
   }
@@ -196,8 +196,8 @@ public class JdbcAvroRecordTest {
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
             rs, "dbeam_generated", "connection", Optional.empty(), "doc",
-            false, arrayMode);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, arrayMode);
+            false, arrayMode, false);
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, arrayMode, false);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
     final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

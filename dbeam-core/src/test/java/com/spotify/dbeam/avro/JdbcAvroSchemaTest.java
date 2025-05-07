@@ -155,7 +155,7 @@ public class JdbcAvroSchemaTest {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
             resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes,
-            ArrayHandlingMode.TypedMetaFromFirstRow);
+            ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }
