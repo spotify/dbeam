@@ -2,7 +2,6 @@
 
 shopt -s expand_aliases
 source ~/.bashrc
-#alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'
 
 # fail on error
 set -o errexit
@@ -96,7 +95,7 @@ runDBeamDockerCon() {
     "--output=$OUTPUT" \
     "--minRows=${minRows:-1000000}" \
     "$@" 2>&1 | tee -a /tmp/debeam_e2e.log
-  avro-tools tojson $OUTPUT/run_0/part-00000-of-00001.avro | head -n 5
+  avro-tools tojson $(OUTPUT)run_0/part-00000-of-00001.avro | head -n 5
 }
 
 runSuite() {
