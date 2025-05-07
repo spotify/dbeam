@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+shopt -s expand_aliases
+source ~/.bashrc
+
 # fail on error
 set -o errexit
 set -o nounset
