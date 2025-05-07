@@ -58,7 +58,9 @@ jobs:
           chmod +x /opt/avro/avro-tools-1.11.3.jar
       - name: End to end tests
         if: matrix.java_version == '17'
-        run: ./e2e/e2e.sh
+        run: |
+          echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'"
+          ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
         if: matrix.java_version == '17'
       - uses: actions/upload-artifact@v4
