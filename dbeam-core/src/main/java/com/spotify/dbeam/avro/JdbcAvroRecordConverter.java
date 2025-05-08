@@ -151,7 +151,8 @@ public class JdbcAvroRecordConverter {
         } else {
           if (arrayItem == null) {
             throw new RuntimeException(
-                String.format("Array item is null in column '%s', use --nullableArrayItems", column));
+                String.format("Array item is null in column '%s', use --nullableArrayItems",
+                    column));
           }
 
           writeValue(arrayItem, column, binaryEncoder);
