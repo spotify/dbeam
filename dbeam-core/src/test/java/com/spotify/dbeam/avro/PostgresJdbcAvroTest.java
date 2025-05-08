@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.Array;
@@ -112,7 +113,7 @@ public class PostgresJdbcAvroTest {
 
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", false, arrayMode, false);
+        Optional.empty(), "doc", true, arrayMode, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(
         resultSet, arrayMode, false);
 
@@ -259,7 +260,7 @@ public class PostgresJdbcAvroTest {
   }
 
   @Test
-  public void shouldThrowOnArrayWithNullsIfDisabled() throws SQLException, IOException {
+  public void shouldThrowOnArrayWithNullsIfDisabled() throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(3);
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
@@ -277,13 +278,54 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = false;
 
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, nullableArrayItems);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
         nullableArrayItems);
     RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
         () -> converter.convertResultSetIntoAvroBytes());
-    Assert.assertEquals("Array item is null in column array_field_varchar, use "
+    Assert.assertEquals("Array item is null in column 'array_field_varchar', use "
                         + "--nullableArrayItems", thrown.getMessage());
+  }
+
+  @Test
+  public void shouldThrowOnUnknownType() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    TestHelper.mockArrayColumn(meta, resultSet, 1, "invalid_array", "_uuid",
+        Types.VARCHAR, "uuid", new File[] { new File("/some/file")});
+    when(resultSet.next()).thenReturn(true, false);
+    when(resultSet.isFirst()).thenReturn(true, false);
+    String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
+    boolean nullableArrayItems = false;
+
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
+        nullableArrayItems);
+    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
+        () -> converter.convertResultSetIntoAvroBytes());
+    Assert.assertEquals("Value of type class java.io.File in column 'invalid_array' is not "
+                        + "supported", thrown.getMessage());
+  }
+
+  @Test
+  public void shouldThrowOnInvalidArrayColumnTypeName() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_text", "text",
+        Types.VARCHAR, "text", new String[] { "some_text_42", null, "42"});
+    when(resultSet.next()).thenReturn(true, false);
+    when(resultSet.isFirst()).thenReturn(true, false);
+    String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
+    boolean nullableArrayItems = true;
+
+    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
+        () -> JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+            Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
+    Assert.assertEquals("columnName=array_field_text columnTypeName=text should start with '_'",
+        thrown.getMessage());
   }
 }

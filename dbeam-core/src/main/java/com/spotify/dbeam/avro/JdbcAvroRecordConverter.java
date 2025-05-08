@@ -151,7 +151,7 @@ public class JdbcAvroRecordConverter {
         } else {
           if (arrayItem == null) {
             throw new RuntimeException(
-                String.format("Array item is null in column %s, use --nullableArrayItems", column));
+                String.format("Array item is null in column '%s', use --nullableArrayItems", column));
           }
 
           writeValue(arrayItem, column, binaryEncoder);
@@ -161,7 +161,7 @@ public class JdbcAvroRecordConverter {
       binaryEncoder.writeArrayEnd();
     } else {
       throw new RuntimeException(
-          String.format("Value of type %s in column %s is not supported", value.getClass(),
+          String.format("Value of type %s in column '%s' is not supported", value.getClass(),
               column));
     }
   }

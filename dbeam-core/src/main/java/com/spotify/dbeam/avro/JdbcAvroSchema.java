@@ -84,10 +84,6 @@ public class JdbcAvroSchema {
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
 
-      if (!resultSet.isBeforeFirst()) {
-        LOGGER.warn("When attempting to derive AVRO schema DB query returned no results");
-      }
-
       resultSet.next();
 
       final Schema schema =
