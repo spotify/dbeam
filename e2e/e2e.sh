@@ -95,7 +95,8 @@ runDBeamDockerCon() {
     "--output=$OUTPUT" \
     "--minRows=${minRows:-1000000}" \
     "$@" 2>&1 | tee -a /tmp/debeam_e2e.log
-  avro-tools tojson ${OUTPUT}run_0/*.avro | head -n 5
+  OUTPUT_FILE=$(ls ${OUTPUT}run_0/*.avro | head -n 1)
+  avro-tools tojson --head=5 $OUTPUT_FILE
 }
 
 runSuite() {
