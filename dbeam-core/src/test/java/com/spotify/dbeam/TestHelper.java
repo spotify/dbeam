@@ -20,17 +20,26 @@
 
 package com.spotify.dbeam;
 
+import static org.mockito.Mockito.when;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.mockito.Mockito;
+import org.postgresql.jdbc.PgArray;
 
 public class TestHelper {
 
@@ -56,5 +65,50 @@ public class TestHelper {
     final Long low = byteBuffer.getLong();
 
     return new UUID(high, low);
+  }
+
+  public static void mockArrayColumn(ResultSetMetaData meta, ResultSet resultSet,
+                                     int columnIdx, String columnName,
+                                     String columnTypeName, int arrayType, String arrayTypeName,
+                                     Object array1, Object... arrays)
+      throws SQLException {
+    mockResultSetMeta(meta, columnIdx, Types.ARRAY, columnName, "java.sql.Array",
+        columnTypeName);
+    Array res1;
+    if (array1 == null) {
+      res1 = null;
+    } else {
+      res1 = TestHelper.mockDbArray(arrayType, arrayTypeName, array1);
+    }
+
+    Array[] resX = new Array[arrays.length];
+    for (int i = 0; i < arrays.length; i++) {
+      Object arr = arrays[i];
+      if (arr == null) {
+        resX[i] = null;
+      } else {
+        resX[i] = TestHelper.mockDbArray(arrayType, arrayTypeName, arr);
+      }
+    }
+    when(resultSet.getArray(columnIdx)).thenReturn(res1, resX);
+  }
+
+  public static void mockResultSetMeta(ResultSetMetaData meta, int columnIdx, int columnType,
+                                       String columnName,
+                                       String columnClassName, String columnTypeName)
+      throws SQLException {
+    when(meta.getColumnType(columnIdx)).thenReturn(columnType);
+    when(meta.getColumnName(columnIdx)).thenReturn(columnName);
+    when(meta.getColumnClassName(columnIdx)).thenReturn(columnClassName);
+    when(meta.getColumnTypeName(columnIdx)).thenReturn(columnTypeName);
+  }
+
+  public static Array mockDbArray(int baseType, String baseTypeName, Object array)
+      throws SQLException {
+    Array arr = Mockito.mock(Array.class);
+    when(arr.getBaseType()).thenReturn(baseType);
+    when(arr.getBaseTypeName()).thenReturn(baseTypeName);
+    when(arr.getArray()).thenReturn(array);
+    return arr;
   }
 }

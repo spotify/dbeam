@@ -22,6 +22,7 @@ To represent nullable columns, unions with the Avro NULL type are used.
 | VARBINARY                | bytes           |                             |                                       |
 | LONGVARBINARY            | bytes           |                             |                                       |
 | ARRAY                    | array           |                             | Propagates an array item type as well |
+| OTHER                    | string          | logicalType: uuid           |                                       |
 | BLOB                     | bytes           |                             |                                       |
 | DOUBLE                   | double          |                             |                                       |
 | FLOAT                    | float           |                             |                                       |
@@ -32,4 +33,8 @@ To represent nullable columns, unions with the Avro NULL type are used.
 | LONGNVARCHAR             | string          |                             |                                       |
 | LONGVARCHAR              | string          |                             |                                       |
 | NCHAR                    | string          |                             |                                       |
+| STRUCT                   |                 |                             | NOT SUPPORTED                         |
+| REF                      |                 |                             | NOT SUPPORTED                         |
+| REF_CURSOR               |                 |                             | NOT SUPPORTED                         |
+| DATALINK                 |                 |                             | NOT SUPPORTED                         |
 | all other Java SQL types | string          |                             |                                       |

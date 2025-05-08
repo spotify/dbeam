@@ -7,4 +7,5 @@
 <suppressions>
   <suppress checks="Javadoc" files="."/>
   <suppress checks="AbbreviationAsWordInName" files="."/>
+  <suppress checks="AvoidStarImport" files="."/>
 </suppressions>
