@@ -125,9 +125,9 @@ public class PostgresJdbcAvroTest {
   }
 
   @Test
-  public void shouldEncodeStringValues() throws SQLException, IOException {
+  public void shouldEncodeStringAndOtherValues() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(3);
+    when(meta.getColumnCount()).thenReturn(4);
     TestHelper.mockResultSetMeta(meta, 1, Types.VARCHAR, "text_field", "java.lang.String", "text");
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
@@ -138,6 +138,8 @@ public class PostgresJdbcAvroTest {
         "text", new String[] {"some_text_42"});
     TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field2", "_varchar",
         Types.VARCHAR, "varchar", (Object) new String[] {"some_varchar_42"});
+    TestHelper.mockArrayColumn(meta, resultSet, 4, "array_other", "_other",
+        Types.OTHER, "other", (Object) new String[] {"some_other_42"});
     when(resultSet.isFirst()).thenReturn(true);
 
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
@@ -151,7 +153,16 @@ public class PostgresJdbcAvroTest {
     Assert.assertEquals(actualRecord.get("text_field"), new Utf8("some_text_42"));
     assertGenericRecordArrayField(actualRecord, "array_field1", "some_text_42");
     assertGenericRecordArrayField(actualRecord, "array_field2", "some_varchar_42");
+    assertGenericRecordArrayField(actualRecord, "array_other", "some_other_42");
   }
+
+//        case STRUCT:
+//      throw new RuntimeException("STRUCT type is not supported");
+//      case REF:
+//      case REF_CURSOR:
+//      throw new RuntimeException("REF and REF_CURSOR type are not supported");
+//      case DATALINK:
+//      throw new RuntimeException("DATALINK type is not supported");
 
   @Test
   public void shouldThrowOnArrayWithNulls() throws SQLException, IOException {
