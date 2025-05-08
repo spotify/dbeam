@@ -357,7 +357,6 @@ public class JdbcAvroSchema {
       case "int8":
         return field.longType();
       case "varchar":
-      case "char":
       case "text":
         return field.stringType();
       default:

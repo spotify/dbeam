@@ -141,7 +141,7 @@ public class JdbcAvroRecordTest {
     Assert.assertEquals(
         Schema.Type.ARRAY, actual.getField("INT_ARR").schema().getTypes().get(1).getType());
     Assert.assertEquals(
-        Schema.Type.INT, ///// MAKE THIS UNION
+        Schema.Type.INT,
         actual.getField("INT_ARR").schema().getTypes().get(1).getElementType().getType());
     Assert.assertEquals(
         Schema.Type.ARRAY, actual.getField("TEXT_ARR").schema().getTypes().get(1).getType());

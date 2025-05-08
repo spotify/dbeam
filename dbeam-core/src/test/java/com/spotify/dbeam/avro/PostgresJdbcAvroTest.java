@@ -195,7 +195,7 @@ public class PostgresJdbcAvroTest {
   @Test
   public void shouldHandleArrayWithNullsWithoutReadingFirstRow() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(3);
+    when(meta.getColumnCount()).thenReturn(6);
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
@@ -206,6 +206,13 @@ public class PostgresJdbcAvroTest {
     final UUID uuidExpected = UUID.randomUUID();
     TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field_uuid", "_uuid",
         Types.VARCHAR, "uuid", null, (Object) new UUID[] {uuidExpected});
+    TestHelper.mockArrayColumn(meta, resultSet, 4, "array_field_int", "_int",
+        Types.VARCHAR, "int", null, (Object) new Integer[] {42});
+    TestHelper.mockArrayColumn(meta, resultSet, 5, "array_field_int4", "_int4",
+        Types.VARCHAR, "int4", null, (Object) new Integer[] {42});
+    TestHelper.mockArrayColumn(meta, resultSet, 6, "array_field_int8", "_int8",
+        Types.VARCHAR, "int8", null, (Object) new Long[] {42L});
+
     when(resultSet.next()).thenReturn(true, true, false);
     when(resultSet.isFirst()).thenReturn(true);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
@@ -220,10 +227,16 @@ public class PostgresJdbcAvroTest {
     Assert.assertNull(actualRecords[0].get("array_field_varchar"));
     Assert.assertNull(actualRecords[0].get("array_field_text"));
     Assert.assertNull(actualRecords[0].get("array_field_uuid"));
+    Assert.assertNull(actualRecords[0].get("array_field_int"));
+    Assert.assertNull(actualRecords[0].get("array_field_int4"));
+    Assert.assertNull(actualRecords[0].get("array_field_int8"));
     assertGenericRecordArrayField(actualRecords[1], "array_field_varchar", "some_varchar_42", "42");
     assertGenericRecordArrayField(actualRecords[1], "array_field_text", "some_text_42", "42");
     assertGenericRecordArrayField(actualRecords[1], "array_field_uuid",
         uuidExpected.toString());
+    assertGenericRecordArrayField(actualRecords[1], "array_field_int", 42);
+    assertGenericRecordArrayField(actualRecords[1], "array_field_int4", 42);
+    assertGenericRecordArrayField(actualRecords[1], "array_field_int8", 42L);
   }
 
   @Test
