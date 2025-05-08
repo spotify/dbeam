@@ -156,14 +156,6 @@ public class PostgresJdbcAvroTest {
     assertGenericRecordArrayField(actualRecord, "array_other", "some_other_42");
   }
 
-//        case STRUCT:
-//      throw new RuntimeException("STRUCT type is not supported");
-//      case REF:
-//      case REF_CURSOR:
-//      throw new RuntimeException("REF and REF_CURSOR type are not supported");
-//      case DATALINK:
-//      throw new RuntimeException("DATALINK type is not supported");
-
   @Test
   public void shouldThrowOnArrayWithNulls() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
