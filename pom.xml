@@ -103,8 +103,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- apache beam BOM -->
-    <!-- https://github.com/apache/beam/blob/release-2.61.0/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L586 -->
-    <beam.version>2.61.0</beam.version>
+    <!-- https://github.com/apache/beam/blob/release-2.65/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
+    <beam.version>2.65.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.4</avro.version>
@@ -126,7 +126,7 @@
     <!-- GCP BOM -->
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
     <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.45.0/index.html -->
-    <google-cloud-libraries-bom.version>26.45.0</google-cloud-libraries-bom.version>
+    <google-cloud-libraries-bom.version>26.57.0</google-cloud-libraries-bom.version>
     <!-- versions from GCP bom -->
     <opencensus.version>0.31.1</opencensus.version>
 
