@@ -107,7 +107,7 @@
     <beam.version>2.61.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
-    <avro.version>1.11.3</avro.version>
+    <avro.version>1.11.4</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <commons-codec.version>1.17.1</commons-codec.version>
     <commons-compress.version>1.26.2</commons-compress.version>
@@ -118,7 +118,7 @@
     <httpcore.version>4.4.14</httpcore.version>
     <jackson.version>2.15.4</jackson.version>
     <joda-time.version>2.10.14</joda-time.version>
-    <netty.version>4.1.100.Final</netty.version>
+    <netty.version>4.1.121.Final</netty.version>
     <slf4j.version>1.7.30</slf4j.version>
     <threetenbp.version>1.6.8</threetenbp.version>
     <zstd-jni.version>1.5.6-3</zstd-jni.version>
