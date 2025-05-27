@@ -173,6 +173,24 @@ public class JdbcAvroSchemaTest {
     Assert.assertEquals(Schema.Type.STRING, fieldSchema.getType());
   }
 
+  @Test
+  public void shouldConvertUuidSqlTypeWithAvroLogicalType() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.OTHER, "uuid");
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, true);
+
+    Assert.assertEquals(Schema.Type.STRING, fieldSchema.getType());
+    Assert.assertEquals("uuid", fieldSchema.getProp("logicalType"));
+  }
+
+  @Test
+  public void shouldConvertUuidSqlTypeWithoutAvroLogicalType() throws SQLException {
+    final ResultSet resultSet = buildMockResultSet(Types.OTHER, "uuid");
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+
+    Assert.assertEquals(Schema.Type.STRING, fieldSchema.getType());
+    Assert.assertNull(fieldSchema.getProp("logicalType"));
+  }
+
   private Schema createAvroSchemaForSingleField(
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
     Schema avroSchema =
@@ -184,12 +202,20 @@ public class JdbcAvroSchemaTest {
   }
 
   private ResultSet buildMockResultSet(final int inputColumnType) throws SQLException {
+    return buildMockResultSet(inputColumnType, null);
+  }
+
+  private ResultSet buildMockResultSet(final int inputColumnType,
+                                       final String columnTypeName) throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(COLUMN_NUM);
     when(meta.getTableName(COLUMN_NUM)).thenReturn("test_table");
     when(meta.getColumnName(COLUMN_NUM)).thenReturn("column1");
     when(meta.getColumnType(COLUMN_NUM)).thenReturn(inputColumnType);
     when(meta.getColumnClassName(COLUMN_NUM)).thenReturn("foobar");
+    if (columnTypeName != null) {
+      when(meta.getColumnTypeName(COLUMN_NUM)).thenReturn(columnTypeName);
+    }
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);

@@ -270,7 +270,7 @@ public class JdbcAvroSchema {
                                        + " should start with '_'");
           }
 
-          return buildAvroFieldTypeFromPGType(columnTypeName.substring(1),
+          return buildAvroFieldTypeFromPGType(columnName, columnTypeName.substring(1),
               useLogicalTypes, buildArrayItems(nullableArrayItems, field));
         }
 
@@ -339,6 +339,7 @@ public class JdbcAvroSchema {
 
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       buildAvroFieldTypeFromPGType(
+      final String columnName,
       final String columnTypeName,
       final boolean useLogicalTypes,
       final SchemaBuilder.BaseTypeBuilder<
@@ -360,7 +361,8 @@ public class JdbcAvroSchema {
       case "text":
         return field.stringType();
       default:
-        throw new RuntimeException("Postgres type '" + columnTypeName + "' is not supported");
+        throw new RuntimeException("columnName=" + columnName + " Postgres type '"
+                                   + columnTypeName + "' is " + "not " + "supported");
     }
   }
 
