@@ -6,4 +6,4 @@ target
 .DS_Store
 e2e/results/*
 *.iml
-
+.java-version

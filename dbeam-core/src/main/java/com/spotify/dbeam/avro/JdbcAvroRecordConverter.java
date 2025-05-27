@@ -26,32 +26,44 @@ import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.UUID;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 
 public class JdbcAvroRecordConverter {
+
   private final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings;
   private final int columnCount;
   private final ResultSet resultSet;
   private final EncoderFactory encoderFactory = EncoderFactory.get();
+  private final boolean nullableArrayItems;
 
   public JdbcAvroRecordConverter(
       final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings,
       final int columnCount,
-      final ResultSet resultSet) {
+      final ResultSet resultSet,
+      final boolean nullableArrayItems) {
     this.mappings = mappings;
     this.columnCount = columnCount;
     this.resultSet = resultSet;
+    this.nullableArrayItems = nullableArrayItems;
   }
 
-  public static JdbcAvroRecordConverter create(final ResultSet resultSet) throws SQLException {
+  public static JdbcAvroRecordConverter create(final ResultSet resultSet,
+                                               final String arrayMode,
+                                               final boolean nullableArrayItems)
+      throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet), resultSet.getMetaData().getColumnCount(), resultSet);
+        computeAllMappings(resultSet, arrayMode),
+        resultSet.getMetaData().getColumnCount(),
+        resultSet,
+        nullableArrayItems);
   }
 
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet) throws SQLException {
+      final ResultSet resultSet, final String arrayMode)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
 
@@ -60,7 +72,7 @@ public class JdbcAvroRecordConverter {
             new JdbcAvroRecord.SqlFunction<?, ?>[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      mappings[i] = JdbcAvroRecord.computeMapping(meta, i);
+      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayMode);
     }
     return mappings;
   }
@@ -97,17 +109,19 @@ public class JdbcAvroRecordConverter {
         binaryEncoder.writeNull();
       } else {
         binaryEncoder.writeIndex(1);
-        writeValue(value, binaryEncoder);
+        writeValue(value, resultSet.getMetaData().getColumnName(i), binaryEncoder);
       }
     }
     binaryEncoder.flush();
     return ByteBuffer.wrap(out.getBufffer(), 0, out.size());
   }
 
-  private void writeValue(Object value, BinaryEncoder binaryEncoder)
+  private void writeValue(Object value, String column, BinaryEncoder binaryEncoder)
       throws SQLException, IOException {
     if (value instanceof String) {
       binaryEncoder.writeString((String) value);
+    } else if (value instanceof UUID) {
+      binaryEncoder.writeString(value.toString());
     } else if (value instanceof Long) {
       binaryEncoder.writeLong((Long) value);
     } else if (value instanceof Integer) {
@@ -126,10 +140,30 @@ public class JdbcAvroRecordConverter {
       binaryEncoder.setItemCount(array.length);
       for (Object arrayItem : array) {
         binaryEncoder.startItem();
-        writeValue(arrayItem, binaryEncoder);
+        if (nullableArrayItems) {
+          if (arrayItem == null) {
+            binaryEncoder.writeIndex(1);
+            binaryEncoder.writeNull();
+          } else {
+            binaryEncoder.writeIndex(0);
+            writeValue(arrayItem, column, binaryEncoder);
+          }
+        } else {
+          if (arrayItem == null) {
+            throw new RuntimeException(
+                String.format("Array item is null in column '%s', use --nullableArrayItems",
+                    column));
+          }
+
+          writeValue(arrayItem, column, binaryEncoder);
+        }
       }
 
       binaryEncoder.writeArrayEnd();
+    } else {
+      throw new RuntimeException(
+          String.format("Value of type %s in column '%s' is not supported", value.getClass(),
+              column));
     }
   }
 }

@@ -20,31 +20,9 @@
 
 package com.spotify.dbeam.avro;
 
-import static java.sql.Types.ARRAY;
-import static java.sql.Types.BIGINT;
-import static java.sql.Types.BINARY;
-import static java.sql.Types.BIT;
-import static java.sql.Types.BLOB;
-import static java.sql.Types.BOOLEAN;
-import static java.sql.Types.CHAR;
-import static java.sql.Types.CLOB;
-import static java.sql.Types.DATE;
-import static java.sql.Types.DOUBLE;
-import static java.sql.Types.FLOAT;
-import static java.sql.Types.INTEGER;
-import static java.sql.Types.LONGNVARCHAR;
-import static java.sql.Types.LONGVARBINARY;
-import static java.sql.Types.LONGVARCHAR;
-import static java.sql.Types.NCHAR;
-import static java.sql.Types.REAL;
-import static java.sql.Types.SMALLINT;
-import static java.sql.Types.TIME;
-import static java.sql.Types.TIMESTAMP;
-import static java.sql.Types.TIME_WITH_TIMEZONE;
-import static java.sql.Types.TINYINT;
-import static java.sql.Types.VARBINARY;
-import static java.sql.Types.VARCHAR;
+import static java.sql.Types.*;
 
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -52,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Objects;
 import java.util.TimeZone;
 
 public class JdbcAvroRecord {
@@ -72,8 +51,10 @@ public class JdbcAvroRecord {
     }
   }
 
-  static SqlFunction<ResultSet, Object> computeMapping(
-      final ResultSetMetaData meta, final int column) throws SQLException {
+  static SqlFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta,
+                                                       final int column,
+                                                       final String arrayMode)
+      throws SQLException {
     switch (meta.getColumnType(column)) {
       case VARCHAR:
       case CHAR:
@@ -113,7 +94,11 @@ public class JdbcAvroRecord {
           return resultSet -> nullableBytes(resultSet.getBytes(column));
         }
       case ARRAY:
-        return resultSet -> resultSet.getArray(column);
+        if (arrayMode.equals(ArrayHandlingMode.Bytes)) {
+          return resultSet -> nullableBytes(resultSet.getBytes(column));
+        } else {
+          return resultSet -> resultSet.getArray(column);
+        }
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
@@ -124,6 +109,11 @@ public class JdbcAvroRecord {
       case FLOAT:
       case REAL:
         return resultSet -> resultSet.getFloat(column);
+      case OTHER:
+        if (Objects.equals(meta.getColumnTypeName(column), "uuid")) {
+          return resultSet -> resultSet.getObject(column);
+        }
+        return resultSet -> resultSet.getString(column);
       default:
         return resultSet -> resultSet.getString(column);
     }

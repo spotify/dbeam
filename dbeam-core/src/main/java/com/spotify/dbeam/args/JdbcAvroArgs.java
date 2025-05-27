@@ -45,6 +45,10 @@ public abstract class JdbcAvroArgs implements Serializable {
 
   public abstract List<String> preCommand();
 
+  public abstract String arrayMode();
+
+  public abstract Boolean nullableArrayItems();
+
   abstract Builder builder();
 
   public CodecFactory getCodecFactory() {
@@ -71,6 +75,10 @@ public abstract class JdbcAvroArgs implements Serializable {
 
     abstract Builder setPreCommand(List<String> preCommand);
 
+    abstract Builder setArrayMode(String arrayMode);
+
+    abstract Builder setNullableArrayItems(Boolean nullableArrayItems);
+
     abstract JdbcAvroArgs build();
   }
 
@@ -78,7 +86,9 @@ public abstract class JdbcAvroArgs implements Serializable {
       final JdbcConnectionArgs jdbcConnectionArgs,
       final int fetchSize,
       final String avroCodec,
-      final List<String> preCommand) {
+      final List<String> preCommand,
+      final String arrayMode,
+      final Boolean nullableArrayItems) {
     Preconditions.checkArgument(
         avroCodec.matches("snappy|deflate[1-9]|zstandard[1-9]"),
         "Avro codec should be snappy or deflate1, .., deflate9");
@@ -87,11 +97,14 @@ public abstract class JdbcAvroArgs implements Serializable {
         .setFetchSize(fetchSize)
         .setAvroCodec(avroCodec)
         .setPreCommand(preCommand)
+        .setArrayMode(arrayMode)
+        .setNullableArrayItems(nullableArrayItems)
         .build();
   }
 
   public static JdbcAvroArgs create(final JdbcConnectionArgs jdbcConnectionArgs) {
-    return create(jdbcConnectionArgs, 10000, "deflate6", Collections.emptyList());
+    return create(jdbcConnectionArgs, 10000, "deflate6", Collections.emptyList(),
+        "typed_first_row", false);
   }
 
   public interface StatementPreparator extends Serializable {
