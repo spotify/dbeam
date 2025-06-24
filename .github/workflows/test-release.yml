@@ -1,0 +1,80 @@
+name: Test Release Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+
+jobs:
+  test-release:
+    name: Test Release
+    runs-on: 'ubuntu-latest'
+    # Remove environment protection for testing
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure GHA bot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: Linux-java11-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: Linux-java11-m2
+      - name: Debug GPG key format
+        run: |
+          echo "Checking GPG key format..."
+          if [ -n "${{ secrets.GPG_KEY }}" ]; then
+            echo "GPG_KEY secret exists"
+            echo "First line: $(echo '${{ secrets.GPG_KEY }}' | head -1)"
+            echo "Last line: $(echo '${{ secrets.GPG_KEY }}' | tail -1)"
+            echo "Key length: $(echo '${{ secrets.GPG_KEY }}' | wc -c)"
+          else
+            echo "GPG_KEY secret is empty or not set"
+          fi
+          
+          if [ -n "${{ secrets.GPG_PASSPHRASE }}" ]; then
+            echo "GPG_PASSPHRASE secret exists"
+          else
+            echo "GPG_PASSPHRASE secret is empty or not set"
+          fi
+      - name: Test GPG key import manually
+        run: |
+          if [ -n "${{ secrets.GPG_KEY }}" ]; then
+            echo "Attempting manual GPG import..."
+            echo '${{ secrets.GPG_KEY }}' | gpg --import --batch --yes || echo "GPG import failed"
+            gpg --list-secret-keys || echo "No secret keys found"
+          fi
+        env:
+          GPG_TTY: $(tty)
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+          server-id: ossrh
+          server-username: SONATYPE_USERNAME
+          server-password: SONATYPE_TOKEN
+          gpg-private-key: ${{ secrets.GPG_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Test Maven setup
+        run: |
+          echo "Testing Maven configuration..."
+          mvn --version
+          echo "Checking Maven settings..."
+          cat ~/.m2/settings.xml || echo "No settings.xml found"
+          echo "Checking for GPG keys..."
+          gpg --list-secret-keys || echo "No GPG keys found"
+      - name: Test Release (Dry Run)
+        env:
+          MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          export GPG_TTY=$(tty)
+          echo "Testing release preparation..."
+          mvn -B release:prepare -DreleaseVersion=${{ github.event.inputs.version }} -DdryRun=true -X 
