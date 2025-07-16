@@ -43,11 +43,9 @@ jobs:
           echo '<?xml version="1.0" encoding="UTF-8"?><settingsSecurity/>' > ~/.m2/settings-security.xml
       - name: Release
         env:
-          MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          MAVEN_CENTRAL_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         # Todo - remove dry-run flag once validated in GHA
         run: |
           export GPG_TTY=$(tty)

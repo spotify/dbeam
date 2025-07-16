@@ -99,6 +99,12 @@ mvn versions:display-dependency-updates
 - Maven release plugin with automatic version management
 - GPG signing and credential management via GitHub secrets
 - Releases are published to Maven Central
+- Github Actions secrets and variables contains:
+  - GPG_KEY
+  - GPG_KEY_NAME
+  - GPG_PASSPHRASE
+  - SONATYPE_TOKEN
+  - SONATYPE_USERNAME
 
 ## Architectural Patterns
 
