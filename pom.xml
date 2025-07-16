@@ -82,7 +82,7 @@
   <scm>
     <connection>scm:git:https://github.com/spotify/dbeam.git</connection>
     <developerConnection>scm:git:https://github.com/spotify/dbeam.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v0.10.29</tag>
     <url>scm:https://github.com/spotify/dbeam/</url>
   </scm>
 
