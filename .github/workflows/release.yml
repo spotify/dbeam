@@ -37,14 +37,19 @@ jobs:
           server-password: SONATYPE_TOKEN
           gpg-private-key: ${{ secrets.GPG_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Create empty settings-security.xml
+        run: |
+          mkdir -p ~/.m2
+          echo '<?xml version="1.0" encoding="UTF-8"?><settingsSecurity/>' > ~/.m2/settings-security.xml
       - name: Release
         env:
           MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
         # Todo - remove dry-run flag once validated in GHA
         run: |
           export GPG_TTY=$(tty)
           mvn -B release:prepare release:perform \
-            -DreleaseVersion=${{ github.event.inputs.version }} \
-            -Dsettings.security=/dev/null
+            -DreleaseVersion=${{ github.event.inputs.version }}
