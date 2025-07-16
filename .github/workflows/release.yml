@@ -43,4 +43,6 @@ jobs:
           MAVEN_CENTRAL_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         # Todo - remove dry-run flag once validated in GHA
-        run: mvn -B release:prepare release:perform -DreleaseVersion=${{ github.event.inputs.version }}
+        run: |
+          export GPG_TTY=$(tty)
+          mvn -B release:prepare release:perform -DreleaseVersion=${{ github.event.inputs.version }} -DdryRun=true
