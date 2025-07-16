@@ -45,4 +45,4 @@ jobs:
         # Todo - remove dry-run flag once validated in GHA
         run: |
           export GPG_TTY=$(tty)
-          mvn -B release:prepare release:perform -DreleaseVersion=${{ github.event.inputs.version }} -DdryRun=true
+          mvn -B release:prepare release:perform -DreleaseVersion=${{ github.event.inputs.version }}
