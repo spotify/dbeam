@@ -37,6 +37,10 @@ jobs:
           server-password: SONATYPE_TOKEN
           gpg-private-key: ${{ secrets.GPG_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Setup Maven security
+        run: |
+          mkdir -p ~/.m2
+          echo '<settingsSecurity><master>master</master></settingsSecurity>' > ~/.m2/settings-security.xml
       - name: Release
         env:
           MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
