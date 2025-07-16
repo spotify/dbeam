@@ -11,7 +11,7 @@
 
   <groupId>com.spotify</groupId>
   <artifactId>dbeam-parent</artifactId>
-  <version>0.10.29</version>
+  <version>0.10.29-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>dbeam-parent</name>
 
