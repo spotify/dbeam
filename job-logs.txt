@@ -1,0 +1,211 @@
+﻿2025-06-24T02:24:50.2596858Z Current runner version: '2.325.0'
+2025-06-24T02:24:50.2623869Z ##[group]Operating System
+2025-06-24T02:24:50.2624737Z Ubuntu
+2025-06-24T02:24:50.2625351Z 24.04.2
+2025-06-24T02:24:50.2625855Z LTS
+2025-06-24T02:24:50.2626324Z ##[endgroup]
+2025-06-24T02:24:50.2626907Z ##[group]Runner Image
+2025-06-24T02:24:50.2627551Z Image: ubuntu-24.04
+2025-06-24T02:24:50.2628129Z Version: 20250615.1.0
+2025-06-24T02:24:50.2629207Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250615.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-06-24T02:24:50.2630768Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250615.1
+2025-06-24T02:24:50.2631718Z ##[endgroup]
+2025-06-24T02:24:50.2632332Z ##[group]Runner Image Provisioner
+2025-06-24T02:24:50.2632947Z 2.0.437.1
+2025-06-24T02:24:50.2633415Z ##[endgroup]
+2025-06-24T02:24:50.2635918Z ##[group]GITHUB_TOKEN Permissions
+2025-06-24T02:24:50.2638063Z Actions: write
+2025-06-24T02:24:50.2639013Z Attestations: write
+2025-06-24T02:24:50.2639716Z Checks: write
+2025-06-24T02:24:50.2640438Z Contents: write
+2025-06-24T02:24:50.2640985Z Deployments: write
+2025-06-24T02:24:50.2641560Z Discussions: write
+2025-06-24T02:24:50.2642107Z Issues: write
+2025-06-24T02:24:50.2642615Z Metadata: read
+2025-06-24T02:24:50.2643172Z Models: read
+2025-06-24T02:24:50.2643687Z Packages: write
+2025-06-24T02:24:50.2644222Z Pages: write
+2025-06-24T02:24:50.2644777Z PullRequests: write
+2025-06-24T02:24:50.2645358Z RepositoryProjects: write
+2025-06-24T02:24:50.2645937Z SecurityEvents: write
+2025-06-24T02:24:50.2646544Z Statuses: write
+2025-06-24T02:24:50.2647062Z ##[endgroup]
+2025-06-24T02:24:50.2649326Z Secret source: Actions
+2025-06-24T02:24:50.2650425Z Prepare workflow directory
+2025-06-24T02:24:50.2999647Z Prepare all required actions
+2025-06-24T02:24:50.3039083Z Getting action download info
+2025-06-24T02:24:50.7277126Z ##[group]Download immutable action package 'actions/checkout@v4'
+2025-06-24T02:24:50.7278326Z Version: 4.2.2
+2025-06-24T02:24:50.7279532Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+2025-06-24T02:24:50.7280980Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+2025-06-24T02:24:50.7281724Z ##[endgroup]
+2025-06-24T02:24:50.8156477Z ##[group]Download immutable action package 'actions/cache@v4'
+2025-06-24T02:24:50.8157386Z Version: 4.2.3
+2025-06-24T02:24:50.8158187Z Digest: sha256:c8a3bb963e1f1826d8fcc8d1354f0dd29d8ac1db1d4f6f20247055ae11b81ed9
+2025-06-24T02:24:50.8159186Z Source commit SHA: 5a3ec84eff668545956fd18022155c47e93e2684
+2025-06-24T02:24:50.8159912Z ##[endgroup]
+2025-06-24T02:24:50.9193758Z ##[group]Download immutable action package 'actions/setup-java@v4'
+2025-06-24T02:24:50.9194599Z Version: 4.7.1
+2025-06-24T02:24:50.9195457Z Digest: sha256:23223d64943473efb4336f60463c0429cd4f422cd5fc6c48a5cf0d5907c1aeac
+2025-06-24T02:24:50.9196457Z Source commit SHA: c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+2025-06-24T02:24:50.9197175Z ##[endgroup]
+2025-06-24T02:24:51.5378968Z Complete job name: Release
+2025-06-24T02:24:51.6092533Z ##[group]Run actions/checkout@v4
+2025-06-24T02:24:51.6093467Z with:
+2025-06-24T02:24:51.6093943Z   repository: spotify/dbeam
+2025-06-24T02:24:51.6094689Z   token: ***
+2025-06-24T02:24:51.6095182Z   ssh-strict: true
+2025-06-24T02:24:51.6095626Z   ssh-user: git
+2025-06-24T02:24:51.6096073Z   persist-credentials: true
+2025-06-24T02:24:51.6096568Z   clean: true
+2025-06-24T02:24:51.6097028Z   sparse-checkout-cone-mode: true
+2025-06-24T02:24:51.6097545Z   fetch-depth: 1
+2025-06-24T02:24:51.6097993Z   fetch-tags: false
+2025-06-24T02:24:51.6098448Z   show-progress: true
+2025-06-24T02:24:51.6098908Z   lfs: false
+2025-06-24T02:24:51.6099350Z   submodules: false
+2025-06-24T02:24:51.6099799Z   set-safe-directory: true
+2025-06-24T02:24:51.6100722Z ##[endgroup]
+2025-06-24T02:24:51.7728838Z Syncing repository: spotify/dbeam
+2025-06-24T02:24:51.7731108Z ##[group]Getting Git version info
+2025-06-24T02:24:51.7731865Z Working directory is '/home/runner/work/dbeam/dbeam'
+2025-06-24T02:24:51.7732930Z [command]/usr/bin/git version
+2025-06-24T02:24:51.7777634Z git version 2.49.0
+2025-06-24T02:24:51.7807077Z ##[endgroup]
+2025-06-24T02:24:51.7824531Z Temporarily overriding HOME='/home/runner/work/_temp/ea284039-7918-45f7-9c8f-16a20f2a235e' before making global git config changes
+2025-06-24T02:24:51.7827096Z Adding repository directory to the temporary git global config as a safe directory
+2025-06-24T02:24:51.7839366Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dbeam/dbeam
+2025-06-24T02:24:51.7875827Z Deleting the contents of '/home/runner/work/dbeam/dbeam'
+2025-06-24T02:24:51.7879751Z ##[group]Initializing the repository
+2025-06-24T02:24:51.7884950Z [command]/usr/bin/git init /home/runner/work/dbeam/dbeam
+2025-06-24T02:24:51.7941707Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-06-24T02:24:51.7943362Z hint: is subject to change. To configure the initial branch name to use in all
+2025-06-24T02:24:51.7944688Z hint: of your new repositories, which will suppress this warning, call:
+2025-06-24T02:24:51.7945944Z hint:
+2025-06-24T02:24:51.7946630Z hint: 	git config --global init.defaultBranch <name>
+2025-06-24T02:24:51.7947968Z hint:
+2025-06-24T02:24:51.7949189Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-06-24T02:24:51.7951451Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-06-24T02:24:51.7953011Z hint:
+2025-06-24T02:24:51.7953819Z hint: 	git branch -m <name>
+2025-06-24T02:24:51.7955198Z Initialized empty Git repository in /home/runner/work/dbeam/dbeam/.git/
+2025-06-24T02:24:51.7959524Z [command]/usr/bin/git remote add origin https://github.com/spotify/dbeam
+2025-06-24T02:24:51.7992932Z ##[endgroup]
+2025-06-24T02:24:51.7993825Z ##[group]Disabling automatic garbage collection
+2025-06-24T02:24:51.7996965Z [command]/usr/bin/git config --local gc.auto 0
+2025-06-24T02:24:51.8027098Z ##[endgroup]
+2025-06-24T02:24:51.8028333Z ##[group]Setting up auth
+2025-06-24T02:24:51.8033817Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-06-24T02:24:51.8063901Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-06-24T02:24:51.8339829Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-06-24T02:24:51.8369555Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-06-24T02:24:51.8591291Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-06-24T02:24:51.8631055Z ##[endgroup]
+2025-06-24T02:24:51.8640313Z ##[group]Fetching the repository
+2025-06-24T02:24:51.8642440Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +de04767ad7b9e6606fca6522909075a7cfb805b0:refs/remotes/origin/akabas/fix-release
+2025-06-24T02:24:52.6639090Z From https://github.com/spotify/dbeam
+2025-06-24T02:24:52.6641667Z  * [new ref]         de04767ad7b9e6606fca6522909075a7cfb805b0 -> origin/akabas/fix-release
+2025-06-24T02:24:52.6673015Z ##[endgroup]
+2025-06-24T02:24:52.6675359Z ##[group]Determining the checkout info
+2025-06-24T02:24:52.6677925Z ##[endgroup]
+2025-06-24T02:24:52.6681758Z [command]/usr/bin/git sparse-checkout disable
+2025-06-24T02:24:52.6722988Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-06-24T02:24:52.6751911Z ##[group]Checking out the ref
+2025-06-24T02:24:52.6756526Z [command]/usr/bin/git checkout --progress --force -B akabas/fix-release refs/remotes/origin/akabas/fix-release
+2025-06-24T02:24:52.6843064Z Switched to a new branch 'akabas/fix-release'
+2025-06-24T02:24:52.6846070Z branch 'akabas/fix-release' set up to track 'origin/akabas/fix-release'.
+2025-06-24T02:24:52.6852963Z ##[endgroup]
+2025-06-24T02:24:52.6888576Z [command]/usr/bin/git log -1 --format=%H
+2025-06-24T02:24:52.6911219Z de04767ad7b9e6606fca6522909075a7cfb805b0
+2025-06-24T02:24:52.7125827Z ##[group]Run git config user.name "github-actions[bot]"
+2025-06-24T02:24:52.7127079Z [36;1mgit config user.name "github-actions[bot]"[0m
+2025-06-24T02:24:52.7128420Z [36;1mgit config user.email "41898282+github-actions[bot]@users.noreply.github.com"[0m
+2025-06-24T02:24:52.7220748Z shell: /usr/bin/bash -e {0}
+2025-06-24T02:24:52.7221726Z ##[endgroup]
+2025-06-24T02:24:52.8202341Z ##[group]Run actions/cache@v4
+2025-06-24T02:24:52.8203225Z with:
+2025-06-24T02:24:52.8203942Z   path: ~/.m2
+2025-06-24T02:24:52.8204999Z   key: Linux-java11-m2-fad8623366345dc8b8381f8ac0127f049d2d0ccb2f0e6c7d88727380e13d03d7
+2025-06-24T02:24:52.8206196Z   restore-keys: Linux-java11-m2
+2025-06-24T02:24:52.8207041Z   enableCrossOsArchive: false
+2025-06-24T02:24:52.8207887Z   fail-on-cache-miss: false
+2025-06-24T02:24:52.8208690Z   lookup-only: false
+2025-06-24T02:24:52.8209501Z   save-always: false
+2025-06-24T02:24:52.8210454Z ##[endgroup]
+2025-06-24T02:24:53.2104153Z Cache hit for: Linux-java11-m2-fad8623366345dc8b8381f8ac0127f049d2d0ccb2f0e6c7d88727380e13d03d7
+2025-06-24T02:24:54.4368393Z Received 29360128 of 280968770 (10.4%), 28.0 MBs/sec
+2025-06-24T02:24:55.4360350Z Received 142606336 of 280968770 (50.8%), 68.0 MBs/sec
+2025-06-24T02:24:56.4388939Z Received 268435456 of 280968770 (95.5%), 85.3 MBs/sec
+2025-06-24T02:24:56.4944259Z Received 280968770 of 280968770 (100.0%), 87.6 MBs/sec
+2025-06-24T02:24:56.5033009Z Cache Size: ~268 MB (280968770 B)
+2025-06-24T02:24:56.5065865Z [command]/usr/bin/tar -xf /home/runner/work/_temp/874a3fcf-d7bd-4871-88ea-dd60c47a9d3d/cache.tzst -P -C /home/runner/work/dbeam/dbeam --use-compress-program unzstd
+2025-06-24T02:24:57.1902573Z Cache restored successfully
+2025-06-24T02:24:57.2571295Z Cache restored from key: Linux-java11-m2-fad8623366345dc8b8381f8ac0127f049d2d0ccb2f0e6c7d88727380e13d03d7
+2025-06-24T02:24:57.2681906Z ##[group]Run echo "Checking GPG key format..."
+2025-06-24T02:24:57.2682381Z [36;1mecho "Checking GPG key format..."[0m
+2025-06-24T02:24:57.2697256Z [36;1mecho "***[0m
+2025-06-24T02:24:57.2697499Z [36;1m" | head -1[0m
+2025-06-24T02:24:57.2713159Z [36;1mecho "***[0m
+2025-06-24T02:24:57.2713402Z [36;1m" | tail -1[0m
+2025-06-24T02:24:57.2728250Z [36;1mecho "Key length: $(echo '***[0m
+2025-06-24T02:24:57.2728549Z [36;1m' | wc -c)"[0m
+2025-06-24T02:24:57.2788354Z shell: /usr/bin/bash -e {0}
+2025-06-24T02:24:57.2788635Z ##[endgroup]
+2025-06-24T02:24:57.2866786Z Checking GPG key format...
+2025-06-24T02:24:57.2899810Z ***
+2025-06-24T02:24:57.2900321Z 
+2025-06-24T02:24:57.2919822Z Key length: 1194
+2025-06-24T02:24:57.3030993Z ##[group]Run actions/setup-java@v4
+2025-06-24T02:24:57.3031318Z with:
+2025-06-24T02:24:57.3031517Z   java-version: 11
+2025-06-24T02:24:57.3031740Z   distribution: adopt
+2025-06-24T02:24:57.3031953Z   server-id: ossrh
+2025-06-24T02:24:57.3032184Z   server-username: SONATYPE_USERNAME
+2025-06-24T02:24:57.3032496Z   server-password: SONATYPE_TOKEN
+2025-06-24T02:24:57.3047206Z   gpg-private-key: ***
+
+2025-06-24T02:24:57.3047475Z   gpg-passphrase: MAVEN_GPG_PASSPHRASE
+2025-06-24T02:24:57.3047789Z   java-package: jdk
+2025-06-24T02:24:57.3048006Z   check-latest: false
+2025-06-24T02:24:57.3048227Z   overwrite-settings: true
+2025-06-24T02:24:57.3048456Z   job-status: success
+2025-06-24T02:24:57.3048761Z   token: ***
+2025-06-24T02:24:57.3048967Z ##[endgroup]
+2025-06-24T02:24:57.5011864Z ##[group]Installed distributions
+2025-06-24T02:24:57.5035321Z Trying to resolve the latest version from remote
+2025-06-24T02:24:58.3116738Z Resolved latest version as 11.0.27+6
+2025-06-24T02:24:58.3117627Z Trying to download...
+2025-06-24T02:24:58.3119160Z Downloading Java 11.0.27+6 (Adopt-Hotspot) from https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.27%2B6/OpenJDK11U-jdk_x64_linux_hotspot_11.0.27_6.tar.gz ...
+2025-06-24T02:24:59.7947948Z Extracting Java archive...
+2025-06-24T02:24:59.8086415Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/5bf9110f-5f96-4cad-aa69-945e75f0cf13 -f /home/runner/work/_temp/ea113e78-e03f-42ec-880a-00ad9b5564aa
+2025-06-24T02:25:02.4152358Z Java 11.0.27+6 was downloaded
+2025-06-24T02:25:02.4152861Z Setting Java 11.0.27+6 as the default
+2025-06-24T02:25:02.4163443Z Creating toolchains.xml for JDK version 11 from adopt
+2025-06-24T02:25:02.4255645Z Overwriting existing file /home/runner/.m2/toolchains.xml
+2025-06-24T02:25:02.4256404Z 
+2025-06-24T02:25:02.4256656Z Java configuration:
+2025-06-24T02:25:02.4257008Z   Distribution: adopt
+2025-06-24T02:25:02.4257377Z   Version: 11.0.27+6
+2025-06-24T02:25:02.4257909Z   Path: /opt/hostedtoolcache/Java_Adopt_jdk/11.0.27-6/x64
+2025-06-24T02:25:02.4258323Z 
+2025-06-24T02:25:02.4258877Z ##[endgroup]
+2025-06-24T02:25:02.4277496Z Creating settings.xml with server-id: ossrh
+2025-06-24T02:25:02.4280274Z Overwriting existing file /home/runner/.m2/settings.xml
+2025-06-24T02:25:02.4281069Z Importing private gpg key
+2025-06-24T02:25:02.4857720Z ##[error]The process '/usr/bin/gpg' failed with exit code 2
+2025-06-24T02:25:02.5012901Z Post job cleanup.
+2025-06-24T02:25:02.6656356Z Removing private key from keychain
+2025-06-24T02:25:02.6787780Z ##[error]Failed to remove private key due to: The process '/usr/bin/gpg' failed with exit code 2
+2025-06-24T02:25:02.6900026Z Post job cleanup.
+2025-06-24T02:25:02.7855501Z [command]/usr/bin/git version
+2025-06-24T02:25:02.7891821Z git version 2.49.0
+2025-06-24T02:25:02.7937421Z Temporarily overriding HOME='/home/runner/work/_temp/04e85566-34ae-455b-ac88-bc6be5cef0b0' before making global git config changes
+2025-06-24T02:25:02.7938756Z Adding repository directory to the temporary git global config as a safe directory
+2025-06-24T02:25:02.7943927Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dbeam/dbeam
+2025-06-24T02:25:02.7980761Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-06-24T02:25:02.8012875Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-06-24T02:25:02.8239731Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-06-24T02:25:02.8260909Z http.https://github.com/.extraheader
+2025-06-24T02:25:02.8273721Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-06-24T02:25:02.8306073Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-06-24T02:25:02.8635156Z Cleaning up orphan processes
