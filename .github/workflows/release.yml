@@ -42,11 +42,9 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        # Todo - remove dry-run flag once validated in GHA
         run: |
           export GPG_TTY=$(tty)
-          mvn -B release:prepare \
+          mvn -B release:prepare release:perform \
             -DreleaseVersion=${{ github.event.inputs.version }} \
             -DdryRun=true \
             -Darguments="-Dgpg.passphrase=${MAVEN_GPG_PASSPHRASE}"
-# removed -s $HOME/.m2/settings.xml # removed release:perform
