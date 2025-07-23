@@ -20,7 +20,9 @@
 
 package com.spotify.dbeam.beam;
 
-import java.io.FileNotFoundException;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -28,10 +30,19 @@ import org.junit.Test;
 
 public class BeamHelperTest {
 
-  @Test(expected = FileNotFoundException.class)
+  @Test
   public void shouldWorkWithGcs() throws IOException {
     FileSystems.setDefaultPipelineOptions(PipelineOptionsFactory.create());
     // This test ensures that gcsio / GcsUtil work properly and have the right classes on classpath
-    BeamHelper.readFromFile("gs://does-not-exist-1");
+    try {
+      BeamHelper.readFromFile("gs://does-not-exist-1");
+      fail("Expected IOException for non-existent GCS file");
+    } catch (IOException e) {
+      // Beam changed behavior - now throws IOException instead of FileNotFoundException
+      // Verify it's the expected GCS error message
+      assertTrue("Exception should indicate GCS file matching error",
+          e.getMessage().contains("Error matching file spec") 
+          && e.getMessage().contains("gs://does-not-exist-1"));
+    }
   }
 }
