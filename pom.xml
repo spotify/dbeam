@@ -91,7 +91,7 @@
       <id>ossrh</id>
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
-    <!-- Temporarily disable snapshot deployment to test release process -->
+    <!-- disable snapshot deployment -->
     <!--
     <snapshotRepository>
       <id>ossrh</id>
