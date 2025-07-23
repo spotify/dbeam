@@ -41,8 +41,8 @@ public class BeamHelperTest {
       // Beam changed behavior - now throws IOException instead of FileNotFoundException
       // Verify it's the expected GCS error message
       assertTrue("Exception should indicate GCS file matching error",
-          e.getMessage().contains("Error matching file spec") && 
-          e.getMessage().contains("gs://does-not-exist-1"));
+          e.getMessage().contains("Error matching file spec") 
+          && e.getMessage().contains("gs://does-not-exist-1"));
     }
   }
 }
