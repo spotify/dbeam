@@ -6,11 +6,7 @@
   <parent>
     <groupId>com.spotify</groupId>
     <artifactId>dbeam-parent</artifactId>
-<<<<<<< HEAD
-    <version>0.10.29-SNAPSHOT</version>
-=======
     <version>0.10.28-SNAPSHOT</version>
->>>>>>> 0f2b243 (Rollback to 0.10.28-snapshot)
   </parent>
   <artifactId>dbeam-core</artifactId>
 
