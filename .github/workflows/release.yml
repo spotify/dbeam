@@ -37,10 +37,10 @@ jobs:
           server-password: SONATYPE_TOKEN
           gpg-private-key: ${{ secrets.GPG_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
-      - name: Create empty settings-security.xml
-        run: |
-          mkdir -p ~/.m2
-          echo '<?xml version="1.0" encoding="UTF-8"?><settingsSecurity/>' > ~/.m2/settings-security.xml
+      # - name: Create empty settings-security.xml
+      #   run: |
+      #     mkdir -p ~/.m2
+      #     echo '<?xml version="1.0" encoding="UTF-8"?><settingsSecurity/>' > ~/.m2/settings-security.xml
       - name: Release
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
@@ -51,4 +51,5 @@ jobs:
           export GPG_TTY=$(tty)
           mvn -B release:prepare release:perform \
             -DreleaseVersion=${{ github.event.inputs.version }} \
-            -Darguments="-Dgpg.passphrase=${MAVEN_GPG_PASSPHRASE} -s $HOME/.m2/settings.xml"
+            -Darguments="-Dgpg.passphrase=${MAVEN_GPG_PASSPHRASE}"
+# removed -s $HOME/.m2/settings.xml

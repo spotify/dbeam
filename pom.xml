@@ -11,7 +11,7 @@
 
   <groupId>com.spotify</groupId>
   <artifactId>dbeam-parent</artifactId>
-  <version>0.10.30-SNAPSHOT</version>
+  <version>0.10.29-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>dbeam-parent</name>
 
@@ -91,10 +91,13 @@
       <id>ossrh</id>
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
+    <!-- Temporarily disable snapshot deployment to test release process -->
+    <!--
     <snapshotRepository>
       <id>ossrh</id>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
+    -->
   </distributionManagement>
 
   <properties>
@@ -686,15 +689,22 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-            <!--Using newer versions leads failure: https://issues.sonatype.org/browse/NEXUS-31301-->
-            <version>1.7.0</version>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.6.0</version>
             <extensions>true</extensions>
             <configuration>
-              <serverId>ossrh</serverId>
-              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              <publishingServerId>ossrh</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <deploymentName>dbeam</deploymentName>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.13</version>
+            <configuration>
+              <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
             </configuration>
           </plugin>
         </plugins>
