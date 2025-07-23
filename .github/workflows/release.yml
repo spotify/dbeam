@@ -46,5 +46,4 @@ jobs:
           export GPG_TTY=$(tty)
           mvn -B release:prepare release:perform \
             -DreleaseVersion=${{ github.event.inputs.version }} \
-            -DdryRun=true \
             -Darguments="-Dgpg.passphrase=${MAVEN_GPG_PASSPHRASE}"
