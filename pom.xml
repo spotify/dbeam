@@ -688,6 +688,13 @@
               </execution>
             </executions>
           </plugin>
+          <!-- 
+            Sonatype Central Publishing Plugin
+            - Replaces the legacy nexus-staging-maven-plugin for Maven Central deployment
+            - Works with Sonatype Central Portal authentication (new token system)
+            - autoPublish=true automatically releases artifacts after validation
+            - publishingServerId must match server credentials in settings.xml (ossrh)
+          -->
           <plugin>
             <groupId>org.sonatype.central</groupId>
             <artifactId>central-publishing-maven-plugin</artifactId>
@@ -699,6 +706,13 @@
               <deploymentName>dbeam</deploymentName>
             </configuration>
           </plugin>
+          <!-- 
+            Legacy Nexus Staging Plugin (Disabled)
+            - Kept for compatibility but disabled with skipNexusStagingDeployMojo=true
+            - The central-publishing-maven-plugin automatically includes this plugin
+            - We explicitly disable it to prevent conflicts during deployment
+            - Legacy OSSRH endpoints don't work with new Central Portal tokens
+          -->
           <plugin>
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
