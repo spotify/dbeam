@@ -138,7 +138,7 @@
     <junit.version>4.13.2</junit.version>
     <mysql.version>8.4.0</mysql.version>
     <mariadb.version>3.5.3</mariadb.version>
-    <postgresql.version>42.7.4</postgresql.version>
+    <postgresql.version>42.7.6</postgresql.version>
     <socket-factory.version>1.18.0</socket-factory.version>
   </properties>
 
