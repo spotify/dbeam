@@ -132,12 +132,14 @@ public class JdbcAvroSchemaTest {
     final ResultSet resultSet2 = buildMockResultSet(Types.REF);
     RuntimeException thrown2 = Assert.assertThrows(RuntimeException.class,
         () -> createAvroSchemaForSingleField(resultSet2, false));
-    Assert.assertEquals("REF and REF_CURSOR type are not supported", thrown2.getCause().getMessage());
+    Assert.assertEquals(
+        "REF and REF_CURSOR type are not supported", thrown2.getCause().getMessage());
 
     final ResultSet resultSet3 = buildMockResultSet(Types.REF_CURSOR);
     RuntimeException thrown3 = Assert.assertThrows(RuntimeException.class,
         () -> createAvroSchemaForSingleField(resultSet3, false));
-    Assert.assertEquals("REF and REF_CURSOR type are not supported", thrown3.getCause().getMessage());
+    Assert.assertEquals(
+        "REF and REF_CURSOR type are not supported", thrown3.getCause().getMessage());
 
     final ResultSet resultSet4 = buildMockResultSet(Types.DATALINK);
     RuntimeException thrown4 = Assert.assertThrows(RuntimeException.class,
