@@ -163,42 +163,52 @@ public class JdbcAvroSchema {
       final String typeName = JDBCType.valueOf(columnType).getName();
       final String columnClassName = meta.getColumnClassName(i);
       final String columnTypeName = meta.getColumnTypeName(i);
-      SchemaBuilder.FieldBuilder<Schema> field =
-          builder
-              .name(normalizeForAvro(columnName))
-              .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
-              .prop("columnName", columnName)
-              .prop("sqlCode", String.valueOf(columnType))
-              .prop("typeName", typeName)
-              .prop("columnClassName", columnClassName);
 
-      if (columnTypeName != null) {
-        field = field.prop("columnTypeName", columnTypeName);
+      try {
+        SchemaBuilder.FieldBuilder<Schema> field =
+            builder
+                .name(normalizeForAvro(columnName))
+                .doc(String.format(
+                    "From sqlType %d %s (%s)", columnType, typeName, columnClassName))
+                .prop("columnName", columnName)
+                .prop("sqlCode", String.valueOf(columnType))
+                .prop("typeName", typeName)
+                .prop("columnClassName", columnClassName);
+
+        if (columnTypeName != null) {
+          field = field.prop("columnTypeName", columnTypeName);
+        }
+
+        final SchemaBuilder.BaseTypeBuilder<
+            SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+            fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
+
+        Array arrayInstance =
+                resultSet.isFirst() && columnType == ARRAY
+                        && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
+                        ? resultSet.getArray(i) : null;
+
+        final SchemaBuilder.UnionAccumulator<
+            SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
+                buildAvroFieldType(
+                        columnName,
+                        columnType,
+                        arrayInstance,
+                        meta.getPrecision(i),
+                        columnClassName,
+                        columnTypeName,
+                        useLogicalTypes,
+                        arrayMode,
+                        nullableArrayItems,
+                        fieldSchemaBuilder);
+
+        schemaFieldAssembler.endUnion().nullDefault();
+      } catch (Exception e) {
+        throw new RuntimeException(String.format(
+            "Failed to build Avro schema for sqlType %d %s [%s, %s]",
+            columnType, typeName, columnClassName, columnTypeName
+        ), e);
       }
-
-      final SchemaBuilder.BaseTypeBuilder<
-              SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-          fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
-
-      Array arrayInstance =
-          resultSet.isFirst() && columnType == ARRAY
-          && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
-          ? resultSet.getArray(i) : null;
-
-      final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
-          buildAvroFieldType(
-              columnName,
-              columnType,
-              arrayInstance,
-              meta.getPrecision(i),
-              columnClassName,
-              columnTypeName,
-              useLogicalTypes,
-              arrayMode,
-              nullableArrayItems,
-              fieldSchemaBuilder);
-
-      schemaFieldAssembler.endUnion().nullDefault();
     }
     return builder;
   }

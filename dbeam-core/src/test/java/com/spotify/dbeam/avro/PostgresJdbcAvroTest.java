@@ -344,7 +344,7 @@ public class PostgresJdbcAvroTest {
         () -> JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
             Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
     Assert.assertEquals("columnName=array_field_text columnTypeName=text should start with '_'",
-        thrown.getMessage());
+        thrown.getCause().getMessage());
   }
 
   @Test
@@ -366,6 +366,6 @@ public class PostgresJdbcAvroTest {
             Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
     Assert.assertEquals(
         "columnName=array_field_text Postgres type 'not_supported' is not supported",
-        thrown.getMessage());
+        thrown.getCause().getMessage());
   }
 }
