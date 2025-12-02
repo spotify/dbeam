@@ -196,7 +196,7 @@ public class JdbcAvroSchemaTest {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
             resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes,
-            ArrayHandlingMode.TypedMetaFromFirstRow, false);
+            ArrayHandlingMode.TypedMetaFromFirstRow, false, Optional.empty());
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }
@@ -220,5 +220,37 @@ public class JdbcAvroSchemaTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
     return resultSet;
+  }
+  
+  @Test
+  public void shouldExcludeColumnsInCreateAvroSchema() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(2);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    when(meta.getColumnName(1)).thenReturn("column1");
+    when(meta.getColumnType(1)).thenReturn(Types.VARCHAR);
+    when(meta.getColumnClassName(1)).thenReturn("java.lang.String");
+    when(meta.getTableName(2)).thenReturn("test_table");
+    when(meta.getColumnName(2)).thenReturn("column2");
+    when(meta.getColumnType(2)).thenReturn(Types.INTEGER);
+    when(meta.getColumnClassName(2)).thenReturn("java.lang.Integer");
+
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    Schema avroSchema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet,
+            "namespace1",
+            "url1",
+            Optional.empty(),
+            "doc1",
+            false,
+            ArrayHandlingMode.TypedMetaFromFirstRow,
+            false,
+            Optional.of(com.google.common.collect.ImmutableSet.of("column1")));
+
+    Assert.assertNull(avroSchema.getField("column1"));
+    Assert.assertNotNull(avroSchema.getField("column2"));
   }
 }

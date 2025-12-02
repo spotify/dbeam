@@ -133,6 +133,8 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --nullableArrayItems=<Boolean>
     Default: false
     Controls whether array items should be nullable, ignored if arrayMode is 'bytes'. 
+  --excludeColumns=<String>
+    A comma-separated list of columns to be excluded from the export.
 ```
 
 #### Input Avro schema file

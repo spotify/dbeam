@@ -139,6 +139,7 @@ public class JdbcAvroIO {
     private Connection connection;
     private JdbcAvroMetering metering;
     private CountingOutputStream countingOutputStream;
+    private Schema schema;
 
     JdbcAvroWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -160,7 +161,7 @@ public class JdbcAvroIO {
       LOGGER.info("jdbcavroio : Preparing write...");
       connection = jdbcAvroArgs.jdbcConnectionConfiguration().createConnection();
       final Void destination = getDestination();
-      final Schema schema = dynamicDestinations.getSchema(destination);
+      this.schema = dynamicDestinations.getSchema(destination);
       dataFileWriter =
           new DataFileWriter<>(new GenericDatumWriter<GenericRecord>(schema))
               .setCodec(jdbcAvroArgs.getCodecFactory())
@@ -206,6 +207,7 @@ public class JdbcAvroIO {
       try (ResultSet resultSet = executeQuery(query)) {
         metering.startWriteMeter();
         final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet,
+            this.schema,
             this.jdbcAvroArgs.arrayMode(), this.jdbcAvroArgs.nullableArrayItems());
         while (resultSet.next()) {
           dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());

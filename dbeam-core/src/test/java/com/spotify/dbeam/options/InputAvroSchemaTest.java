@@ -20,7 +20,6 @@
 
 package com.spotify.dbeam.options;
 
-import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.args.QueryBuilderArgsTest;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import java.io.File;
@@ -205,15 +204,5 @@ public class InputAvroSchemaTest {
                 + "--partition=2027-07-31");
 
     Assert.assertNull(options.getAvroSchemaFilePath());
-  }
-
-  private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {
-    PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
-    final JdbcExportPipelineOptions opts =
-        PipelineOptionsFactory.fromArgs(cmdLineArgs.split(" "))
-            .withValidation()
-            .create()
-            .as(JdbcExportPipelineOptions.class);
-    return JdbcExportArgsFactory.createQueryArgs(opts);
   }
 }

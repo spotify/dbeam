@@ -25,6 +25,7 @@ import static com.spotify.dbeam.args.ParallelQueryBuilder.findInputBounds;
 import static com.spotify.dbeam.args.ParallelQueryBuilder.queriesForBounds;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.Serializable;
 import java.sql.Connection;
@@ -57,6 +58,8 @@ public abstract class QueryBuilderArgs implements Serializable {
 
   public abstract Optional<Integer> queryParallelism();
 
+  public abstract Optional<ImmutableSet<String>> excludedColumns();
+
   public abstract Builder builder();
 
   @AutoValue.Builder
@@ -85,6 +88,8 @@ public abstract class QueryBuilderArgs implements Serializable {
     public abstract Builder setQueryParallelism(Integer parallelism);
 
     public abstract Builder setQueryParallelism(Optional<Integer> queryParallelism);
+
+    public abstract Builder setExcludedColumns(Optional<ImmutableSet<String>> excludedColumns);
 
     public abstract QueryBuilderArgs build();
   }
@@ -122,6 +127,13 @@ public abstract class QueryBuilderArgs implements Serializable {
    */
   public List<String> buildQueries(final Connection connection) throws SQLException {
     QueryBuilder queryBuilder = this.baseSqlQuery();
+    if (this.splitColumn().isPresent()) {
+      queryBuilder = queryBuilder.withSplitColumn(this.splitColumn());
+    }
+    if (this.excludedColumns().isPresent()) {
+      queryBuilder = queryBuilder.withExcludedColumns(this.excludedColumns());
+      queryBuilder = queryBuilder.resolveSelect(connection);
+    }
     if (this.partitionColumn().isPresent() && this.partition().isPresent()) {
       queryBuilder =
           configurePartitionCondition(

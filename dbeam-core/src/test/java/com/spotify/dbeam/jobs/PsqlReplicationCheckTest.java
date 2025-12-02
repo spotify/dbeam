@@ -45,6 +45,7 @@ public class PsqlReplicationCheckTest {
         Optional.empty(),
         false,
         Duration.ZERO,
+        Optional.empty(),
         Optional.empty());
   }
 

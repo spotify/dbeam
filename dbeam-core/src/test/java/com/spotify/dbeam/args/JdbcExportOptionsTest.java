@@ -368,4 +368,16 @@ public class JdbcExportOptionsTest {
         "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
             + "--password=secret --queryParallelism=-5 --splitColumn=id");
   }
+
+  @Test
+  public void shouldParseExcludedColumns() throws IOException, ClassNotFoundException {
+    final JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --excludeColumns=col1,col2");
+
+    Assert.assertEquals(
+        Optional.of(com.google.common.collect.ImmutableSet.of("col1", "col2")),
+        options.excludedColumns());
+  }
 }

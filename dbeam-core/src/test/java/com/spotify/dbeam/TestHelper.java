@@ -74,6 +74,7 @@ public class TestHelper {
       throws SQLException {
     mockResultSetMeta(meta, columnIdx, Types.ARRAY, columnName, "java.sql.Array",
         columnTypeName);
+    when(resultSet.findColumn(columnName)).thenReturn(columnIdx);
     Array res1;
     if (array1 == null) {
       res1 = null;

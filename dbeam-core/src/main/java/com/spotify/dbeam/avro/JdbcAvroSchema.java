@@ -50,6 +50,7 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import com.google.common.collect.ImmutableSet;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.sql.Array;
@@ -95,9 +96,14 @@ public class JdbcAvroSchema {
               avroDoc,
               useLogicalTypes,
               arrayMode,
-              nullableArrayItems);
-      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayMode={}, "
-                  + "Generated schema: {}", useLogicalTypes, arrayMode, schema.toString());
+              nullableArrayItems,
+              queryBuilderArgs.excludedColumns());
+      LOGGER.info(
+          "Schema created successfully. useLogicalTypes={}, arrayMode={}, "
+              + "Generated schema: {}",
+          useLogicalTypes,
+          arrayMode,
+          schema.toString());
       return schema;
     }
   }
@@ -110,7 +116,8 @@ public class JdbcAvroSchema {
       final String avroDoc,
       final boolean useLogicalTypes,
       final String arrayMode,
-      final boolean nullableArrayItems)
+      final boolean nullableArrayItems,
+      final Optional<ImmutableSet<String>> excludedColumns)
       throws SQLException {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
@@ -124,13 +131,18 @@ public class JdbcAvroSchema {
             .prop("tableName", tableName)
             .prop("connectionUrl", connectionUrl)
             .fields();
-    return createAvroFields(resultSet, builder, useLogicalTypes, arrayMode, nullableArrayItems)
+    return createAvroFields(
+            resultSet,
+            builder,
+            useLogicalTypes,
+            arrayMode,
+            nullableArrayItems,
+            excludedColumns.orElse(ImmutableSet.of()))
         .endRecord();
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
     final String defaultTableName = "no_table_name";
-
     for (int i = 1; i <= meta.getColumnCount(); i++) {
       String metaTableName = meta.getTableName(i);
       if (metaTableName != null && !metaTableName.isEmpty()) {
@@ -145,13 +157,13 @@ public class JdbcAvroSchema {
       final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes,
       final String arrayMode,
-      final boolean nullableArrayItems)
+      final boolean nullableArrayItems,
+      final ImmutableSet<String> excludedColumns)
       throws SQLException {
 
     ResultSetMetaData meta = resultSet.getMetaData();
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
-
       final String columnName;
       if (meta.getColumnName(i).isEmpty()) {
         columnName = meta.getColumnLabel(i);
@@ -159,6 +171,10 @@ public class JdbcAvroSchema {
         columnName = meta.getColumnName(i);
       }
 
+      if (excludedColumns.stream().anyMatch(columnName::equalsIgnoreCase)) {
+        continue;
+      }
+      
       final int columnType = meta.getColumnType(i);
       final String typeName = JDBCType.valueOf(columnType).getName();
       final String columnClassName = meta.getColumnClassName(i);

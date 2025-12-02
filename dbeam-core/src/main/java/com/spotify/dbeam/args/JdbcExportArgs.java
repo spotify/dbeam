@@ -22,9 +22,11 @@ package com.spotify.dbeam.args;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Optional;
 import org.apache.avro.Schema;
 
@@ -49,6 +51,17 @@ public abstract class JdbcExportArgs implements Serializable {
 
   public abstract Optional<Schema> inputAvroSchema();
 
+  public abstract Optional<ImmutableSet<String>> excludedColumns();
+
+  public static Optional<ImmutableSet<String>> parseExcludedColumns(
+      final Optional<String> rawExcludedColumns) {
+    return rawExcludedColumns.map(
+        s ->
+            Arrays.stream(s.split(","))
+                .map(String::trim)
+                .collect(ImmutableSet.toImmutableSet()));
+  }
+
   @AutoValue.Builder
   abstract static class Builder {
 
@@ -68,6 +81,8 @@ public abstract class JdbcExportArgs implements Serializable {
 
     abstract Builder setInputAvroSchema(Optional<Schema> inputAvroSchema);
 
+    abstract Builder setExcludedColumns(Optional<ImmutableSet<String>> excludedColumns);
+
     abstract JdbcExportArgs build();
   }
 
@@ -82,6 +97,7 @@ public abstract class JdbcExportArgs implements Serializable {
         Optional.empty(),
         false,
         Duration.ofDays(7),
+        Optional.empty(),
         Optional.empty());
   }
 
@@ -93,7 +109,8 @@ public abstract class JdbcExportArgs implements Serializable {
       final Optional<String> avroDoc,
       final Boolean useAvroLogicalTypes,
       final Duration exportTimeout,
-      final Optional<Schema> inputAvroSchema) {
+      final Optional<Schema> inputAvroSchema,
+      final Optional<ImmutableSet<String>> excludedColumns) {
     return new AutoValue_JdbcExportArgs.Builder()
         .setJdbcAvroOptions(jdbcAvroArgs)
         .setQueryBuilderArgs(queryBuilderArgs)
@@ -103,6 +120,7 @@ public abstract class JdbcExportArgs implements Serializable {
         .setUseAvroLogicalTypes(useAvroLogicalTypes)
         .setExportTimeout(exportTimeout)
         .setInputAvroSchema(inputAvroSchema)
+        .setExcludedColumns(excludedColumns)
         .build();
   }
 

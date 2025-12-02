@@ -149,4 +149,9 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
   Long getMinRows();
 
   void setMinRows(Long value);
+
+  @Description("A comma-separated list of columns to be excluded from the export.")
+  String getExcludeColumns();
+
+  void setExcludeColumns(String value);
 }

@@ -232,6 +232,16 @@
         <artifactId>threetenbp</artifactId>
         <version>${threetenbp.version}</version>
       </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>1.17.5</version>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy-agent</artifactId>
+        <version>1.17.5</version>
+      </dependency>
       <!-- from libraries-bom -->
       <dependency>
         <groupId>io.opencensus</groupId>

@@ -81,7 +81,9 @@ public class JdbcExportArgsFactory {
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
         Duration.parse(exportOptions.getExportTimeout()),
-        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
+        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()),
+        JdbcExportArgs.parseExcludedColumns(
+            Optional.ofNullable(exportOptions.getExcludeColumns())));
   }
 
   public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)
@@ -129,6 +131,9 @@ public class JdbcExportArgsFactory {
         .setPartitionPeriod(partitionPeriod)
         .setSplitColumn(splitColumn)
         .setQueryParallelism(queryParallelism)
+        .setExcludedColumns(
+            JdbcExportArgs.parseExcludedColumns(
+                Optional.ofNullable(options.getExcludeColumns())))
         .build();
   }
 

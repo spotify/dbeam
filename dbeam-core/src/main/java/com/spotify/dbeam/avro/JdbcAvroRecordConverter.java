@@ -27,52 +27,60 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.UUID;
+import org.apache.avro.Schema;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 
 public class JdbcAvroRecordConverter {
 
   private final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings;
-  private final int columnCount;
   private final ResultSet resultSet;
   private final EncoderFactory encoderFactory = EncoderFactory.get();
   private final boolean nullableArrayItems;
+  private final Schema schema;
 
   public JdbcAvroRecordConverter(
       final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings,
-      final int columnCount,
       final ResultSet resultSet,
-      final boolean nullableArrayItems) {
+      final boolean nullableArrayItems,
+      final Schema schema) {
     this.mappings = mappings;
-    this.columnCount = columnCount;
     this.resultSet = resultSet;
     this.nullableArrayItems = nullableArrayItems;
+    this.schema = schema;
   }
 
   public static JdbcAvroRecordConverter create(final ResultSet resultSet,
+                                               final Schema schema,
                                                final String arrayMode,
                                                final boolean nullableArrayItems)
       throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet, arrayMode),
-        resultSet.getMetaData().getColumnCount(),
+        computeAllMappings(resultSet, schema, arrayMode),
         resultSet,
-        nullableArrayItems);
+        nullableArrayItems,
+        schema);
   }
 
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet, final String arrayMode)
+      final ResultSet resultSet, final Schema schema, final String arrayMode)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
-    final int columnCount = meta.getColumnCount();
+    final int columnCount = schema.getFields().size();
 
     final JdbcAvroRecord.SqlFunction<ResultSet, Object>[] mappings =
         (JdbcAvroRecord.SqlFunction<ResultSet, Object>[])
-            new JdbcAvroRecord.SqlFunction<?, ?>[columnCount + 1];
+            new JdbcAvroRecord.SqlFunction<?, ?>[columnCount];
 
-    for (int i = 1; i <= columnCount; i++) {
-      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayMode);
+    for (int i = 0; i < columnCount; i++) {
+      Schema.Field field = schema.getFields().get(i);
+      String columnName = field.getProp("columnName");
+      if (columnName == null) {
+        columnName = field.name();
+      }
+      int columnIndex = resultSet.findColumn(columnName);
+      mappings[i] = JdbcAvroRecord.computeMapping(meta, columnIndex, arrayMode);
     }
     return mappings;
   }
@@ -100,16 +108,16 @@ public class JdbcAvroRecordConverter {
    * @throws IOException in case binary encoding fails
    */
   public ByteBuffer convertResultSetIntoAvroBytes() throws SQLException, IOException {
-    final MyByteArrayOutputStream out = new MyByteArrayOutputStream(columnCount * 64);
+    final MyByteArrayOutputStream out = new MyByteArrayOutputStream(mappings.length * 64);
     binaryEncoder = encoderFactory.directBinaryEncoder(out, binaryEncoder);
-    for (int i = 1; i <= columnCount; i++) {
+    for (int i = 0; i < mappings.length; i++) {
       final Object value = mappings[i].apply(resultSet);
       if (value == null || resultSet.wasNull()) {
         binaryEncoder.writeIndex(0);
         binaryEncoder.writeNull();
       } else {
         binaryEncoder.writeIndex(1);
-        writeValue(value, resultSet.getMetaData().getColumnName(i), binaryEncoder);
+        writeValue(value, schema.getFields().get(i).name(), binaryEncoder);
       }
     }
     binaryEncoder.flush();

@@ -196,8 +196,9 @@ public class JdbcAvroRecordTest {
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
             rs, "dbeam_generated", "connection", Optional.empty(), "doc",
-            false, arrayMode, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, arrayMode, false);
+            false, arrayMode, false, Optional.empty());
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, schema,
+        arrayMode, false);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
     final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

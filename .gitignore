@@ -7,3 +7,5 @@ target
 e2e/results/*
 *.iml
 .java-version
+.vscode
+e2e/avro-tools.jar

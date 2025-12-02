@@ -291,6 +291,41 @@ public class QueryBuilderArgsTest {
         actual.buildQueries(connection));
   }
 
+  @Test
+  public void shouldConfigureExcludedColumnsWithTable() throws IOException, SQLException {
+    final QueryBuilderArgs actual =
+        parseOptions(
+            "--connectionUrl=jdbc:postgresql://some_db --table=COFFEES "
+                + "--excludeColumns=COF_NAME");
+
+    String query = actual.buildQueries(connection).get(0);
+    Assert.assertTrue(query.startsWith("SELECT "));
+    Assert.assertFalse(query.contains("*"));
+    Assert.assertFalse(query.contains("COF_NAME"));
+    Assert.assertTrue(query.contains("SUP_ID"));
+    Assert.assertTrue(query.contains("PRICE"));
+  }
+
+  @Test
+  public void shouldCreateQueriesWithExplicitSelectAndExcludeColumnsAndMissingSplitColumn()
+      throws IOException, SQLException {
+    Path sqlPath =
+        TestHelper.createTmpDirPath("jdbc-export-args-test").resolve("explicit_select_exclude.sql");
+    Files.write(
+        sqlPath,
+        "SELECT COF_NAME FROM COFFEES".getBytes(StandardCharsets.UTF_8));
+
+    final QueryBuilderArgs actual =
+        parseOptions(
+            String.format(
+                "--connectionUrl=jdbc:postgresql://some_db "
+                    + "--sqlFile=%s --splitColumn=TOTAL --queryParallelism=5 "
+                    + "--excludeColumns=COF_NAME",
+                sqlPath.toString()));
+
+    actual.buildQueries(connection);
+  }
+
   private QueryBuilderArgs parseOptions(String cmdLineArgs) throws IOException {
     JdbcExportPipelineOptions opts = commandLineToOptions(cmdLineArgs);
     return JdbcExportArgsFactory.createQueryArgs(opts);
