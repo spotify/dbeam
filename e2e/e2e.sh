@@ -65,7 +65,7 @@ JAVA_OPTS=(
 
 pack() {
   java -version
-  # create a fat jar
+  # create fat jars
   (cd "$PROJECT_PATH"; mvn package -Ppack -DskipTests -Dmaven.test.skip=true -Dmaven.site.skip=true -Dmaven.javadoc.skip=true)
 }
 
@@ -78,6 +78,17 @@ run_docker_dbeam() {
     --entrypoint=/usr/bin/java \
     "$JAVA_DOCKER_IMAGE" \
     "${JAVA_OPTS[@]}" -cp /dbeam/dbeam-core-shaded.jar com.spotify.dbeam.jobs.BenchJdbcAvroJob "$@"
+}
+
+run_docker_dbeam_parquet() {
+  time docker run --interactive --rm \
+    --net="$DOCKER_NETWORK" \
+    --mount="type=bind,source=$PROJECT_PATH/dbeam-parquet/target,target=/dbeam" \
+    --mount="type=bind,source=$SCRIPT_PATH,target=$SCRIPT_PATH" \
+    --memory=1G \
+    --entrypoint=/usr/bin/java \
+    "$JAVA_DOCKER_IMAGE" \
+    "${JAVA_OPTS[@]}" -cp /dbeam/dbeam-parquet-shaded.jar com.spotify.dbeam.parquet.BenchJdbcParquetJob "$@"
 }
 
 runDBeamDockerCon() {
@@ -99,6 +110,25 @@ runDBeamDockerCon() {
   avro-tools tojson --head=5 $OUTPUT_FILE
 }
 
+runDBeamParquetDockerCon() {
+  OUTPUT="$SCRIPT_PATH/results/testn/parquet-$(date +%FT%H%M%S)/"
+  set -o xtrace
+  time \
+    run_docker_dbeam_parquet \
+    --skipPartitionCheck \
+    --targetParallelism=1 \
+    "--connectionUrl=jdbc:postgresql://dbeam-postgres:5432/$PSQL_DB?binaryTransfer=${BINARY_TRANSFER:-false}" \
+    "--username=$PSQL_USER" \
+    "--password=$PSQL_PASSWORD" \
+    "--table=${table:-demo_table}" \
+    "--partition=$(date +%F)" \
+    "--output=$OUTPUT" \
+    "--minRows=${minRows:-1000000}" \
+    "$@" 2>&1 | tee -a /tmp/debeam_e2e.log
+  OUTPUT_FILE=$(ls ${OUTPUT}run_0/*.parquet | head -n 1)
+  echo "Parquet output: $OUTPUT_FILE ($(stat -f%z "$OUTPUT_FILE" 2>/dev/null || stat -c%s "$OUTPUT_FILE") bytes)"
+}
+
 runSuite() {
   table=demo_table
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
@@ -108,10 +138,22 @@ runSuite() {
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
 }
 
+runParquetSuite() {
+  table=demo_table
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --avroCodec=snappy
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --avroCodec=snappy --queryParallelism=5 --splitColumn=row_number
+}
+
 light() {
   pack
   table=demo_table
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
+}
+
+lightParquet() {
+  pack
+  table=demo_table
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --avroCodec=snappy
 }
 
 
