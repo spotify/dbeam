@@ -133,11 +133,11 @@ public class JdbcParquetJob {
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
+    final String parquetCodec = resolveParquetCodec(pipelineOptions);
     final JdbcParquetArgs parquetArgs = JdbcParquetArgs.create(
         jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
         jdbcExportArgs.jdbcAvroOptions().fetchSize(),
-        mapAvroCodecToParquetCodec(
-            pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroCodec()),
+        parquetCodec,
         64 * 1024 * 1024,
         1024 * 1024,
         jdbcExportArgs.jdbcAvroOptions().preCommand());
@@ -197,6 +197,15 @@ public class JdbcParquetJob {
 
   public String getOutput() {
     return output;
+  }
+
+  static String resolveParquetCodec(final PipelineOptions options) {
+    final String parquetCodec = options.as(ParquetPipelineOptions.class).getParquetCodec();
+    if (parquetCodec != null && !parquetCodec.isEmpty()) {
+      return parquetCodec;
+    }
+    return mapAvroCodecToParquetCodec(
+        options.as(JdbcExportPipelineOptions.class).getAvroCodec());
   }
 
   static String mapAvroCodecToParquetCodec(final String avroCodec) {

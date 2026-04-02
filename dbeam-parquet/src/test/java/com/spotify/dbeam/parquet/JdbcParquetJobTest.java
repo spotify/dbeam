@@ -307,4 +307,51 @@ public class JdbcParquetJobTest {
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
     assertThat(parquetFile.length(), greaterThan(0L));
   }
+
+  @Test
+  public void shouldRunParquetJobWithParquetCodecOption() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithParquetCodecOption");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--parquetCodec=gzip"
+            })
+        .runExport();
+
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
+  }
+
+  @Test
+  public void shouldPreferParquetCodecOverAvroCodec() throws Exception {
+    final Path outputPath = testDir.resolve("shouldPreferParquetCodecOverAvroCodec");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--avroCodec=deflate1",
+              "--parquetCodec=zstd"
+            })
+        .runExport();
+
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
+  }
 }

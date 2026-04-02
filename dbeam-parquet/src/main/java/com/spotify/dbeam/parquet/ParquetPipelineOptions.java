@@ -30,4 +30,11 @@ public interface ParquetPipelineOptions extends PipelineOptions {
   String getParquetSchemaFilePath();
 
   void setParquetSchemaFilePath(String value);
+
+  @Description(
+      "Parquet compression codec (snappy, gzip, zstd, lz4, none). "
+          + "Overrides --avroCodec when set.")
+  String getParquetCodec();
+
+  void setParquetCodec(String value);
 }
