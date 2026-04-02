@@ -44,7 +44,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./dbeam-core/target/site/jacoco/jacoco.xml
+          files: ./dbeam-core/target/site/jacoco/jacoco.xml,./dbeam-parquet/target/site/jacoco/jacoco.xml
           flags: unittests # optional
           name: codecov-umbrella # optional
           fail_ci_if_error: false # optional (default = false)
