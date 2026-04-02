@@ -131,6 +131,7 @@ public class JdbcParquetIO {
     private ParquetWriter<ResultSet> parquetWriter;
     private Connection connection;
     private JdbcParquetMetering metering;
+    private ChannelOutputFile channelOutputFile;
 
     JdbcParquetWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -152,8 +153,8 @@ public class JdbcParquetIO {
       connection = jdbcParquetArgs.jdbcConnectionConfiguration().createConnection();
 
       final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
-      final OutputFile outputFile = new ChannelOutputFile(channel);
-      parquetWriter = new ResultSetParquetWriterBuilder(outputFile, schema)
+      channelOutputFile = new ChannelOutputFile(channel);
+      parquetWriter = new ResultSetParquetWriterBuilder(channelOutputFile, schema)
           .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
           .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
           .withPageSize(jdbcParquetArgs.pageSize())
@@ -201,7 +202,9 @@ public class JdbcParquetIO {
           this.metering.incrementRecordCount();
         }
         this.metering.exposeWriteElapsed();
-        this.metering.exposeWrittenBytes(0);
+        if (channelOutputFile != null) {
+          this.metering.exposeWrittenBytes(channelOutputFile.getBytesWritten());
+        }
       }
     }
 

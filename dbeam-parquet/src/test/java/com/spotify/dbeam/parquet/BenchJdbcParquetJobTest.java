@@ -48,29 +48,30 @@ public class BenchJdbcParquetJobTest {
   }
 
   @Test
-  public void shouldRunBenchJdbcParquetJob() {
-    BenchJdbcParquetJob.main(
+  public void shouldRunBenchJdbcParquetJob() throws Exception {
+    final Path benchDir = TestHelper.createTmpDirPath("jdbc-parquet-bench-run");
+    BenchJdbcParquetJob.create(
         new String[] {
           "--targetParallelism=1",
           "--skipPartitionCheck",
           "--connectionUrl=" + CONNECTION_URL,
           "--username=",
           "--table=COFFEES",
-          "--output=" + testDir.toString(),
+          "--output=" + benchDir.toString(),
           "--avroCodec=snappy",
           "--executions=2"
-        });
-    assertThat(TestHelper.listDir(testDir.toFile()), containsInAnyOrder("run_0", "run_1"));
+        }).run();
+    assertThat(TestHelper.listDir(benchDir.toFile()), containsInAnyOrder("run_0", "run_1"));
   }
 
   @Test
-  public void shouldOutputMetricsTsvSummary() throws IOException {
+  public void shouldOutputMetricsTsvSummary() throws Exception {
     final Path benchDir = TestHelper.createTmpDirPath("jdbc-parquet-bench-metrics");
     final ByteArrayOutputStream capturedOut = new ByteArrayOutputStream();
     final PrintStream originalOut = System.out;
     System.setOut(new PrintStream(capturedOut));
     try {
-      BenchJdbcParquetJob.main(
+      BenchJdbcParquetJob.create(
           new String[] {
             "--targetParallelism=1",
             "--skipPartitionCheck",
@@ -80,7 +81,7 @@ public class BenchJdbcParquetJobTest {
             "--output=" + benchDir.toString(),
             "--avroCodec=snappy",
             "--executions=2"
-          });
+          }).run();
     } finally {
       System.setOut(originalOut);
     }

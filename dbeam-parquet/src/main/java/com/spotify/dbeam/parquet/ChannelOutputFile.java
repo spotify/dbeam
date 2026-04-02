@@ -34,14 +34,28 @@ import org.apache.parquet.io.PositionOutputStream;
 public class ChannelOutputFile implements OutputFile {
 
   private final WritableByteChannel channel;
+  private ChannelPositionOutputStream lastStream;
 
   public ChannelOutputFile(WritableByteChannel channel) {
     this.channel = channel;
   }
 
+  /** Returns the number of bytes written, or 0 if no stream was created yet. */
+  public long getBytesWritten() {
+    if (lastStream == null) {
+      return 0;
+    }
+    try {
+      return lastStream.getPos();
+    } catch (IOException e) {
+      return 0;
+    }
+  }
+
   @Override
   public PositionOutputStream create(long blockSizeHint) throws IOException {
-    return new ChannelPositionOutputStream(Channels.newOutputStream(channel));
+    lastStream = new ChannelPositionOutputStream(Channels.newOutputStream(channel));
+    return lastStream;
   }
 
   @Override
