@@ -140,8 +140,8 @@ runSuite() {
 
 runParquetSuite() {
   table=demo_table
-  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --avroCodec=snappy
-  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --avroCodec=snappy --queryParallelism=5 --splitColumn=row_number
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --queryParallelism=5 --splitColumn=row_number
 }
 
 light() {
@@ -166,6 +166,7 @@ main() {
     time startPostgres
 
     runSuite
+    runParquetSuite
     dockerClean
   fi
 }
