@@ -140,8 +140,8 @@ public class JdbcParquetJob {
     final JdbcParquetArgs parquetArgs = JdbcParquetArgs.create(
         jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
         jdbcExportArgs.jdbcAvroOptions().fetchSize(),
-        pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroCodec()
-            .replace("deflate6", "snappy"),
+        mapAvroCodecToParquetCodec(
+            pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroCodec()),
         64 * 1024 * 1024,
         1024 * 1024,
         jdbcExportArgs.jdbcAvroOptions().preCommand());
@@ -189,6 +189,17 @@ public class JdbcParquetJob {
 
   public String getOutput() {
     return output;
+  }
+
+  static String mapAvroCodecToParquetCodec(final String avroCodec) {
+    if (avroCodec.equals("snappy")) {
+      return "snappy";
+    } else if (avroCodec.startsWith("deflate")) {
+      return "gzip";
+    } else if (avroCodec.startsWith("zstandard")) {
+      return "zstd";
+    }
+    return avroCodec;
   }
 
   public static void main(String[] cmdLineArgs) {

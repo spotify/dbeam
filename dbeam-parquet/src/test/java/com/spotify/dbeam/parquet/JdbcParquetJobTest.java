@@ -215,4 +215,60 @@ public class JdbcParquetJobTest {
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
     assertThat(parquetFile.length(), greaterThan(0L));
   }
+
+  @Test
+  public void shouldMapAvroCodecToParquetCodec() {
+    Assert.assertEquals("snappy", JdbcParquetJob.mapAvroCodecToParquetCodec("snappy"));
+    Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate1"));
+    Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate6"));
+    Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate9"));
+    Assert.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard1"));
+    Assert.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard9"));
+  }
+
+  @Test
+  public void shouldRunParquetJobWithDeflateCodec() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithDeflateCodec");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--avroCodec=deflate1"
+            })
+        .runExport();
+
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
+  }
+
+  @Test
+  public void shouldRunParquetJobWithZstandardCodec() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithZstandardCodec");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--avroCodec=zstandard1"
+            })
+        .runExport();
+
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
+  }
 }
