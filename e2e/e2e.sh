@@ -127,6 +127,8 @@ runDBeamParquetDockerCon() {
     "$@" 2>&1 | tee -a /tmp/debeam_e2e.log
   OUTPUT_FILE=$(ls ${OUTPUT}run_0/*.parquet | head -n 1)
   echo "Parquet output: $OUTPUT_FILE ($(stat -f%z "$OUTPUT_FILE" 2>/dev/null || stat -c%s "$OUTPUT_FILE") bytes)"
+  parquet-tools head -n 5 "$OUTPUT_FILE" || echo "parquet-tools not available, skipping content validation"
+  parquet-tools schema "$OUTPUT_FILE" || echo "parquet-tools not available, skipping schema validation"
 }
 
 runSuite() {

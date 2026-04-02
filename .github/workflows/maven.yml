@@ -49,7 +49,7 @@ jobs:
           name: codecov-umbrella # optional
           fail_ci_if_error: false # optional (default = false)
           verbose: true # optional (default = false)
-      - name: Install avro tools
+      - name: Install avro and parquet tools
         if: matrix.java_version == '21'
         run: |
           wget https://dlcdn.apache.org/avro/avro-1.11.5/java/avro-tools-1.11.5.jar
@@ -57,6 +57,10 @@ jobs:
           mv avro-tools-1.11.5.jar /opt/avro/
           chmod +x /opt/avro/avro-tools-1.11.5.jar
           echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.5.jar'" > ~/.bashrc
+          wget -q https://repo1.maven.org/maven2/org/apache/parquet/parquet-cli/1.14.4/parquet-cli-1.14.4-runtime.jar
+          mkdir -p /opt/parquet
+          mv parquet-cli-1.14.4-runtime.jar /opt/parquet/
+          echo "alias parquet-tools='java -jar /opt/parquet/parquet-cli-1.14.4-runtime.jar'" >> ~/.bashrc
       - name: End to end tests
         shell: bash
         if: matrix.java_version == '21'
