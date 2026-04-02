@@ -13,7 +13,7 @@ readonly PROJECT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null && pw
 
 # This file contatins psql views with complex types to validate and troubleshoot dbeam
 
-PSQL_DOCKER_IMAGE=postgres:16
+PSQL_DOCKER_IMAGE=postgres:18
 PSQL_USER=postgres
 PSQL_PASSWORD=tempandnotasecret
 PSQL_DB=dbeam_test
