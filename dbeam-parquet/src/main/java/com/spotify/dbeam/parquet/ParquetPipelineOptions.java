@@ -20,6 +20,7 @@
 
 package com.spotify.dbeam.parquet;
 
+import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 
@@ -37,4 +38,18 @@ public interface ParquetPipelineOptions extends PipelineOptions {
   String getParquetCodec();
 
   void setParquetCodec(String value);
+
+  @Description("Parquet row group size in bytes. Larger values improve read performance "
+      + "but use more memory during writes.")
+  @Default.Integer(134217728)
+  Integer getRowGroupSize();
+
+  void setRowGroupSize(Integer value);
+
+  @Description("Parquet page size in bytes. Controls the granularity of encoding "
+      + "and compression within a column chunk.")
+  @Default.Integer(1048576)
+  Integer getPageSize();
+
+  void setPageSize(Integer value);
 }

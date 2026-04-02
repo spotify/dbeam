@@ -134,12 +134,14 @@ public class JdbcParquetJob {
     LOGGER.info("Running queries: {}", queries.toString());
 
     final String parquetCodec = resolveParquetCodec(pipelineOptions);
+    final ParquetPipelineOptions parquetOptions =
+        pipelineOptions.as(ParquetPipelineOptions.class);
     final JdbcParquetArgs parquetArgs = JdbcParquetArgs.create(
         jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
         jdbcExportArgs.jdbcAvroOptions().fetchSize(),
         parquetCodec,
-        64 * 1024 * 1024,
-        1024 * 1024,
+        parquetOptions.getRowGroupSize(),
+        parquetOptions.getPageSize(),
         jdbcExportArgs.jdbcAvroOptions().preCommand());
 
     pipeline
