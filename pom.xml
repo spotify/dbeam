@@ -76,6 +76,7 @@
 
   <modules>
     <module>dbeam-core</module>
+    <module>dbeam-parquet</module>
     <module>dbeam-bom</module>
   </modules>
 
@@ -121,10 +122,16 @@
     <httpcore.version>4.4.14</httpcore.version>
     <jackson.version>2.18.2</jackson.version>
     <joda-time.version>2.14.0</joda-time.version>
-    <netty.version>4.1.124.Final</netty.version>
+    <netty.version>4.1.130.Final</netty.version>
     <slf4j.version>2.0.16</slf4j.version>
     <threetenbp.version>1.6.8</threetenbp.version>
     <zstd-jni.version>1.5.7-7</zstd-jni.version>
+    <parquet.version>1.14.4</parquet.version>
+    <hadoop.version>3.5.0</hadoop.version>
+    <!-- pinned to satisfy requireUpperBoundDeps:
+         hadoop-common pulls older woodstox/stax2 than google-cloud-storage -->
+    <woodstox-core.version>7.0.0</woodstox-core.version>
+    <stax2-api.version>4.2.2</stax2-api.version>
 
     <!-- GCP BOM -->
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
@@ -241,6 +248,32 @@
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
       <!-- overrides with vulnerability fixes - end-->
+      <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-hadoop</artifactId>
+        <version>${parquet.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.woodstox</groupId>
+        <artifactId>woodstox-core</artifactId>
+        <version>${woodstox-core.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.woodstox</groupId>
+        <artifactId>stax2-api</artifactId>
+        <version>${stax2-api.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.beam</groupId>
         <artifactId>beam-sdks-java-bom</artifactId>
@@ -431,12 +464,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>com.google.auto.value</groupId>
-      <artifactId>auto-value</artifactId>
-    </dependency>
-  </dependencies>
 
   <repositories>
     <repository>
@@ -470,14 +497,6 @@
               </path>
             </annotationProcessorPaths>
           </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>compile</goal>
-              </goals>
-              <phase>compile</phase>
-            </execution>
-          </executions>
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
@@ -566,6 +585,12 @@
                       <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
                       <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
                       <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
+                      <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jdk8</exclude>
+                      <!-- from hadoop-common -->
+                      <exclude>org.apache.commons:commons-lang3</exclude>
+                      <exclude>commons-logging:commons-logging</exclude>
+                      <exclude>org.apache.commons:commons-text</exclude>
+                      <exclude>com.google.re2j:re2j</exclude>
                       <exclude>com.github.luben:zstd-jni</exclude>
                       <exclude>com.google.auto.value:auto-value</exclude>
                       <exclude>com.google.auto.value:auto-value-annotations</exclude>
