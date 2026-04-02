@@ -116,12 +116,7 @@ public class JdbcParquetJob {
     final List<String> queries;
     final MessageType generatedSchema;
     try (Connection connection = jdbcExportArgs.createConnection()) {
-      generatedSchema = JdbcParquetSchema.createSchemaByReadingOneRow(
-          connection,
-          jdbcExportArgs.queryBuilderArgs(),
-          jdbcExportArgs.avroSchemaName(),
-          jdbcExportArgs.useAvroLogicalTypes());
-
+      generatedSchema = createSchema(connection);
       queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
       final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
@@ -177,6 +172,18 @@ public class JdbcParquetJob {
     final PipelineResult pipelineResult = runAndWait();
     checkMetrics(pipelineResult);
     return pipelineResult;
+  }
+
+  private MessageType createSchema(final Connection connection) throws Exception {
+    final String schemaFilePath =
+        pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroSchemaFilePath();
+    final java.util.Optional<MessageType> inputSchema =
+        BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(schemaFilePath);
+    if (inputSchema.isPresent()) {
+      return inputSchema.get();
+    } else {
+      return BeamJdbcParquetSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
+    }
   }
 
   public Pipeline getPipeline() {
