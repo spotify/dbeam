@@ -21,7 +21,7 @@ All columns are represented as `optional` (nullable) fields in the Parquet schem
 | VARBINARY                | BINARY                    |                                 |                                       |
 | LONGVARBINARY            | BINARY                    |                                 |                                       |
 | BLOB                     | BINARY                    |                                 |                                       |
-| ARRAY                    | BINARY                    |                                 | Serialized as string representation   |
+| ARRAY                    | LIST (group)              | LIST                            | 3-level list with STRING elements     |
 | DOUBLE                   | DOUBLE                    |                                 |                                       |
 | FLOAT                    | FLOAT                     |                                 |                                       |
 | REAL                     | FLOAT                     |                                 |                                       |

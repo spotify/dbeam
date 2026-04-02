@@ -247,10 +247,14 @@ public class JdbcParquetSchemaTest {
   }
 
   @Test
-  public void shouldConvertArraySqlTypeToBinary() throws SQLException {
+  public void shouldConvertArraySqlTypeToList() throws SQLException {
     final Type fieldType = buildFieldType(Types.ARRAY, false);
 
-    assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
+    Assert.assertFalse(fieldType.isPrimitive());
+    Assert.assertEquals(
+        LogicalTypeAnnotation.listType(),
+        fieldType.getLogicalTypeAnnotation());
+    Assert.assertEquals(Type.Repetition.OPTIONAL, fieldType.getRepetition());
   }
 
   @Test

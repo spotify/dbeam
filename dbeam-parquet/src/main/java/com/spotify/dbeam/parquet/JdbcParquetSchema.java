@@ -194,8 +194,14 @@ public class JdbcParquetSchema {
         return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT)
             .named(columnName);
       case ARRAY:
-        // For now, serialize arrays as binary (bytes mode)
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+        // Parquet 3-level LIST convention: list > repeated list > element
+        // Element type defaults to STRING since JDBC array element type
+        // is not available from ResultSetMetaData alone.
+        return Types.optionalList()
+            .element(
+                Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+                    .as(LogicalTypeAnnotation.stringType())
+                    .named("element"))
             .named(columnName);
       case OTHER:
         if (useLogicalTypes && "uuid".equals(columnTypeName)) {

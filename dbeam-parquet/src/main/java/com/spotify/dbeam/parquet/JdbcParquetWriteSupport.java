@@ -207,10 +207,23 @@ public class JdbcParquetWriteSupport {
         }
       case ARRAY:
         return (consumer, rs) -> {
-          final String val = rs.getString(column);
-          if (val != null && !rs.wasNull()) {
+          final java.sql.Array sqlArray = rs.getArray(column);
+          if (sqlArray != null && !rs.wasNull()) {
+            final Object[] items = (Object[]) sqlArray.getArray();
             consumer.startField(normalizedName, fieldIndex);
-            consumer.addBinary(Binary.fromString(val));
+            consumer.startGroup(); // LIST group
+            consumer.startField("list", 0); // repeated list field
+            for (Object item : items) {
+              consumer.startGroup(); // list element group
+              if (item != null) {
+                consumer.startField("element", 0);
+                consumer.addBinary(Binary.fromString(item.toString()));
+                consumer.endField("element", 0);
+              }
+              consumer.endGroup();
+            }
+            consumer.endField("list", 0);
+            consumer.endGroup();
             consumer.endField(normalizedName, fieldIndex);
           }
         };

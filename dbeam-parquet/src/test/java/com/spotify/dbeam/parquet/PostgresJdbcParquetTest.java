@@ -208,6 +208,42 @@ public class PostgresJdbcParquetTest {
     });
   }
 
+  @Test
+  public void shouldEncodeArrayAsParquetList() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "tags", "java.sql.Array", "_text");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    final java.sql.Array mockArray = Mockito.mock(java.sql.Array.class);
+    when(mockArray.getArray()).thenReturn(new String[] {"rock", "jazz", "blues"});
+    when(resultSet.getArray(1)).thenReturn(mockArray);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+
+    // Verify schema has LIST type
+    Assert.assertFalse(schema.getFields().get(0).isPrimitive());
+    Assert.assertEquals(
+        org.apache.parquet.schema.LogicalTypeAnnotation.listType(),
+        schema.getFields().get(0).getLogicalTypeAnnotation());
+
+    final Path tempFile = Files.createTempFile("parquet-array-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(schema, resultSet, tempFile, record -> {
+      Group tagsList = record.getGroup("tags", 0);
+      Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
+      Assert.assertEquals("rock",
+          tagsList.getGroup("list", 0).getString("element", 0));
+      Assert.assertEquals("jazz",
+          tagsList.getGroup("list", 1).getString("element", 0));
+      Assert.assertEquals("blues",
+          tagsList.getGroup("list", 2).getString("element", 0));
+    });
+  }
+
   @FunctionalInterface
   interface RecordAssertion {
     void assertRecord(Group record) throws IOException;
