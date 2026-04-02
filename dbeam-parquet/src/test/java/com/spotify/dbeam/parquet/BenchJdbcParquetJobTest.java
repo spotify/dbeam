@@ -39,11 +39,9 @@ public class BenchJdbcParquetJobTest {
 
   private static final String CONNECTION_URL =
       "jdbc:h2:mem:testbench;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
-  private static Path testDir;
 
   @BeforeClass
-  public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
-    testDir = TestHelper.createTmpDirPath("jdbc-parquet-bench-test");
+  public static void beforeAll() throws SQLException, ClassNotFoundException {
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
