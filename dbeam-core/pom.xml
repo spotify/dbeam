@@ -13,6 +13,10 @@
   <name>DBeam Core</name>
   <description>Top level DBeam core implementation</description>
 
+  <properties>
+    <dbeam.mainClass>com.spotify.dbeam.jobs.JdbcAvroJob</dbeam.mainClass>
+  </properties>
+
   <dependencies>
     <!-- SDK -->
     <dependency>

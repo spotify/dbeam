@@ -98,53 +98,8 @@
     </dependency>
   </dependencies>
 
-  <profiles>
-    <profile>
-      <id>pack</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <version>3.6.0</version>
-            <executions>
-              <execution>
-                <id>bundle-and-repackage</id>
-                <goals>
-                  <goal>shade</goal>
-                </goals>
-                <phase>package</phase>
-                <configuration>
-                  <dependencyReducedPomLocation>${basedir}/target/dependency-reduced-pom.xml</dependencyReducedPomLocation>
-                  <artifactSet>
-                    <includes>
-                      <include>*:*</include>
-                    </includes>
-                  </artifactSet>
-                  <filters>
-                    <filter>
-                      <artifact>*:*</artifact>
-                      <excludes>
-                        <exclude>META-INF/*.SF</exclude>
-                        <exclude>META-INF/*.DSA</exclude>
-                        <exclude>META-INF/*.RSA</exclude>
-                      </excludes>
-                    </filter>
-                  </filters>
-                  <transformers>
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                      <mainClass>com.spotify.dbeam.parquet.JdbcParquetJob</mainClass>
-                    </transformer>
-                  </transformers>
-                  <outputFile>${basedir}/target/${project.artifactId}-shaded.jar</outputFile>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
+  <properties>
+    <dbeam.mainClass>com.spotify.dbeam.parquet.JdbcParquetJob</dbeam.mainClass>
+  </properties>
 
 </project>
