@@ -98,6 +98,7 @@ public class JdbcParquetJob {
   public static PipelineOptions buildPipelineOptions(final String[] cmdLineArgs) {
     PipelineOptionsFactory.register(JdbcExportPipelineOptions.class);
     PipelineOptionsFactory.register(OutputOptions.class);
+    PipelineOptionsFactory.register(ParquetPipelineOptions.class);
     return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
   }
 
@@ -176,7 +177,7 @@ public class JdbcParquetJob {
 
   private MessageType createSchema(final Connection connection) throws Exception {
     final String schemaFilePath =
-        pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroSchemaFilePath();
+        pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
     final java.util.Optional<MessageType> inputSchema =
         BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(schemaFilePath);
     if (inputSchema.isPresent()) {

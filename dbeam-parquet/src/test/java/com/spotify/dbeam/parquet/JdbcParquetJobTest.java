@@ -217,6 +217,42 @@ public class JdbcParquetJobTest {
   }
 
   @Test
+  public void shouldRunParquetJobWithInputSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithInputSchemaFile");
+    final Path schemaFile = testDir.resolve("input_schema.parquet.txt");
+    Files.write(schemaFile, (
+        "message COFFEES {\n"
+        + "  optional binary COF_NAME (STRING);\n"
+        + "  optional double SIZE;\n"
+        + "  optional int64 TOTAL;\n"
+        + "}").getBytes());
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--output=" + outputPath,
+              "--avroCodec=snappy",
+              "--parquetSchemaFilePath=" + schemaFile.toString(),
+              "--sqlFile=" + sqlPath.toString()
+            })
+        .runExport();
+
+    final String schemaJson =
+        new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
+    Assert.assertTrue(schemaJson.contains("COF_NAME"));
+    Assert.assertTrue(schemaJson.contains("SIZE"));
+    Assert.assertTrue(schemaJson.contains("TOTAL"));
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
+  }
+
+  @Test
   public void shouldMapAvroCodecToParquetCodec() {
     Assert.assertEquals("snappy", JdbcParquetJob.mapAvroCodecToParquetCodec("snappy"));
     Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate1"));
