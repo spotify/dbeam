@@ -41,12 +41,15 @@ public class JdbcParquetJobTest {
       "jdbc:h2:mem:testparquet;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
   private static Path testDir;
   private static Path passwordPath;
+  private static Path sqlPath;
 
   @BeforeClass
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
     testDir = TestHelper.createTmpDirPath("jdbc-parquet-test-");
     passwordPath = testDir.resolve(".password");
+    sqlPath = testDir.resolve("query.sql");
     passwordPath.toFile().createNewFile();
+    Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
@@ -114,5 +117,102 @@ public class JdbcParquetJobTest {
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
         containsInAnyOrder("part-00000-of-00001.parquet"));
+  }
+
+  @Test
+  public void shouldRunJdbcParquetJobSqlFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunJdbcParquetJobSqlFile");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--output=" + outputPath,
+              "--avroCodec=snappy",
+              "--sqlFile=" + sqlPath.toString()
+            })
+        .runExport();
+
+    assertThat(
+        TestHelper.listDir(outputPath.toFile()),
+        containsInAnyOrder(
+            "_PARQUET_SCHEMA.json",
+            "_METRICS.json",
+            "_SERVICE_METRICS.json",
+            "_queries",
+            "part-00000-of-00001.parquet"));
+
+    // Verify schema only has the 3 selected columns
+    final String schemaJson =
+        new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
+    Assert.assertTrue(schemaJson.contains("COF_NAME"));
+    Assert.assertTrue(schemaJson.contains("SIZE"));
+    Assert.assertTrue(schemaJson.contains("TOTAL"));
+    // Should only have a parquet file with data
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
+  }
+
+  @Test
+  public void shouldRunParquetJobWithLogicalTypes() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithLogicalTypes");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--avroCodec=snappy",
+              "--useAvroLogicalTypes"
+            })
+        .runExport();
+
+    assertThat(
+        TestHelper.listDir(outputPath.toFile()),
+        containsInAnyOrder(
+            "_PARQUET_SCHEMA.json",
+            "_METRICS.json",
+            "_SERVICE_METRICS.json",
+            "_queries",
+            "part-00000-of-00001.parquet"));
+
+    final String schemaJson =
+        new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
+    Assert.assertTrue(schemaJson.contains("TIMESTAMP"));
+  }
+
+  @Test
+  public void shouldRunParquetJobWithMinRows() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithMinRows");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--avroCodec=snappy",
+              "--minRows=2"
+            })
+        .runExport();
+
+    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
+    assertThat(parquetFile.length(), greaterThan(0L));
   }
 }

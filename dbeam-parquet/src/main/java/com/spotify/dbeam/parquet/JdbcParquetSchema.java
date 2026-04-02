@@ -199,7 +199,8 @@ public class JdbcParquetSchema {
             .named(columnName);
       case OTHER:
         if (useLogicalTypes && "uuid".equals(columnTypeName)) {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+          return Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)
+              .length(16)
               .as(LogicalTypeAnnotation.uuidType())
               .named(columnName);
         }
