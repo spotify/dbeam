@@ -52,11 +52,11 @@ jobs:
       - name: Install avro tools
         if: matrix.java_version == '17'
         run: |
-          wget https://dlcdn.apache.org/avro/avro-1.11.3/java/avro-tools-1.11.3.jar
+          wget https://dlcdn.apache.org/avro/avro-1.11.5/java/avro-tools-1.11.5.jar
           mkdir -p /opt/avro
-          mv avro-tools-1.11.3.jar /opt/avro/
-          chmod +x /opt/avro/avro-tools-1.11.3.jar
-          echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.3.jar'" > ~/.bashrc
+          mv avro-tools-1.11.5.jar /opt/avro/
+          chmod +x /opt/avro/avro-tools-1.11.5.jar
+          echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.5.jar'" > ~/.bashrc
       - name: End to end tests
         shell: bash
         if: matrix.java_version == '17'
