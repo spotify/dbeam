@@ -75,6 +75,7 @@ public class JdbcParquetJobTest {
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
         containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
             "_PARQUET_SCHEMA.json",
             "_METRICS.json",
             "_SERVICE_METRICS.json",
@@ -141,6 +142,7 @@ public class JdbcParquetJobTest {
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
         containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
             "_PARQUET_SCHEMA.json",
             "_METRICS.json",
             "_SERVICE_METRICS.json",
@@ -181,6 +183,7 @@ public class JdbcParquetJobTest {
     assertThat(
         TestHelper.listDir(outputPath.toFile()),
         containsInAnyOrder(
+            "_AVRO_SCHEMA.avsc",
             "_PARQUET_SCHEMA.json",
             "_METRICS.json",
             "_SERVICE_METRICS.json",

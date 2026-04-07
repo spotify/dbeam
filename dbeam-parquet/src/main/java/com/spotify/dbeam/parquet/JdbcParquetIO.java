@@ -22,12 +22,14 @@ package com.spotify.dbeam.parquet;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Collections;
+import java.util.Map;
 import org.apache.beam.sdk.io.DefaultFilenamePolicy;
 import org.apache.beam.sdk.io.DynamicFileDestinations;
 import org.apache.beam.sdk.io.FileBasedSink;
@@ -57,11 +59,14 @@ public class JdbcParquetIO {
 
   private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
 
+  public static final String PARQUET_AVRO_SCHEMA_KEY = "parquet.avro.schema";
+
   public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
       final String filenamePrefix,
       final String filenameSuffix,
       final MessageType schema,
-      final JdbcParquetArgs jdbcParquetArgs) {
+      final JdbcParquetArgs jdbcParquetArgs,
+      final String avroSchemaJson) {
     final ValueProvider<ResourceId> prefixProvider =
         StaticValueProvider.of(
             FileBasedSink.convertToFileResourceIfPossible(
@@ -76,7 +81,8 @@ public class JdbcParquetIO {
     // Store schema as String for serialization (MessageType is not Serializable)
     final String schemaString = schema.toString();
     final FileBasedSink<String, Void, String> sink =
-        new JdbcParquetSink(prefixProvider, destinations, schemaString, jdbcParquetArgs);
+        new JdbcParquetSink(
+            prefixProvider, destinations, schemaString, jdbcParquetArgs, avroSchemaJson);
     return WriteFiles.to(sink);
   }
 
@@ -85,20 +91,23 @@ public class JdbcParquetIO {
     private static final long serialVersionUID = 937707428039L;
     private final String schemaString;
     private final JdbcParquetArgs jdbcParquetArgs;
+    private final String avroSchemaJson;
 
     JdbcParquetSink(
         final ValueProvider<ResourceId> filenamePrefix,
         final DynamicDestinations<String, Void, String> destinations,
         final String schemaString,
-        final JdbcParquetArgs jdbcParquetArgs) {
+        final JdbcParquetArgs jdbcParquetArgs,
+        final String avroSchemaJson) {
       super(filenamePrefix, destinations);
       this.schemaString = schemaString;
       this.jdbcParquetArgs = jdbcParquetArgs;
+      this.avroSchemaJson = avroSchemaJson;
     }
 
     @Override
     public WriteOperation<Void, String> createWriteOperation() {
-      return new JdbcParquetWriteOperation(this, schemaString, jdbcParquetArgs);
+      return new JdbcParquetWriteOperation(this, schemaString, jdbcParquetArgs, avroSchemaJson);
     }
   }
 
@@ -108,19 +117,22 @@ public class JdbcParquetIO {
     private static final long serialVersionUID = 305340251351L;
     private final String schemaString;
     private final JdbcParquetArgs jdbcParquetArgs;
+    private final String avroSchemaJson;
 
     private JdbcParquetWriteOperation(
         final FileBasedSink<?, Void, String> sink,
         final String schemaString,
-        final JdbcParquetArgs jdbcParquetArgs) {
+        final JdbcParquetArgs jdbcParquetArgs,
+        final String avroSchemaJson) {
       super(sink);
       this.schemaString = schemaString;
       this.jdbcParquetArgs = jdbcParquetArgs;
+      this.avroSchemaJson = avroSchemaJson;
     }
 
     @Override
     public FileBasedSink.Writer<Void, String> createWriter() {
-      return new JdbcParquetWriter(this, schemaString, jdbcParquetArgs);
+      return new JdbcParquetWriter(this, schemaString, jdbcParquetArgs, avroSchemaJson);
     }
   }
 
@@ -128,6 +140,7 @@ public class JdbcParquetIO {
     private static final Logger LOGGER = LoggerFactory.getLogger(JdbcParquetWriter.class);
     private final String schemaString;
     private final JdbcParquetArgs jdbcParquetArgs;
+    private final String avroSchemaJson;
     private ParquetWriter<ResultSet> parquetWriter;
     private Connection connection;
     private JdbcParquetMetering metering;
@@ -136,10 +149,12 @@ public class JdbcParquetIO {
     JdbcParquetWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
         String schemaString,
-        JdbcParquetArgs jdbcParquetArgs) {
+        JdbcParquetArgs jdbcParquetArgs,
+        String avroSchemaJson) {
       super(writeOperation, MimeTypes.BINARY);
       this.schemaString = schemaString;
       this.jdbcParquetArgs = jdbcParquetArgs;
+      this.avroSchemaJson = avroSchemaJson;
       this.metering = JdbcParquetMetering.create();
     }
 
@@ -154,7 +169,7 @@ public class JdbcParquetIO {
 
       final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
       channelOutputFile = new ChannelOutputFile(channel);
-      parquetWriter = new ResultSetParquetWriterBuilder(channelOutputFile, schema)
+      parquetWriter = new ResultSetParquetWriterBuilder(channelOutputFile, schema, avroSchemaJson)
           .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
           .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
           .withPageSize(jdbcParquetArgs.pageSize())
@@ -225,10 +240,17 @@ public class JdbcParquetIO {
       extends ParquetWriter.Builder<ResultSet, ResultSetParquetWriterBuilder> {
 
     private final MessageType schema;
+    private final String avroSchemaJson;
 
     ResultSetParquetWriterBuilder(OutputFile outputFile, MessageType schema) {
+      this(outputFile, schema, null);
+    }
+
+    ResultSetParquetWriterBuilder(
+        OutputFile outputFile, MessageType schema, String avroSchemaJson) {
       super(outputFile);
       this.schema = schema;
+      this.avroSchemaJson = avroSchemaJson;
     }
 
     @Override
@@ -238,24 +260,32 @@ public class JdbcParquetIO {
 
     @Override
     protected WriteSupport<ResultSet> getWriteSupport(Configuration conf) {
-      return new ResultSetWriteSupport(schema);
+      return new ResultSetWriteSupport(schema, avroSchemaJson);
     }
   }
 
   static class ResultSetWriteSupport extends WriteSupport<ResultSet> {
 
     private final MessageType schema;
+    private final String avroSchemaJson;
     private JdbcParquetWriteSupport writeSupport;
     private RecordConsumer recordConsumer;
     private boolean initialized = false;
 
-    ResultSetWriteSupport(MessageType schema) {
+    ResultSetWriteSupport(MessageType schema, String avroSchemaJson) {
       this.schema = schema;
+      this.avroSchemaJson = avroSchemaJson;
     }
 
     @Override
     public WriteContext init(Configuration configuration) {
-      return new WriteContext(schema, Collections.emptyMap());
+      final Map<String, String> extraMetadata;
+      if (avroSchemaJson != null && !avroSchemaJson.isEmpty()) {
+        extraMetadata = ImmutableMap.of(PARQUET_AVRO_SCHEMA_KEY, avroSchemaJson);
+      } else {
+        extraMetadata = Collections.emptyMap();
+      }
+      return new WriteContext(schema, extraMetadata);
     }
 
     @Override

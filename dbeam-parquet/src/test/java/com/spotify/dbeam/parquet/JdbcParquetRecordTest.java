@@ -28,13 +28,17 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.example.data.Group;
+import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.schema.MessageType;
 import org.junit.Assert;
@@ -266,6 +270,98 @@ public class JdbcParquetRecordTest {
       // Non-null fields should have 1 repetition
       Assert.assertEquals(1, record.getFieldRepetitionCount("COF_NAME"));
       Assert.assertEquals(1, record.getFieldRepetitionCount("IS_ARABIC"));
+    }
+
+    Files.deleteIfExists(tempFile);
+  }
+
+  @Test
+  public void shouldWriteAvroSchemaInParquetFooter()
+      throws ClassNotFoundException, SQLException, IOException {
+    final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
+    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+
+    final String avroSchemaJson = "{\"type\":\"record\",\"name\":\"COFFEES\","
+        + "\"namespace\":\"dbeam_generated\",\"fields\":[]}";
+
+    final Path tempFile = Files.createTempFile("parquet-footer-test-", ".parquet");
+    Files.delete(tempFile);
+
+    final ResultSet rs = connection.createStatement().executeQuery(
+        "SELECT * FROM COFFEES LIMIT 1");
+
+    final OutputFile outputFile =
+        new ChannelOutputFile(
+            java.nio.channels.FileChannel.open(
+                tempFile,
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.WRITE));
+
+    try (ParquetWriter<ResultSet> writer =
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema, avroSchemaJson)
+            .withWriteMode(ParquetFileWriter.Mode.CREATE)
+            .build()) {
+      while (rs.next()) {
+        writer.write(rs);
+      }
+    }
+
+    // Read back footer metadata and verify parquet.avro.schema key
+    final Configuration conf = new Configuration();
+    final org.apache.hadoop.fs.Path hadoopPath =
+        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    try (ParquetFileReader fileReader =
+        ParquetFileReader.open(HadoopInputFile.fromPath(hadoopPath, conf))) {
+      final Map<String, String> keyValueMetaData =
+          fileReader.getFooter().getFileMetaData().getKeyValueMetaData();
+      Assert.assertTrue(keyValueMetaData.containsKey(JdbcParquetIO.PARQUET_AVRO_SCHEMA_KEY));
+      final String actualAvroSchema =
+          keyValueMetaData.get(JdbcParquetIO.PARQUET_AVRO_SCHEMA_KEY);
+      Assert.assertEquals(avroSchemaJson, actualAvroSchema);
+    }
+
+    Files.deleteIfExists(tempFile);
+  }
+
+  @Test
+  public void shouldOmitAvroSchemaWhenNotProvided()
+      throws ClassNotFoundException, SQLException, IOException {
+    final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
+    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+
+    final Path tempFile = Files.createTempFile("parquet-no-avro-test-", ".parquet");
+    Files.delete(tempFile);
+
+    final ResultSet rs = connection.createStatement().executeQuery(
+        "SELECT * FROM COFFEES LIMIT 1");
+
+    final OutputFile outputFile =
+        new ChannelOutputFile(
+            java.nio.channels.FileChannel.open(
+                tempFile,
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.WRITE));
+
+    // No avroSchemaJson provided (2-arg constructor)
+    try (ParquetWriter<ResultSet> writer =
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)
+            .withWriteMode(ParquetFileWriter.Mode.CREATE)
+            .build()) {
+      while (rs.next()) {
+        writer.write(rs);
+      }
+    }
+
+    final Configuration conf = new Configuration();
+    final org.apache.hadoop.fs.Path hadoopPath =
+        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    try (ParquetFileReader fileReader =
+        ParquetFileReader.open(HadoopInputFile.fromPath(hadoopPath, conf))) {
+      final Map<String, String> keyValueMetaData =
+          fileReader.getFooter().getFileMetaData().getKeyValueMetaData();
+      Assert.assertFalse(keyValueMetaData.containsKey(JdbcParquetIO.PARQUET_AVRO_SCHEMA_KEY));
     }
 
     Files.deleteIfExists(tempFile);

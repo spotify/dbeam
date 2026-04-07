@@ -22,6 +22,7 @@ package com.spotify.dbeam.parquet;
 
 import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
+import com.spotify.dbeam.avro.JdbcAvroSchema;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.jobs.ExceptionHandling;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
+import org.apache.avro.Schema;
 import org.apache.beam.runners.direct.DirectOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
@@ -116,8 +118,10 @@ public class JdbcParquetJob {
     configureVersion();
     final List<String> queries;
     final MessageType generatedSchema;
+    final Schema avroSchema;
     try (Connection connection = jdbcExportArgs.createConnection()) {
       generatedSchema = createSchema(connection);
+      avroSchema = generateAvroSchema(connection);
       queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
       final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
@@ -126,6 +130,7 @@ public class JdbcParquetJob {
     }
     if (!this.dataOnly) {
       BeamHelper.saveStringOnSubPath(output, "/_PARQUET_SCHEMA.json", generatedSchema.toString());
+      BeamHelper.saveStringOnSubPath(output, "/_AVRO_SCHEMA.avsc", avroSchema.toString(true));
       for (int i = 0; i < queries.size(); i++) {
         BeamHelper.saveStringOnSubPath(
             this.output, String.format("/_queries/query_%d.sql", i), queries.get(i));
@@ -148,7 +153,8 @@ public class JdbcParquetJob {
         .apply("JdbcQueries", Create.of(queries))
         .apply(
             "JdbcParquetSave",
-            JdbcParquetIO.createWrite(output, ".parquet", generatedSchema, parquetArgs));
+            JdbcParquetIO.createWrite(
+                output, ".parquet", generatedSchema, parquetArgs, avroSchema.toString()));
   }
 
   private void checkMetrics(PipelineResult pipelineResult) throws FailedValidationException {
@@ -175,6 +181,22 @@ public class JdbcParquetJob {
     final PipelineResult pipelineResult = runAndWait();
     checkMetrics(pipelineResult);
     return pipelineResult;
+  }
+
+  private Schema generateAvroSchema(final Connection connection) throws Exception {
+    final String dbUrl = connection.getMetaData().getURL();
+    final String avroDoc =
+        jdbcExportArgs.avroDoc()
+            .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
+    return JdbcAvroSchema.createSchemaByReadingOneRow(
+        connection,
+        jdbcExportArgs.queryBuilderArgs(),
+        jdbcExportArgs.avroSchemaNamespace(),
+        jdbcExportArgs.avroSchemaName(),
+        avroDoc,
+        jdbcExportArgs.useAvroLogicalTypes(),
+        jdbcExportArgs.jdbcAvroOptions().arrayMode(),
+        jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
   }
 
   private MessageType createSchema(final Connection connection) throws Exception {
