@@ -93,7 +93,7 @@ public class JdbcParquetSchemaTest {
   @Test
   public void shouldConvertIntegerWithLongColumnClassNameToInt64() throws SQLException {
     final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.INTEGER, 0, "java.lang.Long", null, false);
+        "column1", Types.INTEGER, 0, "java.lang.Long", null, false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
   }
@@ -169,7 +169,7 @@ public class JdbcParquetSchemaTest {
   @Test
   public void shouldConvertBitSqlTypeWithPrecision2ToBinary() throws SQLException {
     final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.BIT, 2, "foobar", null, false);
+        "column1", Types.BIT, 2, "foobar", null, false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
   }
@@ -249,7 +249,7 @@ public class JdbcParquetSchemaTest {
   @Test
   public void shouldConvertArraySqlTypeToListWithStringElements() throws SQLException {
     final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false);
+        "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false, "typed_first_row");
 
     Assert.assertFalse(fieldType.isPrimitive());
     Assert.assertEquals(LogicalTypeAnnotation.listType(), fieldType.getLogicalTypeAnnotation());
@@ -318,7 +318,7 @@ public class JdbcParquetSchemaTest {
   @Test
   public void shouldConvertUuidWithLogicalType() throws SQLException {
     final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.OTHER, 0, "foobar", "uuid", true);
+        "column1", Types.OTHER, 0, "foobar", "uuid", true, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY);
     Assert.assertEquals(16, fieldType.asPrimitiveType().getTypeLength());
@@ -330,7 +330,7 @@ public class JdbcParquetSchemaTest {
   @Test
   public void shouldConvertUuidWithoutLogicalType() throws SQLException {
     final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.OTHER, 0, "foobar", "uuid", false);
+        "column1", Types.OTHER, 0, "foobar", "uuid", false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assert.assertEquals(
@@ -369,7 +369,8 @@ public class JdbcParquetSchemaTest {
     when(resultSet.getMetaData()).thenReturn(meta);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     Assert.assertEquals("test_table", schema.getName());
     Assert.assertEquals(3, schema.getFieldCount());
@@ -397,7 +398,8 @@ public class JdbcParquetSchemaTest {
     when(resultSet.getMetaData()).thenReturn(meta);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.of("CustomName"), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.of("CustomName"), false,
+            "typed_first_row");
 
     Assert.assertEquals("CustomName", schema.getName());
   }
@@ -415,7 +417,8 @@ public class JdbcParquetSchemaTest {
     when(resultSet.getMetaData()).thenReturn(meta);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     Assert.assertEquals("test_table_name", schema.getName());
     Assert.assertEquals("column_name_with_spaces", schema.getFields().get(0).getName());
@@ -423,7 +426,7 @@ public class JdbcParquetSchemaTest {
 
   private Type buildFieldType(final int sqlType, final boolean useLogicalTypes) {
     return JdbcParquetSchema.buildParquetFieldType(
-        "column1", sqlType, 0, "foobar", null, useLogicalTypes);
+        "column1", sqlType, 0, "foobar", null, useLogicalTypes, "typed_first_row");
   }
 
   private void assertPrimitiveType(

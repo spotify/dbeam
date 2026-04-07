@@ -72,14 +72,15 @@ public class JdbcParquetSchema {
       final Connection connection,
       final QueryBuilderArgs queryBuilderArgs,
       final Optional<String> schemaName,
-      final boolean useLogicalTypes)
+      final boolean useLogicalTypes,
+      final String arrayMode)
       throws SQLException {
     LOGGER.debug("Creating Parquet schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
       resultSet.next();
       final MessageType schema =
-          createParquetSchema(resultSet, schemaName, useLogicalTypes);
+          createParquetSchema(resultSet, schemaName, useLogicalTypes, arrayMode);
       LOGGER.info(
           "Parquet schema created successfully. useLogicalTypes={}. Generated schema: {}",
           useLogicalTypes,
@@ -91,7 +92,8 @@ public class JdbcParquetSchema {
   public static MessageType createParquetSchema(
       final ResultSet resultSet,
       final Optional<String> maybeSchemaName,
-      final boolean useLogicalTypes)
+      final boolean useLogicalTypes,
+      final String arrayMode)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
@@ -118,7 +120,8 @@ public class JdbcParquetSchema {
               precision,
               columnClassName,
               columnTypeName,
-              useLogicalTypes));
+              useLogicalTypes,
+              arrayMode));
     }
 
     return new MessageType(schemaName, fields);
@@ -141,7 +144,8 @@ public class JdbcParquetSchema {
       final int precision,
       final String columnClassName,
       final String columnTypeName,
-      final boolean useLogicalTypes) {
+      final boolean useLogicalTypes,
+      final String arrayMode) {
     switch (columnType) {
       case BIGINT:
         return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
@@ -194,6 +198,10 @@ public class JdbcParquetSchema {
         return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT)
             .named(columnName);
       case ARRAY:
+        if ("bytes".equals(arrayMode)) {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+              .named(columnName);
+        }
         // Parquet 3-level LIST convention with typed elements.
         // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()

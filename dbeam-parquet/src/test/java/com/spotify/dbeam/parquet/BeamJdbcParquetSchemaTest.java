@@ -68,7 +68,7 @@ public class BeamJdbcParquetSchemaTest {
     final JdbcExportArgs args = createArgs();
     try (Connection connection = args.createConnection()) {
       final MessageType schema =
-          BeamJdbcParquetSchema.createSchema(pipeline, args, connection);
+          BeamJdbcParquetSchema.createSchema(pipeline, args, connection, "typed_first_row");
 
       Assert.assertNotNull(schema);
       Assert.assertEquals("COFFEES", schema.getName());

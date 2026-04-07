@@ -66,7 +66,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-uuid-test-", ".parquet");
     Files.delete(tempFile);
@@ -92,7 +93,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-string-test-", ".parquet");
     Files.delete(tempFile);
@@ -116,7 +118,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-ts-test-", ".parquet");
     Files.delete(tempFile);
@@ -142,7 +145,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false, true);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-test-", ".parquet");
     Files.delete(tempFile);
@@ -174,7 +178,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
     Files.delete(tempFile);
@@ -199,7 +204,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-bool-test-", ".parquet");
     Files.delete(tempFile);
@@ -222,7 +228,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     // Verify schema has LIST type
     Assert.assertFalse(schema.getFields().get(0).isPrimitive());
@@ -258,7 +265,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-int-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -288,7 +296,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-long-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -318,7 +327,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -349,7 +359,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(true);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-sql-array-test-", ".parquet");
     Files.delete(tempFile);

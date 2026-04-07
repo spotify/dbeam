@@ -169,7 +169,8 @@ public class JdbcParquetIO {
 
       final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
       channelOutputFile = new ChannelOutputFile(channel);
-      parquetWriter = new ResultSetParquetWriterBuilder(channelOutputFile, schema, avroSchemaJson)
+      parquetWriter = new ResultSetParquetWriterBuilder(
+              channelOutputFile, schema, avroSchemaJson, jdbcParquetArgs.arrayMode())
           .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
           .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
           .withPageSize(jdbcParquetArgs.pageSize())
@@ -241,16 +242,23 @@ public class JdbcParquetIO {
 
     private final MessageType schema;
     private final String avroSchemaJson;
+    private final String arrayMode;
 
     ResultSetParquetWriterBuilder(OutputFile outputFile, MessageType schema) {
-      this(outputFile, schema, null);
+      this(outputFile, schema, null, "typed_first_row");
     }
 
     ResultSetParquetWriterBuilder(
         OutputFile outputFile, MessageType schema, String avroSchemaJson) {
+      this(outputFile, schema, avroSchemaJson, "typed_first_row");
+    }
+
+    ResultSetParquetWriterBuilder(
+        OutputFile outputFile, MessageType schema, String avroSchemaJson, String arrayMode) {
       super(outputFile);
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
+      this.arrayMode = arrayMode;
     }
 
     @Override
@@ -260,7 +268,7 @@ public class JdbcParquetIO {
 
     @Override
     protected WriteSupport<ResultSet> getWriteSupport(Configuration conf) {
-      return new ResultSetWriteSupport(schema, avroSchemaJson);
+      return new ResultSetWriteSupport(schema, avroSchemaJson, arrayMode);
     }
   }
 
@@ -268,13 +276,15 @@ public class JdbcParquetIO {
 
     private final MessageType schema;
     private final String avroSchemaJson;
+    private final String arrayMode;
     private JdbcParquetWriteSupport writeSupport;
     private RecordConsumer recordConsumer;
     private boolean initialized = false;
 
-    ResultSetWriteSupport(MessageType schema, String avroSchemaJson) {
+    ResultSetWriteSupport(MessageType schema, String avroSchemaJson, String arrayMode) {
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
+      this.arrayMode = arrayMode;
     }
 
     @Override
@@ -297,7 +307,7 @@ public class JdbcParquetIO {
     public void write(ResultSet resultSet) {
       try {
         if (!initialized) {
-          this.writeSupport = JdbcParquetWriteSupport.create(resultSet, schema);
+          this.writeSupport = JdbcParquetWriteSupport.create(resultSet, schema, arrayMode);
           initialized = true;
         }
         writeSupport.writeRecord(recordConsumer, resultSet);

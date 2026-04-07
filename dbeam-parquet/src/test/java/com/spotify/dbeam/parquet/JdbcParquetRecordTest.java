@@ -58,7 +58,8 @@ public class JdbcParquetRecordTest {
   public void shouldCreateSchemaFromDatabase() throws ClassNotFoundException, SQLException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
+        "typed_first_row");
 
     Assert.assertNotNull(schema);
     Assert.assertEquals("COFFEES", schema.getName());
@@ -83,7 +84,8 @@ public class JdbcParquetRecordTest {
   public void shouldCreateSchemaWithLogicalTypes() throws ClassNotFoundException, SQLException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), true);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), true,
+        "typed_first_row");
 
     Assert.assertEquals(14, schema.getFieldCount());
     // CREATED and UPDATED should have timestamp logical type
@@ -95,7 +97,8 @@ public class JdbcParquetRecordTest {
   public void shouldCreateSchemaWithCustomName() throws ClassNotFoundException, SQLException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.of("CustomSchema"), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.of("CustomSchema"), false,
+        "typed_first_row");
 
     Assert.assertEquals("CustomSchema", schema.getName());
   }
@@ -105,7 +108,8 @@ public class JdbcParquetRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
+        "typed_first_row");
 
     // Write records to a temp file
     final Path tempFile = Files.createTempFile("parquet-test-", ".parquet");
@@ -160,7 +164,8 @@ public class JdbcParquetRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
+        "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-values-test-", ".parquet");
     Files.delete(tempFile);
@@ -226,7 +231,8 @@ public class JdbcParquetRecordTest {
     // SUP_ID and UPDATED are null in the Coffee fixtures
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
+        "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-test-", ".parquet");
     Files.delete(tempFile);
@@ -279,7 +285,8 @@ public class JdbcParquetRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
+        "typed_first_row");
 
     final String avroSchemaJson = "{\"type\":\"record\",\"name\":\"COFFEES\","
         + "\"namespace\":\"dbeam_generated\",\"fields\":[]}";
@@ -328,7 +335,8 @@ public class JdbcParquetRecordTest {
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
     final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false);
+        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
+        "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-no-avro-test-", ".parquet");
     Files.delete(tempFile);

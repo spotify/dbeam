@@ -119,8 +119,9 @@ public class JdbcParquetJob {
     final List<String> queries;
     final MessageType generatedSchema;
     final Schema avroSchema;
+    final String arrayMode = jdbcExportArgs.jdbcAvroOptions().arrayMode();
     try (Connection connection = jdbcExportArgs.createConnection()) {
-      generatedSchema = createSchema(connection);
+      generatedSchema = createSchema(connection, arrayMode);
       avroSchema = generateAvroSchema(connection);
       queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
@@ -147,7 +148,8 @@ public class JdbcParquetJob {
         parquetCodec,
         parquetOptions.getRowGroupSize(),
         parquetOptions.getPageSize(),
-        jdbcExportArgs.jdbcAvroOptions().preCommand());
+        jdbcExportArgs.jdbcAvroOptions().preCommand(),
+        arrayMode);
 
     pipeline
         .apply("JdbcQueries", Create.of(queries))
@@ -199,7 +201,8 @@ public class JdbcParquetJob {
         jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
   }
 
-  private MessageType createSchema(final Connection connection) throws Exception {
+  private MessageType createSchema(final Connection connection, final String arrayMode)
+      throws Exception {
     final String schemaFilePath =
         pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
     final java.util.Optional<MessageType> inputSchema =
@@ -207,7 +210,8 @@ public class JdbcParquetJob {
     if (inputSchema.isPresent()) {
       return inputSchema.get();
     } else {
-      return BeamJdbcParquetSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
+      return BeamJdbcParquetSchema.createSchema(
+          this.pipeline, jdbcExportArgs, connection, arrayMode);
     }
   }
 

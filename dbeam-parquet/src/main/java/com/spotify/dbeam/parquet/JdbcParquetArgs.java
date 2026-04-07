@@ -50,6 +50,8 @@ public abstract class JdbcParquetArgs implements Serializable {
 
   public abstract List<String> preCommand();
 
+  public abstract String arrayMode();
+
   abstract Builder builder();
 
   public CompressionCodecName getCompressionCodecName() {
@@ -87,6 +89,8 @@ public abstract class JdbcParquetArgs implements Serializable {
 
     abstract Builder setPreCommand(List<String> preCommand);
 
+    abstract Builder setArrayMode(String arrayMode);
+
     abstract JdbcParquetArgs build();
   }
 
@@ -96,7 +100,8 @@ public abstract class JdbcParquetArgs implements Serializable {
       final String parquetCodec,
       final int rowGroupSize,
       final int pageSize,
-      final List<String> preCommand) {
+      final List<String> preCommand,
+      final String arrayMode) {
     Preconditions.checkArgument(
         parquetCodec.matches("snappy|gzip|zstd|lz4|none|uncompressed"),
         "Parquet codec should be one of: snappy, gzip, zstd, lz4, none, uncompressed");
@@ -107,6 +112,7 @@ public abstract class JdbcParquetArgs implements Serializable {
         .setRowGroupSize(rowGroupSize)
         .setPageSize(pageSize)
         .setPreCommand(preCommand)
+        .setArrayMode(arrayMode)
         .build();
   }
 
@@ -117,6 +123,7 @@ public abstract class JdbcParquetArgs implements Serializable {
         "snappy",
         64 * 1024 * 1024,
         1024 * 1024,
-        Collections.emptyList());
+        Collections.emptyList(),
+        "typed_first_row");
   }
 }

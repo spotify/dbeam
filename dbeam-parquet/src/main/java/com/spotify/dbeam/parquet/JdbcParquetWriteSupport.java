@@ -83,14 +83,15 @@ public class JdbcParquetWriteSupport {
     this.columnCount = columnCount;
   }
 
-  public static JdbcParquetWriteSupport create(ResultSet resultSet, MessageType schema)
+  public static JdbcParquetWriteSupport create(ResultSet resultSet, MessageType schema,
+                                                String arrayMode)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      writers[i] = computeColumnWriter(meta, i);
+      writers[i] = computeColumnWriter(meta, i, arrayMode);
     }
 
     return new JdbcParquetWriteSupport(schema, writers, columnCount);
@@ -111,7 +112,8 @@ public class JdbcParquetWriteSupport {
     consumer.endMessage();
   }
 
-  static ColumnWriter computeColumnWriter(final ResultSetMetaData meta, final int column)
+  static ColumnWriter computeColumnWriter(final ResultSetMetaData meta, final int column,
+                                           final String arrayMode)
       throws SQLException {
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
@@ -206,6 +208,16 @@ public class JdbcParquetWriteSupport {
           };
         }
       case ARRAY:
+        if ("bytes".equals(arrayMode)) {
+          return (consumer, rs) -> {
+            final byte[] val = rs.getBytes(column);
+            if (val != null && !rs.wasNull()) {
+              consumer.startField(normalizedName, fieldIndex);
+              consumer.addBinary(Binary.fromConstantByteArray(val));
+              consumer.endField(normalizedName, fieldIndex);
+            }
+          };
+        }
         final String arrayElementType =
             JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column));
         return (consumer, rs) -> {

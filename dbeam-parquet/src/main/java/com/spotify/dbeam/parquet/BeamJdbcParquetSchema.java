@@ -56,10 +56,11 @@ public class BeamJdbcParquetSchema {
    * @throws Exception in case of failure to query database
    */
   public static MessageType createSchema(
-      final Pipeline pipeline, final JdbcExportArgs args, final Connection connection)
+      final Pipeline pipeline, final JdbcExportArgs args, final Connection connection,
+      final String arrayMode)
       throws Exception {
     final long startTime = System.nanoTime();
-    final MessageType generatedSchema = generateParquetSchema(args, connection);
+    final MessageType generatedSchema = generateParquetSchema(args, connection, arrayMode);
     final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
 
@@ -81,12 +82,14 @@ public class BeamJdbcParquetSchema {
   }
 
   private static MessageType generateParquetSchema(
-      final JdbcExportArgs args, final Connection connection) throws SQLException {
+      final JdbcExportArgs args, final Connection connection, final String arrayMode)
+      throws SQLException {
     return JdbcParquetSchema.createSchemaByReadingOneRow(
         connection,
         args.queryBuilderArgs(),
         args.avroSchemaName(),
-        args.useAvroLogicalTypes());
+        args.useAvroLogicalTypes(),
+        arrayMode);
   }
 
   public static Optional<MessageType> parseOptionalInputParquetSchemaFile(final String filename)
