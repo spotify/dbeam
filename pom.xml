@@ -115,7 +115,7 @@
     <commons-codec.version>1.17.1</commons-codec.version>
     <commons-compress.version>1.26.2</commons-compress.version>
     <errorprone.version>2.31.0</errorprone.version>
-    <guava.version>33.1.0-jre</guava.version>
+    <guava.version>33.5.0-jre</guava.version>
     <hamcrest.version>2.1</hamcrest.version>
     <httpclient.version>4.5.13</httpclient.version>
     <httpcore.version>4.4.14</httpcore.version>
@@ -258,18 +258,6 @@
         <groupId>com.google.api.grpc</groupId>
         <artifactId>proto-google-cloud-bigtable-admin-v2</artifactId>
         <version>2.73.1</version>
-      </dependency>
-      <!-- resolve j2objc-annotations convergence: guava uses 3.0.0, libraries-bom brings 3.1 -->
-      <dependency>
-        <groupId>com.google.j2objc</groupId>
-        <artifactId>j2objc-annotations</artifactId>
-        <version>3.1</version>
-      </dependency>
-      <!-- resolve failureaccess convergence: guava 33.x uses 1.0.2, transitives bring 1.0.3 -->
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>failureaccess</artifactId>
-        <version>1.0.3</version>
       </dependency>
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
