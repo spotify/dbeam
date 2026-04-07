@@ -129,6 +129,17 @@ runDBeamParquetDockerCon() {
   echo "Parquet output: $OUTPUT_FILE ($(stat -f%z "$OUTPUT_FILE" 2>/dev/null || stat -c%s "$OUTPUT_FILE") bytes)"
   parquet-tools head -n 5 "$OUTPUT_FILE" || echo "parquet-tools not available, skipping content validation"
   parquet-tools schema "$OUTPUT_FILE" || echo "parquet-tools not available, skipping schema validation"
+
+  # Verify parquet.avro.schema is present in footer metadata
+  AVRO_SCHEMA_META=$(parquet-tools meta "$OUTPUT_FILE" 2>/dev/null | grep "parquet.avro.schema" || true)
+  if [[ -n "$AVRO_SCHEMA_META" ]]; then
+    echo "OK: parquet.avro.schema found in footer metadata"
+    # Sanity check: should contain "type" and "record" (valid Avro JSON)
+    echo "$AVRO_SCHEMA_META" | grep -q '"type"' && echo "OK: Avro schema contains type field" || echo "WARN: Avro schema may be malformed"
+  else
+    echo "FAIL: parquet.avro.schema NOT found in footer metadata"
+    exit 1
+  fi
 }
 
 runSuite() {
