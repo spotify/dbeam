@@ -244,6 +244,61 @@ public class PostgresJdbcParquetTest {
     });
   }
 
+  @Test
+  public void shouldHandleNullArrayElements() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "tags", "java.sql.Array", "_text");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    final java.sql.Array mockArray = Mockito.mock(java.sql.Array.class);
+    when(mockArray.getArray()).thenReturn(new String[] {"first", null, "third"});
+    when(resultSet.getArray(1)).thenReturn(mockArray);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+
+    final Path tempFile = Files.createTempFile("parquet-null-array-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(schema, resultSet, tempFile, record -> {
+      Group tagsList = record.getGroup("tags", 0);
+      Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
+      // First element: present
+      Assert.assertEquals("first",
+          tagsList.getGroup("list", 0).getString("element", 0));
+      // Second element: null (element field has 0 repetitions)
+      Assert.assertEquals(0,
+          tagsList.getGroup("list", 1).getFieldRepetitionCount("element"));
+      // Third element: present
+      Assert.assertEquals("third",
+          tagsList.getGroup("list", 2).getString("element", 0));
+    });
+  }
+
+  @Test
+  public void shouldHandleNullSqlArray() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "tags", "java.sql.Array", "_text");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    when(resultSet.getArray(1)).thenReturn(null);
+    when(resultSet.wasNull()).thenReturn(true);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+
+    final Path tempFile = Files.createTempFile("parquet-null-sql-array-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(schema, resultSet, tempFile, record -> {
+      // Entire array field is null (optional, 0 repetitions)
+      Assert.assertEquals(0, record.getFieldRepetitionCount("tags"));
+    });
+  }
+
   @FunctionalInterface
   interface RecordAssertion {
     void assertRecord(Group record) throws IOException;
