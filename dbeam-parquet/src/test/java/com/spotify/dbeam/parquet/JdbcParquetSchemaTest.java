@@ -247,14 +247,72 @@ public class JdbcParquetSchemaTest {
   }
 
   @Test
-  public void shouldConvertArraySqlTypeToList() throws SQLException {
-    final Type fieldType = buildFieldType(Types.ARRAY, false);
+  public void shouldConvertArraySqlTypeToListWithStringElements() throws SQLException {
+    final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
+        "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false);
 
     Assert.assertFalse(fieldType.isPrimitive());
-    Assert.assertEquals(
-        LogicalTypeAnnotation.listType(),
-        fieldType.getLogicalTypeAnnotation());
+    Assert.assertEquals(LogicalTypeAnnotation.listType(), fieldType.getLogicalTypeAnnotation());
     Assert.assertEquals(Type.Repetition.OPTIONAL, fieldType.getRepetition());
+  }
+
+  @Test
+  public void shouldConvertIntegerArrayToListOfInt32() {
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("_int4");
+
+    assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.INT32);
+  }
+
+  @Test
+  public void shouldConvertBigintArrayToListOfInt64() {
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("_int8");
+
+    assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.INT64);
+  }
+
+  @Test
+  public void shouldConvertFloat4ArrayToListOfFloat() {
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("_float4");
+
+    assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.FLOAT);
+  }
+
+  @Test
+  public void shouldConvertFloat8ArrayToListOfDouble() {
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("_float8");
+
+    assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.DOUBLE);
+  }
+
+  @Test
+  public void shouldConvertBoolArrayToListOfBoolean() {
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("_bool");
+
+    assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BOOLEAN);
+  }
+
+  @Test
+  public void shouldConvertTextArrayToListOfString() {
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("_text");
+
+    assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
+    Assert.assertEquals(LogicalTypeAnnotation.stringType(),
+        elementType.asPrimitiveType().getLogicalTypeAnnotation());
+  }
+
+  @Test
+  public void shouldResolveH2IntegerArrayType() {
+    Assert.assertEquals("int4", JdbcParquetSchema.resolveArrayElementTypeName("INTEGER ARRAY"));
+  }
+
+  @Test
+  public void shouldResolveH2VarcharArrayType() {
+    Assert.assertEquals("text", JdbcParquetSchema.resolveArrayElementTypeName("VARCHAR ARRAY"));
+  }
+
+  @Test
+  public void shouldResolveNullColumnTypeName() {
+    Assert.assertEquals("text", JdbcParquetSchema.resolveArrayElementTypeName(null));
   }
 
   @Test

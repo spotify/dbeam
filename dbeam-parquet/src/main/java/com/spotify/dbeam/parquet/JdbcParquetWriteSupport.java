@@ -206,6 +206,8 @@ public class JdbcParquetWriteSupport {
           };
         }
       case ARRAY:
+        final String arrayElementType =
+            JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column));
         return (consumer, rs) -> {
           final java.sql.Array sqlArray = rs.getArray(column);
           if (sqlArray != null && !rs.wasNull()) {
@@ -217,7 +219,7 @@ public class JdbcParquetWriteSupport {
               consumer.startGroup(); // list element group
               if (item != null) {
                 consumer.startField("element", 0);
-                consumer.addBinary(Binary.fromString(item.toString()));
+                writeArrayElement(consumer, item, arrayElementType);
                 consumer.endField("element", 0);
               }
               consumer.endGroup();
@@ -279,6 +281,32 @@ public class JdbcParquetWriteSupport {
             consumer.endField(normalizedName, fieldIndex);
           }
         };
+    }
+  }
+
+  static void writeArrayElement(
+      RecordConsumer consumer, Object item, String elementType) {
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+        consumer.addInteger(((Number) item).intValue());
+        break;
+      case "int8":
+        consumer.addLong(((Number) item).longValue());
+        break;
+      case "float4":
+        consumer.addFloat(((Number) item).floatValue());
+        break;
+      case "float8":
+        consumer.addDouble(((Number) item).doubleValue());
+        break;
+      case "bool":
+        consumer.addBoolean((Boolean) item);
+        break;
+      default:
+        consumer.addBinary(Binary.fromString(item.toString()));
+        break;
     }
   }
 }

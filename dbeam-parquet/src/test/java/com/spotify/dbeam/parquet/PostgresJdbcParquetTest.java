@@ -245,6 +245,66 @@ public class PostgresJdbcParquetTest {
   }
 
   @Test
+  public void shouldEncodeIntegerArrayAsTypedList() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "scores", "java.sql.Array", "_int4");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    final java.sql.Array mockArray = Mockito.mock(java.sql.Array.class);
+    when(mockArray.getArray()).thenReturn(new Integer[] {10, 20, 30});
+    when(resultSet.getArray(1)).thenReturn(mockArray);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+
+    final Path tempFile = Files.createTempFile("parquet-int-array-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(schema, resultSet, tempFile, record -> {
+      Group scoresList = record.getGroup("scores", 0);
+      Assert.assertEquals(3, scoresList.getFieldRepetitionCount("list"));
+      Assert.assertEquals(10,
+          scoresList.getGroup("list", 0).getInteger("element", 0));
+      Assert.assertEquals(20,
+          scoresList.getGroup("list", 1).getInteger("element", 0));
+      Assert.assertEquals(30,
+          scoresList.getGroup("list", 2).getInteger("element", 0));
+    });
+  }
+
+  @Test
+  public void shouldEncodeBigintArrayAsTypedList() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "ids", "java.sql.Array", "_int8");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    final java.sql.Array mockArray = Mockito.mock(java.sql.Array.class);
+    when(mockArray.getArray()).thenReturn(new Long[] {100L, 200L, 300L});
+    when(resultSet.getArray(1)).thenReturn(mockArray);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false);
+
+    final Path tempFile = Files.createTempFile("parquet-long-array-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(schema, resultSet, tempFile, record -> {
+      Group idsList = record.getGroup("ids", 0);
+      Assert.assertEquals(3, idsList.getFieldRepetitionCount("list"));
+      Assert.assertEquals(100L,
+          idsList.getGroup("list", 0).getLong("element", 0));
+      Assert.assertEquals(200L,
+          idsList.getGroup("list", 1).getLong("element", 0));
+      Assert.assertEquals(300L,
+          idsList.getGroup("list", 2).getLong("element", 0));
+    });
+  }
+
+  @Test
   public void shouldHandleNullArrayElements() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(1);

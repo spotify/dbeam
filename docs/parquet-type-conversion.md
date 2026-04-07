@@ -21,7 +21,7 @@ All columns are represented as `optional` (nullable) fields in the Parquet schem
 | VARBINARY                | BINARY                    |                                 |                                       |
 | LONGVARBINARY            | BINARY                    |                                 |                                       |
 | BLOB                     | BINARY                    |                                 |                                       |
-| ARRAY                    | LIST (group)              | LIST                            | 3-level list with STRING elements     |
+| ARRAY                    | LIST (group)              | LIST                            | Typed elements (see table below)      |
 | DOUBLE                   | DOUBLE                    |                                 |                                       |
 | FLOAT                    | FLOAT                     |                                 |                                       |
 | REAL                     | FLOAT                     |                                 |                                       |
@@ -34,6 +34,22 @@ All columns are represented as `optional` (nullable) fields in the Parquet schem
 | OTHER (uuid)             | FIXED_LEN_BYTE_ARRAY(16)  | UUID                            | Only with `--useAvroLogicalTypes`; otherwise STRING |
 | OTHER                    | BINARY                    | STRING (UTF8)                   | Default for unrecognized OTHER types  |
 | all other Java SQL types | BINARY                    | STRING (UTF8)                   |                                       |
+
+#### Array element type mapping
+
+Array element types are inferred from the column type name. For PostgreSQL, the type name is prefixed with underscore (e.g. `_int4`). For H2 and other databases, the type name is parsed from patterns like `INTEGER ARRAY`.
+
+| **Column type name**     | **Element Parquet type** |
+|--------------------------|--------------------------|
+| `_int`, `_int4`, `_int2` | INT32                    |
+| `_int8`                  | INT64                    |
+| `_float4`                | FLOAT                    |
+| `_float8`                | DOUBLE                   |
+| `_bool`                  | BOOLEAN                  |
+| `_text`, `_varchar`, `_uuid`, others | BINARY (STRING) |
+| `INTEGER ARRAY`          | INT32                    |
+| `BIGINT ARRAY`           | INT64                    |
+| `VARCHAR ARRAY`, others  | BINARY (STRING)          |
 
 #### Codec mapping
 

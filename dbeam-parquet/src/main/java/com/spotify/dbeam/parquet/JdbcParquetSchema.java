@@ -194,14 +194,10 @@ public class JdbcParquetSchema {
         return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT)
             .named(columnName);
       case ARRAY:
-        // Parquet 3-level LIST convention: list > repeated list > element
-        // Element type defaults to STRING since JDBC array element type
-        // is not available from ResultSetMetaData alone.
+        // Parquet 3-level LIST convention with typed elements.
+        // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()
-            .element(
-                Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
-                    .as(LogicalTypeAnnotation.stringType())
-                    .named("element"))
+            .element(buildArrayElementType(columnTypeName))
             .named(columnName);
       case OTHER:
         if (useLogicalTypes && "uuid".equals(columnTypeName)) {
@@ -222,6 +218,66 @@ public class JdbcParquetSchema {
             .as(LogicalTypeAnnotation.stringType())
             .named(columnName);
     }
+  }
+
+  /**
+   * Determine the Parquet element type for an ARRAY column based on the column type name.
+   * For PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text).
+   * Falls back to STRING for unrecognized types.
+   */
+  static Type buildArrayElementType(final String columnTypeName) {
+    final String elementType = resolveArrayElementTypeName(columnTypeName);
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+        return Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+            .named("element");
+      case "int8":
+        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+            .named("element");
+      case "float4":
+        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT)
+            .named("element");
+      case "float8":
+        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE)
+            .named("element");
+      case "bool":
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN)
+            .named("element");
+      default:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+            .as(LogicalTypeAnnotation.stringType())
+            .named("element");
+    }
+  }
+
+  /**
+   * Extract the element type name from an array column type name.
+   * PostgreSQL uses underscore prefix (e.g. _int4 -> int4, _text -> text).
+   * H2 and others use "INTEGER ARRAY" style names.
+   */
+  static String resolveArrayElementTypeName(final String columnTypeName) {
+    if (columnTypeName == null) {
+      return "text";
+    }
+    if (columnTypeName.startsWith("_")) {
+      return columnTypeName.substring(1);
+    }
+    // H2 style: "INTEGER ARRAY", "VARCHAR ARRAY", etc.
+    final String lower = columnTypeName.toLowerCase();
+    if (lower.startsWith("integer")) {
+      return "int4";
+    } else if (lower.startsWith("bigint")) {
+      return "int8";
+    } else if (lower.startsWith("real") || lower.startsWith("float")) {
+      return "float4";
+    } else if (lower.startsWith("double")) {
+      return "float8";
+    } else if (lower.startsWith("boolean")) {
+      return "bool";
+    }
+    return "text";
   }
 
   private static String normalizeForAvro(final String input) {
