@@ -110,7 +110,7 @@
     <beam.version>2.65.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
-    <avro.version>1.11.4</avro.version>
+    <avro.version>1.11.5</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <commons-codec.version>1.17.1</commons-codec.version>
     <commons-compress.version>1.26.2</commons-compress.version>
