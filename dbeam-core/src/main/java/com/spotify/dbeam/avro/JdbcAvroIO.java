@@ -137,7 +137,7 @@ public class JdbcAvroIO {
     private final JdbcAvroArgs jdbcAvroArgs;
     private DataFileWriter<GenericRecord> dataFileWriter;
     private Connection connection;
-    private JdbcAvroMetering metering;
+    private JdbcMetering metering;
     private CountingOutputStream countingOutputStream;
 
     JdbcAvroWriter(
@@ -147,7 +147,7 @@ public class JdbcAvroIO {
       super(writeOperation, MimeTypes.BINARY);
       this.dynamicDestinations = dynamicDestinations;
       this.jdbcAvroArgs = jdbcAvroArgs;
-      this.metering = JdbcAvroMetering.create();
+      this.metering = JdbcMetering.create("jdbcavroio");
     }
 
     public Void getDestination() {

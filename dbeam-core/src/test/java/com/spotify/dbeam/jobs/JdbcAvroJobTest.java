@@ -27,7 +27,7 @@ import static org.hamcrest.Matchers.hasSize;
 
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
-import com.spotify.dbeam.avro.JdbcAvroMetering;
+import com.spotify.dbeam.avro.JdbcMetering;
 import com.spotify.dbeam.options.DBeamPipelineOptions;
 import com.spotify.dbeam.options.OutputOptions;
 import java.io.File;
@@ -286,7 +286,7 @@ public class JdbcAvroJobTest {
 
   @Test
   public void shouldIncrementCounterMetrics() {
-    final JdbcAvroMetering metering = new JdbcAvroMetering(1, 1);
+    final JdbcMetering metering = new JdbcMetering(1, 1, "jdbcavroio");
     metering.startWriteMeter();
     metering.exposeWriteElapsed();
     metering.incrementRecordCount();

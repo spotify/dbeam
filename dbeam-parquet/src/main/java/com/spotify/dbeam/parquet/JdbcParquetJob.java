@@ -23,6 +23,7 @@ package com.spotify.dbeam.parquet;
 import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.avro.JdbcAvroSchema;
+import com.spotify.dbeam.avro.JdbcMetering;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.jobs.ExceptionHandling;
@@ -165,7 +166,7 @@ public class JdbcParquetJob {
       BeamHelper.saveMetrics(metrics, output);
     }
     final Long recordCount =
-        metrics.getOrDefault(JdbcParquetMetering.RECORD_COUNT_METRIC_NAME, 0L);
+        metrics.getOrDefault(JdbcMetering.RECORD_COUNT_METRIC_NAME, 0L);
     if (recordCount < this.minRows) {
       throw new FailedValidationException(
           String.format(

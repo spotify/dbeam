@@ -23,6 +23,7 @@ package com.spotify.dbeam.parquet;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
+import com.spotify.dbeam.avro.JdbcMetering;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -143,7 +144,7 @@ public class JdbcParquetIO {
     private final String avroSchemaJson;
     private ParquetWriter<ResultSet> parquetWriter;
     private Connection connection;
-    private JdbcParquetMetering metering;
+    private JdbcMetering metering;
     private ChannelOutputFile channelOutputFile;
 
     JdbcParquetWriter(
@@ -155,7 +156,7 @@ public class JdbcParquetIO {
       this.schemaString = schemaString;
       this.jdbcParquetArgs = jdbcParquetArgs;
       this.avroSchemaJson = avroSchemaJson;
-      this.metering = JdbcParquetMetering.create();
+      this.metering = JdbcMetering.create("jdbcparquetio");
     }
 
     public Void getDestination() {
