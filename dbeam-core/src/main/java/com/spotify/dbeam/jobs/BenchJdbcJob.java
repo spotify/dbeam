@@ -109,7 +109,7 @@ public class BenchJdbcJob {
                                 c ->
                                     String.format(
                                         "% 10d",
-                                        Optional.of(this.metrics.get(i).get(c)).orElse(0L)))
+                                        Optional.ofNullable(this.metrics.get(i).get(c)).orElse(0L)))
                             .collect(tabJoining)));
     final List<Stats> stats =
         columns.stream()
@@ -117,7 +117,7 @@ public class BenchJdbcJob {
                 c ->
                     Stats.of(
                         (Iterable<Long>)
-                            this.metrics.stream().map(m -> Optional.of(m.get(c)).orElse(0L))
+                            this.metrics.stream().map(m -> Optional.ofNullable(m.get(c)).orElse(0L))
                                 ::iterator))
             .collect(Collectors.toList());
     final Map<String, Function<Stats, Double>> relevantStats =
