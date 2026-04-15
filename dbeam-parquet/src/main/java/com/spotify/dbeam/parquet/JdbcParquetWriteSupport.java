@@ -46,6 +46,7 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -54,9 +55,12 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.UUID;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.RecordConsumer;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.Type;
 
 /**
  * Writes values from a JDBC ResultSet directly to a Parquet RecordConsumer.
@@ -91,7 +95,7 @@ public class JdbcParquetWriteSupport {
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      writers[i] = computeColumnWriter(meta, i, arrayMode);
+      writers[i] = computeColumnWriter(meta, i, arrayMode, schema.getType(i - 1));
     }
 
     return new JdbcParquetWriteSupport(schema, writers, columnCount);
@@ -113,7 +117,7 @@ public class JdbcParquetWriteSupport {
   }
 
   static ColumnWriter computeColumnWriter(final ResultSetMetaData meta, final int column,
-                                           final String arrayMode)
+                                           final String arrayMode, final Type fieldType)
       throws SQLException {
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
@@ -274,6 +278,24 @@ public class JdbcParquetWriteSupport {
         };
       case OTHER:
         if (Objects.equals(meta.getColumnTypeName(column), "uuid")) {
+          final boolean isUuidLogicalType = fieldType.getLogicalTypeAnnotation() != null
+              && fieldType.getLogicalTypeAnnotation()
+                  .equals(LogicalTypeAnnotation.uuidType());
+          if (isUuidLogicalType) {
+            return (consumer, rs) -> {
+              final Object val = rs.getObject(column);
+              if (val != null && !rs.wasNull()) {
+                final UUID uuid = val instanceof UUID
+                    ? (UUID) val : UUID.fromString(val.toString());
+                final ByteBuffer buf = ByteBuffer.allocate(16);
+                buf.putLong(uuid.getMostSignificantBits());
+                buf.putLong(uuid.getLeastSignificantBits());
+                consumer.startField(normalizedName, fieldIndex);
+                consumer.addBinary(Binary.fromConstantByteArray(buf.array()));
+                consumer.endField(normalizedName, fieldIndex);
+              }
+            };
+          }
           return (consumer, rs) -> {
             final Object val = rs.getObject(column);
             if (val != null && !rs.wasNull()) {
