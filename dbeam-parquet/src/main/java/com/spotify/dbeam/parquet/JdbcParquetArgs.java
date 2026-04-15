@@ -121,7 +121,7 @@ public abstract class JdbcParquetArgs implements Serializable {
         jdbcConnectionArgs,
         10000,
         "snappy",
-        64 * 1024 * 1024,
+        128 * 1024 * 1024,
         1024 * 1024,
         Collections.emptyList(),
         "typed_first_row");
