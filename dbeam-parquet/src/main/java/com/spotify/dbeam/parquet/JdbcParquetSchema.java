@@ -115,7 +115,7 @@ public class JdbcParquetSchema {
 
       fields.add(
           buildParquetFieldType(
-              normalizeForAvro(columnName),
+              normalizeFieldName(columnName),
               columnType,
               precision,
               columnClassName,
@@ -132,7 +132,7 @@ public class JdbcParquetSchema {
     for (int i = 1; i <= meta.getColumnCount(); i++) {
       String metaTableName = meta.getTableName(i);
       if (metaTableName != null && !metaTableName.isEmpty()) {
-        return normalizeForAvro(metaTableName);
+        return normalizeFieldName(metaTableName);
       }
     }
     return defaultTableName;
@@ -288,7 +288,7 @@ public class JdbcParquetSchema {
     return "text";
   }
 
-  private static String normalizeForAvro(final String input) {
+  private static String normalizeFieldName(final String input) {
     return input.replaceAll("[^A-Za-z0-9_]", "_");
   }
 }
