@@ -102,9 +102,10 @@ public class BeamJdbcParquetSchema {
 
   public static MessageType parseInputParquetSchemaFile(final String filename) throws IOException {
     final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
-    final InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
-    final String schemaText =
-        new Scanner(inputStream, "UTF-8").useDelimiter("\\A").next();
-    return MessageTypeParser.parseMessageType(schemaText);
+    try (InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
+         Scanner scanner = new Scanner(inputStream, "UTF-8").useDelimiter("\\A")) {
+      final String schemaText = scanner.next();
+      return MessageTypeParser.parseMessageType(schemaText);
+    }
   }
 }
