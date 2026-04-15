@@ -61,24 +61,31 @@ public class BeamJdbcParquetSchema {
       throws Exception {
     final long startTime = System.nanoTime();
     final MessageType generatedSchema = generateParquetSchema(args, connection, arrayMode);
-    final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
-    LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
+    final long elapsedNanos = System.nanoTime() - startTime;
+    exposeSchemaMetrics(pipeline, elapsedNanos);
+    return generatedSchema;
+  }
 
-    final Counter cnt =
-        Metrics.counter(BeamJdbcParquetSchema.class.getCanonicalName(), "schemaElapsedTimeMs");
+  public static void exposeSchemaMetrics(
+      final Pipeline pipeline, final long elapsedNanos) {
+    final long elapsedMs = elapsedNanos / 1000000;
+    LOGGER.info("Elapsed time to schema {} seconds", elapsedMs / 1000.0);
+    final Counter cnt = Metrics.counter(
+        BeamJdbcParquetSchema.class.getCanonicalName(),
+        "schemaElapsedTimeMs");
     pipeline
         .apply(
             "ExposeSchemaCountersSeed",
-            Create.of(Collections.singletonList(0)).withType(TypeDescriptors.integers()))
+            Create.of(Collections.singletonList(0))
+                .withType(TypeDescriptors.integers()))
         .apply(
             "ExposeSchemaCounters",
             MapElements.into(TypeDescriptors.integers())
                 .via(
                     v -> {
-                      cnt.inc(elapsedTimeSchema);
+                      cnt.inc(elapsedMs);
                       return v;
                     }));
-    return generatedSchema;
   }
 
   private static MessageType generateParquetSchema(

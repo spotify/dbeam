@@ -35,6 +35,8 @@ import com.spotify.dbeam.options.JobNameConfiguration;
 import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import org.apache.avro.Schema;
@@ -122,11 +124,42 @@ public class JdbcParquetJob {
     final Schema avroSchema;
     final String arrayMode = jdbcExportArgs.jdbcAvroOptions().arrayMode();
     try (Connection connection = jdbcExportArgs.createConnection()) {
-      generatedSchema = createSchema(connection, arrayMode);
-      avroSchema = generateAvroSchema(connection);
+      final String schemaFilePath =
+          pipelineOptions.as(ParquetPipelineOptions.class)
+              .getParquetSchemaFilePath();
+      final java.util.Optional<MessageType> inputSchema =
+          BeamJdbcParquetSchema
+              .parseOptionalInputParquetSchemaFile(schemaFilePath);
+      if (inputSchema.isPresent()) {
+        generatedSchema = inputSchema.get();
+        avroSchema = generateAvroSchema(connection);
+      } else {
+        // Query DB once for both Parquet and Avro schemas
+        final long startTime = System.nanoTime();
+        try (Statement stmt = connection.createStatement()) {
+          final ResultSet rs = stmt.executeQuery(
+              jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+          rs.next();
+          generatedSchema = JdbcParquetSchema
+              .createParquetSchema(rs, jdbcExportArgs.avroSchemaName(),
+                  jdbcExportArgs.useAvroLogicalTypes(), arrayMode);
+          final String dbUrl = connection.getMetaData().getURL();
+          final String avroDoc = jdbcExportArgs.avroDoc()
+              .orElseGet(() -> String.format(
+                  "Generate schema from JDBC ResultSet from %s", dbUrl));
+          avroSchema = JdbcAvroSchema.createAvroSchema(
+              rs, jdbcExportArgs.avroSchemaNamespace(), dbUrl,
+              jdbcExportArgs.avroSchemaName(), avroDoc,
+              jdbcExportArgs.useAvroLogicalTypes(), arrayMode,
+              jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
+        }
+        BeamJdbcParquetSchema.exposeSchemaMetrics(
+            pipeline, System.nanoTime() - startTime);
+      }
       queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
-      final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
+      final String tableName =
+          pipelineOptions.as(DBeamPipelineOptions.class).getTable();
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
@@ -190,7 +223,8 @@ public class JdbcParquetJob {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
         jdbcExportArgs.avroDoc()
-            .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
+            .orElseGet(() -> String.format(
+                "Generate schema from JDBC ResultSet from %s", dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
         connection,
         jdbcExportArgs.queryBuilderArgs(),
@@ -200,20 +234,6 @@ public class JdbcParquetJob {
         jdbcExportArgs.useAvroLogicalTypes(),
         jdbcExportArgs.jdbcAvroOptions().arrayMode(),
         jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
-  }
-
-  private MessageType createSchema(final Connection connection, final String arrayMode)
-      throws Exception {
-    final String schemaFilePath =
-        pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
-    final java.util.Optional<MessageType> inputSchema =
-        BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(schemaFilePath);
-    if (inputSchema.isPresent()) {
-      return inputSchema.get();
-    } else {
-      return BeamJdbcParquetSchema.createSchema(
-          this.pipeline, jdbcExportArgs, connection, arrayMode);
-    }
   }
 
   public Pipeline getPipeline() {
