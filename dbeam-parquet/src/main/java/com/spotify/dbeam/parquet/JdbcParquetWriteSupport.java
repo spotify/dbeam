@@ -69,7 +69,8 @@ import org.apache.parquet.schema.Type;
  */
 public class JdbcParquetWriteSupport {
 
-  private static final Calendar CALENDAR = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+  private static final ThreadLocal<Calendar> CALENDAR =
+      ThreadLocal.withInitial(() -> new GregorianCalendar(TimeZone.getTimeZone("UTC")));
 
   @FunctionalInterface
   interface ColumnWriter {
@@ -175,7 +176,7 @@ public class JdbcParquetWriteSupport {
       case TIME:
       case TIME_WITH_TIMEZONE:
         return (consumer, rs) -> {
-          final Timestamp timestamp = rs.getTimestamp(column, CALENDAR);
+          final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
           if (timestamp != null && !rs.wasNull()) {
             consumer.startField(normalizedName, fieldIndex);
             consumer.addLong(timestamp.getTime());
