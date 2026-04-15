@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class JdbcParquetJob {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(JdbcParquetJob.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcParquetJob.class);
 
   private final PipelineOptions pipelineOptions;
   private final Pipeline pipeline;
