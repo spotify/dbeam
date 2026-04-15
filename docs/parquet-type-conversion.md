@@ -31,6 +31,7 @@ All columns are represented as `optional` (nullable) fields in the Parquet schem
 | LONGNVARCHAR             | BINARY                    | STRING (UTF8)                   |                                       |
 | LONGVARCHAR              | BINARY                    | STRING (UTF8)                   |                                       |
 | NCHAR                    | BINARY                    | STRING (UTF8)                   |                                       |
+| DECIMAL / NUMERIC        | BINARY                    | STRING (UTF8)                   | Exported as string representation; no fixed-point Parquet DECIMAL type |
 | OTHER (uuid)             | FIXED_LEN_BYTE_ARRAY(16)  | UUID                            | Only with `--useAvroLogicalTypes`; otherwise STRING |
 | OTHER                    | BINARY                    | STRING (UTF8)                   | Default for unrecognized OTHER types  |
 | all other Java SQL types | BINARY                    | STRING (UTF8)                   |                                       |
