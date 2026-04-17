@@ -20,62 +20,15 @@
 
 package com.spotify.dbeam.parquet;
 
-import com.spotify.dbeam.DbTestHelper;
-import com.spotify.dbeam.args.JdbcAvroArgs;
-import com.spotify.dbeam.args.JdbcConnectionArgs;
-import com.spotify.dbeam.args.JdbcExportArgs;
-import com.spotify.dbeam.args.QueryBuilderArgs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.time.Duration;
 import java.util.Optional;
-import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.parquet.schema.MessageType;
 import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
 
 public class BeamJdbcParquetSchemaTest {
-
-  private static final String CONNECTION_URL =
-      "jdbc:h2:mem:testbeamschema;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
-
-  @Rule public final transient TestPipeline pipeline = TestPipeline.create();
-
-  @BeforeClass
-  public static void beforeAll() throws SQLException, ClassNotFoundException {
-    DbTestHelper.createFixtures(CONNECTION_URL);
-  }
-
-  private static JdbcExportArgs createArgs() throws ClassNotFoundException {
-    return JdbcExportArgs.create(
-        JdbcAvroArgs.create(JdbcConnectionArgs.create(CONNECTION_URL)),
-        QueryBuilderArgs.create("COFFEES"),
-        "dbeam_generated",
-        Optional.empty(),
-        Optional.empty(),
-        false,
-        Duration.ofMinutes(1),
-        Optional.empty());
-  }
-
-  @Test
-  public void shouldCreateSchemaAndExposeMetrics() throws Exception {
-    final JdbcExportArgs args = createArgs();
-    try (Connection connection = args.createConnection()) {
-      final MessageType schema =
-          BeamJdbcParquetSchema.createSchema(pipeline, args, connection, "typed_first_row");
-
-      Assert.assertNotNull(schema);
-      Assert.assertEquals("COFFEES", schema.getName());
-      Assert.assertEquals(14, schema.getFieldCount());
-    }
-    pipeline.run().waitUntilFinish();
-  }
 
   @Test
   public void shouldParseInputSchemaFile() throws IOException {

@@ -20,12 +20,9 @@
 
 package com.spotify.dbeam.parquet;
 
-import com.spotify.dbeam.args.JdbcExportArgs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Scanner;
@@ -45,26 +42,6 @@ import org.slf4j.LoggerFactory;
 public class BeamJdbcParquetSchema {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BeamJdbcParquetSchema.class);
-
-  /**
-   * Generate Parquet schema by reading one row. Expose Beam metrics via a Beam PTransform.
-   *
-   * @param pipeline Beam SDK pipeline, to expose metrics
-   * @param args JdbcExportArgs with DBeam configuration
-   * @param connection JDBC connection to query input schema
-   * @return Parquet MessageType schema based on configuration
-   * @throws Exception in case of failure to query database
-   */
-  public static MessageType createSchema(
-      final Pipeline pipeline, final JdbcExportArgs args, final Connection connection,
-      final String arrayMode)
-      throws Exception {
-    final long startTime = System.nanoTime();
-    final MessageType generatedSchema = generateParquetSchema(args, connection, arrayMode);
-    final long elapsedNanos = System.nanoTime() - startTime;
-    exposeSchemaMetrics(pipeline, elapsedNanos);
-    return generatedSchema;
-  }
 
   public static void exposeSchemaMetrics(
       final Pipeline pipeline, final long elapsedNanos) {
@@ -86,17 +63,6 @@ public class BeamJdbcParquetSchema {
                       cnt.inc(elapsedMs);
                       return v;
                     }));
-  }
-
-  private static MessageType generateParquetSchema(
-      final JdbcExportArgs args, final Connection connection, final String arrayMode)
-      throws SQLException {
-    return JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection,
-        args.queryBuilderArgs(),
-        args.avroSchemaName(),
-        args.useAvroLogicalTypes(),
-        arrayMode);
   }
 
   public static Optional<MessageType> parseOptionalInputParquetSchemaFile(final String filename)
