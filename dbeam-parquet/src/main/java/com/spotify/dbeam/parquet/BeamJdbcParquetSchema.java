@@ -20,12 +20,14 @@
 
 package com.spotify.dbeam.parquet;
 
+import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.channels.Channels;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.Scanner;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.io.fs.MatchResult;
@@ -76,9 +78,8 @@ public class BeamJdbcParquetSchema {
   public static MessageType parseInputParquetSchemaFile(final String filename) throws IOException {
     final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
     try (InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
-         Scanner scanner = new Scanner(inputStream, "UTF-8").useDelimiter("\\A")) {
-      final String schemaText = scanner.next();
-      return MessageTypeParser.parseMessageType(schemaText);
+         InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+      return MessageTypeParser.parseMessageType(CharStreams.toString(reader));
     }
   }
 }
