@@ -258,6 +258,9 @@ public class JdbcParquetJob {
   }
 
   static String mapAvroCodecToParquetCodec(final String avroCodec) {
+    if (avroCodec == null) {
+      return "snappy";
+    }
     if (avroCodec.equals("snappy")) {
       return "snappy";
     } else if (avroCodec.startsWith("deflate")) {
