@@ -174,7 +174,7 @@ public class JdbcParquetIO {
               channelOutputFile, schema, avroSchemaJson, jdbcParquetArgs.arrayMode())
           .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
           .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
-          .withPageSize(jdbcParquetArgs.pageSize())
+          .withPageSize((int) jdbcParquetArgs.pageSize())
           .withWriteMode(ParquetFileWriter.Mode.CREATE)
           .build();
       LOGGER.info("jdbcparquetio : Write prepared");

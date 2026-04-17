@@ -44,8 +44,8 @@ public class JdbcParquetArgsTest {
 
     Assert.assertEquals(10000, args.fetchSize());
     Assert.assertEquals("snappy", args.parquetCodec());
-    Assert.assertEquals(128 * 1024 * 1024, args.rowGroupSize());
-    Assert.assertEquals(1024 * 1024, args.pageSize());
+    Assert.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
+    Assert.assertEquals(1024L * 1024, args.pageSize());
     Assert.assertEquals(Collections.emptyList(), args.preCommand());
   }
 
@@ -123,6 +123,6 @@ public class JdbcParquetArgsTest {
         CONN_ARGS, 10000, "snappy", 128 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
         "typed_first_row");
 
-    Assert.assertEquals(128 * 1024 * 1024, args.rowGroupSize());
+    Assert.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
   }
 }

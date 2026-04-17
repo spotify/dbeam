@@ -44,9 +44,9 @@ public abstract class JdbcParquetArgs implements Serializable {
 
   public abstract String parquetCodec();
 
-  public abstract int rowGroupSize();
+  public abstract long rowGroupSize();
 
-  public abstract int pageSize();
+  public abstract long pageSize();
 
   public abstract List<String> preCommand();
 
@@ -83,9 +83,9 @@ public abstract class JdbcParquetArgs implements Serializable {
 
     abstract Builder setParquetCodec(String parquetCodec);
 
-    abstract Builder setRowGroupSize(int rowGroupSize);
+    abstract Builder setRowGroupSize(long rowGroupSize);
 
-    abstract Builder setPageSize(int pageSize);
+    abstract Builder setPageSize(long pageSize);
 
     abstract Builder setPreCommand(List<String> preCommand);
 
@@ -98,8 +98,8 @@ public abstract class JdbcParquetArgs implements Serializable {
       final JdbcConnectionArgs jdbcConnectionArgs,
       final int fetchSize,
       final String parquetCodec,
-      final int rowGroupSize,
-      final int pageSize,
+      final long rowGroupSize,
+      final long pageSize,
       final List<String> preCommand,
       final String arrayMode) {
     Preconditions.checkArgument(

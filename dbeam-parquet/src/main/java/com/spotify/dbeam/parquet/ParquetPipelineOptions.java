@@ -41,15 +41,15 @@ public interface ParquetPipelineOptions extends PipelineOptions {
 
   @Description("Parquet row group size in bytes. Larger values improve read performance "
       + "but use more memory during writes.")
-  @Default.Integer(134217728)
-  Integer getRowGroupSize();
+  @Default.Long(134217728)
+  Long getRowGroupSize();
 
-  void setRowGroupSize(Integer value);
+  void setRowGroupSize(Long value);
 
   @Description("Parquet page size in bytes. Controls the granularity of encoding "
       + "and compression within a column chunk.")
-  @Default.Integer(1048576)
-  Integer getPageSize();
+  @Default.Long(1048576)
+  Long getPageSize();
 
-  void setPageSize(Integer value);
+  void setPageSize(Long value);
 }
