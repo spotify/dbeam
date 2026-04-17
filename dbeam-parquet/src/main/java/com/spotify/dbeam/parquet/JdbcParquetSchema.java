@@ -161,7 +161,7 @@ public class JdbcParquetSchema {
               .named(columnName);
         }
       case TIMESTAMP:
-      case DATE:
+      case DATE: // stored as TIMESTAMP(MILLIS) for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {

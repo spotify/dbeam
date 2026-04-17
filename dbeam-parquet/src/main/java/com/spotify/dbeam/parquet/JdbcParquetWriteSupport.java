@@ -172,7 +172,7 @@ public class JdbcParquetWriteSupport {
           }
         };
       case TIMESTAMP:
-      case DATE:
+      case DATE: // written as epoch millis for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
         return (consumer, rs) -> {
