@@ -28,21 +28,16 @@ import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.options.ArrayHandlingMode;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.avro.Schema;
@@ -53,15 +48,11 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.Decoder;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.util.Utf8;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.postgresql.jdbc.PgArray;
 
 public class JdbcAvroRecordTest {
 
@@ -83,7 +74,9 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false, ArrayHandlingMode.TypedMetaFromFirstRow, false);
+            false,
+            ArrayHandlingMode.TypedMetaFromFirstRow,
+            false);
 
     Assert.assertNotNull(actual);
     Assert.assertEquals("dbeam_generated", actual.getNamespace());
@@ -161,7 +154,9 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.empty(),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            true, ArrayHandlingMode.TypedMetaFromFirstRow, false);
+            true,
+            ArrayHandlingMode.TypedMetaFromFirstRow,
+            false);
 
     Assert.assertEquals(fieldCount, actual.getFields().size());
     Assert.assertEquals(
@@ -178,7 +173,9 @@ public class JdbcAvroRecordTest {
             "dbeam_generated",
             Optional.of("CustomSchemaName"),
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
-            false, ArrayHandlingMode.TypedMetaFromFirstRow, false);
+            false,
+            ArrayHandlingMode.TypedMetaFromFirstRow,
+            false);
 
     Assert.assertEquals("CustomSchemaName", actual.getName());
   }
@@ -195,8 +192,7 @@ public class JdbcAvroRecordTest {
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema =
         JdbcAvroSchema.createAvroSchema(
-            rs, "dbeam_generated", "connection", Optional.empty(), "doc",
-            false, arrayMode, false);
+            rs, "dbeam_generated", "connection", Optional.empty(), "doc", false, arrayMode, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(rs, arrayMode, false);
     final DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));

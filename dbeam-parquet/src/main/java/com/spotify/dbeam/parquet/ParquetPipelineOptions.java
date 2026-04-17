@@ -39,15 +39,17 @@ public interface ParquetPipelineOptions extends PipelineOptions {
 
   void setParquetCodec(String value);
 
-  @Description("Parquet row group size in bytes. Larger values improve read performance "
-      + "but use more memory during writes.")
+  @Description(
+      "Parquet row group size in bytes. Larger values improve read performance "
+          + "but use more memory during writes.")
   @Default.Long(134217728)
   Long getRowGroupSize();
 
   void setRowGroupSize(Long value);
 
-  @Description("Parquet page size in bytes. Controls the granularity of encoding "
-      + "and compression within a column chunk.")
+  @Description(
+      "Parquet page size in bytes. Controls the granularity of encoding "
+          + "and compression within a column chunk.")
   @Default.Long(1048576)
   Long getPageSize();
 

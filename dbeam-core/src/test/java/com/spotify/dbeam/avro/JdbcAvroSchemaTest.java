@@ -125,23 +125,27 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldThrowOnNonSupportedTypes() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.STRUCT);
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> createAvroSchemaForSingleField(resultSet, false));
+    RuntimeException thrown =
+        Assert.assertThrows(
+            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet, false));
     Assert.assertEquals("STRUCT type is not supported", thrown.getMessage());
 
     final ResultSet resultSet2 = buildMockResultSet(Types.REF);
-    RuntimeException thrown2 = Assert.assertThrows(RuntimeException.class,
-        () -> createAvroSchemaForSingleField(resultSet2, false));
+    RuntimeException thrown2 =
+        Assert.assertThrows(
+            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet2, false));
     Assert.assertEquals("REF and REF_CURSOR type are not supported", thrown2.getMessage());
 
     final ResultSet resultSet3 = buildMockResultSet(Types.REF_CURSOR);
-    RuntimeException thrown3 = Assert.assertThrows(RuntimeException.class,
-        () -> createAvroSchemaForSingleField(resultSet3, false));
+    RuntimeException thrown3 =
+        Assert.assertThrows(
+            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet3, false));
     Assert.assertEquals("REF and REF_CURSOR type are not supported", thrown3.getMessage());
 
     final ResultSet resultSet4 = buildMockResultSet(Types.DATALINK);
-    RuntimeException thrown4 = Assert.assertThrows(RuntimeException.class,
-        () -> createAvroSchemaForSingleField(resultSet4, false));
+    RuntimeException thrown4 =
+        Assert.assertThrows(
+            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet4, false));
     Assert.assertEquals("DATALINK type is not supported", thrown4.getMessage());
   }
 
@@ -195,8 +199,14 @@ public class JdbcAvroSchemaTest {
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
-            resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes,
-            ArrayHandlingMode.TypedMetaFromFirstRow, false);
+            resultSet,
+            "namespace1",
+            "url1",
+            Optional.empty(),
+            "doc1",
+            useLogicalTypes,
+            ArrayHandlingMode.TypedMetaFromFirstRow,
+            false);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }
@@ -205,8 +215,8 @@ public class JdbcAvroSchemaTest {
     return buildMockResultSet(inputColumnType, null);
   }
 
-  private ResultSet buildMockResultSet(final int inputColumnType,
-                                       final String columnTypeName) throws SQLException {
+  private ResultSet buildMockResultSet(final int inputColumnType, final String columnTypeName)
+      throws SQLException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(COLUMN_NUM);
     when(meta.getTableName(COLUMN_NUM)).thenReturn("test_table");

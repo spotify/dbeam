@@ -63,9 +63,9 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 
 /**
- * Writes values from a JDBC ResultSet directly to a Parquet RecordConsumer.
- * Each column is written using the appropriate typed method, skipping null fields
- * (Parquet's standard null representation for optional fields).
+ * Writes values from a JDBC ResultSet directly to a Parquet RecordConsumer. Each column is written
+ * using the appropriate typed method, skipping null fields (Parquet's standard null representation
+ * for optional fields).
  */
 public class JdbcParquetWriteSupport {
 
@@ -81,16 +81,15 @@ public class JdbcParquetWriteSupport {
   private final ColumnWriter[] columnWriters;
   private final int columnCount;
 
-  public JdbcParquetWriteSupport(MessageType schema, ColumnWriter[] columnWriters,
-                                 int columnCount) {
+  public JdbcParquetWriteSupport(
+      MessageType schema, ColumnWriter[] columnWriters, int columnCount) {
     this.schema = schema;
     this.columnWriters = columnWriters;
     this.columnCount = columnCount;
   }
 
-  public static JdbcParquetWriteSupport create(ResultSet resultSet, MessageType schema,
-                                                String arrayMode)
-      throws SQLException {
+  public static JdbcParquetWriteSupport create(
+      ResultSet resultSet, MessageType schema, String arrayMode) throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
@@ -106,9 +105,7 @@ public class JdbcParquetWriteSupport {
     return schema;
   }
 
-  /**
-   * Write the current row of the ResultSet to the RecordConsumer.
-   */
+  /** Write the current row of the ResultSet to the RecordConsumer. */
   public void writeRecord(RecordConsumer consumer, ResultSet resultSet) throws SQLException {
     consumer.startMessage();
     for (int i = 1; i <= columnCount; i++) {
@@ -117,13 +114,15 @@ public class JdbcParquetWriteSupport {
     consumer.endMessage();
   }
 
-  static ColumnWriter computeColumnWriter(final ResultSetMetaData meta, final int column,
-                                           final String arrayMode, final Type fieldType)
+  static ColumnWriter computeColumnWriter(
+      final ResultSetMetaData meta, final int column, final String arrayMode, final Type fieldType)
       throws SQLException {
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
-    final String fieldName = meta.getColumnName(column).isEmpty()
-        ? meta.getColumnLabel(column) : meta.getColumnName(column);
+    final String fieldName =
+        meta.getColumnName(column).isEmpty()
+            ? meta.getColumnLabel(column)
+            : meta.getColumnName(column);
     final String normalizedName = JdbcParquetSchema.normalizeFieldName(fieldName);
 
     switch (columnType) {
@@ -279,15 +278,15 @@ public class JdbcParquetWriteSupport {
         };
       case OTHER:
         if (Objects.equals(meta.getColumnTypeName(column), "uuid")) {
-          final boolean isUuidLogicalType = fieldType.getLogicalTypeAnnotation() != null
-              && fieldType.getLogicalTypeAnnotation()
-                  .equals(LogicalTypeAnnotation.uuidType());
+          final boolean isUuidLogicalType =
+              fieldType.getLogicalTypeAnnotation() != null
+                  && fieldType.getLogicalTypeAnnotation().equals(LogicalTypeAnnotation.uuidType());
           if (isUuidLogicalType) {
             return (consumer, rs) -> {
               final Object val = rs.getObject(column);
               if (val != null && !rs.wasNull()) {
-                final UUID uuid = val instanceof UUID
-                    ? (UUID) val : UUID.fromString(val.toString());
+                final UUID uuid =
+                    val instanceof UUID ? (UUID) val : UUID.fromString(val.toString());
                 final ByteBuffer buf = ByteBuffer.allocate(16);
                 buf.putLong(uuid.getMostSignificantBits());
                 buf.putLong(uuid.getLeastSignificantBits());
@@ -306,7 +305,7 @@ public class JdbcParquetWriteSupport {
             }
           };
         }
-        // fall through to string
+      // fall through to string
       default:
         return (consumer, rs) -> {
           final String val = rs.getString(column);
@@ -319,8 +318,7 @@ public class JdbcParquetWriteSupport {
     }
   }
 
-  static void writeArrayElement(
-      RecordConsumer consumer, Object item, String elementType) {
+  static void writeArrayElement(RecordConsumer consumer, Object item, String elementType) {
     switch (elementType) {
       case "int":
       case "int4":

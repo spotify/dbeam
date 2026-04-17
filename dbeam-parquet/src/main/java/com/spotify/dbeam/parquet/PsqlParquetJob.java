@@ -29,8 +29,7 @@ public class PsqlParquetJob {
   private final JdbcParquetJob job;
   private final PsqlReplicationCheck psqlReplicationCheck;
 
-  public PsqlParquetJob(
-      final JdbcParquetJob job, final PsqlReplicationCheck psqlReplicationCheck) {
+  public PsqlParquetJob(final JdbcParquetJob job, final PsqlReplicationCheck psqlReplicationCheck) {
     this.job = job;
     this.psqlReplicationCheck = psqlReplicationCheck;
   }

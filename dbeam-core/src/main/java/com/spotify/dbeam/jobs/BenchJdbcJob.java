@@ -62,9 +62,7 @@ public class BenchJdbcJob {
   private List<Map<String, Long>> metrics = newArrayList();
 
   public BenchJdbcJob(
-      final String jobName,
-      final PipelineOptions pipelineOptions,
-      final JobRunner jobRunner) {
+      final String jobName, final PipelineOptions pipelineOptions, final JobRunner jobRunner) {
     this.jobName = jobName;
     this.pipelineOptions = pipelineOptions;
     this.jobRunner = jobRunner;

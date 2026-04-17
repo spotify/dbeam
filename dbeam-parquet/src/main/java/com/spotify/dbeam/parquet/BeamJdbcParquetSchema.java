@@ -45,18 +45,15 @@ public class BeamJdbcParquetSchema {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BeamJdbcParquetSchema.class);
 
-  public static void exposeSchemaMetrics(
-      final Pipeline pipeline, final long elapsedNanos) {
+  public static void exposeSchemaMetrics(final Pipeline pipeline, final long elapsedNanos) {
     final long elapsedMs = elapsedNanos / 1000000;
     LOGGER.info("Elapsed time to schema {} seconds", elapsedMs / 1000.0);
-    final Counter cnt = Metrics.counter(
-        BeamJdbcParquetSchema.class.getCanonicalName(),
-        "schemaElapsedTimeMs");
+    final Counter cnt =
+        Metrics.counter(BeamJdbcParquetSchema.class.getCanonicalName(), "schemaElapsedTimeMs");
     pipeline
         .apply(
             "ExposeSchemaCountersSeed",
-            Create.of(Collections.singletonList(0))
-                .withType(TypeDescriptors.integers()))
+            Create.of(Collections.singletonList(0)).withType(TypeDescriptors.integers()))
         .apply(
             "ExposeSchemaCounters",
             MapElements.into(TypeDescriptors.integers())
@@ -78,7 +75,7 @@ public class BeamJdbcParquetSchema {
   public static MessageType parseInputParquetSchemaFile(final String filename) throws IOException {
     final MatchResult.Metadata m = FileSystems.matchSingleFileSpec(filename);
     try (InputStream inputStream = Channels.newInputStream(FileSystems.open(m.resourceId()));
-         InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+        InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
       return MessageTypeParser.parseMessageType(CharStreams.toString(reader));
     }
   }

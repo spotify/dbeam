@@ -170,13 +170,14 @@ public class JdbcParquetIO {
 
       final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
       channelOutputFile = new ChannelOutputFile(channel);
-      parquetWriter = new ResultSetParquetWriterBuilder(
-              channelOutputFile, schema, avroSchemaJson, jdbcParquetArgs.arrayMode())
-          .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
-          .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
-          .withPageSize((int) jdbcParquetArgs.pageSize())
-          .withWriteMode(ParquetFileWriter.Mode.CREATE)
-          .build();
+      parquetWriter =
+          new ResultSetParquetWriterBuilder(
+                  channelOutputFile, schema, avroSchemaJson, jdbcParquetArgs.arrayMode())
+              .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
+              .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
+              .withPageSize((int) jdbcParquetArgs.pageSize())
+              .withWriteMode(ParquetFileWriter.Mode.CREATE)
+              .build();
       LOGGER.info("jdbcparquetio : Write prepared");
     }
 
@@ -190,8 +191,7 @@ public class JdbcParquetIO {
         jdbcParquetArgs.statementPreparator().setParameters(statement);
       }
 
-      if (jdbcParquetArgs.preCommand() != null
-          && !jdbcParquetArgs.preCommand().isEmpty()) {
+      if (jdbcParquetArgs.preCommand() != null && !jdbcParquetArgs.preCommand().isEmpty()) {
         final Statement stmt = connection.createStatement();
         for (String command : jdbcParquetArgs.preCommand()) {
           stmt.execute(command);

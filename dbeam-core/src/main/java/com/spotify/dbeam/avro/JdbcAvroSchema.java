@@ -96,8 +96,12 @@ public class JdbcAvroSchema {
               useLogicalTypes,
               arrayMode,
               nullableArrayItems);
-      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayMode={}, "
-                  + "Generated schema: {}", useLogicalTypes, arrayMode, schema.toString());
+      LOGGER.info(
+          "Schema created successfully. useLogicalTypes={}, arrayMode={}, "
+              + "Generated schema: {}",
+          useLogicalTypes,
+          arrayMode,
+          schema.toString());
       return schema;
     }
   }
@@ -181,9 +185,11 @@ public class JdbcAvroSchema {
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
       Array arrayInstance =
-          resultSet.isFirst() && columnType == ARRAY
-          && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
-          ? resultSet.getArray(i) : null;
+          resultSet.isFirst()
+                  && columnType == ARRAY
+                  && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
+              ? resultSet.getArray(i)
+              : null;
 
       final SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>> schemaFieldAssembler =
           buildAvroFieldType(
@@ -216,17 +222,19 @@ public class JdbcAvroSchema {
    */
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       buildAvroFieldType(
-      final String columnName,
-      final int columnType,
-      final Array arrayInstance,
-      final int precision,
-      final String columnClassName,
-      final String columnTypeName,
-      final boolean useLogicalTypes,
-      final String arrayMode,
-      final boolean nullableArrayItems,
-      final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
-          SchemaBuilder.NullDefault<Schema>>> field) throws SQLException {
+          final String columnName,
+          final int columnType,
+          final Array arrayInstance,
+          final int precision,
+          final String columnClassName,
+          final String columnTypeName,
+          final boolean useLogicalTypes,
+          final String arrayMode,
+          final boolean nullableArrayItems,
+          final SchemaBuilder.BaseTypeBuilder<
+                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+              field)
+          throws SQLException {
     switch (columnType) {
       case BIGINT:
         return field.longType();
@@ -265,19 +273,24 @@ public class JdbcAvroSchema {
 
         if (arrayMode.equals(ArrayHandlingMode.TypedMetaPostgres)) {
           if (!columnTypeName.startsWith("_")) {
-            throw new RuntimeException("columnName=" + columnName
-                                       + " columnTypeName=" + columnTypeName
-                                       + " should start with '_'");
+            throw new RuntimeException(
+                "columnName="
+                    + columnName
+                    + " columnTypeName="
+                    + columnTypeName
+                    + " should start with '_'");
           }
 
-          return buildAvroFieldTypeFromPGType(columnName, columnTypeName.substring(1),
-              useLogicalTypes, buildArrayItems(nullableArrayItems, field));
+          return buildAvroFieldTypeFromPGType(
+              columnName,
+              columnTypeName.substring(1),
+              useLogicalTypes,
+              buildArrayItems(nullableArrayItems, field));
         }
 
         if (arrayInstance == null) {
           throw new RuntimeException(
-              "When inspecting ARRAY column type in '" + columnName
-              + "' its first value is NULL");
+              "When inspecting ARRAY column type in '" + columnName + "' its first value is NULL");
         }
         return buildAvroFieldType(
             columnName,
@@ -324,12 +337,13 @@ public class JdbcAvroSchema {
     }
   }
 
-  private static SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
-      SchemaBuilder.NullDefault<Schema>>>
+  private static SchemaBuilder.BaseTypeBuilder<
+          SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
       buildArrayItems(
-      final boolean nullableArrayItems,
-      final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
-          SchemaBuilder.NullDefault<Schema>>> field) {
+          final boolean nullableArrayItems,
+          final SchemaBuilder.BaseTypeBuilder<
+                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+              field) {
     if (nullableArrayItems) {
       return field.array().items().nullable();
     } else {
@@ -339,12 +353,12 @@ public class JdbcAvroSchema {
 
   private static SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>
       buildAvroFieldTypeFromPGType(
-      final String columnName,
-      final String columnTypeName,
-      final boolean useLogicalTypes,
-      final SchemaBuilder.BaseTypeBuilder<
-          SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
-          field) {
+          final String columnName,
+          final String columnTypeName,
+          final boolean useLogicalTypes,
+          final SchemaBuilder.BaseTypeBuilder<
+                  SchemaBuilder.UnionAccumulator<SchemaBuilder.NullDefault<Schema>>>
+              field) {
     switch (columnTypeName) {
       case "uuid":
         if (useLogicalTypes) {
@@ -361,8 +375,14 @@ public class JdbcAvroSchema {
       case "text":
         return field.stringType();
       default:
-        throw new RuntimeException("columnName=" + columnName + " Postgres type '"
-                                   + columnTypeName + "' is " + "not " + "supported");
+        throw new RuntimeException(
+            "columnName="
+                + columnName
+                + " Postgres type '"
+                + columnTypeName
+                + "' is "
+                + "not "
+                + "supported");
     }
   }
 

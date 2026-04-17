@@ -116,8 +116,7 @@ public class JdbcParquetJobTest {
         .runExport();
 
     assertThat(
-        TestHelper.listDir(outputPath.toFile()),
-        containsInAnyOrder("part-00000-of-00001.parquet"));
+        TestHelper.listDir(outputPath.toFile()), containsInAnyOrder("part-00000-of-00001.parquet"));
   }
 
   @Test
@@ -223,12 +222,14 @@ public class JdbcParquetJobTest {
   public void shouldRunParquetJobWithInputSchemaFile() throws Exception {
     final Path outputPath = testDir.resolve("shouldRunParquetJobWithInputSchemaFile");
     final Path schemaFile = testDir.resolve("input_schema.parquet.txt");
-    Files.write(schemaFile, (
-        "message COFFEES {\n"
-        + "  optional binary COF_NAME (STRING);\n"
-        + "  optional double SIZE;\n"
-        + "  optional int64 TOTAL;\n"
-        + "}").getBytes());
+    Files.write(
+        schemaFile,
+        ("message COFFEES {\n"
+                + "  optional binary COF_NAME (STRING);\n"
+                + "  optional double SIZE;\n"
+                + "  optional int64 TOTAL;\n"
+                + "}")
+            .getBytes());
 
     JdbcParquetJob.create(
             new String[] {

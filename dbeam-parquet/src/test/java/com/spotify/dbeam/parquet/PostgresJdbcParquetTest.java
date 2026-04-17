@@ -66,15 +66,19 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-uuid-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      String actualUuid = record.getString("uuid_field", 0);
-      Assert.assertEquals(uuidExpected.toString(), actualUuid);
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          String actualUuid = record.getString("uuid_field", 0);
+          Assert.assertEquals(uuidExpected.toString(), actualUuid);
+        });
   }
 
   @Test
@@ -93,15 +97,19 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-string-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Assert.assertEquals("some_text_42", record.getString("text_field", 0));
-      Assert.assertEquals("some_other_42", record.getString("other_field", 0));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Assert.assertEquals("some_text_42", record.getString("text_field", 0));
+          Assert.assertEquals("some_other_42", record.getString("other_field", 0));
+        });
   }
 
   @Test
@@ -118,15 +126,19 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-ts-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      long actualTs = record.getLong("ts_field", 0);
-      Assert.assertEquals(1488300933000L, actualTs);
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          long actualTs = record.getLong("ts_field", 0);
+          Assert.assertEquals(1488300933000L, actualTs);
+        });
   }
 
   @Test
@@ -145,15 +157,19 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false, true);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Assert.assertEquals("alice", record.getString("name", 0));
-      Assert.assertEquals(0, record.getFieldRepetitionCount("age"));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Assert.assertEquals("alice", record.getString("name", 0));
+          Assert.assertEquals(0, record.getFieldRepetitionCount("age"));
+        });
   }
 
   @Test
@@ -167,8 +183,7 @@ public class PostgresJdbcParquetTest {
     TestHelper.mockResultSetMeta(meta, 1, Types.INTEGER, "int_col", "java.lang.Integer", "int4");
     TestHelper.mockResultSetMeta(meta, 2, Types.BIGINT, "long_col", "java.lang.Long", "int8");
     TestHelper.mockResultSetMeta(meta, 3, Types.FLOAT, "float_col", "java.lang.Float", "float4");
-    TestHelper.mockResultSetMeta(meta, 4, Types.DOUBLE, "double_col", "java.lang.Double",
-        "float8");
+    TestHelper.mockResultSetMeta(meta, 4, Types.DOUBLE, "double_col", "java.lang.Double", "float8");
 
     final ResultSet resultSet = buildMockResultSet(meta);
     when(resultSet.getInt(1)).thenReturn(42);
@@ -178,17 +193,21 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Assert.assertEquals(42, record.getInteger("int_col", 0));
-      Assert.assertEquals(9999999999L, record.getLong("long_col", 0));
-      Assert.assertEquals(3.14f, record.getFloat("float_col", 0), 0.001f);
-      Assert.assertEquals(2.71828, record.getDouble("double_col", 0), 0.00001);
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Assert.assertEquals(42, record.getInteger("int_col", 0));
+          Assert.assertEquals(9999999999L, record.getLong("long_col", 0));
+          Assert.assertEquals(3.14f, record.getFloat("float_col", 0), 0.001f);
+          Assert.assertEquals(2.71828, record.getDouble("double_col", 0), 0.00001);
+        });
   }
 
   @Test
@@ -196,22 +215,25 @@ public class PostgresJdbcParquetTest {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn("test_table");
-    TestHelper.mockResultSetMeta(
-        meta, 1, Types.BOOLEAN, "is_active", "java.lang.Boolean", "bool");
+    TestHelper.mockResultSetMeta(meta, 1, Types.BOOLEAN, "is_active", "java.lang.Boolean", "bool");
 
     final ResultSet resultSet = buildMockResultSet(meta);
     when(resultSet.getBoolean(1)).thenReturn(true);
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-bool-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Assert.assertTrue(record.getBoolean("is_active", 0));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Assert.assertTrue(record.getBoolean("is_active", 0));
+        });
   }
 
   @Test
@@ -228,8 +250,8 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     // Verify schema has LIST type
     Assert.assertFalse(schema.getFields().get(0).isPrimitive());
@@ -239,16 +261,17 @@ public class PostgresJdbcParquetTest {
 
     final Path tempFile = Files.createTempFile("parquet-array-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Group tagsList = record.getGroup("tags", 0);
-      Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
-      Assert.assertEquals("rock",
-          tagsList.getGroup("list", 0).getString("element", 0));
-      Assert.assertEquals("jazz",
-          tagsList.getGroup("list", 1).getString("element", 0));
-      Assert.assertEquals("blues",
-          tagsList.getGroup("list", 2).getString("element", 0));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Group tagsList = record.getGroup("tags", 0);
+          Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
+          Assert.assertEquals("rock", tagsList.getGroup("list", 0).getString("element", 0));
+          Assert.assertEquals("jazz", tagsList.getGroup("list", 1).getString("element", 0));
+          Assert.assertEquals("blues", tagsList.getGroup("list", 2).getString("element", 0));
+        });
   }
 
   @Test
@@ -265,21 +288,22 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-int-array-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Group scoresList = record.getGroup("scores", 0);
-      Assert.assertEquals(3, scoresList.getFieldRepetitionCount("list"));
-      Assert.assertEquals(10,
-          scoresList.getGroup("list", 0).getInteger("element", 0));
-      Assert.assertEquals(20,
-          scoresList.getGroup("list", 1).getInteger("element", 0));
-      Assert.assertEquals(30,
-          scoresList.getGroup("list", 2).getInteger("element", 0));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Group scoresList = record.getGroup("scores", 0);
+          Assert.assertEquals(3, scoresList.getFieldRepetitionCount("list"));
+          Assert.assertEquals(10, scoresList.getGroup("list", 0).getInteger("element", 0));
+          Assert.assertEquals(20, scoresList.getGroup("list", 1).getInteger("element", 0));
+          Assert.assertEquals(30, scoresList.getGroup("list", 2).getInteger("element", 0));
+        });
   }
 
   @Test
@@ -296,21 +320,22 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-long-array-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Group idsList = record.getGroup("ids", 0);
-      Assert.assertEquals(3, idsList.getFieldRepetitionCount("list"));
-      Assert.assertEquals(100L,
-          idsList.getGroup("list", 0).getLong("element", 0));
-      Assert.assertEquals(200L,
-          idsList.getGroup("list", 1).getLong("element", 0));
-      Assert.assertEquals(300L,
-          idsList.getGroup("list", 2).getLong("element", 0));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Group idsList = record.getGroup("ids", 0);
+          Assert.assertEquals(3, idsList.getFieldRepetitionCount("list"));
+          Assert.assertEquals(100L, idsList.getGroup("list", 0).getLong("element", 0));
+          Assert.assertEquals(200L, idsList.getGroup("list", 1).getLong("element", 0));
+          Assert.assertEquals(300L, idsList.getGroup("list", 2).getLong("element", 0));
+        });
   }
 
   @Test
@@ -327,24 +352,25 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(false);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-array-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      Group tagsList = record.getGroup("tags", 0);
-      Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
-      // First element: present
-      Assert.assertEquals("first",
-          tagsList.getGroup("list", 0).getString("element", 0));
-      // Second element: null (element field has 0 repetitions)
-      Assert.assertEquals(0,
-          tagsList.getGroup("list", 1).getFieldRepetitionCount("element"));
-      // Third element: present
-      Assert.assertEquals("third",
-          tagsList.getGroup("list", 2).getString("element", 0));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          Group tagsList = record.getGroup("tags", 0);
+          Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
+          // First element: present
+          Assert.assertEquals("first", tagsList.getGroup("list", 0).getString("element", 0));
+          // Second element: null (element field has 0 repetitions)
+          Assert.assertEquals(0, tagsList.getGroup("list", 1).getFieldRepetitionCount("element"));
+          // Third element: present
+          Assert.assertEquals("third", tagsList.getGroup("list", 2).getString("element", 0));
+        });
   }
 
   @Test
@@ -359,15 +385,19 @@ public class PostgresJdbcParquetTest {
     when(resultSet.wasNull()).thenReturn(true);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-sql-array-test-", ".parquet");
     Files.delete(tempFile);
-    writeAndVerify(schema, resultSet, tempFile, record -> {
-      // Entire array field is null (optional, 0 repetitions)
-      Assert.assertEquals(0, record.getFieldRepetitionCount("tags"));
-    });
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          // Entire array field is null (optional, 0 repetitions)
+          Assert.assertEquals(0, record.getFieldRepetitionCount("tags"));
+        });
   }
 
   @FunctionalInterface
@@ -375,13 +405,15 @@ public class PostgresJdbcParquetTest {
     void assertRecord(Group record) throws IOException;
   }
 
-  private void writeAndVerify(MessageType schema, ResultSet resultSet, Path tempFile,
-                              RecordAssertion assertion) throws IOException {
-    final OutputFile outputFile = new ChannelOutputFile(
-        java.nio.channels.FileChannel.open(
-            tempFile,
-            java.nio.file.StandardOpenOption.CREATE,
-            java.nio.file.StandardOpenOption.WRITE));
+  private void writeAndVerify(
+      MessageType schema, ResultSet resultSet, Path tempFile, RecordAssertion assertion)
+      throws IOException {
+    final OutputFile outputFile =
+        new ChannelOutputFile(
+            java.nio.channels.FileChannel.open(
+                tempFile,
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.WRITE));
 
     try (ParquetWriter<ResultSet> writer =
         new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)

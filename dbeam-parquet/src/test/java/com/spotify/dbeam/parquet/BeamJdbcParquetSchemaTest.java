@@ -33,11 +33,13 @@ public class BeamJdbcParquetSchemaTest {
   @Test
   public void shouldParseInputSchemaFile() throws IOException {
     final Path schemaFile = Files.createTempFile("test-schema-", ".parquet.txt");
-    Files.write(schemaFile, (
-        "message test_table {\n"
-        + "  optional int64 id;\n"
-        + "  optional binary name (STRING);\n"
-        + "}").getBytes());
+    Files.write(
+        schemaFile,
+        ("message test_table {\n"
+                + "  optional int64 id;\n"
+                + "  optional binary name (STRING);\n"
+                + "}")
+            .getBytes());
 
     final Optional<MessageType> schema =
         BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(schemaFile.toString());

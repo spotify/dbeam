@@ -28,8 +28,8 @@ import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.io.PositionOutputStream;
 
 /**
- * An {@link OutputFile} implementation backed by a {@link WritableByteChannel},
- * enabling Parquet writing without Hadoop dependencies.
+ * An {@link OutputFile} implementation backed by a {@link WritableByteChannel}, enabling Parquet
+ * writing without Hadoop dependencies.
  */
 public class ChannelOutputFile implements OutputFile {
 

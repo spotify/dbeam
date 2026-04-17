@@ -27,7 +27,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -49,16 +48,17 @@ public class BenchJdbcParquetJobTest {
   public void shouldRunBenchJdbcParquetJob() throws Exception {
     final Path benchDir = TestHelper.createTmpDirPath("jdbc-parquet-bench-run");
     BenchJdbcParquetJob.create(
-        new String[] {
-          "--targetParallelism=1",
-          "--skipPartitionCheck",
-          "--connectionUrl=" + CONNECTION_URL,
-          "--username=",
-          "--table=COFFEES",
-          "--output=" + benchDir.toString(),
-          "--avroCodec=snappy",
-          "--executions=2"
-        }).run();
+            new String[] {
+              "--targetParallelism=1",
+              "--skipPartitionCheck",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--table=COFFEES",
+              "--output=" + benchDir.toString(),
+              "--avroCodec=snappy",
+              "--executions=2"
+            })
+        .run();
     assertThat(TestHelper.listDir(benchDir.toFile()), containsInAnyOrder("run_0", "run_1"));
   }
 
@@ -70,16 +70,17 @@ public class BenchJdbcParquetJobTest {
     System.setOut(new PrintStream(capturedOut));
     try {
       BenchJdbcParquetJob.create(
-          new String[] {
-            "--targetParallelism=1",
-            "--skipPartitionCheck",
-            "--connectionUrl=" + CONNECTION_URL,
-            "--username=",
-            "--table=COFFEES",
-            "--output=" + benchDir.toString(),
-            "--avroCodec=snappy",
-            "--executions=2"
-          }).run();
+              new String[] {
+                "--targetParallelism=1",
+                "--skipPartitionCheck",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--table=COFFEES",
+                "--output=" + benchDir.toString(),
+                "--avroCodec=snappy",
+                "--executions=2"
+              })
+          .run();
     } finally {
       System.setOut(originalOut);
     }

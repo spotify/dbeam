@@ -49,9 +49,8 @@ public class JdbcAvroRecordConverter {
     this.nullableArrayItems = nullableArrayItems;
   }
 
-  public static JdbcAvroRecordConverter create(final ResultSet resultSet,
-                                               final String arrayMode,
-                                               final boolean nullableArrayItems)
+  public static JdbcAvroRecordConverter create(
+      final ResultSet resultSet, final String arrayMode, final boolean nullableArrayItems)
       throws SQLException {
     return new JdbcAvroRecordConverter(
         computeAllMappings(resultSet, arrayMode),
@@ -62,8 +61,7 @@ public class JdbcAvroRecordConverter {
 
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet, final String arrayMode)
-      throws SQLException {
+      final ResultSet resultSet, final String arrayMode) throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
 
@@ -151,8 +149,8 @@ public class JdbcAvroRecordConverter {
         } else {
           if (arrayItem == null) {
             throw new RuntimeException(
-                String.format("Array item is null in column '%s', use --nullableArrayItems",
-                    column));
+                String.format(
+                    "Array item is null in column '%s', use --nullableArrayItems", column));
           }
 
           writeValue(arrayItem, column, binaryEncoder);
@@ -162,8 +160,8 @@ public class JdbcAvroRecordConverter {
       binaryEncoder.writeArrayEnd();
     } else {
       throw new RuntimeException(
-          String.format("Value of type %s in column '%s' is not supported", value.getClass(),
-              column));
+          String.format(
+              "Value of type %s in column '%s' is not supported", value.getClass(), column));
     }
   }
 }

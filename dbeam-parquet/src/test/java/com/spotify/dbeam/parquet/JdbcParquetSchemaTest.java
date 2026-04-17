@@ -92,8 +92,9 @@ public class JdbcParquetSchemaTest {
 
   @Test
   public void shouldConvertIntegerWithLongColumnClassNameToInt64() throws SQLException {
-    final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.INTEGER, 0, "java.lang.Long", null, false, "typed_first_row");
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.INTEGER, 0, "java.lang.Long", null, false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
   }
@@ -168,8 +169,9 @@ public class JdbcParquetSchemaTest {
 
   @Test
   public void shouldConvertBitSqlTypeWithPrecision2ToBinary() throws SQLException {
-    final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.BIT, 2, "foobar", null, false, "typed_first_row");
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.BIT, 2, "foobar", null, false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
   }
@@ -222,8 +224,7 @@ public class JdbcParquetSchemaTest {
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assert.assertEquals(
-        LogicalTypeAnnotation.stringType(),
-        fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+        LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
@@ -232,8 +233,7 @@ public class JdbcParquetSchemaTest {
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assert.assertEquals(
-        LogicalTypeAnnotation.stringType(),
-        fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+        LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
@@ -242,14 +242,14 @@ public class JdbcParquetSchemaTest {
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assert.assertEquals(
-        LogicalTypeAnnotation.stringType(),
-        fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+        LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
   public void shouldConvertArraySqlTypeToListWithStringElements() throws SQLException {
-    final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false, "typed_first_row");
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false, "typed_first_row");
 
     Assert.assertFalse(fieldType.isPrimitive());
     Assert.assertEquals(LogicalTypeAnnotation.listType(), fieldType.getLogicalTypeAnnotation());
@@ -296,7 +296,8 @@ public class JdbcParquetSchemaTest {
     final Type elementType = JdbcParquetSchema.buildArrayElementType("_text");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(LogicalTypeAnnotation.stringType(),
+    Assert.assertEquals(
+        LogicalTypeAnnotation.stringType(),
         elementType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -317,25 +318,25 @@ public class JdbcParquetSchemaTest {
 
   @Test
   public void shouldConvertUuidWithLogicalType() throws SQLException {
-    final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.OTHER, 0, "foobar", "uuid", true, "typed_first_row");
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.OTHER, 0, "foobar", "uuid", true, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY);
     Assert.assertEquals(16, fieldType.asPrimitiveType().getTypeLength());
     Assert.assertEquals(
-        LogicalTypeAnnotation.uuidType(),
-        fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+        LogicalTypeAnnotation.uuidType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
   public void shouldConvertUuidWithoutLogicalType() throws SQLException {
-    final Type fieldType = JdbcParquetSchema.buildParquetFieldType(
-        "column1", Types.OTHER, 0, "foobar", "uuid", false, "typed_first_row");
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.OTHER, 0, "foobar", "uuid", false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assert.assertEquals(
-        LogicalTypeAnnotation.stringType(),
-        fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+        LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
@@ -344,8 +345,7 @@ public class JdbcParquetSchemaTest {
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assert.assertEquals(
-        LogicalTypeAnnotation.stringType(),
-        fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+        LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
@@ -369,8 +369,8 @@ public class JdbcParquetSchemaTest {
     when(resultSet.getMetaData()).thenReturn(meta);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     Assert.assertEquals("test_table", schema.getName());
     Assert.assertEquals(3, schema.getFieldCount());
@@ -398,8 +398,8 @@ public class JdbcParquetSchemaTest {
     when(resultSet.getMetaData()).thenReturn(meta);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.of("CustomName"), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.of("CustomName"), false, "typed_first_row");
 
     Assert.assertEquals("CustomName", schema.getName());
   }
@@ -417,8 +417,8 @@ public class JdbcParquetSchemaTest {
     when(resultSet.getMetaData()).thenReturn(meta);
 
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(resultSet, Optional.empty(), false,
-            "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
 
     Assert.assertEquals("test_table_name", schema.getName());
     Assert.assertEquals("column_name_with_spaces", schema.getFields().get(0).getName());

@@ -57,9 +57,13 @@ public class JdbcParquetRecordTest {
   @Test
   public void shouldCreateSchemaFromDatabase() throws ClassNotFoundException, SQLException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            false,
+            "typed_first_row");
 
     Assert.assertNotNull(schema);
     Assert.assertEquals("COFFEES", schema.getName());
@@ -83,9 +87,13 @@ public class JdbcParquetRecordTest {
   @Test
   public void shouldCreateSchemaWithLogicalTypes() throws ClassNotFoundException, SQLException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), true,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            true,
+            "typed_first_row");
 
     Assert.assertEquals(14, schema.getFieldCount());
     // CREATED and UPDATED should have timestamp logical type
@@ -96,9 +104,13 @@ public class JdbcParquetRecordTest {
   @Test
   public void shouldCreateSchemaWithCustomName() throws ClassNotFoundException, SQLException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.of("CustomSchema"), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.of("CustomSchema"),
+            false,
+            "typed_first_row");
 
     Assert.assertEquals("CustomSchema", schema.getName());
   }
@@ -107,9 +119,13 @@ public class JdbcParquetRecordTest {
   public void shouldWriteAndReadBackParquetRecords()
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            false,
+            "typed_first_row");
 
     // Write records to a temp file
     final Path tempFile = Files.createTempFile("parquet-test-", ".parquet");
@@ -135,12 +151,9 @@ public class JdbcParquetRecordTest {
 
     // Read back and verify
     final Configuration conf = new Configuration();
-    final org.apache.hadoop.fs.Path hadoopPath =
-        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    final org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(tempFile.toUri());
     try (ParquetReader<Group> reader =
-        ParquetReader.builder(new GroupReadSupport(), hadoopPath)
-            .withConf(conf)
-            .build()) {
+        ParquetReader.builder(new GroupReadSupport(), hadoopPath).withConf(conf).build()) {
       Group record1 = reader.read();
       Assert.assertNotNull(record1);
       // Verify first record has expected fields
@@ -163,15 +176,19 @@ public class JdbcParquetRecordTest {
   public void shouldWriteCorrectFieldValues()
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-values-test-", ".parquet");
     Files.delete(tempFile);
 
-    final ResultSet rs = connection.createStatement().executeQuery(
-        "SELECT * FROM COFFEES ORDER BY COF_NAME");
+    final ResultSet rs =
+        connection.createStatement().executeQuery("SELECT * FROM COFFEES ORDER BY COF_NAME");
 
     final OutputFile outputFile =
         new ChannelOutputFile(
@@ -190,12 +207,9 @@ public class JdbcParquetRecordTest {
     }
 
     final Configuration conf = new Configuration();
-    final org.apache.hadoop.fs.Path hadoopPath =
-        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    final org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(tempFile.toUri());
     try (ParquetReader<Group> reader =
-        ParquetReader.builder(new GroupReadSupport(), hadoopPath)
-            .withConf(conf)
-            .build()) {
+        ParquetReader.builder(new GroupReadSupport(), hadoopPath).withConf(conf).build()) {
       Group record = reader.read();
       Assert.assertNotNull(record);
 
@@ -226,19 +240,21 @@ public class JdbcParquetRecordTest {
   }
 
   @Test
-  public void shouldHandleNullValues()
-      throws ClassNotFoundException, SQLException, IOException {
+  public void shouldHandleNullValues() throws ClassNotFoundException, SQLException, IOException {
     // SUP_ID and UPDATED are null in the Coffee fixtures
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-null-test-", ".parquet");
     Files.delete(tempFile);
 
-    final ResultSet rs = connection.createStatement().executeQuery(
-        "SELECT * FROM COFFEES LIMIT 1");
+    final ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM COFFEES LIMIT 1");
 
     final OutputFile outputFile =
         new ChannelOutputFile(
@@ -257,12 +273,9 @@ public class JdbcParquetRecordTest {
     }
 
     final Configuration conf = new Configuration();
-    final org.apache.hadoop.fs.Path hadoopPath =
-        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    final org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(tempFile.toUri());
     try (ParquetReader<Group> reader =
-        ParquetReader.builder(new GroupReadSupport(), hadoopPath)
-            .withConf(conf)
-            .build()) {
+        ParquetReader.builder(new GroupReadSupport(), hadoopPath).withConf(conf).build()) {
       Group record = reader.read();
       Assert.assertNotNull(record);
 
@@ -284,18 +297,22 @@ public class JdbcParquetRecordTest {
   public void shouldWriteAvroSchemaInParquetFooter()
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            false,
+            "typed_first_row");
 
-    final String avroSchemaJson = "{\"type\":\"record\",\"name\":\"COFFEES\","
-        + "\"namespace\":\"dbeam_generated\",\"fields\":[]}";
+    final String avroSchemaJson =
+        "{\"type\":\"record\",\"name\":\"COFFEES\","
+            + "\"namespace\":\"dbeam_generated\",\"fields\":[]}";
 
     final Path tempFile = Files.createTempFile("parquet-footer-test-", ".parquet");
     Files.delete(tempFile);
 
-    final ResultSet rs = connection.createStatement().executeQuery(
-        "SELECT * FROM COFFEES LIMIT 1");
+    final ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM COFFEES LIMIT 1");
 
     final OutputFile outputFile =
         new ChannelOutputFile(
@@ -315,15 +332,13 @@ public class JdbcParquetRecordTest {
 
     // Read back footer metadata and verify parquet.avro.schema key
     final Configuration conf = new Configuration();
-    final org.apache.hadoop.fs.Path hadoopPath =
-        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    final org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(tempFile.toUri());
     try (ParquetFileReader fileReader =
         ParquetFileReader.open(HadoopInputFile.fromPath(hadoopPath, conf))) {
       final Map<String, String> keyValueMetaData =
           fileReader.getFooter().getFileMetaData().getKeyValueMetaData();
       Assert.assertTrue(keyValueMetaData.containsKey(JdbcParquetIO.PARQUET_AVRO_SCHEMA_KEY));
-      final String actualAvroSchema =
-          keyValueMetaData.get(JdbcParquetIO.PARQUET_AVRO_SCHEMA_KEY);
+      final String actualAvroSchema = keyValueMetaData.get(JdbcParquetIO.PARQUET_AVRO_SCHEMA_KEY);
       Assert.assertEquals(avroSchemaJson, actualAvroSchema);
     }
 
@@ -334,15 +349,18 @@ public class JdbcParquetRecordTest {
   public void shouldOmitAvroSchemaWhenNotProvided()
       throws ClassNotFoundException, SQLException, IOException {
     final Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
-    final MessageType schema = JdbcParquetSchema.createSchemaByReadingOneRow(
-        connection, QueryBuilderArgs.create("COFFEES"), Optional.empty(), false,
-        "typed_first_row");
+    final MessageType schema =
+        JdbcParquetSchema.createSchemaByReadingOneRow(
+            connection,
+            QueryBuilderArgs.create("COFFEES"),
+            Optional.empty(),
+            false,
+            "typed_first_row");
 
     final Path tempFile = Files.createTempFile("parquet-no-avro-test-", ".parquet");
     Files.delete(tempFile);
 
-    final ResultSet rs = connection.createStatement().executeQuery(
-        "SELECT * FROM COFFEES LIMIT 1");
+    final ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM COFFEES LIMIT 1");
 
     final OutputFile outputFile =
         new ChannelOutputFile(
@@ -362,8 +380,7 @@ public class JdbcParquetRecordTest {
     }
 
     final Configuration conf = new Configuration();
-    final org.apache.hadoop.fs.Path hadoopPath =
-        new org.apache.hadoop.fs.Path(tempFile.toUri());
+    final org.apache.hadoop.fs.Path hadoopPath = new org.apache.hadoop.fs.Path(tempFile.toUri());
     try (ParquetFileReader fileReader =
         ParquetFileReader.open(HadoopInputFile.fromPath(hadoopPath, conf))) {
       final Map<String, String> keyValueMetaData =

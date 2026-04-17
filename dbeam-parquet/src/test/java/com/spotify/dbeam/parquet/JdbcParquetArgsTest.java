@@ -58,45 +58,75 @@ public class JdbcParquetArgsTest {
 
   @Test
   public void shouldMapGzipCodec() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "gzip", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            10000,
+            "gzip",
+            64 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(CompressionCodecName.GZIP, args.getCompressionCodecName());
   }
 
   @Test
   public void shouldMapZstdCodec() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "zstd", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            10000,
+            "zstd",
+            64 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(CompressionCodecName.ZSTD, args.getCompressionCodecName());
   }
 
   @Test
   public void shouldMapLz4Codec() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "lz4", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            10000,
+            "lz4",
+            64 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(CompressionCodecName.LZ4_RAW, args.getCompressionCodecName());
   }
 
   @Test
   public void shouldMapUncompressedCodec() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "uncompressed", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            10000,
+            "uncompressed",
+            64 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
   }
 
   @Test
   public void shouldMapNoneCodec() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "none", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            10000,
+            "none",
+            64 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
   }
@@ -104,24 +134,41 @@ public class JdbcParquetArgsTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldRejectInvalidCodec() {
     JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "invalid", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
+        CONN_ARGS,
+        10000,
+        "invalid",
+        64 * 1024 * 1024,
+        1024 * 1024,
+        Collections.emptyList(),
         "typed_first_row");
   }
 
   @Test
   public void shouldAcceptCustomFetchSize() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 50000, "snappy", 64 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            50000,
+            "snappy",
+            64 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(50000, args.fetchSize());
   }
 
   @Test
   public void shouldAcceptCustomRowGroupSize() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(
-        CONN_ARGS, 10000, "snappy", 128 * 1024 * 1024, 1024 * 1024, Collections.emptyList(),
-        "typed_first_row");
+    final JdbcParquetArgs args =
+        JdbcParquetArgs.create(
+            CONN_ARGS,
+            10000,
+            "snappy",
+            128 * 1024 * 1024,
+            1024 * 1024,
+            Collections.emptyList(),
+            "typed_first_row");
 
     Assert.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
   }

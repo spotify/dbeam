@@ -125,44 +125,49 @@ public class JdbcParquetJob {
     final String arrayMode = jdbcExportArgs.jdbcAvroOptions().arrayMode();
     try (Connection connection = jdbcExportArgs.createConnection()) {
       final String schemaFilePath =
-          pipelineOptions.as(ParquetPipelineOptions.class)
-              .getParquetSchemaFilePath();
+          pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
       final java.util.Optional<MessageType> inputSchema =
-          BeamJdbcParquetSchema
-              .parseOptionalInputParquetSchemaFile(schemaFilePath);
+          BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(schemaFilePath);
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
         avroSchema = generateAvroSchema(connection);
-        BeamJdbcParquetSchema.exposeSchemaMetrics(
-            pipeline, System.nanoTime() - startTime);
+        BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
         // Query DB once for both Parquet and Avro schemas
         final long startTime = System.nanoTime();
         try (Statement stmt = connection.createStatement()) {
-          final ResultSet rs = stmt.executeQuery(
-              jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+          final ResultSet rs =
+              stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
           rs.next();
-          generatedSchema = JdbcParquetSchema
-              .createParquetSchema(rs, jdbcExportArgs.avroSchemaName(),
-                  jdbcExportArgs.useAvroLogicalTypes(), arrayMode);
+          generatedSchema =
+              JdbcParquetSchema.createParquetSchema(
+                  rs,
+                  jdbcExportArgs.avroSchemaName(),
+                  jdbcExportArgs.useAvroLogicalTypes(),
+                  arrayMode);
           final String dbUrl = connection.getMetaData().getURL();
-          final String avroDoc = jdbcExportArgs.avroDoc()
-              .orElseGet(() -> String.format(
-                  "Generate schema from JDBC ResultSet from %s", dbUrl));
-          avroSchema = JdbcAvroSchema.createAvroSchema(
-              rs, jdbcExportArgs.avroSchemaNamespace(), dbUrl,
-              jdbcExportArgs.avroSchemaName(), avroDoc,
-              jdbcExportArgs.useAvroLogicalTypes(), arrayMode,
-              jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
+          final String avroDoc =
+              jdbcExportArgs
+                  .avroDoc()
+                  .orElseGet(
+                      () -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
+          avroSchema =
+              JdbcAvroSchema.createAvroSchema(
+                  rs,
+                  jdbcExportArgs.avroSchemaNamespace(),
+                  dbUrl,
+                  jdbcExportArgs.avroSchemaName(),
+                  avroDoc,
+                  jdbcExportArgs.useAvroLogicalTypes(),
+                  arrayMode,
+                  jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
         }
-        BeamJdbcParquetSchema.exposeSchemaMetrics(
-            pipeline, System.nanoTime() - startTime);
+        BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       }
       queries = jdbcExportArgs.queryBuilderArgs().buildQueries(connection);
 
-      final String tableName =
-          pipelineOptions.as(DBeamPipelineOptions.class).getTable();
+      final String tableName = pipelineOptions.as(DBeamPipelineOptions.class).getTable();
       JobNameConfiguration.configureJobName(
           pipeline.getOptions(), connection.getCatalog(), tableName);
     }
@@ -177,16 +182,16 @@ public class JdbcParquetJob {
     LOGGER.info("Running queries: {}", queries.toString());
 
     final String parquetCodec = resolveParquetCodec(pipelineOptions);
-    final ParquetPipelineOptions parquetOptions =
-        pipelineOptions.as(ParquetPipelineOptions.class);
-    final JdbcParquetArgs parquetArgs = JdbcParquetArgs.create(
-        jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
-        jdbcExportArgs.jdbcAvroOptions().fetchSize(),
-        parquetCodec,
-        parquetOptions.getRowGroupSize(),
-        parquetOptions.getPageSize(),
-        jdbcExportArgs.jdbcAvroOptions().preCommand(),
-        arrayMode);
+    final ParquetPipelineOptions parquetOptions = pipelineOptions.as(ParquetPipelineOptions.class);
+    final JdbcParquetArgs parquetArgs =
+        JdbcParquetArgs.create(
+            jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
+            jdbcExportArgs.jdbcAvroOptions().fetchSize(),
+            parquetCodec,
+            parquetOptions.getRowGroupSize(),
+            parquetOptions.getPageSize(),
+            jdbcExportArgs.jdbcAvroOptions().preCommand(),
+            arrayMode);
 
     pipeline
         .apply("JdbcQueries", Create.of(queries))
@@ -201,8 +206,7 @@ public class JdbcParquetJob {
     if (!this.dataOnly) {
       BeamHelper.saveMetrics(metrics, output);
     }
-    final Long recordCount =
-        metrics.getOrDefault(JdbcMetering.RECORD_COUNT_METRIC_NAME, 0L);
+    final Long recordCount = metrics.getOrDefault(JdbcMetering.RECORD_COUNT_METRIC_NAME, 0L);
     if (recordCount < this.minRows) {
       throw new FailedValidationException(
           String.format(
@@ -225,9 +229,9 @@ public class JdbcParquetJob {
   private Schema generateAvroSchema(final Connection connection) throws Exception {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
-        jdbcExportArgs.avroDoc()
-            .orElseGet(() -> String.format(
-                "Generate schema from JDBC ResultSet from %s", dbUrl));
+        jdbcExportArgs
+            .avroDoc()
+            .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
     return JdbcAvroSchema.createSchemaByReadingOneRow(
         connection,
         jdbcExportArgs.queryBuilderArgs(),
@@ -256,8 +260,7 @@ public class JdbcParquetJob {
     if (parquetCodec != null && !parquetCodec.isEmpty()) {
       return parquetCodec;
     }
-    return mapAvroCodecToParquetCodec(
-        options.as(JdbcExportPipelineOptions.class).getAvroCodec());
+    return mapAvroCodecToParquetCodec(options.as(JdbcExportPipelineOptions.class).getAvroCodec());
   }
 
   static String mapAvroCodecToParquetCodec(final String avroCodec) {

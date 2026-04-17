@@ -25,7 +25,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CountingOutputStream;
 import com.spotify.dbeam.args.JdbcAvroArgs;
-import com.spotify.dbeam.args.JdbcExportArgs;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
@@ -181,8 +180,7 @@ public class JdbcAvroIO {
         jdbcAvroArgs.statementPreparator().setParameters(statement);
       }
 
-      if (jdbcAvroArgs.preCommand() != null
-          && !jdbcAvroArgs.preCommand().isEmpty()) {
+      if (jdbcAvroArgs.preCommand() != null && !jdbcAvroArgs.preCommand().isEmpty()) {
         final Statement stmt = connection.createStatement();
         for (String command : jdbcAvroArgs.preCommand()) {
           stmt.execute(command);
@@ -205,8 +203,9 @@ public class JdbcAvroIO {
       LOGGER.info("jdbcavroio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
         metering.startWriteMeter();
-        final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet,
-            this.jdbcAvroArgs.arrayMode(), this.jdbcAvroArgs.nullableArrayItems());
+        final JdbcAvroRecordConverter converter =
+            JdbcAvroRecordConverter.create(
+                resultSet, this.jdbcAvroArgs.arrayMode(), this.jdbcAvroArgs.nullableArrayItems());
         while (resultSet.next()) {
           dataFileWriter.appendEncoded(converter.convertResultSetIntoAvroBytes());
           this.metering.incrementRecordCount();

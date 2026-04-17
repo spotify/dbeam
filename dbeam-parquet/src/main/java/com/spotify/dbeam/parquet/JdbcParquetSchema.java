@@ -148,17 +148,14 @@ public class JdbcParquetSchema {
       final String arrayMode) {
     switch (columnType) {
       case BIGINT:
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-            .named(columnName);
+        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
       case INTEGER:
       case SMALLINT:
       case TINYINT:
         if (Long.class.getCanonicalName().equals(columnClassName)) {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-              .named(columnName);
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
         } else {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
-              .named(columnName);
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named(columnName);
         }
       case TIMESTAMP:
       case DATE: // stored as TIMESTAMP(MILLIS) for Avro-path compatibility
@@ -166,41 +163,32 @@ public class JdbcParquetSchema {
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-              .as(LogicalTypeAnnotation.timestampType(true,
-                  LogicalTypeAnnotation.TimeUnit.MILLIS))
+              .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
               .named(columnName);
         } else {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-              .named(columnName);
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
         }
       case BOOLEAN:
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN)
-            .named(columnName);
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named(columnName);
       case BIT:
         if (precision <= 1) {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN)
-              .named(columnName);
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named(columnName);
         } else {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
-              .named(columnName);
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
         }
       case BINARY:
       case VARBINARY:
       case LONGVARBINARY:
       case BLOB:
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
-            .named(columnName);
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
       case DOUBLE:
-        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE)
-            .named(columnName);
+        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named(columnName);
       case FLOAT:
       case REAL:
-        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT)
-            .named(columnName);
+        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named(columnName);
       case ARRAY:
         if ("bytes".equals(arrayMode)) {
-          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
-              .named(columnName);
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
         }
         // Parquet 3-level LIST convention with typed elements.
         // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
@@ -214,7 +202,7 @@ public class JdbcParquetSchema {
               .as(LogicalTypeAnnotation.uuidType())
               .named(columnName);
         }
-        // fall through to string
+      // fall through to string
       case VARCHAR:
       case CHAR:
       case CLOB:
@@ -229,9 +217,9 @@ public class JdbcParquetSchema {
   }
 
   /**
-   * Determine the Parquet element type for an ARRAY column based on the column type name.
-   * For PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text).
-   * Falls back to STRING for unrecognized types.
+   * Determine the Parquet element type for an ARRAY column based on the column type name. For
+   * PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text). Falls
+   * back to STRING for unrecognized types.
    */
   static Type buildArrayElementType(final String columnTypeName) {
     final String elementType = resolveArrayElementTypeName(columnTypeName);
@@ -239,20 +227,15 @@ public class JdbcParquetSchema {
       case "int":
       case "int4":
       case "int2":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
-            .named("element");
+        return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named("element");
       case "int8":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-            .named("element");
+        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named("element");
       case "float4":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT)
-            .named("element");
+        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named("element");
       case "float8":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE)
-            .named("element");
+        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named("element");
       case "bool":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN)
-            .named("element");
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named("element");
       default:
         return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
             .as(LogicalTypeAnnotation.stringType())
@@ -261,9 +244,8 @@ public class JdbcParquetSchema {
   }
 
   /**
-   * Extract the element type name from an array column type name.
-   * PostgreSQL uses underscore prefix (e.g. _int4 -> int4, _text -> text).
-   * H2 and others use "INTEGER ARRAY" style names.
+   * Extract the element type name from an array column type name. PostgreSQL uses underscore prefix
+   * (e.g. _int4 -> int4, _text -> text). H2 and others use "INTEGER ARRAY" style names.
    */
   static String resolveArrayElementTypeName(final String columnTypeName) {
     if (columnTypeName == null) {
