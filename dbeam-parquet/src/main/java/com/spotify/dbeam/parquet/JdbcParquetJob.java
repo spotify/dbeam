@@ -131,8 +131,11 @@ public class JdbcParquetJob {
           BeamJdbcParquetSchema
               .parseOptionalInputParquetSchemaFile(schemaFilePath);
       if (inputSchema.isPresent()) {
+        final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
         avroSchema = generateAvroSchema(connection);
+        BeamJdbcParquetSchema.exposeSchemaMetrics(
+            pipeline, System.nanoTime() - startTime);
       } else {
         // Query DB once for both Parquet and Avro schemas
         final long startTime = System.nanoTime();
