@@ -124,7 +124,7 @@ public class JdbcParquetWriteSupport {
     final int fieldIndex = column - 1;
     final String fieldName = meta.getColumnName(column).isEmpty()
         ? meta.getColumnLabel(column) : meta.getColumnName(column);
-    final String normalizedName = fieldName.replaceAll("[^A-Za-z0-9_]", "_");
+    final String normalizedName = JdbcParquetSchema.normalizeFieldName(fieldName);
 
     switch (columnType) {
       case VARCHAR:

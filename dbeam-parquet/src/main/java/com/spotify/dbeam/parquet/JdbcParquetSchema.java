@@ -288,7 +288,7 @@ public class JdbcParquetSchema {
     return "text";
   }
 
-  private static String normalizeFieldName(final String input) {
+  static String normalizeFieldName(final String input) {
     return input.replaceAll("[^A-Za-z0-9_]", "_");
   }
 }
