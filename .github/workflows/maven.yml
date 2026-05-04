@@ -50,7 +50,7 @@ jobs:
           fail_ci_if_error: false # optional (default = false)
           verbose: true # optional (default = false)
       - name: Install avro tools
-        if: matrix.java_version == '17'
+        if: matrix.java_version == '21'
         run: |
           wget https://dlcdn.apache.org/avro/avro-1.11.5/java/avro-tools-1.11.5.jar
           mkdir -p /opt/avro
@@ -59,12 +59,12 @@ jobs:
           echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.5.jar'" > ~/.bashrc
       - name: End to end tests
         shell: bash
-        if: matrix.java_version == '17'
+        if: matrix.java_version == '21'
         run: ./e2e/e2e.sh
       - run: mkdir staging && cp /tmp/debeam_e2e.log ./staging
-        if: matrix.java_version == '17'
+        if: matrix.java_version == '21'
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && matrix.java_version == '17'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && matrix.java_version == '21'
         with:
           name: Package
           path: staging
