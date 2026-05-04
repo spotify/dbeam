@@ -101,7 +101,7 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>8</maven.compiler.release>
+    <maven.compiler.release>11</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -109,7 +109,7 @@
     <!-- https://github.com/apache/beam/blob/release-2.73/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
     <beam.version>2.73.0</beam.version>
     <!-- versions from beam -->
-    <auto-value.version>1.9</auto-value.version>
+    <auto-value.version>1.11.0</auto-value.version>
     <avro.version>1.11.5</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <commons-codec.version>1.17.1</commons-codec.version>
@@ -459,6 +459,17 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.14.1</version>
+          <configuration>
+            <!-- JDK 23+ disabled implicit annotation processing (JEP 472).
+                 Declare processors explicitly so javac runs them. -->
+            <annotationProcessorPaths>
+              <path>
+                <groupId>com.google.auto.value</groupId>
+                <artifactId>auto-value</artifactId>
+                <version>${auto-value.version}</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
           <executions>
             <execution>
               <goals>
