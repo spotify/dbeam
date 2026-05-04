@@ -106,8 +106,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- apache beam BOM -->
-    <!-- https://github.com/apache/beam/blob/release-2.72/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
-    <beam.version>2.72.0</beam.version>
+    <!-- https://github.com/apache/beam/blob/release-2.73/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
+    <beam.version>2.73.0</beam.version>
     <!-- versions from beam -->
     <auto-value.version>1.9</auto-value.version>
     <avro.version>1.11.5</avro.version>
@@ -128,8 +128,8 @@
 
     <!-- GCP BOM -->
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
-    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.76.0/index.html -->
-    <google-cloud-libraries-bom.version>26.76.0</google-cloud-libraries-bom.version>
+    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.79.0/index.html -->
+    <google-cloud-libraries-bom.version>26.79.0</google-cloud-libraries-bom.version>
     <!-- versions from GCP bom -->
     <opencensus.version>0.31.1</opencensus.version>
 
@@ -237,27 +237,6 @@
         <groupId>io.opencensus</groupId>
         <artifactId>opencensus-contrib-grpc-metrics</artifactId>
         <version>${opencensus.version}</version>
-      </dependency>
-      <!-- resolve google-cloud-bigtable convergence: beam io brings 2.73.1 vs libraries-bom 2.73.0 -->
-      <dependency>
-        <groupId>com.google.cloud</groupId>
-        <artifactId>google-cloud-bigtable</artifactId>
-        <version>2.73.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.api.grpc</groupId>
-        <artifactId>grpc-google-cloud-bigtable-v2</artifactId>
-        <version>2.73.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.api.grpc</groupId>
-        <artifactId>proto-google-cloud-bigtable-v2</artifactId>
-        <version>2.73.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.api.grpc</groupId>
-        <artifactId>proto-google-cloud-bigtable-admin-v2</artifactId>
-        <version>2.73.1</version>
       </dependency>
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
