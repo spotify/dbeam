@@ -57,9 +57,9 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.util.Utf8;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.postgresql.jdbc.PgArray;
 
@@ -68,7 +68,7 @@ public class JdbcAvroRecordTest {
   private static String CONNECTION_URL =
       "jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException {
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
@@ -85,14 +85,14 @@ public class JdbcAvroRecordTest {
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             false, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
-    Assert.assertNotNull(actual);
-    Assert.assertEquals("dbeam_generated", actual.getNamespace());
-    Assert.assertEquals("COFFEES", actual.getProp("tableName"));
-    Assert.assertEquals("jdbc:h2:mem:test", actual.getProp("connectionUrl"));
-    Assert.assertEquals(
+    Assertions.assertNotNull(actual);
+    Assertions.assertEquals("dbeam_generated", actual.getNamespace());
+    Assertions.assertEquals("COFFEES", actual.getProp("tableName"));
+    Assertions.assertEquals("jdbc:h2:mem:test", actual.getProp("connectionUrl"));
+    Assertions.assertEquals(
         "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test", actual.getDoc());
-    Assert.assertEquals(fieldCount, actual.getFields().size());
-    Assert.assertEquals(
+    Assertions.assertEquals(fieldCount, actual.getFields().size());
+    Assertions.assertEquals(
         Lists.newArrayList(
             "COF_NAME",
             "SUP_ID",
@@ -110,45 +110,46 @@ public class JdbcAvroRecordTest {
             "TEXT_ARR"),
         actual.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()));
     for (Schema.Field f : actual.getFields()) {
-      Assert.assertEquals(Schema.Type.UNION, f.schema().getType());
-      Assert.assertEquals(2, f.schema().getTypes().size());
-      Assert.assertEquals(Schema.Type.NULL, f.schema().getTypes().get(0).getType());
+      Assertions.assertEquals(Schema.Type.UNION, f.schema().getType());
+      Assertions.assertEquals(2, f.schema().getTypes().size());
+      Assertions.assertEquals(Schema.Type.NULL, f.schema().getTypes().get(0).getType());
     }
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.STRING, actual.getField("COF_NAME").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.INT, actual.getField("SUP_ID").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.STRING, actual.getField("PRICE").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.FLOAT, actual.getField("TEMPERATURE").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.DOUBLE, actual.getField("SIZE").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.BOOLEAN, actual.getField("IS_ARABIC").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.INT, actual.getField("SALES").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.LONG, actual.getField("TOTAL").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.LONG, actual.getField("CREATED").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.LONG, actual.getField("UPDATED").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.BYTES, actual.getField("UID").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.LONG, actual.getField("ROWNUM").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.ARRAY, actual.getField("INT_ARR").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.INT,
         actual.getField("INT_ARR").schema().getTypes().get(1).getElementType().getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.ARRAY, actual.getField("TEXT_ARR").schema().getTypes().get(1).getType());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Schema.Type.STRING,
         actual.getField("TEXT_ARR").schema().getTypes().get(1).getElementType().getType());
-    Assert.assertNull(actual.getField("UPDATED").schema().getTypes().get(1).getProp("logicalType"));
+    Assertions.assertNull(
+        actual.getField("UPDATED").schema().getTypes().get(1).getProp("logicalType"));
   }
 
   @Test
@@ -163,8 +164,8 @@ public class JdbcAvroRecordTest {
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             true, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
-    Assert.assertEquals(fieldCount, actual.getFields().size());
-    Assert.assertEquals(
+    Assertions.assertEquals(fieldCount, actual.getFields().size());
+    Assertions.assertEquals(
         "timestamp-millis",
         actual.getField("UPDATED").schema().getTypes().get(1).getProp("logicalType"));
   }
@@ -180,7 +181,7 @@ public class JdbcAvroRecordTest {
             "Generate schema from JDBC ResultSet from COFFEES jdbc:h2:mem:test",
             false, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
-    Assert.assertEquals("CustomSchemaName", actual.getName());
+    Assertions.assertEquals("CustomSchemaName", actual.getName());
   }
 
   @Test
@@ -217,15 +218,15 @@ public class JdbcAvroRecordTest {
     final List<GenericRecord> records =
         StreamSupport.stream(dataFileReader.spliterator(), false).collect(Collectors.toList());
 
-    Assert.assertEquals(2, records.size());
+    Assertions.assertEquals(2, records.size());
     final GenericRecord record =
         records.stream()
             .filter(r -> Coffee.COFFEE1.name().equals(r.get(0).toString()))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("not found"));
 
-    Assert.assertEquals(14, record.getSchema().getFields().size());
-    Assert.assertEquals(schema, record.getSchema());
+    Assertions.assertEquals(14, record.getSchema().getFields().size());
+    Assertions.assertEquals(schema, record.getSchema());
     List<String> actualTxtArray =
         ((GenericData.Array<Utf8>) record.get(13))
             .stream().map(x -> x.toString()).collect(Collectors.toList());
@@ -245,7 +246,7 @@ public class JdbcAvroRecordTest {
             (Long) record.get(11),
             new ArrayList<>((GenericData.Array<Integer>) record.get(12)),
             actualTxtArray);
-    Assert.assertEquals(Coffee.COFFEE1, actual);
+    Assertions.assertEquals(Coffee.COFFEE1, actual);
   }
 
   @Test
@@ -267,7 +268,7 @@ public class JdbcAvroRecordTest {
     when(resultSet.getLong(columnNum)).thenReturn(valueUnderTest);
     final Object result = mapping.apply(resultSet);
 
-    Assert.assertEquals(Long.class, result.getClass());
-    Assert.assertEquals(valueUnderTest, ((Long) result).longValue());
+    Assertions.assertEquals(Long.class, result.getClass());
+    Assertions.assertEquals(valueUnderTest, ((Long) result).longValue());
   }
 }

@@ -28,8 +28,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.util.Optional;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class PsqlReplicationCheckTest {
   private static String CONNECTION_URL =
@@ -48,20 +48,22 @@ public class PsqlReplicationCheckTest {
         Optional.empty());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void shouldFailOnInvalidDriver() throws ClassNotFoundException {
     final JdbcExportArgs args =
         createArgs("jdbc:mysql://some_db", QueryBuilderArgs.create("some_table"));
 
-    PsqlReplicationCheck.validateOptions(args);
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> PsqlReplicationCheck.validateOptions(args));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void shouldFailOnMissingPartition() throws ClassNotFoundException {
     final JdbcExportArgs args =
         createArgs("jdbc:postgresql://some_db", QueryBuilderArgs.create("some_table"));
 
-    PsqlReplicationCheck.validateOptions(args);
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> PsqlReplicationCheck.validateOptions(args));
   }
 
   @Test
@@ -82,7 +84,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-08-01T00:00:00Z");
     final Period partitionPeriod = Period.ofDays(1);
 
-    Assert.assertFalse(
+    Assertions.assertFalse(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -92,7 +94,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-08-02T00:00:00Z");
     final Period partitionPeriod = Period.ofDays(1);
 
-    Assert.assertFalse(
+    Assertions.assertFalse(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -102,7 +104,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-07-31T00:00:00Z");
     final Period partitionPeriod = Period.ofDays(1);
 
-    Assert.assertTrue(
+    Assertions.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -112,7 +114,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-07-30T22:00:00Z");
     final Period partitionPeriod = Period.ofDays(1);
 
-    Assert.assertTrue(
+    Assertions.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -122,7 +124,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
     final Period partitionPeriod = Period.ofDays(1);
 
-    Assert.assertTrue(
+    Assertions.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -132,7 +134,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-07-31T23:59:59Z");
     final Period partitionPeriod = Period.ofMonths(1);
 
-    Assert.assertTrue(
+    Assertions.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -142,7 +144,7 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
     final Duration partitionPeriod = Duration.ofHours(1);
 
-    Assert.assertTrue(
+    Assertions.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
@@ -152,11 +154,11 @@ public class PsqlReplicationCheckTest {
     final Instant lastReplication = Instant.parse("2027-07-31T00:59:59Z");
     final Duration partitionPeriod = Duration.ofHours(1);
 
-    Assert.assertTrue(
+    Assertions.assertTrue(
         PsqlReplicationCheck.isReplicationDelayed(partition, lastReplication, partitionPeriod));
   }
 
-  @Test(expected = NotReadyException.class)
+  @Test
   public void shouldRunQueryAndReturnReplicationDelayed() throws Exception {
     final String query =
         "SELECT parsedatetime('2017-02-01 23.58.57 UTC', 'yyyy-MM-dd HH.mm.ss z', 'en', 'UTC')"
@@ -175,9 +177,9 @@ public class PsqlReplicationCheckTest {
 
     final Instant actual = replicationCheck.queryReplication();
 
-    Assert.assertEquals(expectedLastReplication, actual);
-    Assert.assertTrue(replicationCheck.isReplicationDelayed());
-    replicationCheck.checkReplication();
+    Assertions.assertEquals(expectedLastReplication, actual);
+    Assertions.assertTrue(replicationCheck.isReplicationDelayed());
+    Assertions.assertThrows(NotReadyException.class, () -> replicationCheck.checkReplication());
   }
 
   @Test
@@ -199,8 +201,8 @@ public class PsqlReplicationCheckTest {
 
     final Instant actual = replicationCheck.queryReplication();
 
-    Assert.assertEquals(expectedLastReplication, actual);
-    Assert.assertFalse(replicationCheck.isReplicationDelayed());
+    Assertions.assertEquals(expectedLastReplication, actual);
+    Assertions.assertFalse(replicationCheck.isReplicationDelayed());
     replicationCheck.checkReplication();
   }
 }

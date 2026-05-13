@@ -45,8 +45,8 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class PostgresJdbcAvroTest {
@@ -88,10 +88,10 @@ public class PostgresJdbcAvroTest {
 
     final GenericData.Array<GenericRecord> arrayValue =
         (GenericData.Array<GenericRecord>) record.get(fieldName);
-    Assert.assertEquals(expectedItems.length, arrayValue.size());
+    Assertions.assertEquals(expectedItems.length, arrayValue.size());
 
     for (int i = 0; i < expectedItems.length; i++) {
-      Assert.assertEquals(expectedItems[i], arrayValue.get(i));
+      Assertions.assertEquals(expectedItems[i], arrayValue.get(i));
     }
   }
 
@@ -118,7 +118,7 @@ public class PostgresJdbcAvroTest {
     GenericRecord actualRecord = bytesToGenericRecords(schema,
         converter.convertResultSetIntoAvroBytes())[0];
 
-    Assert.assertEquals(actualRecord.get("uuid_field"), new Utf8(uuidExpected.toString()));
+    Assertions.assertEquals(actualRecord.get("uuid_field"), new Utf8(uuidExpected.toString()));
     assertGenericRecordArrayField(actualRecord, "array_field", new Utf8(uuidExpected.toString()));
   }
 
@@ -149,10 +149,10 @@ public class PostgresJdbcAvroTest {
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
         false);
 
-    GenericRecord actualRecord = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes())[0];
-    Assert.assertEquals(actualRecord.get("text_field"), new Utf8("some_text_42"));
-    Assert.assertEquals(actualRecord.get("other_field"), new Utf8("some_other_42"));
+    GenericRecord actualRecord =
+        bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
+    Assertions.assertEquals(actualRecord.get("text_field"), new Utf8("some_text_42"));
+    Assertions.assertEquals(actualRecord.get("other_field"), new Utf8("some_other_42"));
     assertGenericRecordArrayField(actualRecord, "array_field1", "some_text_42");
     assertGenericRecordArrayField(actualRecord, "array_field2", "some_varchar_42");
     assertGenericRecordArrayField(actualRecord, "array_other", "some_other_42");
@@ -168,9 +168,18 @@ public class PostgresJdbcAvroTest {
     when(resultSet.getArray(1)).thenReturn(null);
     when(resultSet.isFirst()).thenReturn(true);
 
-    Assert.assertThrows(RuntimeException.class, () -> JdbcAvroSchema.createAvroSchema(resultSet,
-        "ns", "conn_url",
-        Optional.empty(), "doc", true, ArrayHandlingMode.TypedMetaFromFirstRow, false));
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            JdbcAvroSchema.createAvroSchema(
+                resultSet,
+                "ns",
+                "conn_url",
+                Optional.empty(),
+                "doc",
+                true,
+                ArrayHandlingMode.TypedMetaFromFirstRow,
+                false));
   }
 
   @Test
@@ -191,10 +200,10 @@ public class PostgresJdbcAvroTest {
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
         false);
 
-    GenericRecord actualRecord = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes())[0];
-    Assert.assertArrayEquals(expectedValue,
-        ((java.nio.ByteBuffer) actualRecord.get("array_field")).array());
+    GenericRecord actualRecord =
+        bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
+    Assertions.assertArrayEquals(
+        expectedValue, ((java.nio.ByteBuffer) actualRecord.get("array_field")).array());
   }
 
   @Test
@@ -229,12 +238,12 @@ public class PostgresJdbcAvroTest {
     GenericRecord[] actualRecords = bytesToGenericRecords(schema,
         converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes());
 
-    Assert.assertNull(actualRecords[0].get("array_field_varchar"));
-    Assert.assertNull(actualRecords[0].get("array_field_text"));
-    Assert.assertNull(actualRecords[0].get("array_field_uuid"));
-    Assert.assertNull(actualRecords[0].get("array_field_int"));
-    Assert.assertNull(actualRecords[0].get("array_field_int4"));
-    Assert.assertNull(actualRecords[0].get("array_field_int8"));
+    Assertions.assertNull(actualRecords[0].get("array_field_varchar"));
+    Assertions.assertNull(actualRecords[0].get("array_field_text"));
+    Assertions.assertNull(actualRecords[0].get("array_field_uuid"));
+    Assertions.assertNull(actualRecords[0].get("array_field_int"));
+    Assertions.assertNull(actualRecords[0].get("array_field_int4"));
+    Assertions.assertNull(actualRecords[0].get("array_field_int8"));
     assertGenericRecordArrayField(actualRecords[1], "array_field_varchar", "some_varchar_42", "42");
     assertGenericRecordArrayField(actualRecords[1], "array_field_text", "some_text_42", "42");
     assertGenericRecordArrayField(actualRecords[1], "array_field_uuid",
@@ -296,12 +305,14 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = false;
 
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        nullableArrayItems);
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> converter.convertResultSetIntoAvroBytes());
-    Assert.assertEquals("Array item is null in column 'array_field_varchar', use "
-                        + "--nullableArrayItems", thrown.getMessage());
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> converter.convertResultSetIntoAvroBytes());
+    Assertions.assertEquals(
+        "Array item is null in column 'array_field_varchar', use " + "--nullableArrayItems",
+        thrown.getMessage());
   }
 
   @Test
@@ -318,12 +329,14 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = false;
 
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        nullableArrayItems);
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> converter.convertResultSetIntoAvroBytes());
-    Assert.assertEquals("Value of type class java.io.File in column 'invalid_array' is not "
-                        + "supported", thrown.getMessage());
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> converter.convertResultSetIntoAvroBytes());
+    Assertions.assertEquals(
+        "Value of type class java.io.File in column 'invalid_array' is not " + "supported",
+        thrown.getMessage());
   }
 
   @Test
@@ -340,10 +353,21 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = true;
 
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-            Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
-    Assert.assertEquals("columnName=array_field_text columnTypeName=text should start with '_'",
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () ->
+                JdbcAvroSchema.createAvroSchema(
+                    resultSet,
+                    "ns",
+                    "conn_url",
+                    Optional.empty(),
+                    "doc",
+                    true,
+                    arrayMode,
+                    nullableArrayItems));
+    Assertions.assertEquals(
+        "columnName=array_field_text columnTypeName=text should start with '_'",
         thrown.getMessage());
   }
 
@@ -361,10 +385,20 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = true;
 
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-            Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
-    Assert.assertEquals(
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () ->
+                JdbcAvroSchema.createAvroSchema(
+                    resultSet,
+                    "ns",
+                    "conn_url",
+                    Optional.empty(),
+                    "doc",
+                    true,
+                    arrayMode,
+                    nullableArrayItems));
+    Assertions.assertEquals(
         "columnName=array_field_text Postgres type 'not_supported' is not supported",
         thrown.getMessage());
   }

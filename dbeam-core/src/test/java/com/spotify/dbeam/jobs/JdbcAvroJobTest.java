@@ -48,9 +48,9 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class JdbcAvroJobTest {
 
@@ -69,7 +69,7 @@ public class JdbcAvroJobTest {
     return records;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
     testDir = TestHelper.createTmpDirPath("jdbc-avro-test-");
     passwordPath = testDir.resolve(".password");
@@ -219,23 +219,26 @@ public class JdbcAvroJobTest {
     assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
-  @Test(expected = FailedValidationException.class)
-  public void shouldFailWithNotEnoughRows() throws Exception {
+  @Test
+  public void shouldFailWithNotEnoughRows() {
     final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
 
-    JdbcAvroJob.create(
-            new String[] {
-              "--targetParallelism=1", // no need for more threads when testing
-              "--partition=2025-02-28",
-              "--skipPartitionCheck",
-              "--connectionUrl=" + CONNECTION_URL,
-              "--username=",
-              "--passwordFile=" + passwordPath.toString(),
-              "--table=COFFEES",
-              "--output=" + outputPath,
-              "--minRows=1000"
-            })
-        .runExport();
+    Assertions.assertThrows(
+        FailedValidationException.class,
+        () ->
+            JdbcAvroJob.create(
+                    new String[] {
+                      "--targetParallelism=1", // no need for more threads when testing
+                      "--partition=2025-02-28",
+                      "--skipPartitionCheck",
+                      "--connectionUrl=" + CONNECTION_URL,
+                      "--username=",
+                      "--passwordFile=" + passwordPath.toString(),
+                      "--table=COFFEES",
+                      "--output=" + outputPath,
+                      "--minRows=1000"
+                    })
+                .runExport());
   }
 
   @Test
@@ -255,33 +258,38 @@ public class JdbcAvroJobTest {
             });
     jdbcAvroJob.prepareExport();
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         this.getClass().getPackage().getImplementationVersion(),
         jdbcAvroJob.getPipelineOptions().as(DBeamPipelineOptions.class).getDBeamVersion());
   }
 
   @Test
   public void shouldHaveDefaultExitCode() {
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Integer.valueOf(49), ExceptionHandling.exitCode(new IllegalStateException()));
   }
 
   @Test
   public void shouldExit50OnFailedValidationException() {
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Integer.valueOf(50), ExceptionHandling.exitCode(new FailedValidationException("")));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnMissingInput() throws IOException, ClassNotFoundException {
-    JdbcAvroJob.create(PipelineOptionsFactory.create());
+  @Test
+  public void shouldFailOnMissingInput() {
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> JdbcAvroJob.create(PipelineOptionsFactory.create()));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnEmptyInput() throws IOException, ClassNotFoundException {
-    final PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
-    pipelineOptions.as(OutputOptions.class).setOutput("");
-    JdbcAvroJob.create(PipelineOptionsFactory.create());
+  @Test
+  public void shouldFailOnEmptyInput() {
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          final PipelineOptions pipelineOptions = PipelineOptionsFactory.create();
+          pipelineOptions.as(OutputOptions.class).setOutput("");
+          JdbcAvroJob.create(PipelineOptionsFactory.create());
+        });
   }
 
   @Test

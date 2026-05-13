@@ -22,8 +22,8 @@ package com.spotify.dbeam.args;
 
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class QueryBuilderTest {
 
@@ -33,7 +33,7 @@ public class QueryBuilderTest {
 
     final String expected = "SELECT * FROM abc WHERE 1=1";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -42,7 +42,7 @@ public class QueryBuilderTest {
 
     final String expected = "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -50,7 +50,7 @@ public class QueryBuilderTest {
     final QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     final QueryBuilder copy = q1.withPartitionCondition("pary", "20180101", "20180201");
 
-    Assert.assertNotEquals(q1.build(), copy.build());
+    Assertions.assertNotEquals(q1.build(), copy.build());
   }
 
   @Test
@@ -58,7 +58,7 @@ public class QueryBuilderTest {
     final QueryBuilder q1 = QueryBuilder.fromSqlQuery("SELECT * FROM t1");
     final QueryBuilder copy = q1.withLimit(3L);
 
-    Assert.assertNotEquals(q1.build(), copy.build());
+    Assertions.assertNotEquals(q1.build(), copy.build());
   }
 
   @Test
@@ -68,7 +68,7 @@ public class QueryBuilderTest {
     final String expected =
         "SELECT * FROM (SELECT * FROM t1 WHERE a > 100) as user_sql_query WHERE 1=1";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -78,7 +78,7 @@ public class QueryBuilderTest {
     final String expected =
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1 LIMIT 102";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -91,7 +91,7 @@ public class QueryBuilderTest {
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query"
             + " WHERE 1=1 AND bucket >= 10 AND bucket < 20";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -104,7 +104,7 @@ public class QueryBuilderTest {
         "SELECT * FROM (SELECT * FROM t1) as user_sql_query WHERE 1=1"
             + " AND birthDate >= '2018-01-01' AND birthDate < '2018-02-01'";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -117,7 +117,7 @@ public class QueryBuilderTest {
         "SELECT * FROM (SELECT a, b, c FROM t1\n WHERE total > 100\n AND country = 262\n)"
             + " as user_sql_query WHERE 1=1";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -131,7 +131,7 @@ public class QueryBuilderTest {
             + "-- We perform initial query here\nSELECT a, b, c FROM t1\n WHERE total > 100)"
             + " as user_sql_query WHERE 1=1";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -161,7 +161,7 @@ public class QueryBuilderTest {
             + "GROUP BY date\n"
             + ") as user_sql_query WHERE 1=1";
 
-    Assert.assertEquals(expected, wrapper.build());
+    Assertions.assertEquals(expected, wrapper.build());
   }
 
   @Test
@@ -207,12 +207,12 @@ public class QueryBuilderTest {
             .withPartitionCondition("partition", "a", "d")
             .generateQueryToGetLimitsOfSplitColumn("splitCol", "mixy", "maxy")
             .build();
-    Assert.assertEquals(expected, actual);
+    Assertions.assertEquals(expected, actual);
   }
 
   private void execAndCompare(String rawInput, String expected) {
     final String actual = QueryBuilder.fromSqlQuery(rawInput).build();
 
-    Assert.assertEquals(expected, actual);
+    Assertions.assertEquals(expected, actual);
   }
 }

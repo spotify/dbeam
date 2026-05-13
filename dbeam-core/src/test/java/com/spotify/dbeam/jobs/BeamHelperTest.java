@@ -26,8 +26,8 @@ import java.time.Duration;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.metrics.MetricResults;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class BeamHelperTest {
 
@@ -62,9 +62,9 @@ public class BeamHelperTest {
         };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
-      Assert.fail("A PipelineExecutionException should be thrown");
+      Assertions.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
-      Assert.assertEquals(
+      Assertions.assertEquals(
           "java.lang.Exception: Job finished with terminalState FAILED", exception.getMessage());
     }
   }
@@ -100,9 +100,9 @@ public class BeamHelperTest {
         };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
-      Assert.fail("A PipelineExecutionException should be thrown");
+      Assertions.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
-      Assert.assertEquals(
+      Assertions.assertEquals(
           "java.lang.Exception: Job cancelled after exceeding timeout PT1M",
           exception.getMessage());
     }
@@ -139,9 +139,9 @@ public class BeamHelperTest {
         };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
-      Assert.fail("A PipelineExecutionException should be thrown");
+      Assertions.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
-      Assert.assertEquals(
+      Assertions.assertEquals(
           "java.lang.Exception: Job cancelled after exceeding timeout PT1M",
           exception.getMessage());
     }
@@ -178,9 +178,9 @@ public class BeamHelperTest {
         };
     try {
       BeamHelper.waitUntilDone(mockResult, Duration.ofMinutes(1));
-      Assert.fail("A PipelineExecutionException should be thrown");
+      Assertions.fail("A PipelineExecutionException should be thrown");
     } catch (Pipeline.PipelineExecutionException exception) {
-      Assert.assertEquals(
+      Assertions.assertEquals(
           "java.lang.Exception: Job exceeded timeout of PT1M, "
               + "but was not possible to cancel, finished with terminalState RUNNING",
           exception.getMessage());

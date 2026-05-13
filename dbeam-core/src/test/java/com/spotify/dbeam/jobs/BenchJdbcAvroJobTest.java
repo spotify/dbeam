@@ -28,8 +28,8 @@ import com.spotify.dbeam.TestHelper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class BenchJdbcAvroJobTest {
 
@@ -37,7 +37,7 @@ public class BenchJdbcAvroJobTest {
       "jdbc:h2:mem:test3;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
   private static Path testDir;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
     testDir = TestHelper.createTmpDirPath("jdbc-export-args-test");
     DbTestHelper.createFixtures(CONNECTION_URL);

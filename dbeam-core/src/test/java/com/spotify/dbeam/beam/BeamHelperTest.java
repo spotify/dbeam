@@ -20,13 +20,13 @@
 
 package com.spotify.dbeam.beam;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import org.apache.beam.sdk.io.FileSystems;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BeamHelperTest {
 
@@ -40,9 +40,10 @@ public class BeamHelperTest {
     } catch (IOException e) {
       // Beam changed behavior - now throws IOException instead of FileNotFoundException
       // Verify it's the expected GCS error message
-      assertTrue("Exception should indicate GCS file matching error",
-          e.getMessage().contains("Error matching file spec") 
-          && e.getMessage().contains("gs://does-not-exist-1"));
+      assertTrue(
+          e.getMessage().contains("Error matching file spec")
+              && e.getMessage().contains("gs://does-not-exist-1"),
+          "Exception should indicate GCS file matching error");
     }
   }
 }
