@@ -20,18 +20,18 @@
 
 package com.spotify.dbeam.options;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class ArrayHandlingModeTest {
   @Test
   public void validValuesShouldPass() {
-    Assert.assertEquals(
+    Assertions.assertEquals(
         ArrayHandlingMode.Bytes, ArrayHandlingMode.validateValue(ArrayHandlingMode.Bytes));
-    Assert.assertEquals(
+    Assertions.assertEquals(
         ArrayHandlingMode.TypedMetaFromFirstRow,
         ArrayHandlingMode.validateValue(ArrayHandlingMode.TypedMetaFromFirstRow));
-    Assert.assertEquals(
+    Assertions.assertEquals(
         ArrayHandlingMode.TypedMetaPostgres,
         ArrayHandlingMode.validateValue(ArrayHandlingMode.TypedMetaPostgres));
   }
@@ -39,9 +39,9 @@ public class ArrayHandlingModeTest {
   @Test
   public void invalidValueShouldThrow() {
     RuntimeException thrown =
-        Assert.assertThrows(
+        Assertions.assertThrows(
             RuntimeException.class, () -> ArrayHandlingMode.validateValue("invalid"));
-    Assert.assertEquals(
+    Assertions.assertEquals(
         "Invalid value 'invalid' for array handling mode. Allowed values: "
             + "[bytes, typed_first_row, typed_postgres]",
         thrown.getMessage());
