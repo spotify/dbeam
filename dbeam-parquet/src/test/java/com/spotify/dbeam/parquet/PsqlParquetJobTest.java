@@ -23,46 +23,53 @@ package com.spotify.dbeam.parquet;
 import com.spotify.dbeam.TestHelper;
 import java.io.IOException;
 import java.nio.file.Path;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class PsqlParquetJobTest {
 
   private static Path testDir;
   private static Path passwordPath;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws IOException {
     testDir = TestHelper.createTmpDirPath("psql-parquet-test-");
     passwordPath = testDir.resolve(".password");
     passwordPath.toFile().createNewFile();
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnNonPostgresConnection() throws Exception {
+  @Test
+  public void shouldFailOnNonPostgresConnection() {
     final Path outputPath = testDir.resolve("shouldFailOnNonPostgres");
-    PsqlParquetJob.create(
-        new String[] {
-          "--connectionUrl=jdbc:h2:mem:test",
-          "--username=",
-          "--passwordFile=" + passwordPath.toString(),
-          "--table=COFFEES",
-          "--output=" + outputPath,
-          "--partition=2025-02-28"
-        });
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            PsqlParquetJob.create(
+                new String[] {
+                  "--connectionUrl=jdbc:h2:mem:test",
+                  "--username=",
+                  "--passwordFile=" + passwordPath.toString(),
+                  "--table=COFFEES",
+                  "--output=" + outputPath,
+                  "--partition=2025-02-28"
+                }));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldFailOnMissingPartition() throws Exception {
+  @Test
+  public void shouldFailOnMissingPartition() {
     final Path outputPath = testDir.resolve("shouldFailOnMissingPartition");
-    PsqlParquetJob.create(
-        new String[] {
-          "--connectionUrl=jdbc:postgresql://localhost/test",
-          "--username=",
-          "--passwordFile=" + passwordPath.toString(),
-          "--table=COFFEES",
-          "--output=" + outputPath,
-          "--skipPartitionCheck"
-        });
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            PsqlParquetJob.create(
+                new String[] {
+                  "--connectionUrl=jdbc:postgresql://localhost/test",
+                  "--username=",
+                  "--passwordFile=" + passwordPath.toString(),
+                  "--table=COFFEES",
+                  "--output=" + outputPath,
+                  "--skipPartitionCheck"
+                }));
   }
 }

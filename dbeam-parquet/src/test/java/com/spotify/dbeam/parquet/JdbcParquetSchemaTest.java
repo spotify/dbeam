@@ -31,8 +31,8 @@ import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class JdbcParquetSchemaTest {
@@ -45,7 +45,7 @@ public class JdbcParquetSchemaTest {
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn("test_table");
 
-    Assert.assertEquals("test_table", JdbcParquetSchema.getDatabaseTableName(meta));
+    Assertions.assertEquals("test_table", JdbcParquetSchema.getDatabaseTableName(meta));
   }
 
   @Test
@@ -54,7 +54,7 @@ public class JdbcParquetSchemaTest {
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn("");
 
-    Assert.assertEquals("no_table_name", JdbcParquetSchema.getDatabaseTableName(meta));
+    Assertions.assertEquals("no_table_name", JdbcParquetSchema.getDatabaseTableName(meta));
   }
 
   @Test
@@ -63,7 +63,7 @@ public class JdbcParquetSchemaTest {
     when(meta.getColumnCount()).thenReturn(1);
     when(meta.getTableName(1)).thenReturn(null);
 
-    Assert.assertEquals("no_table_name", JdbcParquetSchema.getDatabaseTableName(meta));
+    Assertions.assertEquals("no_table_name", JdbcParquetSchema.getDatabaseTableName(meta));
   }
 
   @Test
@@ -73,7 +73,7 @@ public class JdbcParquetSchemaTest {
     when(meta.getTableName(1)).thenReturn("");
     when(meta.getTableName(2)).thenReturn("test_table");
 
-    Assert.assertEquals("test_table", JdbcParquetSchema.getDatabaseTableName(meta));
+    Assertions.assertEquals("test_table", JdbcParquetSchema.getDatabaseTableName(meta));
   }
 
   @Test
@@ -118,7 +118,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.TIMESTAMP, false);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
-    Assert.assertNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+    Assertions.assertNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
@@ -126,7 +126,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.TIMESTAMP, true);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS),
         fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
@@ -143,7 +143,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.DATE, true);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
-    Assert.assertNotNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+    Assertions.assertNotNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
@@ -223,7 +223,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.VARCHAR, false);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -232,7 +232,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.CHAR, false);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -241,7 +241,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.CLOB, false);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -251,9 +251,9 @@ public class JdbcParquetSchemaTest {
         JdbcParquetSchema.buildParquetFieldType(
             "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false, "typed_first_row");
 
-    Assert.assertFalse(fieldType.isPrimitive());
-    Assert.assertEquals(LogicalTypeAnnotation.listType(), fieldType.getLogicalTypeAnnotation());
-    Assert.assertEquals(Type.Repetition.OPTIONAL, fieldType.getRepetition());
+    Assertions.assertFalse(fieldType.isPrimitive());
+    Assertions.assertEquals(LogicalTypeAnnotation.listType(), fieldType.getLogicalTypeAnnotation());
+    Assertions.assertEquals(Type.Repetition.OPTIONAL, fieldType.getRepetition());
   }
 
   @Test
@@ -296,24 +296,24 @@ public class JdbcParquetSchemaTest {
     final Type elementType = JdbcParquetSchema.buildArrayElementType("_text");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(),
         elementType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
   @Test
   public void shouldResolveH2IntegerArrayType() {
-    Assert.assertEquals("int4", JdbcParquetSchema.resolveArrayElementTypeName("INTEGER ARRAY"));
+    Assertions.assertEquals("int4", JdbcParquetSchema.resolveArrayElementTypeName("INTEGER ARRAY"));
   }
 
   @Test
   public void shouldResolveH2VarcharArrayType() {
-    Assert.assertEquals("text", JdbcParquetSchema.resolveArrayElementTypeName("VARCHAR ARRAY"));
+    Assertions.assertEquals("text", JdbcParquetSchema.resolveArrayElementTypeName("VARCHAR ARRAY"));
   }
 
   @Test
   public void shouldResolveNullColumnTypeName() {
-    Assert.assertEquals("text", JdbcParquetSchema.resolveArrayElementTypeName(null));
+    Assertions.assertEquals("text", JdbcParquetSchema.resolveArrayElementTypeName(null));
   }
 
   @Test
@@ -323,8 +323,8 @@ public class JdbcParquetSchemaTest {
             "column1", Types.OTHER, 0, "foobar", "uuid", true, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY);
-    Assert.assertEquals(16, fieldType.asPrimitiveType().getTypeLength());
-    Assert.assertEquals(
+    Assertions.assertEquals(16, fieldType.asPrimitiveType().getTypeLength());
+    Assertions.assertEquals(
         LogicalTypeAnnotation.uuidType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -335,7 +335,7 @@ public class JdbcParquetSchemaTest {
             "column1", Types.OTHER, 0, "foobar", "uuid", false, "typed_first_row");
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -344,7 +344,7 @@ public class JdbcParquetSchemaTest {
     final Type fieldType = buildFieldType(Types.SQLXML, false);
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(), fieldType.asPrimitiveType().getLogicalTypeAnnotation());
   }
 
@@ -372,17 +372,17 @@ public class JdbcParquetSchemaTest {
         JdbcParquetSchema.createParquetSchema(
             resultSet, Optional.empty(), false, "typed_first_row");
 
-    Assert.assertEquals("test_table", schema.getName());
-    Assert.assertEquals(3, schema.getFieldCount());
-    Assert.assertEquals("id", schema.getFields().get(0).getName());
-    Assert.assertEquals("name", schema.getFields().get(1).getName());
-    Assert.assertEquals("active", schema.getFields().get(2).getName());
+    Assertions.assertEquals("test_table", schema.getName());
+    Assertions.assertEquals(3, schema.getFieldCount());
+    Assertions.assertEquals("id", schema.getFields().get(0).getName());
+    Assertions.assertEquals("name", schema.getFields().get(1).getName());
+    Assertions.assertEquals("active", schema.getFields().get(2).getName());
     assertPrimitiveType(schema.getFields().get(0), PrimitiveType.PrimitiveTypeName.INT64);
     assertPrimitiveType(schema.getFields().get(1), PrimitiveType.PrimitiveTypeName.BINARY);
     assertPrimitiveType(schema.getFields().get(2), PrimitiveType.PrimitiveTypeName.BOOLEAN);
-    Assert.assertTrue(schema.getFields().get(0).isRepetition(Type.Repetition.OPTIONAL));
-    Assert.assertTrue(schema.getFields().get(1).isRepetition(Type.Repetition.OPTIONAL));
-    Assert.assertTrue(schema.getFields().get(2).isRepetition(Type.Repetition.OPTIONAL));
+    Assertions.assertTrue(schema.getFields().get(0).isRepetition(Type.Repetition.OPTIONAL));
+    Assertions.assertTrue(schema.getFields().get(1).isRepetition(Type.Repetition.OPTIONAL));
+    Assertions.assertTrue(schema.getFields().get(2).isRepetition(Type.Repetition.OPTIONAL));
   }
 
   @Test
@@ -401,7 +401,7 @@ public class JdbcParquetSchemaTest {
         JdbcParquetSchema.createParquetSchema(
             resultSet, Optional.of("CustomName"), false, "typed_first_row");
 
-    Assert.assertEquals("CustomName", schema.getName());
+    Assertions.assertEquals("CustomName", schema.getName());
   }
 
   @Test
@@ -420,8 +420,8 @@ public class JdbcParquetSchemaTest {
         JdbcParquetSchema.createParquetSchema(
             resultSet, Optional.empty(), false, "typed_first_row");
 
-    Assert.assertEquals("test_table_name", schema.getName());
-    Assert.assertEquals("column_name_with_spaces", schema.getFields().get(0).getName());
+    Assertions.assertEquals("test_table_name", schema.getName());
+    Assertions.assertEquals("column_name_with_spaces", schema.getFields().get(0).getName());
   }
 
   private Type buildFieldType(final int sqlType, final boolean useLogicalTypes) {
@@ -431,7 +431,7 @@ public class JdbcParquetSchemaTest {
 
   private void assertPrimitiveType(
       final Type actual, final PrimitiveType.PrimitiveTypeName expected) {
-    Assert.assertTrue(actual.isPrimitive());
-    Assert.assertEquals(expected, actual.asPrimitiveType().getPrimitiveTypeName());
+    Assertions.assertTrue(actual.isPrimitive());
+    Assertions.assertEquals(expected, actual.asPrimitiveType().getPrimitiveTypeName());
   }
 }

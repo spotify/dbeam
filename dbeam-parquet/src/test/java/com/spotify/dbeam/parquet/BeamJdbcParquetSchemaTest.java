@@ -25,8 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import org.apache.parquet.schema.MessageType;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class BeamJdbcParquetSchemaTest {
 
@@ -44,9 +44,9 @@ public class BeamJdbcParquetSchemaTest {
     final Optional<MessageType> schema =
         BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(schemaFile.toString());
 
-    Assert.assertTrue(schema.isPresent());
-    Assert.assertEquals("test_table", schema.get().getName());
-    Assert.assertEquals(2, schema.get().getFieldCount());
+    Assertions.assertTrue(schema.isPresent());
+    Assertions.assertEquals("test_table", schema.get().getName());
+    Assertions.assertEquals(2, schema.get().getFieldCount());
 
     Files.deleteIfExists(schemaFile);
   }
@@ -56,7 +56,7 @@ public class BeamJdbcParquetSchemaTest {
     final Optional<MessageType> schema =
         BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile(null);
 
-    Assert.assertFalse(schema.isPresent());
+    Assertions.assertFalse(schema.isPresent());
   }
 
   @Test
@@ -64,6 +64,6 @@ public class BeamJdbcParquetSchemaTest {
     final Optional<MessageType> schema =
         BeamJdbcParquetSchema.parseOptionalInputParquetSchemaFile("");
 
-    Assert.assertFalse(schema.isPresent());
+    Assertions.assertFalse(schema.isPresent());
   }
 }

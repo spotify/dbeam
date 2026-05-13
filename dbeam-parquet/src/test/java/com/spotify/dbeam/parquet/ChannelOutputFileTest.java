@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import org.apache.parquet.io.PositionOutputStream;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class ChannelOutputFileTest {
 
@@ -37,19 +37,19 @@ public class ChannelOutputFileTest {
     final ChannelOutputFile outputFile = new ChannelOutputFile(channel);
 
     try (PositionOutputStream out = outputFile.create(0)) {
-      Assert.assertEquals(0, out.getPos());
+      Assertions.assertEquals(0, out.getPos());
 
       out.write(42);
-      Assert.assertEquals(1, out.getPos());
+      Assertions.assertEquals(1, out.getPos());
 
       out.write(new byte[] {1, 2, 3, 4, 5});
-      Assert.assertEquals(6, out.getPos());
+      Assertions.assertEquals(6, out.getPos());
 
       out.write(new byte[] {0, 1, 2, 3, 4, 5, 6, 7}, 2, 3);
-      Assert.assertEquals(9, out.getPos());
+      Assertions.assertEquals(9, out.getPos());
     }
 
-    Assert.assertEquals(9, baos.size());
+    Assertions.assertEquals(9, baos.size());
   }
 
   @Test
@@ -64,10 +64,10 @@ public class ChannelOutputFileTest {
     }
 
     byte[] result = baos.toByteArray();
-    Assert.assertEquals(3, result.length);
-    Assert.assertEquals(65, result[0]);
-    Assert.assertEquals(66, result[1]);
-    Assert.assertEquals(67, result[2]);
+    Assertions.assertEquals(3, result.length);
+    Assertions.assertEquals(65, result[0]);
+    Assertions.assertEquals(66, result[1]);
+    Assertions.assertEquals(67, result[2]);
   }
 
   @Test
@@ -76,8 +76,8 @@ public class ChannelOutputFileTest {
     final WritableByteChannel channel = Channels.newChannel(baos);
     final ChannelOutputFile outputFile = new ChannelOutputFile(channel);
 
-    Assert.assertFalse(outputFile.supportsBlockSize());
-    Assert.assertEquals(0, outputFile.defaultBlockSize());
+    Assertions.assertFalse(outputFile.supportsBlockSize());
+    Assertions.assertEquals(0, outputFile.defaultBlockSize());
   }
 
   @Test
@@ -87,8 +87,8 @@ public class ChannelOutputFileTest {
     final ChannelOutputFile outputFile = new ChannelOutputFile(channel);
 
     try (PositionOutputStream out = outputFile.createOrOverwrite(0)) {
-      Assert.assertNotNull(out);
-      Assert.assertEquals(0, out.getPos());
+      Assertions.assertNotNull(out);
+      Assertions.assertEquals(0, out.getPos());
     }
   }
 }

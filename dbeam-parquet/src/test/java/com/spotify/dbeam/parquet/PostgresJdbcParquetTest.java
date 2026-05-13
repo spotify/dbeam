@@ -41,8 +41,8 @@ import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.schema.MessageType;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class PostgresJdbcParquetTest {
@@ -77,7 +77,7 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           String actualUuid = record.getString("uuid_field", 0);
-          Assert.assertEquals(uuidExpected.toString(), actualUuid);
+          Assertions.assertEquals(uuidExpected.toString(), actualUuid);
         });
   }
 
@@ -107,8 +107,8 @@ public class PostgresJdbcParquetTest {
         resultSet,
         tempFile,
         record -> {
-          Assert.assertEquals("some_text_42", record.getString("text_field", 0));
-          Assert.assertEquals("some_other_42", record.getString("other_field", 0));
+          Assertions.assertEquals("some_text_42", record.getString("text_field", 0));
+          Assertions.assertEquals("some_other_42", record.getString("other_field", 0));
         });
   }
 
@@ -137,7 +137,7 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           long actualTs = record.getLong("ts_field", 0);
-          Assert.assertEquals(1488300933000L, actualTs);
+          Assertions.assertEquals(1488300933000L, actualTs);
         });
   }
 
@@ -167,8 +167,8 @@ public class PostgresJdbcParquetTest {
         resultSet,
         tempFile,
         record -> {
-          Assert.assertEquals("alice", record.getString("name", 0));
-          Assert.assertEquals(0, record.getFieldRepetitionCount("age"));
+          Assertions.assertEquals("alice", record.getString("name", 0));
+          Assertions.assertEquals(0, record.getFieldRepetitionCount("age"));
         });
   }
 
@@ -203,10 +203,10 @@ public class PostgresJdbcParquetTest {
         resultSet,
         tempFile,
         record -> {
-          Assert.assertEquals(42, record.getInteger("int_col", 0));
-          Assert.assertEquals(9999999999L, record.getLong("long_col", 0));
-          Assert.assertEquals(3.14f, record.getFloat("float_col", 0), 0.001f);
-          Assert.assertEquals(2.71828, record.getDouble("double_col", 0), 0.00001);
+          Assertions.assertEquals(42, record.getInteger("int_col", 0));
+          Assertions.assertEquals(9999999999L, record.getLong("long_col", 0));
+          Assertions.assertEquals(3.14f, record.getFloat("float_col", 0), 0.001f);
+          Assertions.assertEquals(2.71828, record.getDouble("double_col", 0), 0.00001);
         });
   }
 
@@ -232,7 +232,7 @@ public class PostgresJdbcParquetTest {
         resultSet,
         tempFile,
         record -> {
-          Assert.assertTrue(record.getBoolean("is_active", 0));
+          Assertions.assertTrue(record.getBoolean("is_active", 0));
         });
   }
 
@@ -254,8 +254,8 @@ public class PostgresJdbcParquetTest {
             resultSet, Optional.empty(), false, "typed_first_row");
 
     // Verify schema has LIST type
-    Assert.assertFalse(schema.getFields().get(0).isPrimitive());
-    Assert.assertEquals(
+    Assertions.assertFalse(schema.getFields().get(0).isPrimitive());
+    Assertions.assertEquals(
         org.apache.parquet.schema.LogicalTypeAnnotation.listType(),
         schema.getFields().get(0).getLogicalTypeAnnotation());
 
@@ -267,10 +267,10 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           Group tagsList = record.getGroup("tags", 0);
-          Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
-          Assert.assertEquals("rock", tagsList.getGroup("list", 0).getString("element", 0));
-          Assert.assertEquals("jazz", tagsList.getGroup("list", 1).getString("element", 0));
-          Assert.assertEquals("blues", tagsList.getGroup("list", 2).getString("element", 0));
+          Assertions.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
+          Assertions.assertEquals("rock", tagsList.getGroup("list", 0).getString("element", 0));
+          Assertions.assertEquals("jazz", tagsList.getGroup("list", 1).getString("element", 0));
+          Assertions.assertEquals("blues", tagsList.getGroup("list", 2).getString("element", 0));
         });
   }
 
@@ -299,10 +299,10 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           Group scoresList = record.getGroup("scores", 0);
-          Assert.assertEquals(3, scoresList.getFieldRepetitionCount("list"));
-          Assert.assertEquals(10, scoresList.getGroup("list", 0).getInteger("element", 0));
-          Assert.assertEquals(20, scoresList.getGroup("list", 1).getInteger("element", 0));
-          Assert.assertEquals(30, scoresList.getGroup("list", 2).getInteger("element", 0));
+          Assertions.assertEquals(3, scoresList.getFieldRepetitionCount("list"));
+          Assertions.assertEquals(10, scoresList.getGroup("list", 0).getInteger("element", 0));
+          Assertions.assertEquals(20, scoresList.getGroup("list", 1).getInteger("element", 0));
+          Assertions.assertEquals(30, scoresList.getGroup("list", 2).getInteger("element", 0));
         });
   }
 
@@ -331,10 +331,10 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           Group idsList = record.getGroup("ids", 0);
-          Assert.assertEquals(3, idsList.getFieldRepetitionCount("list"));
-          Assert.assertEquals(100L, idsList.getGroup("list", 0).getLong("element", 0));
-          Assert.assertEquals(200L, idsList.getGroup("list", 1).getLong("element", 0));
-          Assert.assertEquals(300L, idsList.getGroup("list", 2).getLong("element", 0));
+          Assertions.assertEquals(3, idsList.getFieldRepetitionCount("list"));
+          Assertions.assertEquals(100L, idsList.getGroup("list", 0).getLong("element", 0));
+          Assertions.assertEquals(200L, idsList.getGroup("list", 1).getLong("element", 0));
+          Assertions.assertEquals(300L, idsList.getGroup("list", 2).getLong("element", 0));
         });
   }
 
@@ -363,13 +363,14 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           Group tagsList = record.getGroup("tags", 0);
-          Assert.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
+          Assertions.assertEquals(3, tagsList.getFieldRepetitionCount("list"));
           // First element: present
-          Assert.assertEquals("first", tagsList.getGroup("list", 0).getString("element", 0));
+          Assertions.assertEquals("first", tagsList.getGroup("list", 0).getString("element", 0));
           // Second element: null (element field has 0 repetitions)
-          Assert.assertEquals(0, tagsList.getGroup("list", 1).getFieldRepetitionCount("element"));
+          Assertions.assertEquals(
+              0, tagsList.getGroup("list", 1).getFieldRepetitionCount("element"));
           // Third element: present
-          Assert.assertEquals("third", tagsList.getGroup("list", 2).getString("element", 0));
+          Assertions.assertEquals("third", tagsList.getGroup("list", 2).getString("element", 0));
         });
   }
 
@@ -396,7 +397,7 @@ public class PostgresJdbcParquetTest {
         tempFile,
         record -> {
           // Entire array field is null (optional, 0 repetitions)
-          Assert.assertEquals(0, record.getFieldRepetitionCount("tags"));
+          Assertions.assertEquals(0, record.getFieldRepetitionCount("tags"));
         });
   }
 
@@ -427,7 +428,7 @@ public class PostgresJdbcParquetTest {
     try (ParquetReader<Group> reader =
         ParquetReader.builder(new GroupReadSupport(), hadoopPath).withConf(conf).build()) {
       Group record = reader.read();
-      Assert.assertNotNull(record);
+      Assertions.assertNotNull(record);
       assertion.assertRecord(record);
     }
 

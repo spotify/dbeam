@@ -23,8 +23,8 @@ package com.spotify.dbeam.parquet;
 import com.spotify.dbeam.args.JdbcConnectionArgs;
 import java.util.Collections;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class JdbcParquetArgsTest {
 
@@ -42,18 +42,18 @@ public class JdbcParquetArgsTest {
   public void shouldCreateWithDefaults() {
     final JdbcParquetArgs args = JdbcParquetArgs.create(CONN_ARGS);
 
-    Assert.assertEquals(10000, args.fetchSize());
-    Assert.assertEquals("snappy", args.parquetCodec());
-    Assert.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
-    Assert.assertEquals(1024L * 1024, args.pageSize());
-    Assert.assertEquals(Collections.emptyList(), args.preCommand());
+    Assertions.assertEquals(10000, args.fetchSize());
+    Assertions.assertEquals("snappy", args.parquetCodec());
+    Assertions.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
+    Assertions.assertEquals(1024L * 1024, args.pageSize());
+    Assertions.assertEquals(Collections.emptyList(), args.preCommand());
   }
 
   @Test
   public void shouldMapSnappyCodec() {
     final JdbcParquetArgs args = JdbcParquetArgs.create(CONN_ARGS);
 
-    Assert.assertEquals(CompressionCodecName.SNAPPY, args.getCompressionCodecName());
+    Assertions.assertEquals(CompressionCodecName.SNAPPY, args.getCompressionCodecName());
   }
 
   @Test
@@ -68,7 +68,7 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(CompressionCodecName.GZIP, args.getCompressionCodecName());
+    Assertions.assertEquals(CompressionCodecName.GZIP, args.getCompressionCodecName());
   }
 
   @Test
@@ -83,7 +83,7 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(CompressionCodecName.ZSTD, args.getCompressionCodecName());
+    Assertions.assertEquals(CompressionCodecName.ZSTD, args.getCompressionCodecName());
   }
 
   @Test
@@ -98,7 +98,7 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(CompressionCodecName.LZ4_RAW, args.getCompressionCodecName());
+    Assertions.assertEquals(CompressionCodecName.LZ4_RAW, args.getCompressionCodecName());
   }
 
   @Test
@@ -113,7 +113,7 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
+    Assertions.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
   }
 
   @Test
@@ -128,19 +128,22 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
+    Assertions.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void shouldRejectInvalidCodec() {
-    JdbcParquetArgs.create(
-        CONN_ARGS,
-        10000,
-        "invalid",
-        64 * 1024 * 1024,
-        1024 * 1024,
-        Collections.emptyList(),
-        "typed_first_row");
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            JdbcParquetArgs.create(
+                CONN_ARGS,
+                10000,
+                "invalid",
+                64 * 1024 * 1024,
+                1024 * 1024,
+                Collections.emptyList(),
+                "typed_first_row"));
   }
 
   @Test
@@ -155,7 +158,7 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(50000, args.fetchSize());
+    Assertions.assertEquals(50000, args.fetchSize());
   }
 
   @Test
@@ -170,6 +173,6 @@ public class JdbcParquetArgsTest {
             Collections.emptyList(),
             "typed_first_row");
 
-    Assert.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
+    Assertions.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
   }
 }

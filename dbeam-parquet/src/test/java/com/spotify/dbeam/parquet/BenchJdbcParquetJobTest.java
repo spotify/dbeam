@@ -30,16 +30,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class BenchJdbcParquetJobTest {
 
   private static final String CONNECTION_URL =
       "jdbc:h2:mem:testbench;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1";
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException {
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
@@ -86,17 +86,17 @@ public class BenchJdbcParquetJobTest {
     }
 
     final String output = capturedOut.toString();
-    Assert.assertTrue(output.contains("Summary for BenchJdbcParquetJob"));
-    Assert.assertTrue(output.contains("recordCount"));
-    Assert.assertTrue(output.contains("writeElapsedMs"));
-    Assert.assertTrue(output.contains("bytesWritten"));
-    Assert.assertTrue(output.contains("KbWritePerSec"));
-    Assert.assertTrue(output.contains("run_00"));
-    Assert.assertTrue(output.contains("run_01"));
-    Assert.assertTrue(output.contains("max"));
-    Assert.assertTrue(output.contains("mean"));
-    Assert.assertTrue(output.contains("min"));
-    Assert.assertTrue(output.contains("stddev"));
+    Assertions.assertTrue(output.contains("Summary for BenchJdbcParquetJob"));
+    Assertions.assertTrue(output.contains("recordCount"));
+    Assertions.assertTrue(output.contains("writeElapsedMs"));
+    Assertions.assertTrue(output.contains("bytesWritten"));
+    Assertions.assertTrue(output.contains("KbWritePerSec"));
+    Assertions.assertTrue(output.contains("run_00"));
+    Assertions.assertTrue(output.contains("run_01"));
+    Assertions.assertTrue(output.contains("max"));
+    Assertions.assertTrue(output.contains("mean"));
+    Assertions.assertTrue(output.contains("min"));
+    Assertions.assertTrue(output.contains("stddev"));
     // Each run should report 2 records
     assertThat(output.split("run_").length, greaterThan(2));
   }

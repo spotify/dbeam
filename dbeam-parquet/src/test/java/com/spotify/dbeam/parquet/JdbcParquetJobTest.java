@@ -31,9 +31,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class JdbcParquetJobTest {
 
@@ -43,7 +43,7 @@ public class JdbcParquetJobTest {
   private static Path passwordPath;
   private static Path sqlPath;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
     testDir = TestHelper.createTmpDirPath("jdbc-parquet-test-");
     passwordPath = testDir.resolve(".password");
@@ -88,7 +88,7 @@ public class JdbcParquetJobTest {
     // Verify parquet schema file was written
     final String schemaJson =
         new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
-    Assert.assertTrue(schemaJson.contains("COFFEES"));
+    Assertions.assertTrue(schemaJson.contains("COFFEES"));
 
     // Verify the parquet file has data by checking file size
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
@@ -151,9 +151,9 @@ public class JdbcParquetJobTest {
     // Verify schema only has the 3 selected columns
     final String schemaJson =
         new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
-    Assert.assertTrue(schemaJson.contains("COF_NAME"));
-    Assert.assertTrue(schemaJson.contains("SIZE"));
-    Assert.assertTrue(schemaJson.contains("TOTAL"));
+    Assertions.assertTrue(schemaJson.contains("COF_NAME"));
+    Assertions.assertTrue(schemaJson.contains("SIZE"));
+    Assertions.assertTrue(schemaJson.contains("TOTAL"));
     // Should only have a parquet file with data
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
     assertThat(parquetFile.length(), greaterThan(0L));
@@ -191,7 +191,7 @@ public class JdbcParquetJobTest {
 
     final String schemaJson =
         new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
-    Assert.assertTrue(schemaJson.contains("TIMESTAMP"));
+    Assertions.assertTrue(schemaJson.contains("TIMESTAMP"));
   }
 
   @Test
@@ -249,21 +249,21 @@ public class JdbcParquetJobTest {
 
     final String schemaJson =
         new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
-    Assert.assertTrue(schemaJson.contains("COF_NAME"));
-    Assert.assertTrue(schemaJson.contains("SIZE"));
-    Assert.assertTrue(schemaJson.contains("TOTAL"));
+    Assertions.assertTrue(schemaJson.contains("COF_NAME"));
+    Assertions.assertTrue(schemaJson.contains("SIZE"));
+    Assertions.assertTrue(schemaJson.contains("TOTAL"));
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
     assertThat(parquetFile.length(), greaterThan(0L));
   }
 
   @Test
   public void shouldMapAvroCodecToParquetCodec() {
-    Assert.assertEquals("snappy", JdbcParquetJob.mapAvroCodecToParquetCodec("snappy"));
-    Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate1"));
-    Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate6"));
-    Assert.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate9"));
-    Assert.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard1"));
-    Assert.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard9"));
+    Assertions.assertEquals("snappy", JdbcParquetJob.mapAvroCodecToParquetCodec("snappy"));
+    Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate1"));
+    Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate6"));
+    Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate9"));
+    Assertions.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard1"));
+    Assertions.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard9"));
   }
 
   @Test
