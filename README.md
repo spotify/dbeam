@@ -17,27 +17,37 @@ This tool is runnable locally, or on any other backend supported by Apache Beam,
 ## Overview
 
 DBeam is a tool that reads all the data from single SQL database table,
-converts the data into [Avro](https://avro.apache.org/) and stores it into
+converts the data into [Avro](https://avro.apache.org/) or [Parquet](https://parquet.apache.org/) and stores it into
 appointed location, usually in GCS.
 It runs as a single threaded [Apache Beam](https://beam.apache.org/) pipeline.
 
 DBeam requires the database credentials, the database table name to read, and the output location
 to store the extracted data into. DBeam first makes a single select into the target table with
 limit one to infer the table schema. After the schema is created the job will be launched which
-simply streams the table contents via JDBC into target location as Avro.
+simply streams the table contents via JDBC into target location as Avro or Parquet.
 
-[Generated Avro Schema Type Conversion Details](docs/type-conversion.md)
+Type conversion details: [Avro](docs/type-conversion.md) | [Parquet](docs/parquet-type-conversion.md)
 
 
 ## dbeam-core package features
 
 - Supports both PostgreSQL, MySQL, MariaDB, and H2 JDBC connectors
 - Supports [Google CloudSQL](https://cloud.google.com/sql/) managed databases
-- Currently outputs only to Avro format
+- Outputs to Avro format
 - Reads database from an external password file (`--passwordFile`) or an external [KMS](https://cloud.google.com/kms/) encrypted password file (`--passwordFileKmsEncrypted`)
 - Can filter only records of the current day with the `--partitionColumn` parameter
 - Check and fail on too old partition dates. Snapshot dumps are not filtered by a given date/partition, when running for a too old partition, the job fails to avoid new data in old partitions. (can be disabled with `--skipPartitionCheck`)
 - Implemented as [Apache Beam SDK](https://beam.apache.org/) pipeline, supporting any of its [runners](https://beam.apache.org/documentation/runners/capability-matrix/) (tested with `DirectRunner` and `DataflowRunner`)
+
+## dbeam-parquet package features
+
+- Outputs to Parquet format (columnar, optimized for analytical queries)
+- Reuses all dbeam-core infrastructure (JDBC connectors, CloudSQL, partitioning, parallel queries)
+- Supports Parquet compression codecs: snappy, gzip, zstd, lz4, uncompressed
+- No full Hadoop dependency — uses a minimal `hadoop-common` for the Parquet API surface
+- Separate `--parquetCodec` option or automatic mapping from `--avroCodec`
+- Optional input schema file via `--parquetSchemaFilePath` (Parquet MessageType text format)
+- PostgreSQL replication check via `PsqlParquetJob`
 
 ### DBeam export parameters
 
@@ -171,15 +181,19 @@ Building and testing can be achieved with `mvn`:
 mvn verify
 ```
 
-In order to create a jar with all dependencies under `./dbeam-core/target/dbeam-core-shaded.jar` run the following:
+In order to create jars with all dependencies run the following:
 
 ```sh
 mvn clean package -Ppack
 ```
 
+This produces:
+- `./dbeam-core/target/dbeam-core-shaded.jar` — Avro export
+- `./dbeam-parquet/target/dbeam-parquet-shaded.jar` — Parquet export
+
 ## Usage examples
 
-Using Java from the command line:
+### Avro export
 
 ```sh
 java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
@@ -191,7 +205,20 @@ java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
   --table=my_table
 ```
 
-For CloudSQL:
+### Parquet export
+
+```sh
+java -cp ./dbeam-parquet/target/dbeam-parquet-shaded.jar \
+  com.spotify.dbeam.parquet.JdbcParquetJob \
+  --output=gs://my-testing-bucket-name/ \
+  --username=my_database_username \
+  --password=secret \
+  --connectionUrl=jdbc:postgresql://some.database.uri.example.org:5432/my_database \
+  --table=my_table \
+  --parquetCodec=snappy
+```
+
+For CloudSQL (Avro):
 
 ```sh
 java -cp ./dbeam-core/target/dbeam-core-shaded.jar \
@@ -256,9 +283,17 @@ When using Google Cloud, [IAM authentication](https://github.com/GoogleCloudPlat
 To include DBeam library in a mvn project add the following dependency in `pom.xml`:
 
 ```xml
+<!-- For Avro export -->
 <dependency>
   <groupId>com.spotify</groupId>
   <artifactId>dbeam-core</artifactId>
+  <version>${dbeam.version}</version>
+</dependency>
+
+<!-- For Parquet export -->
+<dependency>
+  <groupId>com.spotify</groupId>
+  <artifactId>dbeam-parquet</artifactId>
   <version>${dbeam.version}</version>
 </dependency>
 ```
@@ -268,7 +303,8 @@ To include DBeam library in a SBT project add the following dependency in `build
 
 ```sbt
   libraryDependencies ++= Seq(
-   "com.spotify" % "dbeam-core" % dbeamVersion
+   "com.spotify" % "dbeam-core" % dbeamVersion,     // Avro
+   "com.spotify" % "dbeam-parquet" % dbeamVersion    // Parquet
   )
 ```
 

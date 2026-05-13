@@ -34,10 +34,10 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Optional;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class QueryBuilderArgsTest {
 
@@ -46,7 +46,7 @@ public class QueryBuilderArgsTest {
   private static Connection connection;
   private static Path coffeesSqlQueryPath;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
     coffeesSqlQueryPath =
         TestHelper.createTmpDirPath("jdbc-export-args-test").resolve("coffees_query_1.sql");
@@ -57,19 +57,20 @@ public class QueryBuilderArgsTest {
     DbTestHelper.createFixtures(CONNECTION_URL);
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterAll() throws SQLException {
     connection.close();
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void shouldFailOnNullTableName() {
-    QueryBuilderArgs.create(null);
+    Assertions.assertThrows(IllegalArgumentException.class, () -> QueryBuilderArgs.create(null));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void shouldFailOnInvalidTableName() {
-    QueryBuilderArgs.create("*invalid#name@!");
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> QueryBuilderArgs.create("*invalid#name@!"));
   }
 
   public void shouldNotFailOnTableNameWithDots() {
@@ -80,7 +81,7 @@ public class QueryBuilderArgsTest {
   public void shouldCreateValidSqlQueryFromUserQuery() throws SQLException {
     final QueryBuilderArgs args = QueryBuilderArgs.createFromQuery("SELECT * FROM some_table");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList("SELECT * FROM (SELECT * FROM some_table) as user_sql_query WHERE 1=1"),
         args.buildQueries(null));
   }
@@ -90,7 +91,7 @@ public class QueryBuilderArgsTest {
     final QueryBuilderArgs actual =
         parseOptions("--connectionUrl=jdbc:postgresql://some_db --table=some_table " + "--limit=7");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList("SELECT * FROM some_table WHERE 1=1 LIMIT 7"),
         actual.buildQueries(null));
   }
@@ -102,8 +103,8 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31");
 
-    Assert.assertEquals(Optional.of(Instant.parse("2027-07-31T00:00:00Z")), actual.partition());
-    Assert.assertEquals(
+    Assertions.assertEquals(Optional.of(Instant.parse("2027-07-31T00:00:00Z")), actual.partition());
+    Assertions.assertEquals(
         Lists.newArrayList("SELECT * FROM some_table WHERE 1=1"), actual.buildQueries(null));
   }
 
@@ -114,7 +115,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31T13:37:59Z");
 
-    Assert.assertEquals(Optional.of(Instant.parse("2027-07-31T13:37:59Z")), actual.partition());
+    Assertions.assertEquals(Optional.of(Instant.parse("2027-07-31T13:37:59Z")), actual.partition());
   }
 
   @Test
@@ -124,7 +125,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-05");
 
-    Assert.assertEquals(Optional.of(Instant.parse("2027-05-01T00:00:00Z")), actual.partition());
+    Assertions.assertEquals(Optional.of(Instant.parse("2027-05-01T00:00:00Z")), actual.partition());
   }
 
   @Test
@@ -134,7 +135,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-05-02T23");
 
-    Assert.assertEquals(Optional.of(Instant.parse("2027-05-02T23:00:00Z")), actual.partition());
+    Assertions.assertEquals(Optional.of(Instant.parse("2027-05-02T23:00:00Z")), actual.partition());
   }
 
   @Test
@@ -144,7 +145,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31 --partitionColumn=col");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM some_table WHERE 1=1 "
                 + "AND col >= '2027-07-31' AND col < '2027-08-01'"),
@@ -158,7 +159,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31 --partitionColumn=col --limit=5");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM some_table WHERE 1=1 "
                 + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 5"),
@@ -172,7 +173,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31 --partitionColumn=col --partitionPeriod=P1M");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM some_table WHERE 1=1 "
                 + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
@@ -187,7 +188,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31T00 --partitionColumn=col --partitionPeriod=PT1H");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM some_table WHERE 1=1 "
                 + "AND col >= '2027-07-31T00:00:00Z' AND col < '2027-07-31T01:00:00Z'"),
@@ -204,7 +205,7 @@ public class QueryBuilderArgsTest {
                 "--connectionUrl=jdbc:postgresql://some_db " + "--sqlFile=%s --limit=7",
                 coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query"
                 + " WHERE 1=1 LIMIT 7"),
@@ -220,7 +221,7 @@ public class QueryBuilderArgsTest {
                     + "--sqlFile=%s --partition=2027-07-31 --partitionColumn=col --limit=7",
                 coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
                 + "AND col >= '2027-07-31' AND col < '2027-08-01' LIMIT 7"),
@@ -238,7 +239,7 @@ public class QueryBuilderArgsTest {
                     + "--partitionColumn=col --partitionPeriod=P1M",
                 coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1 "
                 + "AND col >= '2027-07-31' AND col < '2027-08-31'"),
@@ -253,7 +254,7 @@ public class QueryBuilderArgsTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=COFFEES "
                 + "--splitColumn=ROWNUM --queryParallelism=5");
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList("SELECT * FROM COFFEES WHERE 1=1" + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
         actual.buildQueries(connection));
   }
@@ -267,7 +268,7 @@ public class QueryBuilderArgsTest {
                     + "--sqlFile=%s --splitColumn=ROWNUM --queryParallelism=5",
                 coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
                 + " AND ROWNUM >= 1 AND ROWNUM <= 2"),
@@ -284,7 +285,7 @@ public class QueryBuilderArgsTest {
                     + "--partitionColumn=col --partitionPeriod=P1M --limit=7",
                 coffeesSqlQueryPath.toString()));
 
-    Assert.assertEquals(
+    Assertions.assertEquals(
         Lists.newArrayList(
             "SELECT * FROM (SELECT * FROM COFFEES WHERE SIZE > 10) as user_sql_query WHERE 1=1"
                 + " AND col >= '2027-07-31' AND col < '2027-08-31' LIMIT 7"),

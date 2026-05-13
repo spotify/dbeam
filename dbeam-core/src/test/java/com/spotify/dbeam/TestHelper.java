@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.mockito.Mockito;
-import org.postgresql.jdbc.PgArray;
 
 public class TestHelper {
 
@@ -67,13 +66,18 @@ public class TestHelper {
     return new UUID(high, low);
   }
 
-  public static void mockArrayColumn(ResultSetMetaData meta, ResultSet resultSet,
-                                     int columnIdx, String columnName,
-                                     String columnTypeName, int arrayType, String arrayTypeName,
-                                     Object array1, Object... arrays)
+  public static void mockArrayColumn(
+      ResultSetMetaData meta,
+      ResultSet resultSet,
+      int columnIdx,
+      String columnName,
+      String columnTypeName,
+      int arrayType,
+      String arrayTypeName,
+      Object array1,
+      Object... arrays)
       throws SQLException {
-    mockResultSetMeta(meta, columnIdx, Types.ARRAY, columnName, "java.sql.Array",
-        columnTypeName);
+    mockResultSetMeta(meta, columnIdx, Types.ARRAY, columnName, "java.sql.Array", columnTypeName);
     Array res1;
     if (array1 == null) {
       res1 = null;
@@ -93,9 +97,13 @@ public class TestHelper {
     when(resultSet.getArray(columnIdx)).thenReturn(res1, resX);
   }
 
-  public static void mockResultSetMeta(ResultSetMetaData meta, int columnIdx, int columnType,
-                                       String columnName,
-                                       String columnClassName, String columnTypeName)
+  public static void mockResultSetMeta(
+      ResultSetMetaData meta,
+      int columnIdx,
+      int columnType,
+      String columnName,
+      String columnClassName,
+      String columnTypeName)
       throws SQLException {
     when(meta.getColumnType(columnIdx)).thenReturn(columnType);
     when(meta.getColumnName(columnIdx)).thenReturn(columnName);

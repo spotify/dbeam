@@ -76,6 +76,7 @@
 
   <modules>
     <module>dbeam-core</module>
+    <module>dbeam-parquet</module>
     <module>dbeam-bom</module>
   </modules>
 
@@ -101,45 +102,51 @@
   </distributionManagement>
 
   <properties>
-    <maven.compiler.release>8</maven.compiler.release>
+    <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- apache beam BOM -->
-    <!-- https://github.com/apache/beam/blob/release-2.65/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
-    <beam.version>2.65.0</beam.version>
+    <!-- https://github.com/apache/beam/blob/release-2.73/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
+    <beam.version>2.73.0</beam.version>
     <!-- versions from beam -->
-    <auto-value.version>1.9</auto-value.version>
-    <avro.version>1.11.4</avro.version>
+    <auto-value.version>1.11.0</auto-value.version>
+    <avro.version>1.11.5</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <commons-codec.version>1.17.1</commons-codec.version>
     <commons-compress.version>1.26.2</commons-compress.version>
-    <errorprone.version>2.10.0</errorprone.version>
-    <guava.version>33.1.0-jre</guava.version>
+    <errorprone.version>2.31.0</errorprone.version>
+    <guava.version>33.5.0-jre</guava.version>
     <hamcrest.version>2.1</hamcrest.version>
     <httpclient.version>4.5.13</httpclient.version>
     <httpcore.version>4.4.14</httpcore.version>
-    <jackson.version>2.15.4</jackson.version>
-    <joda-time.version>2.10.14</joda-time.version>
-    <netty.version>4.1.121.Final</netty.version>
-    <slf4j.version>1.7.30</slf4j.version>
+    <jackson.version>2.18.2</jackson.version>
+    <joda-time.version>2.14.0</joda-time.version>
+    <netty.version>4.1.130.Final</netty.version>
+    <slf4j.version>2.0.16</slf4j.version>
     <threetenbp.version>1.6.8</threetenbp.version>
-    <zstd-jni.version>1.5.6-3</zstd-jni.version>
+    <zstd-jni.version>1.5.7-7</zstd-jni.version>
+    <parquet.version>1.14.4</parquet.version>
+    <hadoop.version>3.5.0</hadoop.version>
+    <!-- pinned to satisfy requireUpperBoundDeps:
+         hadoop-common pulls older woodstox/stax2 than google-cloud-storage -->
+    <woodstox-core.version>7.0.0</woodstox-core.version>
+    <stax2-api.version>4.2.2</stax2-api.version>
 
     <!-- GCP BOM -->
     <!-- https://github.com/googleapis/java-cloud-bom/releases -->
-    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.45.0/index.html -->
-    <google-cloud-libraries-bom.version>26.57.0</google-cloud-libraries-bom.version>
+    <!-- https://storage.googleapis.com/cloud-opensource-java-dashboard/com.google.cloud/libraries-bom/26.79.0/index.html -->
+    <google-cloud-libraries-bom.version>26.79.0</google-cloud-libraries-bom.version>
     <!-- versions from GCP bom -->
     <opencensus.version>0.31.1</opencensus.version>
 
     <!-- other deps -->
-    <bouncycastle.version>1.78.1</bouncycastle.version>
-    <junit.version>4.13.2</junit.version>
+    <bouncycastle.version>1.84</bouncycastle.version>
+    <junit-jupiter.version>5.11.4</junit-jupiter.version>
     <mysql.version>8.4.0</mysql.version>
-    <mariadb.version>3.5.3</mariadb.version>
-    <postgresql.version>42.7.4</postgresql.version>
-    <socket-factory.version>1.18.0</socket-factory.version>
+    <mariadb.version>3.5.8</mariadb.version>
+    <postgresql.version>42.7.8</postgresql.version>
+    <socket-factory.version>1.25.0</socket-factory.version>
   </properties>
 
   <dependencyManagement>
@@ -242,6 +249,32 @@
       <!-- overrides with vulnerability fixes - start-->
       <!-- overrides with vulnerability fixes - end-->
       <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-hadoop</artifactId>
+        <version>${parquet.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-common</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.woodstox</groupId>
+        <artifactId>woodstox-core</artifactId>
+        <version>${woodstox-core.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.woodstox</groupId>
+        <artifactId>stax2-api</artifactId>
+        <version>${stax2-api.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.beam</groupId>
         <artifactId>beam-sdks-java-bom</artifactId>
         <version>${beam.version}</version>
@@ -265,7 +298,7 @@
       <dependency>
         <groupId>com.google.apis</groupId>
         <artifactId>google-api-services-cloudkms</artifactId>
-        <version>v1-rev20240314-2.0.0</version>
+        <version>v1-rev20260319-2.0.0</version>
       </dependency>
 
       <!-- Runners -->
@@ -400,10 +433,11 @@
 
       <!-- Test Deps -->
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>${junit.version}</version>
-        <scope>test</scope>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit-jupiter.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
@@ -420,7 +454,13 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.17.0</version>
+        <version>5.20.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <version>5.20.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -431,12 +471,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>com.google.auto.value</groupId>
-      <artifactId>auto-value</artifactId>
-    </dependency>
-  </dependencies>
 
   <repositories>
     <repository>
@@ -458,15 +492,18 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>compile</goal>
-              </goals>
-              <phase>compile</phase>
-            </execution>
-          </executions>
+          <version>3.14.1</version>
+          <configuration>
+            <!-- JDK 23+ disabled implicit annotation processing (JEP 472).
+                 Declare processors explicitly so javac runs them. -->
+            <annotationProcessorPaths>
+              <path>
+                <groupId>com.google.auto.value</groupId>
+                <artifactId>auto-value</artifactId>
+                <version>${auto-value.version}</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
@@ -519,11 +556,11 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.8.0</version>
+          <version>3.9.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.5.3</version>
+          <version>3.5.5</version>
           <configuration>
             <reuseForks>true</reuseForks>
             <!--<forkCount>2</forkCount>-->
@@ -532,7 +569,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.6.2</version>
           <executions>
             <execution>
               <id>enforce</id>
@@ -542,7 +579,7 @@
               <configuration>
                 <rules>
                   <requireJavaVersion>
-                    <version>[11,)</version>
+                    <version>[17,)</version>
                   </requireJavaVersion>
                   <requireMavenVersion>
                     <!-- Keep aligned with prerequisite section below. -->
@@ -555,6 +592,12 @@
                       <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
                       <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
                       <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
+                      <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jdk8</exclude>
+                      <!-- from hadoop-common -->
+                      <exclude>org.apache.commons:commons-lang3</exclude>
+                      <exclude>commons-logging:commons-logging</exclude>
+                      <exclude>org.apache.commons:commons-text</exclude>
+                      <exclude>com.google.re2j:re2j</exclude>
                       <exclude>com.github.luben:zstd-jni</exclude>
                       <exclude>com.google.auto.value:auto-value</exclude>
                       <exclude>com.google.auto.value:auto-value-annotations</exclude>
@@ -633,7 +676,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.23.0</version>
+            <version>10.26.1</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -653,7 +696,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.2.7</version>
+            <version>3.2.8</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -675,7 +718,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.11.2</version>
+            <version>3.12.0</version>
             <configuration>
               <source>8</source>
             </configuration>
@@ -732,7 +775,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>3.6.0</version>
+            <version>3.6.2</version>
             <executions>
               <execution>
                 <id>bundle-and-repackage</id>
@@ -760,7 +803,7 @@
                   <transformers>
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                      <mainClass>com.spotify.dbeam.jobs.JdbcAvroJob</mainClass>
+                      <mainClass>${dbeam.mainClass}</mainClass>
                     </transformer>
                   </transformers>
                   <outputFile>${basedir}/target/${project.artifactId}-shaded.jar</outputFile>

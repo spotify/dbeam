@@ -70,8 +70,7 @@ public class JdbcExportArgsFactory {
             exportOptions.getAvroCodec(),
             Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()),
             ArrayHandlingMode.validateValue(exportOptions.getArrayMode()),
-            exportOptions.isNullableArrayItems()
-            );
+            exportOptions.isNullableArrayItems());
 
     return JdbcExportArgs.create(
         jdbcAvroArgs,

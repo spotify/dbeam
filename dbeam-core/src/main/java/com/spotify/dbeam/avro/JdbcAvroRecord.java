@@ -51,10 +51,8 @@ public class JdbcAvroRecord {
     }
   }
 
-  static SqlFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta,
-                                                       final int column,
-                                                       final String arrayMode)
-      throws SQLException {
+  static SqlFunction<ResultSet, Object> computeMapping(
+      final ResultSetMetaData meta, final int column, final String arrayMode) throws SQLException {
     switch (meta.getColumnType(column)) {
       case VARCHAR:
       case CHAR:

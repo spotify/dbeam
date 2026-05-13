@@ -26,8 +26,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.Lists;
 import java.util.List;
 import org.hamcrest.Matchers;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public class ParallelQueryBuilderTest {
 
@@ -91,7 +91,7 @@ public class ParallelQueryBuilderTest {
         Matchers.is(Lists.newArrayList(format("%s AND sp >= %s AND sp <= %s", QUERY_BASE, 1, 10))));
   }
 
-  @Ignore // TODO: fix this
+  @Disabled("TODO: fix this")
   @Test
   public void shouldBuildMultipleQueriesWhenQueryingFromTwoRows() {
     final List<String> actual = ParallelQueryBuilder.queriesForBounds(1, 2, 2, "sp", QUERY_FORMAT);

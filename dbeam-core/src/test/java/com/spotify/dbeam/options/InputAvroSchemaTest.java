@@ -37,11 +37,11 @@ import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public class InputAvroSchemaTest {
 
@@ -49,7 +49,7 @@ public class InputAvroSchemaTest {
   private static Path avroSchemaFilePath;
   private static String avroSchemaFilePathStr;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws IOException {
     final String jsonSchema =
         "{\n"
@@ -104,7 +104,7 @@ public class InputAvroSchemaTest {
     return inputSchema;
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterAll() throws IOException {
     Files.delete(avroSchemaFile.toPath());
   }
@@ -115,17 +115,17 @@ public class InputAvroSchemaTest {
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(avroSchemaFilePathStr);
 
-    Assert.assertEquals(avroSchemaFilePathStr, options.getAvroSchemaFilePath());
+    Assertions.assertEquals(avroSchemaFilePathStr, options.getAvroSchemaFilePath());
 
     final Schema inputSchema = BeamJdbcAvroSchema.parseInputAvroSchemaFile(avroSchemaFilePathStr);
 
-    Assert.assertEquals("Record description", inputSchema.getDoc());
-    Assert.assertEquals("Field1 description", inputSchema.getField("field1").doc());
-    Assert.assertEquals("Field2 description", inputSchema.getField("field2").doc());
+    Assertions.assertEquals("Record description", inputSchema.getDoc());
+    Assertions.assertEquals("Field1 description", inputSchema.getField("field1").doc());
+    Assertions.assertEquals("Field2 description", inputSchema.getField("field2").doc());
   }
 
   @Test
-  @Ignore
+  @Disabled
   public void checkFullPath() {
     // TODO
     // Check provide input string to args and verify final schema
@@ -146,8 +146,8 @@ public class InputAvroSchemaTest {
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
-    Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    Assert.assertEquals(
+    Assertions.assertEquals(path, options.getAvroSchemaFilePath());
+    Assertions.assertEquals(
         Optional.empty(), BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
@@ -158,12 +158,12 @@ public class InputAvroSchemaTest {
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
-    Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    Assert.assertEquals(
+    Assertions.assertEquals(path, options.getAvroSchemaFilePath());
+    Assertions.assertEquals(
         Optional.empty(), BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
-  @Test(expected = SchemaParseException.class)
+  @Test
   public void checkReadAvroSchemaWithInvalidFormat() throws IOException {
     final String invalidJson = "{";
     final File invalidFile = createTestAvroSchemaFile(invalidJson);
@@ -172,19 +172,23 @@ public class InputAvroSchemaTest {
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
-    Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path);
+    Assertions.assertEquals(path, options.getAvroSchemaFilePath());
+    Assertions.assertThrows(
+        SchemaParseException.class,
+        () -> BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
-  @Test(expected = FileNotFoundException.class)
-  public void checkReadAvroSchemaWithNonExistentFile() throws IOException {
+  @Test
+  public void checkReadAvroSchemaWithNonExistentFile() {
     final String path = "non_existent_schema.avsc";
     final JdbcExportPipelineOptions options =
         PipelineOptionsFactory.create().as(JdbcExportPipelineOptions.class);
     options.setAvroSchemaFilePath(path);
 
-    Assert.assertEquals(path, options.getAvroSchemaFilePath());
-    BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path);
+    Assertions.assertEquals(path, options.getAvroSchemaFilePath());
+    Assertions.assertThrows(
+        FileNotFoundException.class,
+        () -> BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(path));
   }
 
   @Test
@@ -194,7 +198,7 @@ public class InputAvroSchemaTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--avroSchemaFilePath=/temp/record1.avsc --partition=2027-07-31");
 
-    Assert.assertEquals("/temp/record1.avsc", options.getAvroSchemaFilePath());
+    Assertions.assertEquals("/temp/record1.avsc", options.getAvroSchemaFilePath());
   }
 
   @Test
@@ -204,7 +208,7 @@ public class InputAvroSchemaTest {
             "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
                 + "--partition=2027-07-31");
 
-    Assert.assertNull(options.getAvroSchemaFilePath());
+    Assertions.assertNull(options.getAvroSchemaFilePath());
   }
 
   private QueryBuilderArgs pareOptions(String cmdLineArgs) throws IOException {

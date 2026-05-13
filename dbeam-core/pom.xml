@@ -13,6 +13,10 @@
   <name>DBeam Core</name>
   <description>Top level DBeam core implementation</description>
 
+  <properties>
+    <dbeam.mainClass>com.spotify.dbeam.jobs.JdbcAvroJob</dbeam.mainClass>
+  </properties>
+
   <dependencies>
     <!-- SDK -->
     <dependency>
@@ -93,8 +97,8 @@
     <!-- Test Deps -->
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -123,5 +127,21 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

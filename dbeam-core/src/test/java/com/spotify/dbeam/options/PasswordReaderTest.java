@@ -32,23 +32,23 @@ import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 import org.apache.beam.sdk.extensions.gcp.auth.NoopCredentialFactory;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class PasswordReaderTest {
 
   private static File passwordFile;
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws IOException {
     passwordFile = File.createTempFile("pattern", ".suffix");
     passwordFile.deleteOnExit();
     Files.write(passwordFile.toPath(), "something_encrypted".getBytes(), StandardOpenOption.CREATE);
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterAll() throws IOException {
     Files.delete(passwordFile.toPath());
   }
@@ -83,6 +83,6 @@ public class PasswordReaderTest {
 
     final Optional<String> actualPassword = passwordReader.readPassword(options);
 
-    Assert.assertEquals(Optional.of("something_decrypted"), actualPassword);
+    Assertions.assertEquals(Optional.of("something_decrypted"), actualPassword);
   }
 }

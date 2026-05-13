@@ -45,14 +45,13 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class PostgresJdbcAvroTest {
 
-  public static GenericRecord[] bytesToGenericRecords(Schema schema,
-                                                          ByteBuffer... avroRecordBytes)
+  public static GenericRecord[] bytesToGenericRecords(Schema schema, ByteBuffer... avroRecordBytes)
       throws IOException {
     DataFileWriter<GenericRecord> dataFileWriter =
         new DataFileWriter<>(new GenericDatumWriter<>(schema));
@@ -66,16 +65,16 @@ public class PostgresJdbcAvroTest {
 
     SeekableByteArrayInput inputStream = new SeekableByteArrayInput(avroOutputStream.toByteArray());
     List<GenericRecord> genericRecords = new ArrayList<>();
-    DataFileReader<GenericRecord> dataReader = new DataFileReader<>(inputStream,
-        new GenericDatumReader<>(schema));
+    DataFileReader<GenericRecord> dataReader =
+        new DataFileReader<>(inputStream, new GenericDatumReader<>(schema));
     while (dataReader.hasNext()) {
       genericRecords.add(dataReader.next());
     }
     return genericRecords.toArray(new GenericRecord[0]);
   }
 
-  public void assertGenericRecordArrayField(GenericRecord record, String fieldName,
-                                       String... expectedItems) {
+  public void assertGenericRecordArrayField(
+      GenericRecord record, String fieldName, String... expectedItems) {
     Utf8[] expectedItemsConverted = new Utf8[expectedItems.length];
     for (int i = 0; i < expectedItems.length; i++) {
       expectedItemsConverted[i] = expectedItems[i] != null ? new Utf8(expectedItems[i]) : null;
@@ -83,15 +82,15 @@ public class PostgresJdbcAvroTest {
     assertGenericRecordArrayField(record, fieldName, (Object[]) expectedItemsConverted);
   }
 
-  public void assertGenericRecordArrayField(GenericRecord record, String fieldName,
-                                       Object... expectedItems) {
+  public void assertGenericRecordArrayField(
+      GenericRecord record, String fieldName, Object... expectedItems) {
 
     final GenericData.Array<GenericRecord> arrayValue =
         (GenericData.Array<GenericRecord>) record.get(fieldName);
-    Assert.assertEquals(expectedItems.length, arrayValue.size());
+    Assertions.assertEquals(expectedItems.length, arrayValue.size());
 
     for (int i = 0; i < expectedItems.length; i++) {
-      Assert.assertEquals(expectedItems[i], arrayValue.get(i));
+      Assertions.assertEquals(expectedItems[i], arrayValue.get(i));
     }
   }
 
@@ -105,20 +104,21 @@ public class PostgresJdbcAvroTest {
     when(resultSet.getMetaData()).thenReturn(meta);
     final UUID uuidExpected = UUID.randomUUID();
     when(resultSet.getObject(1)).thenReturn(uuidExpected);
-    TestHelper.mockArrayColumn(meta, resultSet, 2, "array_field", "_uuid", Types.OTHER,
-        "uuid", new UUID[] {uuidExpected});
+    TestHelper.mockArrayColumn(
+        meta, resultSet, 2, "array_field", "_uuid", Types.OTHER, "uuid", new UUID[] {uuidExpected});
     when(resultSet.isFirst()).thenReturn(true);
 
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(
-        resultSet, arrayMode, false);
+    final Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "ns", "conn_url", Optional.empty(), "doc", true, arrayMode, false);
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, false);
 
-    GenericRecord actualRecord = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes())[0];
+    GenericRecord actualRecord =
+        bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
 
-    Assert.assertEquals(actualRecord.get("uuid_field"), new Utf8(uuidExpected.toString()));
+    Assertions.assertEquals(actualRecord.get("uuid_field"), new Utf8(uuidExpected.toString()));
     assertGenericRecordArrayField(actualRecord, "array_field", new Utf8(uuidExpected.toString()));
   }
 
@@ -127,32 +127,54 @@ public class PostgresJdbcAvroTest {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(5);
     TestHelper.mockResultSetMeta(meta, 1, Types.VARCHAR, "text_field", "java.lang.String", "text");
-    TestHelper.mockResultSetMeta(meta, 2, Types.OTHER, "other_field", "java.util.UUID",
-        "something_else");
+    TestHelper.mockResultSetMeta(
+        meta, 2, Types.OTHER, "other_field", "java.util.UUID", "something_else");
 
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
     when(resultSet.getString(1)).thenReturn("some_text_42");
     when(resultSet.getString(2)).thenReturn("some_other_42");
 
-    TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field1", "_text", Types.VARCHAR,
-        "text", new String[] {"some_text_42"});
-    TestHelper.mockArrayColumn(meta, resultSet, 4, "array_field2", "_varchar",
-        Types.VARCHAR, "varchar", (Object) new String[] {"some_varchar_42"});
-    TestHelper.mockArrayColumn(meta, resultSet, 5, "array_other", "_other",
-        Types.OTHER, "other", (Object) new String[] {"some_other_42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        3,
+        "array_field1",
+        "_text",
+        Types.VARCHAR,
+        "text",
+        new String[] {"some_text_42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        4,
+        "array_field2",
+        "_varchar",
+        Types.VARCHAR,
+        "varchar",
+        (Object) new String[] {"some_varchar_42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        5,
+        "array_other",
+        "_other",
+        Types.OTHER,
+        "other",
+        (Object) new String[] {"some_other_42"});
     when(resultSet.isFirst()).thenReturn(true);
 
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        false);
+    final Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "ns", "conn_url", Optional.empty(), "doc", true, arrayMode, false);
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, false);
 
-    GenericRecord actualRecord = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes())[0];
-    Assert.assertEquals(actualRecord.get("text_field"), new Utf8("some_text_42"));
-    Assert.assertEquals(actualRecord.get("other_field"), new Utf8("some_other_42"));
+    GenericRecord actualRecord =
+        bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
+    Assertions.assertEquals(actualRecord.get("text_field"), new Utf8("some_text_42"));
+    Assertions.assertEquals(actualRecord.get("other_field"), new Utf8("some_other_42"));
     assertGenericRecordArrayField(actualRecord, "array_field1", "some_text_42");
     assertGenericRecordArrayField(actualRecord, "array_field2", "some_varchar_42");
     assertGenericRecordArrayField(actualRecord, "array_other", "some_other_42");
@@ -168,9 +190,18 @@ public class PostgresJdbcAvroTest {
     when(resultSet.getArray(1)).thenReturn(null);
     when(resultSet.isFirst()).thenReturn(true);
 
-    Assert.assertThrows(RuntimeException.class, () -> JdbcAvroSchema.createAvroSchema(resultSet,
-        "ns", "conn_url",
-        Optional.empty(), "doc", true, ArrayHandlingMode.TypedMetaFromFirstRow, false));
+    Assertions.assertThrows(
+        RuntimeException.class,
+        () ->
+            JdbcAvroSchema.createAvroSchema(
+                resultSet,
+                "ns",
+                "conn_url",
+                Optional.empty(),
+                "doc",
+                true,
+                ArrayHandlingMode.TypedMetaFromFirstRow,
+                false));
   }
 
   @Test
@@ -186,15 +217,16 @@ public class PostgresJdbcAvroTest {
     when(resultSet.isFirst()).thenReturn(true);
     String arrayMode = ArrayHandlingMode.Bytes;
 
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        false);
+    final Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "ns", "conn_url", Optional.empty(), "doc", true, arrayMode, false);
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, false);
 
-    GenericRecord actualRecord = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes())[0];
-    Assert.assertArrayEquals(expectedValue,
-        ((java.nio.ByteBuffer) actualRecord.get("array_field")).array());
+    GenericRecord actualRecord =
+        bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
+    Assertions.assertArrayEquals(
+        expectedValue, ((java.nio.ByteBuffer) actualRecord.get("array_field")).array());
   }
 
   @Test
@@ -204,41 +236,92 @@ public class PostgresJdbcAvroTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
-    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_varchar", "_varchar",
-        Types.VARCHAR, "varchar", null, (Object) new String[] {"some_varchar_42", "42"});
-    TestHelper.mockArrayColumn(meta, resultSet, 2, "array_field_text", "_text",
-        Types.VARCHAR, "text", null, (Object) new String[] {"some_text_42", "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        1,
+        "array_field_varchar",
+        "_varchar",
+        Types.VARCHAR,
+        "varchar",
+        null,
+        (Object) new String[] {"some_varchar_42", "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        2,
+        "array_field_text",
+        "_text",
+        Types.VARCHAR,
+        "text",
+        null,
+        (Object) new String[] {"some_text_42", "42"});
     final UUID uuidExpected = UUID.randomUUID();
-    TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field_uuid", "_uuid",
-        Types.VARCHAR, "uuid", null, (Object) new UUID[] {uuidExpected});
-    TestHelper.mockArrayColumn(meta, resultSet, 4, "array_field_int", "_int",
-        Types.VARCHAR, "int", null, (Object) new Integer[] {42});
-    TestHelper.mockArrayColumn(meta, resultSet, 5, "array_field_int4", "_int4",
-        Types.VARCHAR, "int4", null, (Object) new Integer[] {42});
-    TestHelper.mockArrayColumn(meta, resultSet, 6, "array_field_int8", "_int8",
-        Types.VARCHAR, "int8", null, (Object) new Long[] {42L});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        3,
+        "array_field_uuid",
+        "_uuid",
+        Types.VARCHAR,
+        "uuid",
+        null,
+        (Object) new UUID[] {uuidExpected});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        4,
+        "array_field_int",
+        "_int",
+        Types.VARCHAR,
+        "int",
+        null,
+        (Object) new Integer[] {42});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        5,
+        "array_field_int4",
+        "_int4",
+        Types.VARCHAR,
+        "int4",
+        null,
+        (Object) new Integer[] {42});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        6,
+        "array_field_int8",
+        "_int8",
+        Types.VARCHAR,
+        "int8",
+        null,
+        (Object) new Long[] {42L});
 
     when(resultSet.next()).thenReturn(true, true, false);
     when(resultSet.isFirst()).thenReturn(true);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
 
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        false);
-    GenericRecord[] actualRecords = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes());
+    final Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "ns", "conn_url", Optional.empty(), "doc", true, arrayMode, false);
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, false);
+    GenericRecord[] actualRecords =
+        bytesToGenericRecords(
+            schema,
+            converter.convertResultSetIntoAvroBytes(),
+            converter.convertResultSetIntoAvroBytes());
 
-    Assert.assertNull(actualRecords[0].get("array_field_varchar"));
-    Assert.assertNull(actualRecords[0].get("array_field_text"));
-    Assert.assertNull(actualRecords[0].get("array_field_uuid"));
-    Assert.assertNull(actualRecords[0].get("array_field_int"));
-    Assert.assertNull(actualRecords[0].get("array_field_int4"));
-    Assert.assertNull(actualRecords[0].get("array_field_int8"));
+    Assertions.assertNull(actualRecords[0].get("array_field_varchar"));
+    Assertions.assertNull(actualRecords[0].get("array_field_text"));
+    Assertions.assertNull(actualRecords[0].get("array_field_uuid"));
+    Assertions.assertNull(actualRecords[0].get("array_field_int"));
+    Assertions.assertNull(actualRecords[0].get("array_field_int4"));
+    Assertions.assertNull(actualRecords[0].get("array_field_int8"));
     assertGenericRecordArrayField(actualRecords[1], "array_field_varchar", "some_varchar_42", "42");
     assertGenericRecordArrayField(actualRecords[1], "array_field_text", "some_text_42", "42");
-    assertGenericRecordArrayField(actualRecords[1], "array_field_uuid",
-        uuidExpected.toString());
+    assertGenericRecordArrayField(actualRecords[1], "array_field_uuid", uuidExpected.toString());
     assertGenericRecordArrayField(actualRecords[1], "array_field_int", 42);
     assertGenericRecordArrayField(actualRecords[1], "array_field_int4", 42);
     assertGenericRecordArrayField(actualRecords[1], "array_field_int8", 42L);
@@ -251,30 +334,61 @@ public class PostgresJdbcAvroTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
-    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_varchar", "_varchar",
-        Types.VARCHAR, "varchar", new String[] { null, "some_varchar_42", "42"});
-    TestHelper.mockArrayColumn(meta, resultSet, 2, "array_field_text", "_text",
-        Types.VARCHAR, "text", new String[] { "some_text_42", null, "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        1,
+        "array_field_varchar",
+        "_varchar",
+        Types.VARCHAR,
+        "varchar",
+        new String[] {null, "some_varchar_42", "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        2,
+        "array_field_text",
+        "_text",
+        Types.VARCHAR,
+        "text",
+        new String[] {"some_text_42", null, "42"});
     final UUID uuidExpected = UUID.randomUUID();
-    TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field_uuid", "_uuid",
-        Types.VARCHAR, "uuid", new UUID[] { uuidExpected, null});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        3,
+        "array_field_uuid",
+        "_uuid",
+        Types.VARCHAR,
+        "uuid",
+        new UUID[] {uuidExpected, null});
     when(resultSet.next()).thenReturn(true, false);
     when(resultSet.isFirst()).thenReturn(true, false);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = true;
 
-    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, nullableArrayItems);
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        nullableArrayItems);
-    GenericRecord actualRecord = bytesToGenericRecords(schema,
-        converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes())[0];
+    final Schema schema =
+        JdbcAvroSchema.createAvroSchema(
+            resultSet,
+            "ns",
+            "conn_url",
+            Optional.empty(),
+            "doc",
+            true,
+            arrayMode,
+            nullableArrayItems);
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+    GenericRecord actualRecord =
+        bytesToGenericRecords(
+            schema,
+            converter.convertResultSetIntoAvroBytes(),
+            converter.convertResultSetIntoAvroBytes())[0];
 
-    assertGenericRecordArrayField(actualRecord, "array_field_varchar", null, "some_varchar_42",
-        "42");
+    assertGenericRecordArrayField(
+        actualRecord, "array_field_varchar", null, "some_varchar_42", "42");
     assertGenericRecordArrayField(actualRecord, "array_field_text", "some_text_42", null, "42");
-    assertGenericRecordArrayField(actualRecord, "array_field_uuid",
-        uuidExpected.toString(), null);
+    assertGenericRecordArrayField(actualRecord, "array_field_uuid", uuidExpected.toString(), null);
   }
 
   @Test
@@ -284,24 +398,47 @@ public class PostgresJdbcAvroTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
-    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_varchar", "_varchar",
-        Types.VARCHAR, "varchar", new String[] { null, "some_varchar_42", "42"});
-    TestHelper.mockArrayColumn(meta, resultSet, 2, "array_field_text", "_text",
-        Types.VARCHAR, "text", new String[] { "some_text_42", null, "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        1,
+        "array_field_varchar",
+        "_varchar",
+        Types.VARCHAR,
+        "varchar",
+        new String[] {null, "some_varchar_42", "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        2,
+        "array_field_text",
+        "_text",
+        Types.VARCHAR,
+        "text",
+        new String[] {"some_text_42", null, "42"});
     final UUID uuidExpected = UUID.randomUUID();
-    TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field_uuid", "_uuid",
-        Types.VARCHAR, "uuid", new UUID[] { uuidExpected, null});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        3,
+        "array_field_uuid",
+        "_uuid",
+        Types.VARCHAR,
+        "uuid",
+        new UUID[] {uuidExpected, null});
     when(resultSet.next()).thenReturn(true, false);
     when(resultSet.isFirst()).thenReturn(true, false);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = false;
 
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        nullableArrayItems);
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> converter.convertResultSetIntoAvroBytes());
-    Assert.assertEquals("Array item is null in column 'array_field_varchar', use "
-                        + "--nullableArrayItems", thrown.getMessage());
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> converter.convertResultSetIntoAvroBytes());
+    Assertions.assertEquals(
+        "Array item is null in column 'array_field_varchar', use " + "--nullableArrayItems",
+        thrown.getMessage());
   }
 
   @Test
@@ -311,19 +448,28 @@ public class PostgresJdbcAvroTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
-    TestHelper.mockArrayColumn(meta, resultSet, 1, "invalid_array", "_uuid",
-        Types.VARCHAR, "uuid", new File[] { new File("/some/file")});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        1,
+        "invalid_array",
+        "_uuid",
+        Types.VARCHAR,
+        "uuid",
+        new File[] {new File("/some/file")});
     when(resultSet.next()).thenReturn(true, false);
     when(resultSet.isFirst()).thenReturn(true, false);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = false;
 
-    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        nullableArrayItems);
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> converter.convertResultSetIntoAvroBytes());
-    Assert.assertEquals("Value of type class java.io.File in column 'invalid_array' is not "
-                        + "supported", thrown.getMessage());
+    final JdbcAvroRecordConverter converter =
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> converter.convertResultSetIntoAvroBytes());
+    Assertions.assertEquals(
+        "Value of type class java.io.File in column 'invalid_array' is not " + "supported",
+        thrown.getMessage());
   }
 
   @Test
@@ -333,17 +479,35 @@ public class PostgresJdbcAvroTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
-    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_text", "text",
-        Types.VARCHAR, "text", new String[] { "some_text_42", null, "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        1,
+        "array_field_text",
+        "text",
+        Types.VARCHAR,
+        "text",
+        new String[] {"some_text_42", null, "42"});
     when(resultSet.next()).thenReturn(true, false);
     when(resultSet.isFirst()).thenReturn(true, false);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = true;
 
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-            Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
-    Assert.assertEquals("columnName=array_field_text columnTypeName=text should start with '_'",
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () ->
+                JdbcAvroSchema.createAvroSchema(
+                    resultSet,
+                    "ns",
+                    "conn_url",
+                    Optional.empty(),
+                    "doc",
+                    true,
+                    arrayMode,
+                    nullableArrayItems));
+    Assertions.assertEquals(
+        "columnName=array_field_text columnTypeName=text should start with '_'",
         thrown.getMessage());
   }
 
@@ -354,17 +518,34 @@ public class PostgresJdbcAvroTest {
     final ResultSet resultSet = Mockito.mock(ResultSet.class);
     when(resultSet.getMetaData()).thenReturn(meta);
 
-    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_text", "_not_supported",
-        Types.VARCHAR, "not_supported", new String[] { "some_text_42", null, "42"});
+    TestHelper.mockArrayColumn(
+        meta,
+        resultSet,
+        1,
+        "array_field_text",
+        "_not_supported",
+        Types.VARCHAR,
+        "not_supported",
+        new String[] {"some_text_42", null, "42"});
     when(resultSet.next()).thenReturn(true, false);
     when(resultSet.isFirst()).thenReturn(true, false);
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
     boolean nullableArrayItems = true;
 
-    RuntimeException thrown = Assert.assertThrows(RuntimeException.class,
-        () -> JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-            Optional.empty(), "doc", true, arrayMode, nullableArrayItems));
-    Assert.assertEquals(
+    RuntimeException thrown =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () ->
+                JdbcAvroSchema.createAvroSchema(
+                    resultSet,
+                    "ns",
+                    "conn_url",
+                    Optional.empty(),
+                    "doc",
+                    true,
+                    arrayMode,
+                    nullableArrayItems));
+    Assertions.assertEquals(
         "columnName=array_field_text Postgres type 'not_supported' is not supported",
         thrown.getMessage());
   }
