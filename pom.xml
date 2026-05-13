@@ -135,7 +135,7 @@
 
     <!-- other deps -->
     <bouncycastle.version>1.84</bouncycastle.version>
-    <junit.version>4.13.2</junit.version>
+    <junit-jupiter.version>5.11.4</junit-jupiter.version>
     <mysql.version>8.4.0</mysql.version>
     <mariadb.version>3.5.8</mariadb.version>
     <postgresql.version>42.7.8</postgresql.version>
@@ -400,10 +400,11 @@
 
       <!-- Test Deps -->
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>${junit.version}</version>
-        <scope>test</scope>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit-jupiter.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.hamcrest</groupId>
@@ -420,6 +421,12 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
+        <version>5.20.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
         <version>5.20.0</version>
         <scope>test</scope>
       </dependency>
