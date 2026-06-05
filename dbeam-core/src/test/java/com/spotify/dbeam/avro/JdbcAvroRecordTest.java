@@ -244,7 +244,7 @@ public class JdbcAvroRecordTest {
             Optional.ofNullable((Long) record.get(9)).map(Timestamp::new),
             TestHelper.byteBufferToUuid((ByteBuffer) record.get(10)),
             (Long) record.get(11),
-            new ArrayList<>((GenericData.Array<Integer>) record.get(12)),
+            new ArrayList<>((List<Integer>) record.get(12)),
             actualTxtArray);
     Assertions.assertEquals(Coffee.COFFEE1, actual);
   }

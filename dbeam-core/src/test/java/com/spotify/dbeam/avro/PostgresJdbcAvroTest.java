@@ -86,8 +86,7 @@ public class PostgresJdbcAvroTest {
   public void assertGenericRecordArrayField(GenericRecord record, String fieldName,
                                        Object... expectedItems) {
 
-    final GenericData.Array<GenericRecord> arrayValue =
-        (GenericData.Array<GenericRecord>) record.get(fieldName);
+    final List<?> arrayValue = (List<?>) record.get(fieldName);
     Assertions.assertEquals(expectedItems.length, arrayValue.size());
 
     for (int i = 0; i < expectedItems.length; i++) {
