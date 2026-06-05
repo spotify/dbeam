@@ -109,7 +109,7 @@
     <!-- https://github.com/apache/beam/blob/release-2.74/buildSrc/src/main/groovy/org/apache/beam/gradle/BeamModulePlugin.groovy#L588 -->
     <beam.version>2.74.0</beam.version>
     <!-- versions from beam -->
-    <auto-value.version>1.11.0</auto-value.version>
+    <auto-value.version>1.11.1</auto-value.version>
     <avro.version>1.12.0</avro.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <commons-codec.version>1.17.1</commons-codec.version>
@@ -135,10 +135,10 @@
 
     <!-- other deps -->
     <bouncycastle.version>1.84</bouncycastle.version>
-    <junit-jupiter.version>5.11.4</junit-jupiter.version>
+    <junit-jupiter.version>5.14.4</junit-jupiter.version>
     <mysql.version>8.4.0</mysql.version>
     <mariadb.version>3.5.8</mariadb.version>
-    <postgresql.version>42.7.8</postgresql.version>
+    <postgresql.version>42.7.11</postgresql.version>
     <socket-factory.version>1.25.0</socket-factory.version>
   </properties>
 
@@ -432,19 +432,19 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.20.0</version>
+        <version>5.23.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-junit-jupiter</artifactId>
-        <version>5.20.0</version>
+        <version>5.23.0</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.h2database</groupId>
         <artifactId>h2</artifactId>
-        <version>2.3.232</version>
+        <version>2.4.240</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -476,7 +476,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.14.1</version>
+          <version>3.15.0</version>
           <configuration>
             <!-- JDK 23+ disabled implicit annotation processing (JEP 472).
                  Declare processors explicitly so javac runs them. -->
@@ -499,7 +499,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
-          <version>3.1.1</version>
+          <version>3.3.1</version>
           <configuration>
             <tagNameFormat>v@{project.version}</tagNameFormat>
             <allowTimestampedSnapshots>true</allowTimestampedSnapshots>
@@ -512,30 +512,30 @@
             <dependency>
               <groupId>org.apache.maven.scm</groupId>
               <artifactId>maven-scm-provider-gitexe</artifactId>
-              <version>2.1.0</version>
+              <version>2.2.1</version>
             </dependency>
             <dependency>
               <groupId>org.apache.maven.scm</groupId>
               <artifactId>maven-scm-api</artifactId>
-              <version>2.1.0</version>
+              <version>2.2.1</version>
             </dependency>
           </dependencies>
         </plugin>
 
         <plugin>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.21.0</version>
+          <version>3.22.0</version>
         </plugin>
 
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
-          <version>3.4.2</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>3.3.1</version>
+          <version>3.4.0</version>
           <executions>
             <execution>
               <id>attach-sources</id>
@@ -548,11 +548,11 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>3.9.0</version>
+          <version>3.10.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.5.5</version>
+          <version>3.5.6</version>
           <configuration>
             <reuseForks>true</reuseForks>
             <!--<forkCount>2</forkCount>-->
@@ -561,7 +561,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-enforcer-plugin</artifactId>
-          <version>3.6.2</version>
+          <version>3.6.3</version>
           <executions>
             <execution>
               <id>enforce</id>
@@ -727,7 +727,7 @@
           <plugin>
             <groupId>org.sonatype.central</groupId>
             <artifactId>central-publishing-maven-plugin</artifactId>
-            <version>0.8.0</version>
+            <version>0.10.0</version>
             <extensions>true</extensions>
             <configuration>
               <publishingServerId>ossrh</publishingServerId>
@@ -808,7 +808,7 @@
           <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.8.13</version>
+            <version>0.8.14</version>
             <configuration>
               <!--Configure to work on codecov-->
               <!--https://github.com/codecov/example-java/blob/master/pom.xml-->
