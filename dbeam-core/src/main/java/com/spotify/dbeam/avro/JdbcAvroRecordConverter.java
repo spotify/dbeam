@@ -51,10 +51,11 @@ public class JdbcAvroRecordConverter {
 
   public static JdbcAvroRecordConverter create(final ResultSet resultSet,
                                                final String arrayMode,
-                                               final boolean nullableArrayItems)
+                                               final boolean nullableArrayItems,
+                                               final boolean useTimestampMicros)
       throws SQLException {
     return new JdbcAvroRecordConverter(
-        computeAllMappings(resultSet, arrayMode),
+        computeAllMappings(resultSet, arrayMode, useTimestampMicros),
         resultSet.getMetaData().getColumnCount(),
         resultSet,
         nullableArrayItems);
@@ -62,7 +63,7 @@ public class JdbcAvroRecordConverter {
 
   @SuppressWarnings("unchecked")
   static JdbcAvroRecord.SqlFunction<ResultSet, Object>[] computeAllMappings(
-      final ResultSet resultSet, final String arrayMode)
+      final ResultSet resultSet, final String arrayMode, final boolean useTimestampMicros)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
@@ -72,7 +73,7 @@ public class JdbcAvroRecordConverter {
             new JdbcAvroRecord.SqlFunction<?, ?>[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayMode);
+      mappings[i] = JdbcAvroRecord.computeMapping(meta, i, arrayMode, useTimestampMicros);
     }
     return mappings;
   }

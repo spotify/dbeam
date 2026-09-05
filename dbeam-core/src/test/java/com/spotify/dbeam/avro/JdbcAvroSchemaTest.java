@@ -197,10 +197,16 @@ public class JdbcAvroSchemaTest {
 
   private Schema createAvroSchemaForSingleField(
       final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
+    return createAvroSchemaForSingleField(resultSet, useLogicalTypes, false);
+  }
+
+  private Schema createAvroSchemaForSingleField(
+      final ResultSet resultSet, final boolean useLogicalTypes,
+      final boolean useTimestampMicros) throws SQLException {
     Schema avroSchema =
         JdbcAvroSchema.createAvroSchema(
             resultSet, "namespace1", "url1", Optional.empty(), "doc1", useLogicalTypes,
-            ArrayHandlingMode.TypedMetaFromFirstRow, false);
+            useTimestampMicros, ArrayHandlingMode.TypedMetaFromFirstRow, false);
 
     return avroSchema.getField("column1").schema().getTypes().get(COLUMN_NUM);
   }
