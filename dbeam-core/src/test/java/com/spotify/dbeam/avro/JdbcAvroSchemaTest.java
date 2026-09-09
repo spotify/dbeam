@@ -78,7 +78,7 @@ public class JdbcAvroSchemaTest {
   public void shouldConvertDateSqlTypeWithAvroLogicalType() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.DATE);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, true);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, true, false);
 
     Assertions.assertEquals(Schema.Type.LONG, fieldSchema.getType());
     Assertions.assertEquals("timestamp-millis", fieldSchema.getProp("logicalType"));
@@ -88,7 +88,7 @@ public class JdbcAvroSchemaTest {
   public void shouldConvertDateSqlTypeWithoutAvroLogicalType() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.DATE);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.LONG, fieldSchema.getType());
     Assertions.assertNull(fieldSchema.getProp("logicalType"));
@@ -98,7 +98,7 @@ public class JdbcAvroSchemaTest {
   public void shouldConvertBigIntSqlTypeToLong() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.BIGINT);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.LONG, fieldSchema.getType());
   }
@@ -107,7 +107,7 @@ public class JdbcAvroSchemaTest {
   public void shouldConvertBitSqlTypeWithNoPrecisionToBoolean() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.BIT);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.BOOLEAN, fieldSchema.getType());
   }
@@ -117,7 +117,7 @@ public class JdbcAvroSchemaTest {
     final ResultSet resultSet = buildMockResultSet(Types.BIT);
     when(resultSet.getMetaData().getPrecision(COLUMN_NUM)).thenReturn(2);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.BYTES, fieldSchema.getType());
   }
@@ -127,25 +127,29 @@ public class JdbcAvroSchemaTest {
     final ResultSet resultSet = buildMockResultSet(Types.STRUCT);
     RuntimeException thrown =
         Assertions.assertThrows(
-            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet, false));
+            RuntimeException.class,
+            () -> createAvroSchemaForSingleField(resultSet, false, false));
     Assertions.assertEquals("STRUCT type is not supported", thrown.getMessage());
 
     final ResultSet resultSet2 = buildMockResultSet(Types.REF);
     RuntimeException thrown2 =
         Assertions.assertThrows(
-            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet2, false));
+            RuntimeException.class,
+            () -> createAvroSchemaForSingleField(resultSet2, false, false));
     Assertions.assertEquals("REF and REF_CURSOR type are not supported", thrown2.getMessage());
 
     final ResultSet resultSet3 = buildMockResultSet(Types.REF_CURSOR);
     RuntimeException thrown3 =
         Assertions.assertThrows(
-            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet3, false));
+            RuntimeException.class,
+            () -> createAvroSchemaForSingleField(resultSet3, false, false));
     Assertions.assertEquals("REF and REF_CURSOR type are not supported", thrown3.getMessage());
 
     final ResultSet resultSet4 = buildMockResultSet(Types.DATALINK);
     RuntimeException thrown4 =
         Assertions.assertThrows(
-            RuntimeException.class, () -> createAvroSchemaForSingleField(resultSet4, false));
+            RuntimeException.class,
+            () -> createAvroSchemaForSingleField(resultSet4, false, false));
     Assertions.assertEquals("DATALINK type is not supported", thrown4.getMessage());
   }
 
@@ -154,7 +158,7 @@ public class JdbcAvroSchemaTest {
     final ResultSet resultSet = buildMockResultSet(Types.INTEGER);
     when(resultSet.getMetaData().getColumnClassName(COLUMN_NUM)).thenReturn("java.lang.Long");
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.LONG, fieldSchema.getType());
   }
@@ -163,7 +167,7 @@ public class JdbcAvroSchemaTest {
   public void shouldConvertIntegerSqlTypeToInteger() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.INTEGER);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.INT, fieldSchema.getType());
   }
@@ -172,7 +176,7 @@ public class JdbcAvroSchemaTest {
   public void shouldDefaultConversionToStringType() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.SQLXML);
 
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.STRING, fieldSchema.getType());
   }
@@ -180,7 +184,7 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldConvertUuidSqlTypeWithAvroLogicalType() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.OTHER, "uuid");
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, true);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, true, false);
 
     Assertions.assertEquals(Schema.Type.STRING, fieldSchema.getType());
     Assertions.assertEquals("uuid", fieldSchema.getProp("logicalType"));
@@ -189,15 +193,10 @@ public class JdbcAvroSchemaTest {
   @Test
   public void shouldConvertUuidSqlTypeWithoutAvroLogicalType() throws SQLException {
     final ResultSet resultSet = buildMockResultSet(Types.OTHER, "uuid");
-    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false);
+    final Schema fieldSchema = createAvroSchemaForSingleField(resultSet, false, false);
 
     Assertions.assertEquals(Schema.Type.STRING, fieldSchema.getType());
     Assertions.assertNull(fieldSchema.getProp("logicalType"));
-  }
-
-  private Schema createAvroSchemaForSingleField(
-      final ResultSet resultSet, final boolean useLogicalTypes) throws SQLException {
-    return createAvroSchemaForSingleField(resultSet, useLogicalTypes, false);
   }
 
   private Schema createAvroSchemaForSingleField(

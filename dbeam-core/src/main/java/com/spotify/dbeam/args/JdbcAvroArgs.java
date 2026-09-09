@@ -92,17 +92,6 @@ public abstract class JdbcAvroArgs implements Serializable {
       final String avroCodec,
       final List<String> preCommand,
       final String arrayMode,
-      final Boolean nullableArrayItems) {
-    return create(jdbcConnectionArgs, fetchSize, avroCodec, preCommand,
-        arrayMode, nullableArrayItems, false);
-  }
-
-  public static JdbcAvroArgs create(
-      final JdbcConnectionArgs jdbcConnectionArgs,
-      final int fetchSize,
-      final String avroCodec,
-      final List<String> preCommand,
-      final String arrayMode,
       final Boolean nullableArrayItems,
       final Boolean useTimestampMicros) {
     Preconditions.checkArgument(
