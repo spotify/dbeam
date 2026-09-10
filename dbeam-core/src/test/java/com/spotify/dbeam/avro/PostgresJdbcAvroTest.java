@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,9 +111,9 @@ public class PostgresJdbcAvroTest {
 
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
+        Optional.empty(), "doc", true, false, arrayMode, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(
-        resultSet, arrayMode, false);
+        resultSet, arrayMode, false, false);
 
     GenericRecord actualRecord = bytesToGenericRecords(schema,
         converter.convertResultSetIntoAvroBytes())[0];
@@ -144,9 +145,9 @@ public class PostgresJdbcAvroTest {
 
     String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
+        Optional.empty(), "doc", true, false, arrayMode, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        false);
+        false, false);
 
     GenericRecord actualRecord =
         bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
@@ -177,6 +178,7 @@ public class PostgresJdbcAvroTest {
                 Optional.empty(),
                 "doc",
                 true,
+                false,
                 ArrayHandlingMode.TypedMetaFromFirstRow,
                 false));
   }
@@ -195,9 +197,9 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.Bytes;
 
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
+        Optional.empty(), "doc", true, false, arrayMode, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        false);
+        false, false);
 
     GenericRecord actualRecord =
         bytesToGenericRecords(schema, converter.convertResultSetIntoAvroBytes())[0];
@@ -231,9 +233,9 @@ public class PostgresJdbcAvroTest {
     String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
 
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, false);
+        Optional.empty(), "doc", true, false, arrayMode, false);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        false);
+        false, false);
     GenericRecord[] actualRecords = bytesToGenericRecords(schema,
         converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes());
 
@@ -272,9 +274,9 @@ public class PostgresJdbcAvroTest {
     boolean nullableArrayItems = true;
 
     final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
-        Optional.empty(), "doc", true, arrayMode, nullableArrayItems);
+        Optional.empty(), "doc", true, false, arrayMode, nullableArrayItems);
     final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
-        nullableArrayItems);
+        nullableArrayItems, false);
     GenericRecord actualRecord = bytesToGenericRecords(schema,
         converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes())[0];
 
@@ -305,7 +307,7 @@ public class PostgresJdbcAvroTest {
     boolean nullableArrayItems = false;
 
     final JdbcAvroRecordConverter converter =
-        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems, false);
     RuntimeException thrown =
         Assertions.assertThrows(
             RuntimeException.class, () -> converter.convertResultSetIntoAvroBytes());
@@ -329,7 +331,7 @@ public class PostgresJdbcAvroTest {
     boolean nullableArrayItems = false;
 
     final JdbcAvroRecordConverter converter =
-        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems);
+        JdbcAvroRecordConverter.create(resultSet, arrayMode, nullableArrayItems, false);
     RuntimeException thrown =
         Assertions.assertThrows(
             RuntimeException.class, () -> converter.convertResultSetIntoAvroBytes());
@@ -363,6 +365,7 @@ public class PostgresJdbcAvroTest {
                     Optional.empty(),
                     "doc",
                     true,
+                    false,
                     arrayMode,
                     nullableArrayItems));
     Assertions.assertEquals(
@@ -395,10 +398,83 @@ public class PostgresJdbcAvroTest {
                     Optional.empty(),
                     "doc",
                     true,
+                    false,
                     arrayMode,
                     nullableArrayItems));
     Assertions.assertEquals(
         "columnName=array_field_text Postgres type 'not_supported' is not supported",
         thrown.getMessage());
+  }
+
+  @Test
+  public void shouldUseTimestampMicrosWhenFlagEnabled() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    TestHelper.mockResultSetMeta(meta, 1, Types.TIMESTAMP, "created_at",
+        "java.sql.Timestamp", "timestamptz");
+
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+    when(resultSet.isFirst()).thenReturn(true);
+
+    // 2026-09-04T12:00:00.123456Z — 123ms + 456µs
+    final Timestamp ts = Timestamp.valueOf("2026-09-04 12:00:00.123456");
+    when(resultSet.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
+
+    // Schema should use timestamp-micros
+    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", true, true, arrayMode, false);
+    Assertions.assertEquals("timestamp-micros",
+        schema.getField("created_at").schema().getTypes().get(1).getProp("logicalType"));
+
+    // Converter should produce microsecond values
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(
+        resultSet, arrayMode, false, true);
+    GenericRecord[] records = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes());
+    final long microsValue = (Long) records[0].get("created_at");
+
+    // Millis would be ts.getTime() = N; micros should be N*1000 + sub-ms component
+    final long expectedMicros = ts.getTime() * 1000 + (ts.getNanos() / 1000) % 1000;
+    Assertions.assertEquals(expectedMicros, microsValue);
+    // The sub-millisecond component (456µs) should be preserved
+    Assertions.assertEquals(456, microsValue % 1000);
+  }
+
+  @Test
+  public void shouldUseTimestampMillisWhenFlagDisabled() throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    TestHelper.mockResultSetMeta(meta, 1, Types.TIMESTAMP, "created_at",
+        "java.sql.Timestamp", "timestamptz");
+
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+    when(resultSet.isFirst()).thenReturn(true);
+
+    final Timestamp ts = Timestamp.valueOf("2026-09-04 12:00:00.123456");
+    when(resultSet.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    String arrayMode = ArrayHandlingMode.TypedMetaFromFirstRow;
+
+    // Schema should use timestamp-millis when flag is false
+    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", true, false, arrayMode, false);
+    Assertions.assertEquals("timestamp-millis",
+        schema.getField("created_at").schema().getTypes().get(1).getProp("logicalType"));
+
+    // Converter should produce millisecond values
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(
+        resultSet, arrayMode, false, false);
+    GenericRecord[] records = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes());
+    final long millisValue = (Long) records[0].get("created_at");
+
+    // Should be plain millis — sub-ms precision lost
+    Assertions.assertEquals(ts.getTime(), millisValue);
   }
 }

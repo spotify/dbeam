@@ -53,7 +53,8 @@ public class JdbcAvroRecord {
 
   static SqlFunction<ResultSet, Object> computeMapping(final ResultSetMetaData meta,
                                                        final int column,
-                                                       final String arrayMode)
+                                                       final String arrayMode,
+                                                       final boolean useTimestampMicros)
       throws SQLException {
     switch (meta.getColumnType(column)) {
       case VARCHAR:
@@ -77,6 +78,19 @@ public class JdbcAvroRecord {
       case DATE:
       case TIME:
       case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return resultSet -> {
+            final Timestamp ts = resultSet.getTimestamp(column, CALENDAR);
+            if (ts != null) {
+              final long millis = ts.getTime();
+              final int nanos = ts.getNanos();
+              final long microsFromNanos = (nanos / 1000) % 1000;
+              return millis * 1000 + microsFromNanos;
+            } else {
+              return null;
+            }
+          };
+        }
         return resultSet -> {
           final Timestamp timestamp = resultSet.getTimestamp(column, CALENDAR);
           if (timestamp != null) {

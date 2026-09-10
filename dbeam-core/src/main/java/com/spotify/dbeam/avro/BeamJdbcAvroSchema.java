@@ -91,6 +91,7 @@ public class BeamJdbcAvroSchema {
         args.avroSchemaName(),
         avroDoc,
         args.useAvroLogicalTypes(),
+        args.useTimestampMicros(),
         args.jdbcAvroOptions().arrayMode(),
         args.jdbcAvroOptions().nullableArrayItems());
   }
