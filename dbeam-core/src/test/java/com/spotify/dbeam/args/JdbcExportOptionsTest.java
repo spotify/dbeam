@@ -238,6 +238,28 @@ public class JdbcExportOptionsTest {
   }
 
   @Test
+  public void shouldRejectTimestampMicrosWithoutAvroLogicalTypes() {
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            optionsFromArgs(
+                "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                    + "--password=secret --useTimestampMicros=true"));
+  }
+
+  @Test
+  public void shouldConfigureTimestampMicrosWithAvroLogicalTypes()
+      throws IOException, ClassNotFoundException {
+    final JdbcExportArgs options =
+        optionsFromArgs(
+            "--connectionUrl=jdbc:postgresql://some_db --table=some_table "
+                + "--password=secret --useTimestampMicros=true --useAvroLogicalTypes=true");
+
+    Assertions.assertTrue(options.useTimestampMicros());
+    Assertions.assertTrue(options.useAvroLogicalTypes());
+  }
+
+  @Test
   public void shouldConfigureAvroDoc() throws IOException, ClassNotFoundException {
     final JdbcExportArgs options =
         optionsFromArgs(

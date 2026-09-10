@@ -61,6 +61,9 @@ public class JdbcExportArgsFactory {
   public static JdbcExportArgs fromPipelineOptions(final PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
+    checkArgument(
+        !exportOptions.isUseTimestampMicros() || exportOptions.isUseAvroLogicalTypes(),
+        "--useTimestampMicros requires --useAvroLogicalTypes");
     final JdbcAvroArgs jdbcAvroArgs =
         JdbcAvroArgs.create(
             JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
