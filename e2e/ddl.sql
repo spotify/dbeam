@@ -41,3 +41,20 @@ FROM
 ;
 ANALYZE demo_table;
 EXPLAIN ANALYZE SELECT * FROM demo_table;
+
+-- Table for timestamp-micros precision testing
+DROP TABLE IF EXISTS timestamp_micros_test;
+CREATE TABLE timestamp_micros_test (
+  id serial PRIMARY KEY,
+  name text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO timestamp_micros_test (name, created_at, updated_at)
+VALUES
+  ('row1', '2026-08-20 19:06:01.879123+00',
+          '2026-08-20 19:06:02.123456+00'),
+  ('row2', '2026-08-20 19:06:01.879456+00',
+          '2026-08-20 19:06:02.654321+00'),
+  ('row3', '2026-08-20 19:06:01.879000+00',
+          '2026-08-20 19:06:02.000000+00');

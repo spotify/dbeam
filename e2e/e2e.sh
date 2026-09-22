@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 shopt -s expand_aliases
-source ~/.bashrc
+if [[ -f ~/.bashrc ]]; then
+  source ~/.bashrc
+fi
 
 # fail on error
 set -o errexit
@@ -99,6 +101,62 @@ runDBeamDockerCon() {
   avro-tools tojson --head=5 $OUTPUT_FILE
 }
 
+run_docker_dbeam_jdbc() {
+  time docker run --interactive --rm \
+    --net="$DOCKER_NETWORK" \
+    --mount="type=bind,source=$PROJECT_PATH/dbeam-core/target,target=/dbeam" \
+    --mount="type=bind,source=$SCRIPT_PATH,target=$SCRIPT_PATH" \
+    --memory=1G \
+    --entrypoint=/usr/bin/java \
+    "$JAVA_DOCKER_IMAGE" \
+    "${JAVA_OPTS[@]}" \
+    -cp /dbeam/dbeam-core-shaded.jar \
+    com.spotify.dbeam.jobs.JdbcAvroJob "$@"
+}
+
+runTimestampMicrosTest() {
+  echo "=== timestamp-micros e2e test ==="
+  local OUTPUT
+  OUTPUT="$SCRIPT_PATH/results/timestamp_micros/"
+  rm -rf "$OUTPUT"
+  set -o xtrace
+  run_docker_dbeam_jdbc \
+    --skipPartitionCheck \
+    --runner=DirectRunner \
+    "--connectionUrl=jdbc:postgresql://dbeam-postgres:5432/$PSQL_DB" \
+    "--username=$PSQL_USER" \
+    "--password=$PSQL_PASSWORD" \
+    "--table=timestamp_micros_test" \
+    "--output=$OUTPUT" \
+    "--avroSchemaNamespace=dbeam_generated" \
+    --useAvroLogicalTypes \
+    --useTimestampMicros \
+    --avroCodec=deflate1
+  set +o xtrace
+
+  local AVRO_FILE
+  AVRO_FILE=$(find "$OUTPUT" -name '*.avro' | head -n 1)
+  if [[ -z "$AVRO_FILE" ]]; then
+    echo "FAIL: no avro output file found"
+    return 1
+  fi
+
+  echo "--- verifying microsecond precision ---"
+  java \
+    --class-path "$PROJECT_PATH/dbeam-core/target/dbeam-core-shaded.jar" \
+    "$SCRIPT_PATH/VerifyTimestampMicros.java" \
+    "$AVRO_FILE"
+  echo "PASS: timestamp values retain microsecond precision"
+}
+
+timestampMicros() {
+  dockerClean
+  trap dockerClean EXIT
+  pack
+  startPostgres
+  runTimestampMicrosTest
+}
+
 runSuite() {
   table=demo_table
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1
@@ -106,6 +164,7 @@ runSuite() {
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --queryParallelism=5 --splitColumn=row_number
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=bytes
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
+  runTimestampMicrosTest
 }
 
 light() {

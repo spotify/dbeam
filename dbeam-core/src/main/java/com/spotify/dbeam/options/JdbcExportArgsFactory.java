@@ -61,6 +61,9 @@ public class JdbcExportArgsFactory {
   public static JdbcExportArgs fromPipelineOptions(final PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
+    checkArgument(
+        !exportOptions.isUseTimestampMicros() || exportOptions.isUseAvroLogicalTypes(),
+        "--useTimestampMicros requires --useAvroLogicalTypes");
     final JdbcAvroArgs jdbcAvroArgs =
         JdbcAvroArgs.create(
             JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
@@ -70,7 +73,8 @@ public class JdbcExportArgsFactory {
             exportOptions.getAvroCodec(),
             Optional.ofNullable(exportOptions.getPreCommand()).orElse(Collections.emptyList()),
             ArrayHandlingMode.validateValue(exportOptions.getArrayMode()),
-            exportOptions.isNullableArrayItems()
+            exportOptions.isNullableArrayItems(),
+            exportOptions.isUseTimestampMicros()
             );
 
     return JdbcExportArgs.create(
@@ -80,6 +84,7 @@ public class JdbcExportArgsFactory {
         Optional.ofNullable(exportOptions.getAvroSchemaName()),
         Optional.ofNullable(exportOptions.getAvroDoc()),
         exportOptions.isUseAvroLogicalTypes(),
+        exportOptions.isUseTimestampMicros(),
         Duration.parse(exportOptions.getExportTimeout()),
         BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
   }

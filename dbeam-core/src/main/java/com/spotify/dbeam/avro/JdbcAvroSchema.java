@@ -77,6 +77,7 @@ public class JdbcAvroSchema {
       final Optional<String> schemaName,
       final String avroDoc,
       final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nullableArrayItems)
       throws SQLException {
@@ -94,10 +95,12 @@ public class JdbcAvroSchema {
               schemaName,
               avroDoc,
               useLogicalTypes,
+              useTimestampMicros,
               arrayMode,
               nullableArrayItems);
-      LOGGER.info("Schema created successfully. useLogicalTypes={}, arrayMode={}, "
-                  + "Generated schema: {}", useLogicalTypes, arrayMode, schema.toString());
+      LOGGER.info("Schema created successfully. useLogicalTypes={}, useTimestampMicros={}, "
+                  + "arrayMode={}, Generated schema: {}",
+                  useLogicalTypes, useTimestampMicros, arrayMode, schema.toString());
       return schema;
     }
   }
@@ -109,6 +112,7 @@ public class JdbcAvroSchema {
       final Optional<String> maybeSchemaName,
       final String avroDoc,
       final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nullableArrayItems)
       throws SQLException {
@@ -124,7 +128,8 @@ public class JdbcAvroSchema {
             .prop("tableName", tableName)
             .prop("connectionUrl", connectionUrl)
             .fields();
-    return createAvroFields(resultSet, builder, useLogicalTypes, arrayMode, nullableArrayItems)
+    return createAvroFields(
+            resultSet, builder, useLogicalTypes, useTimestampMicros, arrayMode, nullableArrayItems)
         .endRecord();
   }
 
@@ -144,6 +149,7 @@ public class JdbcAvroSchema {
       final ResultSet resultSet,
       final SchemaBuilder.FieldAssembler<Schema> builder,
       final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nullableArrayItems)
       throws SQLException {
@@ -194,6 +200,7 @@ public class JdbcAvroSchema {
               columnClassName,
               columnTypeName,
               useLogicalTypes,
+              useTimestampMicros,
               arrayMode,
               nullableArrayItems,
               fieldSchemaBuilder);
@@ -223,6 +230,7 @@ public class JdbcAvroSchema {
       final String columnClassName,
       final String columnTypeName,
       final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nullableArrayItems,
       final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
@@ -243,7 +251,9 @@ public class JdbcAvroSchema {
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
-          return field.longBuilder().prop("logicalType", "timestamp-millis").endLong();
+          final String logicalType =
+              useTimestampMicros ? "timestamp-micros" : "timestamp-millis";
+          return field.longBuilder().prop("logicalType", logicalType).endLong();
         } else {
           return field.longType();
         }
@@ -287,6 +297,7 @@ public class JdbcAvroSchema {
             columnClassName,
             arrayInstance.getBaseTypeName(),
             useLogicalTypes,
+            useTimestampMicros,
             arrayMode,
             nullableArrayItems,
             buildArrayItems(nullableArrayItems, field));

@@ -87,6 +87,15 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setUseAvroLogicalTypes(Boolean value);
 
+  @Default.Boolean(false)
+  @Description(
+      "When set with --useAvroLogicalTypes, timestamp columns use timestamp-micros "
+          + "(microsecond precision) instead of the default timestamp-millis. "
+          + "PostgreSQL stores TIMESTAMPTZ at microsecond precision; this flag preserves it.")
+  Boolean isUseTimestampMicros();
+
+  void setUseTimestampMicros(Boolean value);
+
   @Default.String("typed_first_row")
   @Description("Configures how arrays are treated: bytes, typed_first_row, typed_postgres.")
   String getArrayMode();
