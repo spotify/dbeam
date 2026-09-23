@@ -296,7 +296,7 @@ expected to honor this code.
 ## Release
 
 Trigger the [release](https://github.com/spotify/dbeam/actions/workflows/release.yml) workflow manually, with `version`
-set to the desired semantic version (for example `0.10.31`, no `v` prefix):
+set to the desired semantic version (for example `0.10.31` — no `v` prefix, that is added by `tagNameFormat`):
 
 ```shell
 gh workflow run release.yml --repo spotify/dbeam -f version=0.10.31

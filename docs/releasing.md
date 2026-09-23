@@ -59,6 +59,10 @@ From the [Actions tab](https://github.com/spotify/dbeam/actions/workflows/releas
 gh workflow run release.yml --repo spotify/dbeam -f version=0.10.31
 ```
 
+**No `v` prefix.** The input sets the POM `<version>` directly. The `v` is added by `tagNameFormat`
+(`v@{project.version}`), so `0.10.31` produces tag `v0.10.31`. Typing `v0.10.31` would set the POM
+version to `v0.10.31` and the tag to `vv0.10.31`.
+
 Always trigger from `master`. The workflow has no concurrency guard — do not start a second run
 while one is in flight.
 
