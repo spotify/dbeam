@@ -295,22 +295,23 @@ expected to honor this code.
 
 ## Release
 
-Trigger the [release](https://github.com/spotify/dbeam/actions/workflows/release.yml) workflow manually. This workflow requires a
-single input, `version`, which should be set to the desired semantic version in the format `{major_version}.{minor_version}.{patch_version}`.
-It will update versions in all `pom.xml` files, push a tag `vx.y.z`, package, sign, and deploy artifacts to Sonatype, and finally bump all
-`pom.xml`s to the next development SNAPSHOT version.
-
-You can check the deployment in the following links:
-
-- https://github.com/spotify/dbeam/actions
-- https://oss.sonatype.org/#nexus-search;quick~dbeam-core
-
-You can also do a manual release. First, export env variables $SONATYPE_USERNAME, $SONATYPE_PASSWORD (for information on generating a token see [here](https://help.sonatype.com/en/user-tokens.html)), $MAVEN_GPG_KEY_NAME.
-Then, you can run `maven release` to deploy to Sonatype and automatically push commits bumping the project version:
+Trigger the [release](https://github.com/spotify/dbeam/actions/workflows/release.yml) workflow manually, with `version`
+set to the desired semantic version (for example `0.10.31`, no `v` prefix):
 
 ```shell
-mvn -s sonatype-settings.xml -DreleaseVersion={NEW_VERSION} release:prepare release:perform # Run with -DdryRun=true first to validate pom modification
+gh workflow run release.yml --repo spotify/dbeam -f version=0.10.31
 ```
+
+It updates the versions in all `pom.xml` files, pushes a tag `vx.y.z`, packages, signs and deploys the artifacts to
+Maven Central, then bumps all `pom.xml`s to the next development SNAPSHOT version. Publication is automatic — there is
+no staging repository to close. Verify at
+[repo1.maven.org](https://repo1.maven.org/maven2/com/spotify/dbeam-core/maven-metadata.xml).
+
+The workflow does **not** create the GitHub Release; that is a manual step afterwards.
+
+**Read [docs/releasing.md](docs/releasing.md) before cutting a release.** It covers how the version number is chosen
+(the `-SNAPSHOT` in `pom.xml` is *not* what gets released), the full step-by-step process, the known issues and
+gotchas, how to recover from a failed release, and the manual fallback.
 
 ## Future roadmap
 
