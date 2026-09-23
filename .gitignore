@@ -7,3 +7,5 @@ target
 e2e/results/*
 *.iml
 .java-version
+release.properties
+pom.xml.releaseBackup
