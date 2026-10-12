@@ -137,7 +137,7 @@ public class JdbcAvroIO {
     private final JdbcAvroArgs jdbcAvroArgs;
     private DataFileWriter<GenericRecord> dataFileWriter;
     private Connection connection;
-    private JdbcAvroMetering metering;
+    private JdbcMetering metering;
     private CountingOutputStream countingOutputStream;
 
     JdbcAvroWriter(
