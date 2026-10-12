@@ -44,12 +44,12 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./dbeam-core/target/site/jacoco/jacoco.xml
+          files: ./dbeam-core/target/site/jacoco/jacoco.xml,./dbeam-parquet/target/site/jacoco/jacoco.xml
           flags: unittests # optional
           name: codecov-umbrella # optional
           fail_ci_if_error: false # optional (default = false)
           verbose: true # optional (default = false)
-      - name: Install avro tools
+      - name: Install avro and parquet tools
         if: matrix.java_version == '21'
         run: |
           wget https://dlcdn.apache.org/avro/avro-1.11.5/java/avro-tools-1.11.5.jar
@@ -57,6 +57,13 @@ jobs:
           mv avro-tools-1.11.5.jar /opt/avro/
           chmod +x /opt/avro/avro-tools-1.11.5.jar
           echo "alias avro-tools='java -jar /opt/avro/avro-tools-1.11.5.jar'" > ~/.bashrc
+          wget -q https://repo1.maven.org/maven2/org/apache/parquet/parquet-cli/1.14.4/parquet-cli-1.14.4-runtime.jar
+          mkdir -p /opt/parquet
+          wget -q https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-mapreduce-client-core/3.4.1/hadoop-mapreduce-client-core-3.4.1.jar
+          mv parquet-cli-1.14.4-runtime.jar hadoop-mapreduce-client-core-3.4.1.jar /opt/parquet/
+          # parquet-cli runtime jar does not bundle Hadoop; reuse hadoop-common from the dbeam-parquet shaded jar
+          PARQUET_CP="/opt/parquet/parquet-cli-1.14.4-runtime.jar:/opt/parquet/hadoop-mapreduce-client-core-3.4.1.jar:$GITHUB_WORKSPACE/dbeam-parquet/target/dbeam-parquet-shaded.jar"
+          echo "alias parquet-tools='java -cp $PARQUET_CP org.apache.parquet.cli.Main'" >> ~/.bashrc
       - name: End to end tests
         shell: bash
         if: matrix.java_version == '21'
