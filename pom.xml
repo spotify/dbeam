@@ -476,7 +476,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.15.0</version>
+          <version>3.16.0</version>
           <configuration>
             <!-- JDK 23+ disabled implicit annotation processing (JEP 472).
                  Declare processors explicitly so javac runs them. -->
