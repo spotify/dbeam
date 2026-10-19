@@ -12,7 +12,7 @@ written as epoch microseconds, keeping the sub-millisecond part of `java.sql.Tim
 schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micros` to match.
 When `--parquetSchemaFilePath` is used, every TIMESTAMP field in the schema file must use the unit
 selected by `--useTimestampMicros` (MICROS with the flag, MILLIS without it); otherwise the job
-fails fast, so the Parquet schema and the footer Avro schema cannot disagree.
+fails fast instead of silently exporting a different unit.
 
 | **Java SQL type**        | **Parquet physical type** | **Parquet logical type**        | **Comments**                          |
 |--------------------------|---------------------------|---------------------------------|---------------------------------------|
@@ -61,6 +61,38 @@ Array element types are inferred from the column type name. For PostgreSQL, the 
 | `INTEGER ARRAY`          | INT32                    |
 | `BIGINT ARRAY`           | INT64                    |
 | `VARCHAR ARRAY`, others  | BINARY (STRING)          |
+
+#### Footer Avro schema (`parquet.avro.schema`)
+
+The Avro schema stored in the `parquet.avro.schema` footer key, and saved as `_AVRO_SCHEMA.avsc`
+(identical content), is derived from the Parquet schema actually used for writing, including a
+schema given with `--parquetSchemaFilePath`. It therefore always describes the written columns,
+and `AvroParquetReader` (Scio, Beam `ParquetIO`, Spark with parquet-avro) can decode the files
+with it. The mapping follows parquet-avro's `AvroSchemaConverter`:
+
+| **Parquet type**                               | **Avro type**                                    |
+|------------------------------------------------|--------------------------------------------------|
+| `optional` field                               | `["null", T]` with default `null`                |
+| `required` field                               | `T`                                              |
+| BOOLEAN / INT32 / INT64 / FLOAT / DOUBLE       | boolean / int / long / float / double            |
+| INT64 TIMESTAMP(MILLIS\|MICROS, UTC)           | long `timestamp-millis` \| `timestamp-micros`    |
+| INT64 TIMESTAMP(..., not UTC)                  | long `local-timestamp-millis` \| `-micros`       |
+| INT32 DATE / TIME(MILLIS), INT64 TIME(MICROS)  | `date` / `time-millis` / `time-micros`           |
+| BINARY STRING / ENUM / JSON                    | string                                           |
+| BINARY (no annotation) / DECIMAL               | bytes / bytes `decimal`                          |
+| FIXED_LEN_BYTE_ARRAY(16) UUID                  | string `uuid` (decoded to the canonical UUID string) |
+| FIXED_LEN_BYTE_ARRAY(n) / DECIMAL              | fixed(n) / fixed `decimal`                       |
+| LIST                                           | array; items are `["null", T]` because dbeam always writes optional list elements |
+| MAP with STRING keys                           | map                                              |
+| group                                          | nested record                                    |
+
+The record is named after the Parquet message (`--avroSchemaName` or the table name), uses
+`--avroSchemaNamespace` and `--avroDoc`, and, like dbeam-core's Avro export, carries the
+`tableName` and `connectionUrl` properties and per-field docs and `columnName`, `sqlCode`,
+`typeName`, `columnClassName` and `columnTypeName` properties (matched to JDBC columns by
+position, so renamed fields in a schema file keep them). `--nullableArrayItems` has no effect on
+Parquet exports. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
+are not valid Avro names is exported without the footer key and `_AVRO_SCHEMA.avsc`.
 
 #### Codec mapping
 

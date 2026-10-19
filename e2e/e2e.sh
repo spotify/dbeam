@@ -210,8 +210,9 @@ runParquetTimestampMicrosTest() {
   java \
     --class-path "$PROJECT_PATH/dbeam-parquet/target/dbeam-parquet-shaded.jar:$(cat "$VERIFY_CP_FILE")" \
     "$SCRIPT_PATH/VerifyParquetTimestampMicros.java" \
-    "$PARQUET_FILE"
+    "$PARQUET_FILE" "${OUTPUT}_AVRO_SCHEMA.avsc"
   echo "PASS: parquet timestamp values retain microsecond precision"
+  echo "PASS: footer parquet.avro.schema equals _AVRO_SCHEMA.avsc"
 }
 
 timestampMicros() {
