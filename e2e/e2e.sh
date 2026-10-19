@@ -125,6 +125,19 @@ run_docker_dbeam_jdbc() {
     com.spotify.dbeam.jobs.JdbcAvroJob "$@"
 }
 
+run_docker_dbeam_parquet_jdbc() {
+  time docker run --interactive --rm \
+    --net="$DOCKER_NETWORK" \
+    --mount="type=bind,source=$PROJECT_PATH/dbeam-parquet/target,target=/dbeam" \
+    --mount="type=bind,source=$SCRIPT_PATH,target=$SCRIPT_PATH" \
+    --memory=1G \
+    --entrypoint=/usr/bin/java \
+    "$JAVA_DOCKER_IMAGE" \
+    "${JAVA_OPTS[@]}" \
+    -cp /dbeam/dbeam-parquet-shaded.jar \
+    com.spotify.dbeam.parquet.JdbcParquetJob "$@"
+}
+
 runTimestampMicrosTest() {
   echo "=== timestamp-micros e2e test ==="
   local OUTPUT
@@ -160,12 +173,54 @@ runTimestampMicrosTest() {
   echo "PASS: timestamp values retain microsecond precision"
 }
 
+runParquetTimestampMicrosTest() {
+  echo "=== timestamp-micros e2e test (parquet) ==="
+  local OUTPUT
+  OUTPUT="$SCRIPT_PATH/results/timestamp_micros_parquet/"
+  rm -rf "$OUTPUT"
+  set -o xtrace
+  run_docker_dbeam_parquet_jdbc \
+    --skipPartitionCheck \
+    --runner=DirectRunner \
+    "--connectionUrl=jdbc:postgresql://dbeam-postgres:5432/$PSQL_DB" \
+    "--username=$PSQL_USER" \
+    "--password=$PSQL_PASSWORD" \
+    "--table=timestamp_micros_test" \
+    "--output=$OUTPUT" \
+    "--avroSchemaNamespace=dbeam_generated" \
+    --useLogicalTypes \
+    --useTimestampMicros
+  set +o xtrace
+
+  local PARQUET_FILE
+  PARQUET_FILE=$(find "$OUTPUT" -name '*.parquet' | head -n 1)
+  if [[ -z "$PARQUET_FILE" ]]; then
+    echo "FAIL: no parquet output file found"
+    return 1
+  fi
+
+  # parquet-avro (AvroParquetReader) and hadoop-mapreduce are test-scoped, so add them
+  # to the shaded jar for the verifier.
+  local VERIFY_CP_FILE
+  VERIFY_CP_FILE="$SCRIPT_PATH/results/verify_parquet_classpath.txt"
+  (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet dependency:build-classpath \
+    -Dmdep.includeScope=test "-Dmdep.outputFile=$VERIFY_CP_FILE")
+
+  echo "--- verifying microsecond precision (parquet) ---"
+  java \
+    --class-path "$PROJECT_PATH/dbeam-parquet/target/dbeam-parquet-shaded.jar:$(cat "$VERIFY_CP_FILE")" \
+    "$SCRIPT_PATH/VerifyParquetTimestampMicros.java" \
+    "$PARQUET_FILE"
+  echo "PASS: parquet timestamp values retain microsecond precision"
+}
+
 timestampMicros() {
   dockerClean
   trap dockerClean EXIT
   pack
   startPostgres
   runTimestampMicrosTest
+  runParquetTimestampMicrosTest
 }
 
 runDBeamParquetDockerCon() {
@@ -208,6 +263,7 @@ runSuite() {
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=bytes
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
   runTimestampMicrosTest
+  runParquetTimestampMicrosTest
 }
 
 runParquetSuite() {
