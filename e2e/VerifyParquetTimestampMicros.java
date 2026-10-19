@@ -18,6 +18,8 @@
  * -/-/-
  */
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.avro.Schema;
@@ -25,6 +27,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 
@@ -34,8 +37,9 @@ public final class VerifyParquetTimestampMicros {
   private VerifyParquetTimestampMicros() {}
 
   public static void main(String[] args) throws Exception {
-    if (args.length != 1) {
-      throw new IllegalArgumentException("Expected one Parquet file path");
+    if (args.length < 1 || args.length > 2) {
+      throw new IllegalArgumentException(
+          "Expected a Parquet file path and optionally the _AVRO_SCHEMA.avsc path");
     }
 
     // Expected values from e2e/ddl.sql timestamp_micros_test, as epoch microseconds
@@ -63,6 +67,9 @@ public final class VerifyParquetTimestampMicros {
       }
     }
 
+    if (args.length == 2) {
+      verifyFooterMatchesAvsc(args[0], args[1]);
+    }
     if (!"timestamp-micros".equals(logicalType)) {
       throw new AssertionError(
           "Expected logicalType=timestamp-micros in footer Avro schema, got: " + logicalType);
@@ -71,6 +78,24 @@ public final class VerifyParquetTimestampMicros {
     if (!createdAtValues.equals(expected)) {
       throw new AssertionError(
           "Expected created_at epoch micros " + expected + ", got " + createdAtValues);
+    }
+  }
+
+  /** The footer Avro schema must be identical to the _AVRO_SCHEMA.avsc written next to it. */
+  private static void verifyFooterMatchesAvsc(final String parquetPath, final String avscPath)
+      throws Exception {
+    final String footer;
+    try (ParquetFileReader fileReader =
+        ParquetFileReader.open(
+            HadoopInputFile.fromPath(new Path(parquetPath), new Configuration()))) {
+      footer =
+          fileReader.getFooter().getFileMetaData().getKeyValueMetaData().get("parquet.avro.schema");
+    }
+    final Schema avsc =
+        new Schema.Parser().parse(new String(Files.readAllBytes(Paths.get(avscPath))));
+    if (footer == null || !avsc.equals(new Schema.Parser().parse(footer))) {
+      throw new AssertionError(
+          "Footer parquet.avro.schema " + footer + " differs from " + avscPath + ": " + avsc);
     }
   }
 }

@@ -22,7 +22,6 @@ package com.spotify.dbeam.parquet;
 
 import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
-import com.spotify.dbeam.avro.JdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcMetering;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
@@ -36,7 +35,10 @@ import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.avro.Schema;
@@ -135,7 +137,8 @@ public class JdbcParquetJob {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
         checkTimestampUnits(generatedSchema, jdbcExportArgs.useTimestampMicros());
-        avroSchema = footerAvroSchema(() -> generateAvroSchema(connection));
+        avroSchema =
+            footerAvroSchema(() -> avroSchemaFromSchemaFile(connection, generatedSchema));
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
         // Query DB once for both Parquet and Avro schemas
@@ -151,25 +154,10 @@ public class JdbcParquetJob {
                   jdbcExportArgs.useAvroLogicalTypes(),
                   jdbcExportArgs.useTimestampMicros(),
                   arrayMode);
-          final String dbUrl = connection.getMetaData().getURL();
-          final String avroDoc =
-              jdbcExportArgs
-                  .avroDoc()
-                  .orElseGet(
-                      () -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
+          final MessageType writeSchema = generatedSchema;
           avroSchema =
               footerAvroSchema(
-                  () ->
-                      JdbcAvroSchema.createAvroSchema(
-                          rs,
-                          jdbcExportArgs.avroSchemaNamespace(),
-                          dbUrl,
-                          jdbcExportArgs.avroSchemaName(),
-                          avroDoc,
-                          jdbcExportArgs.useAvroLogicalTypes(),
-                          jdbcExportArgs.useTimestampMicros(),
-                          arrayMode,
-                          jdbcExportArgs.jdbcAvroOptions().nullableArrayItems()));
+                  () -> deriveFooterAvroSchema(writeSchema, rs.getMetaData(), connection));
         }
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       }
@@ -216,10 +204,10 @@ public class JdbcParquetJob {
   }
 
   /**
-   * The writer takes the timestamp unit from the target Parquet field, while the footer Avro
-   * schema and {@code _AVRO_SCHEMA.avsc} follow {@code --useTimestampMicros}. Fail fast when a
-   * user-provided schema declares a TIMESTAMP unit that disagrees with the flag, so the Parquet
-   * schema and the footer Avro schema can never contradict each other.
+   * The writer and the footer Avro schema both take the timestamp unit from the target Parquet
+   * field, so a user-provided schema silently overrides {@code --useTimestampMicros}. Fail fast
+   * when its TIMESTAMP unit disagrees with the flag instead of exporting a unit the user did not
+   * ask for.
    */
   static void checkTimestampUnits(final GroupType schema, final boolean useTimestampMicros) {
     final LogicalTypeAnnotation.TimeUnit expected =
@@ -237,8 +225,8 @@ public class JdbcParquetJob {
             ((LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) annotation).getUnit();
         Preconditions.checkArgument(
             unit == expected,
-            "Field '%s' in --parquetSchemaFilePath is TIMESTAMP(%s) but %s, so the footer Avro "
-                + "schema would use %s. Use TIMESTAMP(%s) in the schema file or %s.",
+            "Field '%s' in --parquetSchemaFilePath is TIMESTAMP(%s) but %s, which asks for %s. "
+                + "Use TIMESTAMP(%s) in the schema file or %s.",
             field.getName(),
             unit,
             useTimestampMicros ? "--useTimestampMicros is set" : "--useTimestampMicros is not set",
@@ -280,8 +268,8 @@ public class JdbcParquetJob {
 
   /**
    * The Avro schema only feeds the optional {@code parquet.avro.schema} footer key, so failing to
-   * build it (e.g. typed_first_row ARRAY with a NULL first value, or element types the Avro path
-   * does not support) should not fail a Parquet export that is otherwise valid.
+   * build it (e.g. a schema file using INT96 or names that are not valid Avro names) should not
+   * fail a Parquet export that is otherwise valid.
    */
   static Schema footerAvroSchema(final AvroSchemaSupplier supplier) {
     try {
@@ -293,22 +281,43 @@ public class JdbcParquetJob {
     }
   }
 
-  private Schema generateAvroSchema(final Connection connection) throws Exception {
+  /**
+   * Column docs/properties come from the first row's metadata, matched by position (the writer is
+   * positional too), so renamed fields in a schema file still get their JDBC column info.
+   */
+  private Schema avroSchemaFromSchemaFile(final Connection connection, final MessageType schema)
+      throws Exception {
+    try (Statement stmt = connection.createStatement()) {
+      final ResultSet rs =
+          stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+      return deriveFooterAvroSchema(schema, rs.getMetaData(), connection);
+    }
+  }
+
+  /**
+   * The footer Avro schema is derived from the Parquet schema used for writing, so it always
+   * describes the actual columns (see {@link ParquetAvroSchema}).
+   */
+  private Schema deriveFooterAvroSchema(
+      final MessageType schema, final ResultSetMetaData meta, final Connection connection)
+      throws SQLException {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
         jdbcExportArgs
             .avroDoc()
             .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
-    return JdbcAvroSchema.createSchemaByReadingOneRow(
-        connection,
-        jdbcExportArgs.queryBuilderArgs(),
-        jdbcExportArgs.avroSchemaNamespace(),
-        jdbcExportArgs.avroSchemaName(),
-        avroDoc,
-        jdbcExportArgs.useAvroLogicalTypes(),
-        jdbcExportArgs.useTimestampMicros(),
-        jdbcExportArgs.jdbcAvroOptions().arrayMode(),
-        jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
+    final Map<String, String> recordProps = new LinkedHashMap<>();
+    recordProps.put("tableName", JdbcParquetSchema.getDatabaseTableName(meta));
+    recordProps.put("connectionUrl", dbUrl);
+    final Schema avroSchema =
+        ParquetAvroSchema.toAvroSchema(
+            schema,
+            jdbcExportArgs.avroSchemaNamespace(),
+            avroDoc,
+            recordProps,
+            ParquetAvroSchema.fieldInfos(meta));
+    LOGGER.info("Footer Avro schema derived from Parquet schema: {}", avroSchema);
+    return avroSchema;
   }
 
   public Pipeline getPipeline() {
