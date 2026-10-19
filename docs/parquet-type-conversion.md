@@ -62,3 +62,32 @@ When using `JdbcParquetJob`, the `--avroCodec` parameter is mapped to Parquet co
 | snappy                | SNAPPY            |
 | deflate1 .. deflate9  | GZIP              |
 | zstandard1 .. zstandard9 | ZSTD           |
+
+#### Input schema file (`--parquetSchemaFilePath`)
+
+The Parquet writers always take column types from the JDBC result set and write fields by
+position, so an input schema file can only rename fields and adjust annotations. Before the
+export starts, the file is checked against the schema derived from JDBC metadata (the table
+above) and the job fails with a `FailedValidationException` listing every offending column if:
+
+- the number of fields differs (at the top level or inside a `LIST` group),
+- a field changes between primitive and group,
+- a primitive type (`int32`, `int64`, `binary`, ...) or `fixed_len_byte_array` length differs,
+- a repetition differs (all derived fields are `optional`; `required` is rejected),
+- a group's annotation differs (`LIST` groups must stay `LIST`),
+- a logical type annotation is not one of the allowed ones below.
+
+Allowed annotations on a primitive field:
+
+| **Derived field**                                | **Allowed annotations in the schema file**          |
+|--------------------------------------------------|-----------------------------------------------------|
+| `binary (STRING)`                                | none, `STRING`, `ENUM`, `JSON`                      |
+| `binary` (bytes)                                 | none                                                |
+| `int32`                                          | none, `INTEGER(32,true)`                            |
+| `int64` from BIGINT                              | none, `INTEGER(64,true)`                            |
+| `int64` from TIMESTAMP/DATE/TIME                 | none, `TIMESTAMP(MILLIS,true)` (with or without `--useAvroLogicalTypes`) |
+| `boolean`, `float`, `double`                     | none                                                |
+| PostgreSQL `uuid`                                | `binary (STRING)`, `binary`, or `fixed_len_byte_array(16) (UUID)` (the writer follows the schema file) |
+
+Everything else (e.g. `DECIMAL`, `DATE`, `TIMESTAMP(MICROS,...)`, narrower `INTEGER` widths, or
+`STRING` on raw bytes) is rejected because it would change how the written bytes are read.

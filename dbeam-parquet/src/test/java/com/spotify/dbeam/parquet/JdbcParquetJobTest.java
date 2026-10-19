@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.greaterThan;
 
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
+import com.spotify.dbeam.jobs.FailedValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -254,6 +255,38 @@ public class JdbcParquetJobTest {
     Assertions.assertTrue(schemaJson.contains("TOTAL"));
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
     assertThat(parquetFile.length(), greaterThan(0L));
+  }
+
+  @Test
+  public void shouldFailParquetJobWithIncompatibleInputSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldFailParquetJobWithIncompatibleInputSchemaFile");
+    final Path schemaFile = testDir.resolve("incompatible_schema.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message COFFEES {\n"
+                + "  optional binary name (STRING);\n"
+                + "  optional float SIZE;\n"
+                + "  optional int64 TOTAL;\n"
+                + "}")
+            .getBytes());
+
+    final JdbcParquetJob job =
+        JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--output=" + outputPath,
+              "--parquetSchemaFilePath=" + schemaFile.toString(),
+              "--sqlFile=" + sqlPath.toString()
+            });
+    final FailedValidationException e =
+        Assertions.assertThrows(FailedValidationException.class, job::prepareExport);
+    Assertions.assertTrue(e.getMessage().contains("SIZE (#2, JDBC column SIZE)"), e.getMessage());
   }
 
   @Test

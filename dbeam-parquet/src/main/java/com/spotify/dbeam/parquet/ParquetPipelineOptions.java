@@ -27,7 +27,9 @@ import org.apache.beam.sdk.options.PipelineOptions;
 @Description("Parquet-specific export options")
 public interface ParquetPipelineOptions extends PipelineOptions {
 
-  @Description("Path to file with a target Parquet schema (MessageType text format).")
+  @Description(
+      "Path to file with a target Parquet schema (MessageType text format). Must match the"
+          + " JDBC-derived schema except for field names and compatible annotations.")
   String getParquetSchemaFilePath();
 
   void setParquetSchemaFilePath(String value);

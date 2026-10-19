@@ -131,6 +131,7 @@ public class JdbcParquetJob {
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
+        validateInputSchema(connection, generatedSchema, arrayMode);
         avroSchema = footerAvroSchema(() -> generateAvroSchema(connection));
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
@@ -253,6 +254,26 @@ public class JdbcParquetJob {
       LOGGER.warn(
           "Could not generate Avro schema; writing Parquet without parquet.avro.schema footer", e);
       return null;
+    }
+  }
+
+  /**
+   * Fail fast if the schema from --parquetSchemaFilePath does not match what the writers emit for
+   * the JDBC result set. See {@link ParquetSchemaValidator} for the rules.
+   */
+  private void validateInputSchema(
+      final Connection connection, final MessageType inputSchema, final String arrayMode)
+      throws Exception {
+    try (Statement stmt = connection.createStatement()) {
+      final ResultSet rs =
+          stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+      rs.next();
+      ParquetSchemaValidator.validate(
+          inputSchema,
+          JdbcParquetSchema.createParquetSchema(
+              rs, jdbcExportArgs.avroSchemaName(), false, arrayMode),
+          JdbcParquetSchema.createParquetSchema(
+              rs, jdbcExportArgs.avroSchemaName(), true, arrayMode));
     }
   }
 
