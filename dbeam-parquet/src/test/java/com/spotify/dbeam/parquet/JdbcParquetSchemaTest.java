@@ -132,6 +132,31 @@ public class JdbcParquetSchemaTest {
   }
 
   @Test
+  public void shouldConvertTimestampTypesToMicrosWhenEnabled() throws SQLException {
+    for (int sqlType :
+        new int[] {Types.TIMESTAMP, Types.DATE, Types.TIME, Types.TIME_WITH_TIMEZONE}) {
+      final Type fieldType =
+          JdbcParquetSchema.buildParquetFieldType(
+              "column1", sqlType, 0, "foobar", null, true, true, "typed_first_row");
+
+      assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
+      Assertions.assertEquals(
+          LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS),
+          fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+    }
+  }
+
+  @Test
+  public void shouldIgnoreTimestampMicrosWithoutLogicalTypes() throws SQLException {
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.TIMESTAMP, 0, "foobar", null, false, true, "typed_first_row");
+
+    assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
+    Assertions.assertNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+  }
+
+  @Test
   public void shouldConvertDateSqlTypeToInt64() throws SQLException {
     final Type fieldType = buildFieldType(Types.DATE, false);
 

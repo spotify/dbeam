@@ -40,6 +40,7 @@ import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.apache.parquet.io.OutputFile;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -138,6 +139,72 @@ public class PostgresJdbcParquetTest {
         record -> {
           long actualTs = record.getLong("ts_field", 0);
           Assertions.assertEquals(1488300933000L, actualTs);
+        });
+  }
+
+  @Test
+  public void shouldEncodeTimestampAsMicrosKeepingSubMillisecondPrecision()
+      throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(
+        meta, 1, Types.TIMESTAMP, "ts_field", "java.sql.Timestamp", "timestamptz");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    // 2017-02-28T16:55:33.123456789Z
+    final Timestamp ts = new Timestamp(1488300933123L);
+    ts.setNanos(123456789);
+    when(resultSet.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), true, true, "typed_first_row");
+    Assertions.assertEquals(
+        LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS),
+        schema.getType("ts_field").getLogicalTypeAnnotation());
+
+    final Path tempFile = Files.createTempFile("parquet-ts-micros-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          long actualTs = record.getLong("ts_field", 0);
+          Assertions.assertEquals(1488300933123456L, actualTs);
+        });
+  }
+
+  @Test
+  public void shouldEncodeTimestampAsMillisWithLogicalTypesByDefault()
+      throws SQLException, IOException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(
+        meta, 1, Types.TIMESTAMP, "ts_field", "java.sql.Timestamp", "timestamptz");
+
+    final ResultSet resultSet = buildMockResultSet(meta);
+    final Timestamp ts = new Timestamp(1488300933123L);
+    ts.setNanos(123456789);
+    when(resultSet.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), true, "typed_first_row");
+
+    final Path tempFile = Files.createTempFile("parquet-ts-millis-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(
+        schema,
+        resultSet,
+        tempFile,
+        record -> {
+          long actualTs = record.getLong("ts_field", 0);
+          Assertions.assertEquals(1488300933123L, actualTs);
         });
   }
 

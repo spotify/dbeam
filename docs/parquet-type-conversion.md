@@ -5,16 +5,21 @@ When applicable and `--useAvroLogicalTypes` parameter is set to `true`, Parquet 
 
 All columns are represented as `optional` (nullable) fields in the Parquet schema.
 
+When `--useTimestampMicros` is also set (it requires `--useAvroLogicalTypes`), TIMESTAMP, DATE,
+TIME and TIME_WITH_TIMEZONE columns use `TIMESTAMP(MICROS, isAdjustedToUTC=true)` and values are
+written as epoch microseconds, keeping the sub-millisecond part of `java.sql.Timestamp`. The Avro
+schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micros` to match.
+
 | **Java SQL type**        | **Parquet physical type** | **Parquet logical type**        | **Comments**                          |
 |--------------------------|---------------------------|---------------------------------|---------------------------------------|
 | BIGINT                   | INT64                     |                                 |                                       |
 | INTEGER                  | INT32                     |                                 | INT64 if column class is java.lang.Long (e.g. MySQL unsigned int) |
 | SMALLINT                 | INT32                     |                                 |                                       |
 | TINYINT                  | INT32                     |                                 |                                       |
-| TIMESTAMP                | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes` |
-| DATE                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes` |
-| TIME                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes` |
-| TIME_WITH_TIMEZONE       | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes` |
+| TIMESTAMP                | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
+| DATE                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
+| TIME                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
+| TIME_WITH_TIMEZONE       | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
 | BOOLEAN                  | BOOLEAN                   |                                 |                                       |
 | BIT                      | BOOLEAN / BINARY          |                                 | BOOLEAN if precision <= 1, BINARY otherwise |
 | BINARY                   | BINARY                    |                                 |                                       |
