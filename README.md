@@ -131,9 +131,18 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --splitColumn=<String>
     A long/integer column used to create splits for parallel queries. Should be
     used with queryParallelism.
-  --useAvroLogicalTypes=<Boolean>
+  --useLogicalTypes=<Boolean>
     Default: false
-    Controls whether generated Avro schema will contain logicalTypes or not.
+    Controls whether the generated schema (Avro or Parquet) will contain logical
+    types or not. See docs/type-conversion.md.
+  --useAvroLogicalTypes=<Boolean>
+    Deprecated alias of --useLogicalTypes, still supported. Setting both to
+    different values fails.
+  --useTimestampMicros=<Boolean>
+    Default: false
+    Requires --useLogicalTypes. TIMESTAMP, DATE, TIME and TIME_WITH_TIMEZONE
+    columns use timestamp-micros instead of timestamp-millis, preserving
+    sub-millisecond precision.
   --arrayMode=<String>
     Default: typed_first_row
     Configures how arrays are treated:
