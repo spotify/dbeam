@@ -30,7 +30,20 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.MessageTypeParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -42,6 +55,8 @@ public class JdbcParquetJobTest {
   private static Path testDir;
   private static Path passwordPath;
   private static Path sqlPath;
+  private static final LocalDateTime TS_MICROS_VALUE =
+      LocalDateTime.of(2026, 8, 20, 19, 6, 1, 879_123_000);
 
   @BeforeAll
   public static void beforeAll() throws SQLException, ClassNotFoundException, IOException {
@@ -51,6 +66,164 @@ public class JdbcParquetJobTest {
     passwordPath.toFile().createNewFile();
     Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      connection
+          .createStatement()
+          .execute("CREATE TABLE TS_MICROS (ID INT NOT NULL, CREATED_AT TIMESTAMP(6) NOT NULL)");
+      connection
+          .createStatement()
+          .execute("INSERT INTO TS_MICROS VALUES (1, TIMESTAMP '2026-08-20 19:06:01.879123')");
+    }
+  }
+
+  private static final class TimestampColumn {
+    private final String logicalType;
+    private final List<Long> values;
+
+    private TimestampColumn(final String logicalType, final List<Long> values) {
+      this.logicalType = logicalType;
+      this.values = values;
+    }
+  }
+
+  /** Reads CREATED_AT back the way Scio/Beam ParquetIO do: through the footer Avro schema. */
+  private static TimestampColumn readCreatedAtWithAvro(final Path parquetFile) throws IOException {
+    final List<Long> values = new ArrayList<>();
+    String logicalType = null;
+    try (ParquetReader<GenericRecord> reader =
+        AvroParquetReader.<GenericRecord>builder(
+                HadoopInputFile.fromPath(
+                    new org.apache.hadoop.fs.Path(parquetFile.toUri()),
+                    new org.apache.hadoop.conf.Configuration()))
+            .build()) {
+      GenericRecord record;
+      while ((record = reader.read()) != null) {
+        Schema fieldSchema = record.getSchema().getField("CREATED_AT").schema();
+        if (fieldSchema.getType() == Schema.Type.UNION) {
+          for (Schema branch : fieldSchema.getTypes()) {
+            if (branch.getType() != Schema.Type.NULL) {
+              fieldSchema = branch;
+            }
+          }
+        }
+        logicalType = fieldSchema.getProp("logicalType");
+        values.add((Long) record.get("CREATED_AT"));
+      }
+    }
+    return new TimestampColumn(logicalType, values);
+  }
+
+  private static Path runTimestampExport(final String name, final String... extraArgs)
+      throws Exception {
+    final Path outputPath = testDir.resolve(name);
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--partition=2025-02-28",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--table=TS_MICROS",
+                "--output=" + outputPath,
+                "--avroCodec=snappy",
+                "--useLogicalTypes"));
+    args.addAll(List.of(extraArgs));
+    JdbcParquetJob.create(args.toArray(new String[0])).runExport();
+    return outputPath.resolve("part-00000-of-00001.parquet");
+  }
+
+  @Test
+  public void shouldRoundTripTimestampMicrosThroughFooterAvroSchema() throws Exception {
+    final Path parquetFile =
+        runTimestampExport("shouldRoundTripTimestampMicros", "--useTimestampMicros");
+
+    final TimestampColumn column = readCreatedAtWithAvro(parquetFile);
+    final long expectedMicros =
+        ChronoUnit.MICROS.between(
+            LocalDateTime.of(1970, 1, 1, 0, 0).atOffset(ZoneOffset.UTC),
+            TS_MICROS_VALUE.atOffset(ZoneOffset.UTC));
+    Assertions.assertEquals("timestamp-micros", column.logicalType);
+    Assertions.assertEquals(List.of(expectedMicros), column.values);
+    Assertions.assertEquals(123L, expectedMicros % 1000);
+  }
+
+  @Test
+  public void shouldRoundTripTimestampMillisThroughFooterAvroSchema() throws Exception {
+    final Path parquetFile = runTimestampExport("shouldRoundTripTimestampMillis");
+
+    final TimestampColumn column = readCreatedAtWithAvro(parquetFile);
+    final long expectedMillis = TS_MICROS_VALUE.toInstant(ZoneOffset.UTC).toEpochMilli();
+    Assertions.assertEquals("timestamp-millis", column.logicalType);
+    Assertions.assertEquals(List.of(expectedMillis), column.values);
+  }
+
+  @Test
+  public void shouldFailWhenSchemaFileTimestampUnitDisagreesWithFlag() throws Exception {
+    final Path schemaFile = testDir.resolve("ts_micros_schema.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message TS_MICROS {\n"
+                + "  required int32 ID;\n"
+                + "  required int64 CREATED_AT (TIMESTAMP(MICROS,true));\n"
+                + "}")
+            .getBytes());
+
+    final IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                runTimestampExport(
+                    "shouldFailWhenSchemaFileTimestampUnitDisagreesWithFlag",
+                    "--parquetSchemaFilePath=" + schemaFile));
+    Assertions.assertTrue(
+        exception.getMessage().contains("CREATED_AT"), exception.getMessage());
+  }
+
+  @Test
+  public void shouldAcceptMatchingTimestampUnits() {
+    final MessageType millis =
+        MessageTypeParser.parseMessageType(
+            "message t { optional int64 ts (TIMESTAMP(MILLIS,true)); optional int64 n; }");
+    final MessageType micros =
+        MessageTypeParser.parseMessageType(
+            "message t { optional int64 ts (TIMESTAMP(MICROS,true)); optional binary s (UTF8); }");
+    JdbcParquetJob.checkTimestampUnits(millis, false);
+    JdbcParquetJob.checkTimestampUnits(micros, true);
+  }
+
+  @Test
+  public void shouldRejectMicrosSchemaWithoutTimestampMicrosFlag() {
+    final MessageType micros =
+        MessageTypeParser.parseMessageType(
+            "message t { optional int64 ts (TIMESTAMP(MICROS,true)); }");
+    final IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> JdbcParquetJob.checkTimestampUnits(micros, false));
+    Assertions.assertTrue(
+        exception.getMessage().contains("TIMESTAMP(MICROS)"), exception.getMessage());
+  }
+
+  @Test
+  public void shouldRejectMillisSchemaWithTimestampMicrosFlag() {
+    final MessageType millis =
+        MessageTypeParser.parseMessageType(
+            "message t { optional int64 ts (TIMESTAMP(MILLIS,true)); }");
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> JdbcParquetJob.checkTimestampUnits(millis, true));
+  }
+
+  @Test
+  public void shouldRejectNestedMismatchedTimestampUnit() {
+    final MessageType nested =
+        MessageTypeParser.parseMessageType(
+            "message t { optional group arr (LIST) { repeated group list {"
+                + " optional int64 element (TIMESTAMP(MICROS,true)); } } }");
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> JdbcParquetJob.checkTimestampUnits(nested, false));
   }
 
   @Test

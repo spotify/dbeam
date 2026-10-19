@@ -64,6 +64,19 @@
     </dependency>
 
     <!-- Test Deps -->
+    <!-- parquet-avro: read Parquet output back through the footer Avro schema in tests -->
+    <dependency>
+      <groupId>org.apache.parquet</groupId>
+      <artifactId>parquet-avro</artifactId>
+      <version>${parquet.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>com.spotify</groupId>
       <artifactId>dbeam-core</artifactId>

@@ -46,7 +46,10 @@ import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Create;
+import org.apache.parquet.schema.GroupType;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,6 +134,7 @@ public class JdbcParquetJob {
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
+        checkTimestampUnits(generatedSchema, jdbcExportArgs.useTimestampMicros());
         avroSchema = footerAvroSchema(() -> generateAvroSchema(connection));
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
@@ -209,6 +213,40 @@ public class JdbcParquetJob {
                 generatedSchema,
                 parquetArgs,
                 avroSchema == null ? null : avroSchema.toString()));
+  }
+
+  /**
+   * The writer takes the timestamp unit from the target Parquet field, while the footer Avro
+   * schema and {@code _AVRO_SCHEMA.avsc} follow {@code --useTimestampMicros}. Fail fast when a
+   * user-provided schema declares a TIMESTAMP unit that disagrees with the flag, so the Parquet
+   * schema and the footer Avro schema can never contradict each other.
+   */
+  static void checkTimestampUnits(final GroupType schema, final boolean useTimestampMicros) {
+    final LogicalTypeAnnotation.TimeUnit expected =
+        useTimestampMicros
+            ? LogicalTypeAnnotation.TimeUnit.MICROS
+            : LogicalTypeAnnotation.TimeUnit.MILLIS;
+    for (final Type field : schema.getFields()) {
+      if (!field.isPrimitive()) {
+        checkTimestampUnits(field.asGroupType(), useTimestampMicros);
+        continue;
+      }
+      final LogicalTypeAnnotation annotation = field.getLogicalTypeAnnotation();
+      if (annotation instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
+        final LogicalTypeAnnotation.TimeUnit unit =
+            ((LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) annotation).getUnit();
+        Preconditions.checkArgument(
+            unit == expected,
+            "Field '%s' in --parquetSchemaFilePath is TIMESTAMP(%s) but %s, so the footer Avro "
+                + "schema would use %s. Use TIMESTAMP(%s) in the schema file or %s.",
+            field.getName(),
+            unit,
+            useTimestampMicros ? "--useTimestampMicros is set" : "--useTimestampMicros is not set",
+            useTimestampMicros ? "timestamp-micros" : "timestamp-millis",
+            expected,
+            useTimestampMicros ? "remove --useTimestampMicros" : "set --useTimestampMicros");
+      }
+    }
   }
 
   private void checkMetrics(PipelineResult pipelineResult) throws FailedValidationException {

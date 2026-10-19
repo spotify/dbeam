@@ -10,6 +10,9 @@ When `--useTimestampMicros` is also set (it requires `--useLogicalTypes`), TIMES
 TIME and TIME_WITH_TIMEZONE columns use `TIMESTAMP(MICROS, isAdjustedToUTC=true)` and values are
 written as epoch microseconds, keeping the sub-millisecond part of `java.sql.Timestamp`. The Avro
 schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micros` to match.
+When `--parquetSchemaFilePath` is used, every TIMESTAMP field in the schema file must use the unit
+selected by `--useTimestampMicros` (MICROS with the flag, MILLIS without it); otherwise the job
+fails fast, so the Parquet schema and the footer Avro schema cannot disagree.
 
 | **Java SQL type**        | **Parquet physical type** | **Parquet logical type**        | **Comments**                          |
 |--------------------------|---------------------------|---------------------------------|---------------------------------------|
