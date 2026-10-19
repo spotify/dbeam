@@ -210,7 +210,7 @@ public class JdbcParquetJobTest {
               "--table=COFFEES",
               "--output=" + outputPath,
               "--avroCodec=snappy",
-              "--useAvroLogicalTypes",
+              "--useLogicalTypes",
               "--useTimestampMicros"
             })
         .runExport();

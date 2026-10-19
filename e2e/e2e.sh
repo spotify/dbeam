@@ -140,7 +140,7 @@ runTimestampMicrosTest() {
     "--table=timestamp_micros_test" \
     "--output=$OUTPUT" \
     "--avroSchemaNamespace=dbeam_generated" \
-    --useAvroLogicalTypes \
+    --useLogicalTypes \
     --useTimestampMicros \
     --avroCodec=deflate1
   set +o xtrace

@@ -4,6 +4,9 @@
 
 ### Added
 
+- `--useLogicalTypes`: format-neutral option controlling logical types in generated Avro and
+  Parquet schemas. `--useAvroLogicalTypes` remains supported as a deprecated alias; setting
+  both to conflicting values fails with an error.
 - **dbeam-parquet module**: New module for exporting SQL databases directly to Parquet files,
   complementing the existing Avro export in dbeam-core.
   - `JdbcParquetJob`: Main entry point for Parquet exports, reuses all shared infrastructure

@@ -61,9 +61,11 @@ public class JdbcExportArgsFactory {
   public static JdbcExportArgs fromPipelineOptions(final PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
+    final boolean useLogicalTypes = resolveUseLogicalTypes(exportOptions);
     checkArgument(
-        !exportOptions.isUseTimestampMicros() || exportOptions.isUseAvroLogicalTypes(),
-        "--useTimestampMicros requires --useAvroLogicalTypes");
+        !exportOptions.isUseTimestampMicros() || useLogicalTypes,
+        "--useTimestampMicros requires --useLogicalTypes (or its deprecated alias "
+            + "--useAvroLogicalTypes)");
     final JdbcAvroArgs jdbcAvroArgs =
         JdbcAvroArgs.create(
             JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
@@ -83,10 +85,37 @@ public class JdbcExportArgsFactory {
         exportOptions.getAvroSchemaNamespace(),
         Optional.ofNullable(exportOptions.getAvroSchemaName()),
         Optional.ofNullable(exportOptions.getAvroDoc()),
-        exportOptions.isUseAvroLogicalTypes(),
+        useLogicalTypes,
         exportOptions.isUseTimestampMicros(),
         Duration.parse(exportOptions.getExportTimeout()),
         BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
+  }
+
+  /**
+   * Resolves the effective value of {@code --useLogicalTypes}, honoring the deprecated
+   * {@code --useAvroLogicalTypes} alias. Fails if both are set to different values.
+   */
+  @SuppressWarnings("deprecation")
+  static boolean resolveUseLogicalTypes(final JdbcExportPipelineOptions options) {
+    final Boolean useLogicalTypes = options.isUseLogicalTypes();
+    final Boolean useAvroLogicalTypes = options.isUseAvroLogicalTypes();
+    if (useLogicalTypes != null && useAvroLogicalTypes != null) {
+      checkArgument(
+          useLogicalTypes.equals(useAvroLogicalTypes),
+          "Conflicting values: --useLogicalTypes=%s and --useAvroLogicalTypes=%s. "
+              + "--useAvroLogicalTypes is a deprecated alias of --useLogicalTypes; "
+              + "set only --useLogicalTypes.",
+          useLogicalTypes,
+          useAvroLogicalTypes);
+      return useLogicalTypes;
+    }
+    if (useLogicalTypes != null) {
+      return useLogicalTypes;
+    }
+    if (useAvroLogicalTypes != null) {
+      return useAvroLogicalTypes;
+    }
+    return false;
   }
 
   public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)

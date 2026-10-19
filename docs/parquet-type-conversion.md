@@ -1,11 +1,12 @@
 ### Type Conversion Details: Java SQL ==> Parquet
 
 Java SQL types (java.sql.Types.*) are converted to Parquet types according to the following table.
-When applicable and `--useAvroLogicalTypes` parameter is set to `true`, Parquet logical types are used.
+When applicable and `--useLogicalTypes` parameter is set to `true`, Parquet logical types are used.
+`--useAvroLogicalTypes` is a deprecated alias of `--useLogicalTypes` and is still supported.
 
 All columns are represented as `optional` (nullable) fields in the Parquet schema.
 
-When `--useTimestampMicros` is also set (it requires `--useAvroLogicalTypes`), TIMESTAMP, DATE,
+When `--useTimestampMicros` is also set (it requires `--useLogicalTypes`), TIMESTAMP, DATE,
 TIME and TIME_WITH_TIMEZONE columns use `TIMESTAMP(MICROS, isAdjustedToUTC=true)` and values are
 written as epoch microseconds, keeping the sub-millisecond part of `java.sql.Timestamp`. The Avro
 schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micros` to match.
@@ -16,10 +17,10 @@ schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micro
 | INTEGER                  | INT32                     |                                 | INT64 if column class is java.lang.Long (e.g. MySQL unsigned int) |
 | SMALLINT                 | INT32                     |                                 |                                       |
 | TINYINT                  | INT32                     |                                 |                                       |
-| TIMESTAMP                | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
-| DATE                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
-| TIME                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
-| TIME_WITH_TIMEZONE       | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useAvroLogicalTypes`; MICROS with `--useTimestampMicros` |
+| TIMESTAMP                | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useLogicalTypes`; MICROS with `--useTimestampMicros` |
+| DATE                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useLogicalTypes`; MICROS with `--useTimestampMicros` |
+| TIME                     | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useLogicalTypes`; MICROS with `--useTimestampMicros` |
+| TIME_WITH_TIMEZONE       | INT64                     | TIMESTAMP(MILLIS, isAdjustedToUTC=true) | Logical type only with `--useLogicalTypes`; MICROS with `--useTimestampMicros` |
 | BOOLEAN                  | BOOLEAN                   |                                 |                                       |
 | BIT                      | BOOLEAN / BINARY          |                                 | BOOLEAN if precision <= 1, BINARY otherwise |
 | BINARY                   | BINARY                    |                                 |                                       |
@@ -37,7 +38,7 @@ schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micro
 | LONGVARCHAR              | BINARY                    | STRING (UTF8)                   |                                       |
 | NCHAR                    | BINARY                    | STRING (UTF8)                   |                                       |
 | DECIMAL / NUMERIC        | BINARY                    | STRING (UTF8)                   | Exported as string representation; no fixed-point Parquet DECIMAL type |
-| OTHER (uuid)             | FIXED_LEN_BYTE_ARRAY(16)  | UUID                            | Only with `--useAvroLogicalTypes`; otherwise STRING |
+| OTHER (uuid)             | FIXED_LEN_BYTE_ARRAY(16)  | UUID                            | Only with `--useLogicalTypes`; otherwise STRING |
 | OTHER                    | BINARY                    | STRING (UTF8)                   | Default for unrecognized OTHER types  |
 | all other Java SQL types | BINARY                    | STRING (UTF8)                   |                                       |
 
