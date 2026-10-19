@@ -27,8 +27,11 @@
   - `_AVRO_SCHEMA.avsc` file saved alongside `_PARQUET_SCHEMA.json` in output directory.
   - `--parquetSchemaFilePath`: Input schema override (Parquet MessageType text format).
   - `--rowGroupSize` (default 128MB) and `--pageSize` (default 1MB) options.
-  - `--useTimestampMicros` writes timestamp columns as TIMESTAMP(MICROS) with microsecond
-    precision, and the footer Avro schema uses `timestamp-micros` to match.
+  - `--useTimestampMicros` (requires `--useLogicalTypes`) writes TIMESTAMP, DATE, TIME and
+    TIME_WITH_TIMEZONE columns as `TIMESTAMP(MICROS, isAdjustedToUTC=true)` epoch microseconds
+    instead of `TIMESTAMP(MILLIS, ...)`, and the footer Avro schema and `_AVRO_SCHEMA.avsc` use
+    `timestamp-micros` to match. With `--parquetSchemaFilePath`, the job fails fast if a
+    TIMESTAMP field's unit disagrees with `--useTimestampMicros`.
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.
