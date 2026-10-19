@@ -171,9 +171,19 @@ public class JdbcParquetWriteSupport {
           }
         };
       case TIMESTAMP:
-      case DATE: // written as epoch millis for Avro-path compatibility
+      case DATE: // written as epoch millis/micros for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
+        if (isTimestampMicros(fieldType)) {
+          return (consumer, rs) -> {
+            final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+            if (timestamp != null && !rs.wasNull()) {
+              consumer.startField(normalizedName, fieldIndex);
+              consumer.addLong(toEpochMicros(timestamp));
+              consumer.endField(normalizedName, fieldIndex);
+            }
+          };
+        }
         return (consumer, rs) -> {
           final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
           if (timestamp != null && !rs.wasNull()) {
@@ -316,6 +326,22 @@ public class JdbcParquetWriteSupport {
           }
         };
     }
+  }
+
+  /**
+   * The timestamp unit is taken from the target Parquet field, so the written values always match
+   * the declared TIMESTAMP(MILLIS|MICROS) annotation, including for a user-provided schema file.
+   */
+  static boolean isTimestampMicros(final Type fieldType) {
+    final LogicalTypeAnnotation annotation = fieldType.getLogicalTypeAnnotation();
+    return annotation instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation
+        && ((LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) annotation).getUnit()
+            == LogicalTypeAnnotation.TimeUnit.MICROS;
+  }
+
+  /** Epoch microseconds, keeping the sub-millisecond part of {@link Timestamp#getNanos()}. */
+  static long toEpochMicros(final Timestamp timestamp) {
+    return timestamp.getTime() * 1000 + (timestamp.getNanos() / 1000) % 1000;
   }
 
   static void writeArrayElement(RecordConsumer consumer, Object item, String elementType) {

@@ -195,6 +195,54 @@ public class JdbcParquetJobTest {
   }
 
   @Test
+  public void shouldRunParquetJobWithTimestampMicros() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRunParquetJobWithTimestampMicros");
+
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=COFFEES",
+              "--output=" + outputPath,
+              "--avroCodec=snappy",
+              "--useAvroLogicalTypes",
+              "--useTimestampMicros"
+            })
+        .runExport();
+
+    final String schemaJson =
+        new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json")));
+    Assertions.assertTrue(schemaJson.contains("TIMESTAMP(MICROS,true)"), schemaJson);
+    Assertions.assertFalse(schemaJson.contains("MILLIS"), schemaJson);
+
+    final String avroSchema =
+        new String(Files.readAllBytes(outputPath.resolve("_AVRO_SCHEMA.avsc")));
+    Assertions.assertTrue(avroSchema.contains("timestamp-micros"), avroSchema);
+    Assertions.assertFalse(avroSchema.contains("timestamp-millis"), avroSchema);
+
+    final org.apache.hadoop.fs.Path hadoopPath =
+        new org.apache.hadoop.fs.Path(
+            outputPath.resolve("part-00000-of-00001.parquet").toUri());
+    try (org.apache.parquet.hadoop.ParquetFileReader fileReader =
+        org.apache.parquet.hadoop.ParquetFileReader.open(
+            org.apache.parquet.hadoop.util.HadoopInputFile.fromPath(
+                hadoopPath, new org.apache.hadoop.conf.Configuration()))) {
+      final String footerAvroSchema =
+          fileReader
+              .getFooter()
+              .getFileMetaData()
+              .getKeyValueMetaData()
+              .get("parquet.avro.schema");
+      Assertions.assertTrue(footerAvroSchema.contains("timestamp-micros"), footerAvroSchema);
+    }
+  }
+
+  @Test
   public void shouldRunParquetJobWithMinRows() throws Exception {
     final Path outputPath = testDir.resolve("shouldRunParquetJobWithMinRows");
 

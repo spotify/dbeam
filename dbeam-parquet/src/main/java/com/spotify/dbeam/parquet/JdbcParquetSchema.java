@@ -75,15 +75,30 @@ public class JdbcParquetSchema {
       final boolean useLogicalTypes,
       final String arrayMode)
       throws SQLException {
+    return createSchemaByReadingOneRow(
+        connection, queryBuilderArgs, schemaName, useLogicalTypes, false, arrayMode);
+  }
+
+  public static MessageType createSchemaByReadingOneRow(
+      final Connection connection,
+      final QueryBuilderArgs queryBuilderArgs,
+      final Optional<String> schemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode)
+      throws SQLException {
     LOGGER.debug("Creating Parquet schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
       resultSet.next();
       final MessageType schema =
-          createParquetSchema(resultSet, schemaName, useLogicalTypes, arrayMode);
+          createParquetSchema(
+              resultSet, schemaName, useLogicalTypes, useTimestampMicros, arrayMode);
       LOGGER.info(
-          "Parquet schema created successfully. useLogicalTypes={}. Generated schema: {}",
+          "Parquet schema created successfully. useLogicalTypes={}, useTimestampMicros={}. "
+              + "Generated schema: {}",
           useLogicalTypes,
+          useTimestampMicros,
           schema);
       return schema;
     }
@@ -93,6 +108,16 @@ public class JdbcParquetSchema {
       final ResultSet resultSet,
       final Optional<String> maybeSchemaName,
       final boolean useLogicalTypes,
+      final String arrayMode)
+      throws SQLException {
+    return createParquetSchema(resultSet, maybeSchemaName, useLogicalTypes, false, arrayMode);
+  }
+
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
       final String arrayMode)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
@@ -121,6 +146,7 @@ public class JdbcParquetSchema {
               columnClassName,
               columnTypeName,
               useLogicalTypes,
+              useTimestampMicros,
               arrayMode));
     }
 
@@ -146,6 +172,26 @@ public class JdbcParquetSchema {
       final String columnTypeName,
       final boolean useLogicalTypes,
       final String arrayMode) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        false,
+        arrayMode);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode) {
     switch (columnType) {
       case BIGINT:
         return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
@@ -158,12 +204,16 @@ public class JdbcParquetSchema {
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named(columnName);
         }
       case TIMESTAMP:
-      case DATE: // stored as TIMESTAMP(MILLIS) for Avro-path compatibility
+      case DATE: // stored as TIMESTAMP(MILLIS|MICROS) for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
+          final LogicalTypeAnnotation.TimeUnit unit =
+              useTimestampMicros
+                  ? LogicalTypeAnnotation.TimeUnit.MICROS
+                  : LogicalTypeAnnotation.TimeUnit.MILLIS;
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-              .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+              .as(LogicalTypeAnnotation.timestampType(true, unit))
               .named(columnName);
         } else {
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);

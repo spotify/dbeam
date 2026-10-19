@@ -9,7 +9,7 @@
   - `JdbcParquetJob`: Main entry point for Parquet exports, reuses all shared infrastructure
     from dbeam-core (JDBC connectors, query building, partitioning, parallel queries, Beam runners).
   - `JdbcParquetSchema`: Converts JDBC ResultSetMetaData to Parquet MessageType schema with
-    full SQL type mapping including logical types (TIMESTAMP_MILLIS, UUID).
+    full SQL type mapping including logical types (TIMESTAMP MILLIS/MICROS, UUID).
   - `JdbcParquetWriteSupport`: Writes ResultSet rows directly to Parquet RecordConsumer
     without intermediate objects.
   - `ChannelOutputFile`: OutputFile implementation backed by WritableByteChannel, bypassing
@@ -24,7 +24,8 @@
   - `_AVRO_SCHEMA.avsc` file saved alongside `_PARQUET_SCHEMA.json` in output directory.
   - `--parquetSchemaFilePath`: Input schema override (Parquet MessageType text format).
   - `--rowGroupSize` (default 128MB) and `--pageSize` (default 1MB) options.
-  - `--useTimestampMicros` is not applied yet: Parquet timestamps are TIMESTAMP(MILLIS).
+  - `--useTimestampMicros` writes timestamp columns as TIMESTAMP(MICROS) with microsecond
+    precision, and the footer Avro schema uses `timestamp-micros` to match.
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.

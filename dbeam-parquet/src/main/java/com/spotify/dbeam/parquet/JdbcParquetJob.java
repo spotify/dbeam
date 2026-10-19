@@ -145,6 +145,7 @@ public class JdbcParquetJob {
                   rs,
                   jdbcExportArgs.avroSchemaName(),
                   jdbcExportArgs.useAvroLogicalTypes(),
+                  jdbcExportArgs.useTimestampMicros(),
                   arrayMode);
           final String dbUrl = connection.getMetaData().getURL();
           final String avroDoc =
@@ -162,9 +163,7 @@ public class JdbcParquetJob {
                           jdbcExportArgs.avroSchemaName(),
                           avroDoc,
                           jdbcExportArgs.useAvroLogicalTypes(),
-                          // Parquet timestamps are written as MILLIS; keep the footer Avro schema
-                          // in sync
-                          false,
+                          jdbcExportArgs.useTimestampMicros(),
                           arrayMode,
                           jdbcExportArgs.jdbcAvroOptions().nullableArrayItems()));
         }
@@ -269,8 +268,7 @@ public class JdbcParquetJob {
         jdbcExportArgs.avroSchemaName(),
         avroDoc,
         jdbcExportArgs.useAvroLogicalTypes(),
-        // Parquet timestamps are written as MILLIS; keep the footer Avro schema in sync
-        false,
+        jdbcExportArgs.useTimestampMicros(),
         jdbcExportArgs.jdbcAvroOptions().arrayMode(),
         jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
   }
