@@ -20,6 +20,8 @@
   - Parquet compression codecs: snappy (default), gzip, zstd, zstd1 .. zstd22 (Zstandard
     level), lz4, uncompressed via `--parquetCodec`, validated before any output is written.
     `--avroCodec` is not mapped to a Parquet codec; a non-default value logs a warning.
+  - STRUCT, REF, REF_CURSOR and DATALINK columns fail schema generation with the same messages
+    as the Avro export.
   - SQL ARRAY columns use Parquet 3-level LIST type with typed elements (INT32, INT64, FLOAT,
     DOUBLE, BOOLEAN, BINARY, STRING) inferred from column type name.
   - Parquet file footer includes `parquet.avro.schema` key with the Avro schema JSON, derived

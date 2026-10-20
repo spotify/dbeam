@@ -28,6 +28,7 @@ import static java.sql.Types.BLOB;
 import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
+import static java.sql.Types.DATALINK;
 import static java.sql.Types.DATE;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
@@ -38,7 +39,10 @@ import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
 import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
+import static java.sql.Types.REF;
+import static java.sql.Types.REF_CURSOR;
 import static java.sql.Types.SMALLINT;
+import static java.sql.Types.STRUCT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TIME_WITH_TIMEZONE;
@@ -245,6 +249,14 @@ public class JdbcParquetSchema {
         return Types.optionalList()
             .element(buildArrayElementType(columnTypeName))
             .named(columnName);
+      // Same as dbeam-core's JdbcAvroSchema
+      case STRUCT:
+        throw new RuntimeException("STRUCT type is not supported");
+      case REF:
+      case REF_CURSOR:
+        throw new RuntimeException("REF and REF_CURSOR type are not supported");
+      case DATALINK:
+        throw new RuntimeException("DATALINK type is not supported");
       case OTHER:
         if (useLogicalTypes && "uuid".equals(columnTypeName)) {
           return Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)

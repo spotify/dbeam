@@ -44,6 +44,9 @@ TIMESTAMP annotation in the schema file must agree with the flag or be absent (a
 | DECIMAL / NUMERIC        | BINARY                    | STRING (UTF8)                   | Exported as string representation; no fixed-point Parquet DECIMAL type |
 | OTHER (uuid)             | FIXED_LEN_BYTE_ARRAY(16)  | UUID                            | Only with `--useLogicalTypes`; otherwise STRING |
 | OTHER                    | BINARY                    | STRING (UTF8)                   | Default for unrecognized OTHER types  |
+| STRUCT                   |                           |                                 | NOT SUPPORTED (fails, as in Avro)     |
+| REF / REF_CURSOR         |                           |                                 | NOT SUPPORTED (fails, as in Avro)     |
+| DATALINK                 |                           |                                 | NOT SUPPORTED (fails, as in Avro)     |
 | all other Java SQL types | BINARY                    | STRING (UTF8)                   |                                       |
 
 #### Array element type mapping

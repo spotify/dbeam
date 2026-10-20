@@ -459,4 +459,25 @@ public class JdbcParquetSchemaTest {
     Assertions.assertTrue(actual.isPrimitive());
     Assertions.assertEquals(expected, actual.asPrimitiveType().getPrimitiveTypeName());
   }
+
+  @Test
+  public void shouldRejectUnsupportedTypesLikeAvro() {
+    final int[] types = {Types.STRUCT, Types.REF, Types.REF_CURSOR, Types.DATALINK};
+    final String[] messages = {
+      "STRUCT type is not supported",
+      "REF and REF_CURSOR type are not supported",
+      "REF and REF_CURSOR type are not supported",
+      "DATALINK type is not supported"
+    };
+    for (int i = 0; i < types.length; i++) {
+      final int type = types[i];
+      final RuntimeException e =
+          Assertions.assertThrows(
+              RuntimeException.class,
+              () ->
+                  JdbcParquetSchema.buildParquetFieldType(
+                      "col", type, 0, "java.lang.Object", "t", false, "typed_first_row"));
+      Assertions.assertEquals(messages[i], e.getMessage());
+    }
+  }
 }
