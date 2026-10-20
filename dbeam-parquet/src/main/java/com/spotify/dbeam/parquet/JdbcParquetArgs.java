@@ -27,6 +27,8 @@ import com.spotify.dbeam.args.JdbcConnectionArgs;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
@@ -57,8 +59,37 @@ public abstract class JdbcParquetArgs implements Serializable {
 
   abstract Builder builder();
 
+  static final String SUPPORTED_CODECS =
+      "snappy, gzip, zstd, zstd1 .. zstd22 (zstd with compression level), lz4, none, uncompressed";
+
+  private static final Pattern CODEC_PATTERN =
+      Pattern.compile("snappy|gzip|zstd([1-9]|1[0-9]|2[0-2])?|lz4|none|uncompressed");
+
+  /**
+   * Fail with the list of supported values if {@code parquetCodec} is not one of them.
+   *
+   * @throws IllegalArgumentException for an unsupported codec
+   */
+  public static void validateParquetCodec(final String parquetCodec) {
+    Preconditions.checkArgument(
+        parquetCodec != null && CODEC_PATTERN.matcher(parquetCodec.toLowerCase()).matches(),
+        "Invalid --parquetCodec '%s'. Supported values: %s",
+        parquetCodec,
+        SUPPORTED_CODECS);
+  }
+
+  /** Zstandard compression level from {@code zstd<level>}, empty for the codec's default. */
+  public Optional<Integer> zstdLevel() {
+    final String codec = parquetCodec().toLowerCase();
+    if (codec.startsWith("zstd") && codec.length() > 4) {
+      return Optional.of(Integer.parseInt(codec.substring(4)));
+    }
+    return Optional.empty();
+  }
+
   public CompressionCodecName getCompressionCodecName() {
-    switch (parquetCodec().toLowerCase()) {
+    final String codec = parquetCodec().toLowerCase();
+    switch (codec.startsWith("zstd") ? "zstd" : codec) {
       case "snappy":
         return CompressionCodecName.SNAPPY;
       case "gzip":
@@ -127,9 +158,7 @@ public abstract class JdbcParquetArgs implements Serializable {
       final List<String> preCommand,
       final String arrayMode,
       final boolean useTimestampMicros) {
-    Preconditions.checkArgument(
-        parquetCodec.matches("snappy|gzip|zstd|lz4|none|uncompressed"),
-        "Parquet codec should be one of: snappy, gzip, zstd, lz4, none, uncompressed");
+    validateParquetCodec(parquetCodec);
     return new AutoValue_JdbcParquetArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)
         .setFetchSize(fetchSize)

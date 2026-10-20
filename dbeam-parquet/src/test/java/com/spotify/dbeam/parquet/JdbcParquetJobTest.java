@@ -41,7 +41,9 @@ import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -577,106 +579,93 @@ public class JdbcParquetJobTest {
     Assertions.assertFalse(outputPath.toFile().exists());
   }
 
-  @Test
-  public void shouldMapAvroCodecToParquetCodec() {
-    Assertions.assertEquals("snappy", JdbcParquetJob.mapAvroCodecToParquetCodec("snappy"));
-    Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate1"));
-    Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate6"));
-    Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate9"));
-    Assertions.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard1"));
-    Assertions.assertEquals("zstd", JdbcParquetJob.mapAvroCodecToParquetCodec("zstandard9"));
+  private static CompressionCodecName readCodec(final Path parquetFile) throws IOException {
+    try (ParquetFileReader reader =
+        ParquetFileReader.open(
+            HadoopInputFile.fromPath(
+                new org.apache.hadoop.fs.Path(parquetFile.toUri()),
+                new org.apache.hadoop.conf.Configuration()))) {
+      return reader.getFooter().getBlocks().get(0).getColumns().get(0).getCodec();
+    }
+  }
+
+  private static Path runCoffeesExport(final String name, final String... extraArgs)
+      throws Exception {
+    final Path outputPath = testDir.resolve(name);
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--partition=2025-02-28",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--table=COFFEES",
+                "--output=" + outputPath));
+    args.addAll(List.of(extraArgs));
+    JdbcParquetJob.create(args.toArray(new String[0])).runExport();
+    return outputPath.resolve("part-00000-of-00001.parquet");
   }
 
   @Test
-  public void shouldRunParquetJobWithDeflateCodec() throws Exception {
-    final Path outputPath = testDir.resolve("shouldRunParquetJobWithDeflateCodec");
+  public void shouldDefaultToSnappyCodec() throws Exception {
+    Assertions.assertEquals(
+        CompressionCodecName.SNAPPY, readCodec(runCoffeesExport("shouldDefaultToSnappyCodec")));
+  }
 
-    JdbcParquetJob.create(
+  @Test
+  public void shouldIgnoreAvroCodec() throws Exception {
+    Assertions.assertEquals(
+        CompressionCodecName.SNAPPY,
+        readCodec(runCoffeesExport("shouldIgnoreAvroCodecDeflate", "--avroCodec=deflate1")));
+    Assertions.assertEquals(
+        CompressionCodecName.SNAPPY,
+        readCodec(runCoffeesExport("shouldIgnoreAvroCodecZstd", "--avroCodec=zstandard1")));
+  }
+
+  @Test
+  public void shouldWarnOnlyForNonDefaultAvroCodec() {
+    Assertions.assertTrue(
+        JdbcParquetJob.warnIgnoredAvroCodec(
+            JdbcParquetJob.buildPipelineOptions(new String[] {"--avroCodec=zstandard1"})));
+    Assertions.assertFalse(
+        JdbcParquetJob.warnIgnoredAvroCodec(JdbcParquetJob.buildPipelineOptions(new String[] {})));
+  }
+
+  @Test
+  public void shouldUseParquetCodecOption() throws Exception {
+    Assertions.assertEquals(
+        CompressionCodecName.GZIP,
+        readCodec(runCoffeesExport("shouldUseParquetCodecGzip", "--parquetCodec=gzip")));
+    Assertions.assertEquals(
+        CompressionCodecName.ZSTD,
+        readCodec(
+            runCoffeesExport(
+                "shouldUseParquetCodecZstdLevel", "--avroCodec=deflate1", "--parquetCodec=zstd9")));
+  }
+
+  @Test
+  public void shouldRejectInvalidParquetCodecBeforeAnyOutput() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRejectInvalidParquetCodec");
+    final JdbcParquetJob job =
+        JdbcParquetJob.create(
             new String[] {
               "--targetParallelism=1",
               "--partition=2025-02-28",
               "--skipPartitionCheck",
-              "--exportTimeout=PT1M",
               "--connectionUrl=" + CONNECTION_URL,
               "--username=",
               "--passwordFile=" + passwordPath.toString(),
               "--table=COFFEES",
               "--output=" + outputPath,
-              "--avroCodec=deflate1"
-            })
-        .runExport();
-
-    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
-    assertThat(parquetFile.length(), greaterThan(0L));
-  }
-
-  @Test
-  public void shouldRunParquetJobWithZstandardCodec() throws Exception {
-    final Path outputPath = testDir.resolve("shouldRunParquetJobWithZstandardCodec");
-
-    JdbcParquetJob.create(
-            new String[] {
-              "--targetParallelism=1",
-              "--partition=2025-02-28",
-              "--skipPartitionCheck",
-              "--exportTimeout=PT1M",
-              "--connectionUrl=" + CONNECTION_URL,
-              "--username=",
-              "--passwordFile=" + passwordPath.toString(),
-              "--table=COFFEES",
-              "--output=" + outputPath,
-              "--avroCodec=zstandard1"
-            })
-        .runExport();
-
-    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
-    assertThat(parquetFile.length(), greaterThan(0L));
-  }
-
-  @Test
-  public void shouldRunParquetJobWithParquetCodecOption() throws Exception {
-    final Path outputPath = testDir.resolve("shouldRunParquetJobWithParquetCodecOption");
-
-    JdbcParquetJob.create(
-            new String[] {
-              "--targetParallelism=1",
-              "--partition=2025-02-28",
-              "--skipPartitionCheck",
-              "--exportTimeout=PT1M",
-              "--connectionUrl=" + CONNECTION_URL,
-              "--username=",
-              "--passwordFile=" + passwordPath.toString(),
-              "--table=COFFEES",
-              "--output=" + outputPath,
-              "--parquetCodec=gzip"
-            })
-        .runExport();
-
-    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
-    assertThat(parquetFile.length(), greaterThan(0L));
-  }
-
-  @Test
-  public void shouldPreferParquetCodecOverAvroCodec() throws Exception {
-    final Path outputPath = testDir.resolve("shouldPreferParquetCodecOverAvroCodec");
-
-    JdbcParquetJob.create(
-            new String[] {
-              "--targetParallelism=1",
-              "--partition=2025-02-28",
-              "--skipPartitionCheck",
-              "--exportTimeout=PT1M",
-              "--connectionUrl=" + CONNECTION_URL,
-              "--username=",
-              "--passwordFile=" + passwordPath.toString(),
-              "--table=COFFEES",
-              "--output=" + outputPath,
-              "--avroCodec=deflate1",
-              "--parquetCodec=zstd"
-            })
-        .runExport();
-
-    final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
-    assertThat(parquetFile.length(), greaterThan(0L));
+              "--parquetCodec=deflate6"
+            });
+    final IllegalArgumentException e =
+        Assertions.assertThrows(IllegalArgumentException.class, job::prepareExport);
+    Assertions.assertTrue(
+        e.getMessage().contains("Supported values: snappy, gzip"), e.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
   }
 }

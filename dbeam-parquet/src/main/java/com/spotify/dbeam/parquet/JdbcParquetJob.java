@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 public class JdbcParquetJob {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JdbcParquetJob.class);
+  private static final String DEFAULT_AVRO_CODEC = "deflate6";
 
   private final PipelineOptions pipelineOptions;
   private final Pipeline pipeline;
@@ -132,6 +133,9 @@ public class JdbcParquetJob {
   }
 
   public void prepareExport() throws Exception {
+    final ParquetPipelineOptions parquetOptions = pipelineOptions.as(ParquetPipelineOptions.class);
+    JdbcParquetArgs.validateParquetCodec(parquetOptions.getParquetCodec());
+    warnIgnoredAvroCodec(pipelineOptions);
     configureVersion();
     final List<String> queries;
     final MessageType generatedSchema;
@@ -193,8 +197,7 @@ public class JdbcParquetJob {
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
-    final String parquetCodec = resolveParquetCodec(pipelineOptions);
-    final ParquetPipelineOptions parquetOptions = pipelineOptions.as(ParquetPipelineOptions.class);
+    final String parquetCodec = parquetOptions.getParquetCodec();
     final JdbcParquetArgs parquetArgs =
         JdbcParquetArgs.create(
             jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
@@ -319,26 +322,20 @@ public class JdbcParquetJob {
     return output;
   }
 
-  static String resolveParquetCodec(final PipelineOptions options) {
-    final String parquetCodec = options.as(ParquetPipelineOptions.class).getParquetCodec();
-    if (parquetCodec != null && !parquetCodec.isEmpty()) {
-      return parquetCodec;
+  /**
+   * {@code --avroCodec} has a default value, so passing it explicitly with that default
+   * ({@code deflate6}) cannot be told apart from not passing it; any other value is reported.
+   */
+  static boolean warnIgnoredAvroCodec(final PipelineOptions options) {
+    final String avroCodec = options.as(JdbcExportPipelineOptions.class).getAvroCodec();
+    if (avroCodec != null && !DEFAULT_AVRO_CODEC.equals(avroCodec)) {
+      LOGGER.warn(
+          "--avroCodec={} is ignored by Parquet exports; use --parquetCodec (current: {})",
+          avroCodec,
+          options.as(ParquetPipelineOptions.class).getParquetCodec());
+      return true;
     }
-    return mapAvroCodecToParquetCodec(options.as(JdbcExportPipelineOptions.class).getAvroCodec());
-  }
-
-  static String mapAvroCodecToParquetCodec(final String avroCodec) {
-    if (avroCodec == null) {
-      return "snappy";
-    }
-    if (avroCodec.equals("snappy")) {
-      return "snappy";
-    } else if (avroCodec.startsWith("deflate")) {
-      return "gzip";
-    } else if (avroCodec.startsWith("zstandard")) {
-      return "zstd";
-    }
-    return avroCodec;
+    return false;
   }
 
   public static void main(String[] cmdLineArgs) {

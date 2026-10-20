@@ -48,6 +48,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.api.WriteSupport;
+import org.apache.parquet.hadoop.codec.ZstandardCodec;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.schema.MessageType;
@@ -170,7 +171,7 @@ public class JdbcParquetIO {
 
       final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
       channelOutputFile = new ChannelOutputFile(channel);
-      parquetWriter =
+      final ResultSetParquetWriterBuilder builder =
           new ResultSetParquetWriterBuilder(
                   channelOutputFile,
                   schema,
@@ -180,8 +181,13 @@ public class JdbcParquetIO {
               .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
               .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
               .withPageSize((int) jdbcParquetArgs.pageSize())
-              .withWriteMode(ParquetFileWriter.Mode.CREATE)
-              .build();
+              .withWriteMode(ParquetFileWriter.Mode.CREATE);
+      jdbcParquetArgs
+          .zstdLevel()
+          .ifPresent(
+              level ->
+                  builder.config(ZstandardCodec.PARQUET_COMPRESS_ZSTD_LEVEL, level.toString()));
+      parquetWriter = builder.build();
       LOGGER.info("jdbcparquetio : Write prepared");
     }
 

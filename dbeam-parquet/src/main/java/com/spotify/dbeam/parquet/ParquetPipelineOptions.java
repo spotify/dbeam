@@ -34,9 +34,10 @@ public interface ParquetPipelineOptions extends PipelineOptions {
 
   void setParquetSchemaFilePath(String value);
 
+  @Default.String("snappy")
   @Description(
-      "Parquet compression codec (snappy, gzip, zstd, lz4, none). "
-          + "Overrides --avroCodec when set.")
+      "Parquet compression codec: snappy, gzip, zstd, zstd1 .. zstd22 (zstd with compression"
+          + " level), lz4, none, uncompressed. --avroCodec is ignored by Parquet exports.")
   String getParquetCodec();
 
   void setParquetCodec(String value);

@@ -95,15 +95,18 @@ record properties and no per-field docs or properties. `--nullableArrayItems` ha
 Parquet exports (list elements are always optional); passing it logs a warning. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
 are not valid Avro names is exported without the footer key and `_AVRO_SCHEMA.avsc`.
 
-#### Codec mapping
+#### Compression codec (`--parquetCodec`)
 
-When using `JdbcParquetJob`, the `--avroCodec` parameter is mapped to Parquet compression codecs:
+`--parquetCodec` selects the Parquet compression codec and defaults to `snappy`. Supported
+values: `snappy`, `gzip`, `zstd`, `zstd1` .. `zstd22` (Zstandard with that compression level,
+set via `parquet.compression.codec.zstd.level`; plain `zstd` uses parquet-hadoop's default level
+3), `lz4` (LZ4_RAW), `none` / `uncompressed`. Other compression levels (e.g. for gzip) are not
+supported. An invalid value fails at the start of the export, before any metadata file is
+written, with `IllegalArgumentException` listing the supported values.
 
-| **--avroCodec value** | **Parquet codec** |
-|-----------------------|-------------------|
-| snappy                | SNAPPY            |
-| deflate1 .. deflate9  | GZIP              |
-| zstandard1 .. zstandard9 | ZSTD           |
+`--avroCodec` is ignored by Parquet exports; a non-default value logs a warning. Since
+`--avroCodec` has a default (`deflate6`), passing exactly `--avroCodec=deflate6` cannot be
+detected and logs nothing.
 
 #### Input schema file (`--parquetSchemaFilePath`)
 
