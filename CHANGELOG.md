@@ -62,7 +62,11 @@
     queries.)
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.
-  - End-to-end test support in `e2e/e2e.sh` with `parquet-tools` validation.
+  - End-to-end test support in `e2e/e2e.sh`: the Parquet suite mirrors the Avro runs (codecs,
+    parallel queries, array modes) plus logical types, timestamp micros, uuid,
+    `--parquetNativeTypes` and `--dataOnly`, and `e2e/VerifyParquetOutput.java` reads every
+    output file of every run through its footer Avro schema (`AvroParquetReader`), checking row
+    counts, `row_number` coverage, key values and that the footer equals `_AVRO_SCHEMA.avsc`.
   - Comprehensive test suite (90+ tests) covering schema conversion, record roundtrips,
     typed arrays, null handling, mock-based PostgreSQL type tests, and footer metadata.
 
@@ -90,7 +94,7 @@
   eliminating duplication between dbeam-core and dbeam-parquet.
 - `PsqlReplicationCheck.validateOptions()` made public for cross-module access.
 - dbeam-core: Added test-jar packaging for test helper sharing.
-- CI: Codecov upload includes dbeam-parquet coverage. Parquet-tools installed for e2e validation.
+- CI: Codecov upload includes dbeam-parquet coverage.
 - e2e: PostgreSQL upgraded from 16 to 18. Parquet test suite runs alongside Avro suite.
 - Documentation: README updated with Parquet usage examples, library dependencies, and feature list.
   New `docs/parquet-type-conversion.md` with full type mapping table.

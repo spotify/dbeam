@@ -138,6 +138,30 @@ run_docker_dbeam_parquet_jdbc() {
     com.spotify.dbeam.parquet.JdbcParquetJob "$@"
 }
 
+# Classpath for the Java Parquet verifiers. The shaded jar includes parquet-avro, but
+# AvroParquetReader also needs hadoop-mapreduce-client-core, which is test-scoped, so add the
+# test classpath. Computed once per e2e run.
+parquetVerifierClasspath() {
+  local VERIFY_CP_FILE
+  VERIFY_CP_FILE="$SCRIPT_PATH/results/verify_parquet_classpath.txt"
+  if [[ ! -s "$VERIFY_CP_FILE" ]]; then
+    mkdir -p "$SCRIPT_PATH/results"
+    (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet dependency:build-classpath \
+      -Dmdep.includeScope=test "-Dmdep.outputFile=$VERIFY_CP_FILE") >&2
+  fi
+  echo "$PROJECT_PATH/dbeam-parquet/target/dbeam-parquet-shaded.jar:$(cat "$VERIFY_CP_FILE")"
+}
+
+# Reads every Parquet file of an export (all run_N directories) through its footer Avro schema
+# and checks row counts, row_number coverage and demo_table values.
+# Usage: verifyParquetOutput <outputDir> <rowsPerRun> [VerifyParquetOutput flags...]
+verifyParquetOutput() {
+  java \
+    --class-path "$(parquetVerifierClasspath)" \
+    "$SCRIPT_PATH/VerifyParquetOutput.java" \
+    "$@"
+}
+
 runTimestampMicrosTest() {
   echo "=== timestamp-micros e2e test ==="
   local OUTPUT
@@ -192,25 +216,11 @@ runParquetTimestampMicrosTest() {
     --useTimestampMicros
   set +o xtrace
 
-  local PARQUET_FILE
-  PARQUET_FILE=$(find "$OUTPUT" -name '*.parquet' | head -n 1)
-  if [[ -z "$PARQUET_FILE" ]]; then
-    echo "FAIL: no parquet output file found"
-    return 1
-  fi
-
-  # The shaded jar includes parquet-avro, but AvroParquetReader also needs
-  # hadoop-mapreduce-client-core, which is test-scoped, so add the test classpath.
-  local VERIFY_CP_FILE
-  VERIFY_CP_FILE="$SCRIPT_PATH/results/verify_parquet_classpath.txt"
-  (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet dependency:build-classpath \
-    -Dmdep.includeScope=test "-Dmdep.outputFile=$VERIFY_CP_FILE")
-
-  echo "--- verifying microsecond precision (parquet) ---"
+  echo "--- verifying microsecond precision (parquet, all output files) ---"
   java \
-    --class-path "$PROJECT_PATH/dbeam-parquet/target/dbeam-parquet-shaded.jar:$(cat "$VERIFY_CP_FILE")" \
+    --class-path "$(parquetVerifierClasspath)" \
     "$SCRIPT_PATH/VerifyParquetTimestampMicros.java" \
-    "$PARQUET_FILE" "${OUTPUT}_AVRO_SCHEMA.avsc"
+    "$OUTPUT" "${OUTPUT}_AVRO_SCHEMA.avsc"
   echo "PASS: parquet timestamp values retain microsecond precision"
   echo "PASS: footer parquet.avro.schema equals _AVRO_SCHEMA.avsc"
 }
@@ -224,8 +234,12 @@ timestampMicros() {
   runParquetTimestampMicrosTest
 }
 
+# Usage: [VERIFY_ARGS="--logicalTypes ..."] runDBeamParquetDockerCon <dbeam args...>
+# VERIFY_ARGS are passed to VerifyParquetOutput and must describe the dbeam args.
 runDBeamParquetDockerCon() {
   OUTPUT="$SCRIPT_PATH/results/testn/parquet-$(date +%FT%H%M%S)/"
+  local verify_args=()
+  read -r -a verify_args <<< "${VERIFY_ARGS:-}"
   set -o xtrace
   time \
     run_docker_dbeam_parquet \
@@ -239,21 +253,8 @@ runDBeamParquetDockerCon() {
     "--output=$OUTPUT" \
     "--minRows=${minRows:-1000000}" \
     "$@" 2>&1 | tee -a /tmp/debeam_e2e.log
-  OUTPUT_FILE=$(ls ${OUTPUT}run_0/*.parquet | head -n 1)
-  echo "Parquet output: $OUTPUT_FILE ($(wc -c < "$OUTPUT_FILE" | tr -d ' ') bytes)"
-  parquet-tools head -n 5 "$OUTPUT_FILE" || echo "parquet-tools not available, skipping content validation"
-  parquet-tools schema "$OUTPUT_FILE" || echo "parquet-tools not available, skipping schema validation"
-
-  # Verify parquet.avro.schema is present in footer metadata
-  AVRO_SCHEMA_META=$(parquet-tools meta "$OUTPUT_FILE" 2>/dev/null | grep "parquet.avro.schema" || true)
-  if [[ -n "$AVRO_SCHEMA_META" ]]; then
-    echo "OK: parquet.avro.schema found in footer metadata"
-    # Sanity check: should contain "type" and "record" (valid Avro JSON)
-    echo "$AVRO_SCHEMA_META" | grep -q '"type"' && echo "OK: Avro schema contains type field" || echo "WARN: Avro schema may be malformed"
-  else
-    echo "FAIL: parquet.avro.schema NOT found in footer metadata"
-    exit 1
-  fi
+  set +o xtrace
+  verifyParquetOutput "$OUTPUT" "${minRows:-1000000}" ${verify_args[@]+"${verify_args[@]}"}
 }
 
 runSuite() {
@@ -267,10 +268,26 @@ runSuite() {
   runParquetTimestampMicrosTest
 }
 
+# Parquet counterparts of runSuite, plus the logical type, uuid and --dataOnly variants.
 runParquetSuite() {
   table=demo_table
   BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --parquetCodec=gzip
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --parquetCodec=zstd
   BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --queryParallelism=5 --splitColumn=row_number
+  VERIFY_ARGS="--arrayMode=bytes" \
+    BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --arrayMode=bytes
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --arrayMode=typed_postgres
+  VERIFY_ARGS="--logicalTypes" \
+    BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --useLogicalTypes
+  VERIFY_ARGS="--logicalTypes --micros" \
+    BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --useLogicalTypes \
+    --useTimestampMicros --queryParallelism=5 --splitColumn=row_number
+  VERIFY_ARGS="--logicalTypes" \
+    BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --useLogicalTypes \
+    --parquetNativeTypes
+  VERIFY_ARGS="--dataOnly" \
+    BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=1 --dataOnly
 }
 
 light() {
@@ -282,7 +299,7 @@ light() {
 lightParquet() {
   pack
   table=demo_table
-  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --avroCodec=snappy
+  BINARY_TRANSFER='false' runDBeamParquetDockerCon --executions=3 --parquetCodec=snappy
 }
 
 

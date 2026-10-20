@@ -39,7 +39,20 @@ public final class VerifyParquetTimestampMicros {
   public static void main(String[] args) throws Exception {
     if (args.length < 1 || args.length > 2) {
       throw new IllegalArgumentException(
-          "Expected a Parquet file path and optionally the _AVRO_SCHEMA.avsc path");
+          "Expected a Parquet file or output directory and optionally the _AVRO_SCHEMA.avsc path");
+    }
+    final List<String> files = new ArrayList<>();
+    if (Files.isDirectory(Paths.get(args[0]))) {
+      try (java.util.stream.Stream<java.nio.file.Path> paths = Files.walk(Paths.get(args[0]))) {
+        paths
+            .filter(p -> p.getFileName().toString().endsWith(".parquet"))
+            .forEach(p -> files.add(p.toString()));
+      }
+    } else {
+      files.add(args[0]);
+    }
+    if (files.isEmpty()) {
+      throw new AssertionError("No .parquet files in " + args[0]);
     }
 
     // Expected values from e2e/ddl.sql timestamp_micros_test, as epoch microseconds
@@ -48,27 +61,28 @@ public final class VerifyParquetTimestampMicros {
 
     final List<Long> createdAtValues = new ArrayList<>();
     String logicalType = null;
-    try (ParquetReader<GenericRecord> reader =
-        AvroParquetReader.<GenericRecord>builder(
-                HadoopInputFile.fromPath(new Path(args[0]), new Configuration()))
-            .build()) {
-      GenericRecord record;
-      while ((record = reader.read()) != null) {
-        Schema fieldSchema = record.getSchema().getField("created_at").schema();
-        if (fieldSchema.getType() == Schema.Type.UNION) {
-          for (Schema branch : fieldSchema.getTypes()) {
-            if (branch.getType() != Schema.Type.NULL) {
-              fieldSchema = branch;
+    for (String file : files) {
+      try (ParquetReader<GenericRecord> reader =
+          AvroParquetReader.<GenericRecord>builder(
+                  HadoopInputFile.fromPath(new Path(file), new Configuration()))
+              .build()) {
+        GenericRecord record;
+        while ((record = reader.read()) != null) {
+          Schema fieldSchema = record.getSchema().getField("created_at").schema();
+          if (fieldSchema.getType() == Schema.Type.UNION) {
+            for (Schema branch : fieldSchema.getTypes()) {
+              if (branch.getType() != Schema.Type.NULL) {
+                fieldSchema = branch;
+              }
             }
           }
+          logicalType = fieldSchema.getProp("logicalType");
+          createdAtValues.add((Long) record.get("created_at"));
         }
-        logicalType = fieldSchema.getProp("logicalType");
-        createdAtValues.add((Long) record.get("created_at"));
       }
-    }
-
-    if (args.length == 2) {
-      verifyFooterMatchesAvsc(args[0], args[1]);
+      if (args.length == 2) {
+        verifyFooterMatchesAvsc(file, args[1]);
+      }
     }
     if (!"timestamp-micros".equals(logicalType)) {
       throw new AssertionError(
