@@ -199,8 +199,8 @@ runParquetTimestampMicrosTest() {
     return 1
   fi
 
-  # parquet-avro (AvroParquetReader) and hadoop-mapreduce are test-scoped, so add them
-  # to the shaded jar for the verifier.
+  # The shaded jar includes parquet-avro, but AvroParquetReader also needs
+  # hadoop-mapreduce-client-core, which is test-scoped, so add the test classpath.
   local VERIFY_CP_FILE
   VERIFY_CP_FILE="$SCRIPT_PATH/results/verify_parquet_classpath.txt"
   (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet dependency:build-classpath \

@@ -68,7 +68,8 @@ The Avro schema stored in the `parquet.avro.schema` footer key, and saved as `_A
 (identical content), is derived from the Parquet schema actually used for writing, including a
 schema given with `--parquetSchemaFilePath`. It therefore always describes the written columns,
 and `AvroParquetReader` (Scio, Beam `ParquetIO`, Spark with parquet-avro) can decode the files
-with it. The mapping follows parquet-avro's `AvroSchemaConverter`:
+with it. The conversion is parquet-avro's `AvroSchemaConverter`, configured with
+`parquet.avro.add-list-element-records=false` so lists map directly to Avro arrays:
 
 | **Parquet type**                               | **Avro type**                                    |
 |------------------------------------------------|--------------------------------------------------|
@@ -82,15 +83,14 @@ with it. The mapping follows parquet-avro's `AvroSchemaConverter`:
 | BINARY (no annotation) / DECIMAL               | bytes / bytes `decimal`                          |
 | FIXED_LEN_BYTE_ARRAY(16) UUID                  | string `uuid` (decoded to the canonical UUID string) |
 | FIXED_LEN_BYTE_ARRAY(n) / DECIMAL              | fixed(n) / fixed `decimal`                       |
-| LIST                                           | array; items are `["null", T]` because dbeam always writes optional list elements |
+| LIST                                           | array; items are `["null", T]` (no wrapper record) because dbeam always writes optional list elements |
 | MAP with STRING keys                           | map                                              |
 | group                                          | nested record                                    |
 
 The record is named after the Parquet message (`--avroSchemaName` or the table name), uses
-`--avroSchemaNamespace` and `--avroDoc`, and, like dbeam-core's Avro export, carries the
-`tableName` and `connectionUrl` properties and per-field docs and `columnName`, `sqlCode`,
-`typeName`, `columnClassName` and `columnTypeName` properties (matched to JDBC columns by
-position, so renamed fields in a schema file keep them). `--nullableArrayItems` has no effect on
+`--avroSchemaNamespace` and `--avroDoc` (default `Generate schema from JDBC ResultSet from
+<connection URL>`). Unlike dbeam-core's Avro export, it carries no `tableName`/`connectionUrl`
+record properties and no per-field docs or properties. `--nullableArrayItems` has no effect on
 Parquet exports. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
 are not valid Avro names is exported without the footer key and `_AVRO_SCHEMA.avsc`.
 

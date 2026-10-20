@@ -35,10 +35,8 @@ import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.avro.Schema;
@@ -138,7 +136,7 @@ public class JdbcParquetJob {
         generatedSchema = inputSchema.get();
         checkTimestampUnits(generatedSchema, jdbcExportArgs.useTimestampMicros());
         avroSchema =
-            footerAvroSchema(() -> avroSchemaFromSchemaFile(connection, generatedSchema));
+            footerAvroSchema(() -> deriveFooterAvroSchema(generatedSchema, connection));
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
         // Query DB once for both Parquet and Avro schemas
@@ -157,7 +155,7 @@ public class JdbcParquetJob {
           final MessageType writeSchema = generatedSchema;
           avroSchema =
               footerAvroSchema(
-                  () -> deriveFooterAvroSchema(writeSchema, rs.getMetaData(), connection));
+                  () -> deriveFooterAvroSchema(writeSchema, connection));
         }
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       }
@@ -282,40 +280,18 @@ public class JdbcParquetJob {
   }
 
   /**
-   * Column docs/properties come from the first row's metadata, matched by position (the writer is
-   * positional too), so renamed fields in a schema file still get their JDBC column info.
-   */
-  private Schema avroSchemaFromSchemaFile(final Connection connection, final MessageType schema)
-      throws Exception {
-    try (Statement stmt = connection.createStatement()) {
-      final ResultSet rs =
-          stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
-      return deriveFooterAvroSchema(schema, rs.getMetaData(), connection);
-    }
-  }
-
-  /**
    * The footer Avro schema is derived from the Parquet schema used for writing, so it always
    * describes the actual columns (see {@link ParquetAvroSchema}).
    */
-  private Schema deriveFooterAvroSchema(
-      final MessageType schema, final ResultSetMetaData meta, final Connection connection)
+  private Schema deriveFooterAvroSchema(final MessageType schema, final Connection connection)
       throws SQLException {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
         jdbcExportArgs
             .avroDoc()
             .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
-    final Map<String, String> recordProps = new LinkedHashMap<>();
-    recordProps.put("tableName", JdbcParquetSchema.getDatabaseTableName(meta));
-    recordProps.put("connectionUrl", dbUrl);
     final Schema avroSchema =
-        ParquetAvroSchema.toAvroSchema(
-            schema,
-            jdbcExportArgs.avroSchemaNamespace(),
-            avroDoc,
-            recordProps,
-            ParquetAvroSchema.fieldInfos(meta));
+        ParquetAvroSchema.toAvroSchema(schema, jdbcExportArgs.avroSchemaNamespace(), avroDoc);
     LOGGER.info("Footer Avro schema derived from Parquet schema: {}", avroSchema);
     return avroSchema;
   }
