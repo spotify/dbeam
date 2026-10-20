@@ -52,6 +52,9 @@ public abstract class JdbcParquetArgs implements Serializable {
 
   public abstract String arrayMode();
 
+  /** Write timestamp/date/time columns as epoch micros instead of millis. */
+  public abstract boolean useTimestampMicros();
+
   abstract Builder builder();
 
   public CompressionCodecName getCompressionCodecName() {
@@ -91,6 +94,8 @@ public abstract class JdbcParquetArgs implements Serializable {
 
     abstract Builder setArrayMode(String arrayMode);
 
+    abstract Builder setUseTimestampMicros(boolean useTimestampMicros);
+
     abstract JdbcParquetArgs build();
   }
 
@@ -102,6 +107,26 @@ public abstract class JdbcParquetArgs implements Serializable {
       final long pageSize,
       final List<String> preCommand,
       final String arrayMode) {
+    return create(
+        jdbcConnectionArgs,
+        fetchSize,
+        parquetCodec,
+        rowGroupSize,
+        pageSize,
+        preCommand,
+        arrayMode,
+        false);
+  }
+
+  public static JdbcParquetArgs create(
+      final JdbcConnectionArgs jdbcConnectionArgs,
+      final int fetchSize,
+      final String parquetCodec,
+      final long rowGroupSize,
+      final long pageSize,
+      final List<String> preCommand,
+      final String arrayMode,
+      final boolean useTimestampMicros) {
     Preconditions.checkArgument(
         parquetCodec.matches("snappy|gzip|zstd|lz4|none|uncompressed"),
         "Parquet codec should be one of: snappy, gzip, zstd, lz4, none, uncompressed");
@@ -113,6 +138,7 @@ public abstract class JdbcParquetArgs implements Serializable {
         .setPageSize(pageSize)
         .setPreCommand(preCommand)
         .setArrayMode(arrayMode)
+        .setUseTimestampMicros(useTimestampMicros)
         .build();
   }
 

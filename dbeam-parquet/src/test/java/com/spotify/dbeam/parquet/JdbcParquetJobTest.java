@@ -207,6 +207,70 @@ public class JdbcParquetJobTest {
     Assertions.assertEquals(List.of(expectedMicros), column.values);
   }
 
+  private static Path unannotatedTimestampSchemaFile() throws IOException {
+    final Path schemaFile = testDir.resolve("ts_unannotated_schema.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message TS_MICROS {\n"
+                + "  optional int32 ID;\n"
+                + "  optional int64 CREATED_AT;\n"
+                + "}")
+            .getBytes());
+    return schemaFile;
+  }
+
+  @Test
+  public void shouldWriteMicrosForUnannotatedSchemaFileFieldWithFlag() throws Exception {
+    final Path parquetFile =
+        runTimestampExport(
+            "shouldWriteMicrosForUnannotatedSchemaFileFieldWithFlag",
+            "--useTimestampMicros",
+            "--parquetSchemaFilePath=" + unannotatedTimestampSchemaFile());
+
+    final TimestampColumn column = readCreatedAtWithAvro(parquetFile);
+    final long expectedMicros =
+        ChronoUnit.MICROS.between(
+            LocalDateTime.of(1970, 1, 1, 0, 0).atOffset(ZoneOffset.UTC),
+            TS_MICROS_VALUE.atOffset(ZoneOffset.UTC));
+    Assertions.assertNull(column.logicalType);
+    Assertions.assertEquals(List.of(expectedMicros), column.values);
+  }
+
+  @Test
+  public void shouldWriteMillisForUnannotatedSchemaFileFieldWithoutFlag() throws Exception {
+    final Path parquetFile =
+        runTimestampExport(
+            "shouldWriteMillisForUnannotatedSchemaFileFieldWithoutFlag",
+            "--parquetSchemaFilePath=" + unannotatedTimestampSchemaFile());
+
+    final TimestampColumn column = readCreatedAtWithAvro(parquetFile);
+    Assertions.assertNull(column.logicalType);
+    Assertions.assertEquals(
+        List.of(TS_MICROS_VALUE.toInstant(ZoneOffset.UTC).toEpochMilli()), column.values);
+  }
+
+  @Test
+  public void shouldFailWhenSchemaFileHasMillisWithFlag() throws Exception {
+    final Path schemaFile = testDir.resolve("ts_millis_schema.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message TS_MICROS {\n"
+                + "  optional int32 ID;\n"
+                + "  optional int64 CREATED_AT (TIMESTAMP(MILLIS,true));\n"
+                + "}")
+            .getBytes());
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                runTimestampExport(
+                    "shouldFailWhenSchemaFileHasMillisWithFlag",
+                    "--useTimestampMicros",
+                    "--parquetSchemaFilePath=" + schemaFile));
+    Assertions.assertTrue(
+        exception.getMessage().contains("--useTimestampMicros is set"), exception.getMessage());
+  }
+
   @Test
   public void shouldRunJdbcParquetJob() throws Exception {
     final Path outputPath = testDir.resolve("shouldRunJdbcParquetJob");

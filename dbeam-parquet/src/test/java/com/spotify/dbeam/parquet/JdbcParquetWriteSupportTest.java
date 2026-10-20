@@ -59,7 +59,44 @@ public class JdbcParquetWriteSupportTest {
 
   private void write(int sqlType, String arrayMode, Type fieldType) throws SQLException {
     when(meta.getColumnType(1)).thenReturn(sqlType);
-    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, fieldType).write(consumer, rs);
+    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, fieldType, false)
+        .write(consumer, rs);
+  }
+
+  private void writeTimestamp(final Type fieldType, final boolean micros) throws SQLException {
+    final java.sql.Timestamp ts = new java.sql.Timestamp(1488300933123L);
+    ts.setNanos(123456789);
+    when(meta.getColumnType(1)).thenReturn(Types.TIMESTAMP);
+    when(rs.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
+    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, "bytes", fieldType, micros)
+        .write(consumer, rs);
+  }
+
+  private static Type int64(final LogicalTypeAnnotation annotation) {
+    return org.apache.parquet.schema.Types.optional(PrimitiveTypeName.INT64)
+        .as(annotation)
+        .named("col");
+  }
+
+  @Test
+  public void shouldWriteTimestampUnitFromFlagNotAnnotation() throws SQLException {
+    // the flag decides; the annotation is not consulted (the validator rejects mismatches)
+    writeTimestamp(
+        int64(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS)),
+        true);
+    verify(consumer).addLong(1488300933123456L);
+  }
+
+  @Test
+  public void shouldWriteUnannotatedTimestampAsMicrosWithFlag() throws SQLException {
+    writeTimestamp(int64(null), true);
+    verify(consumer).addLong(1488300933123456L);
+  }
+
+  @Test
+  public void shouldWriteUnannotatedTimestampAsMillisWithoutFlag() throws SQLException {
+    writeTimestamp(int64(null), false);
+    verify(consumer).addLong(1488300933123L);
   }
 
   @Test

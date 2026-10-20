@@ -89,13 +89,15 @@ public class JdbcParquetWriteSupport {
   }
 
   public static JdbcParquetWriteSupport create(
-      ResultSet resultSet, MessageType schema, String arrayMode) throws SQLException {
+      ResultSet resultSet, MessageType schema, String arrayMode, boolean useTimestampMicros)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      writers[i] = computeColumnWriter(meta, i, arrayMode, schema.getType(i - 1));
+      writers[i] =
+          computeColumnWriter(meta, i, arrayMode, schema.getType(i - 1), useTimestampMicros);
     }
 
     return new JdbcParquetWriteSupport(schema, writers, columnCount);
@@ -114,8 +116,17 @@ public class JdbcParquetWriteSupport {
     consumer.endMessage();
   }
 
+  /**
+   * Timestamp/date/time columns are written as epoch micros when {@code useTimestampMicros} is set
+   * and as epoch millis otherwise, regardless of the target field's annotation (a schema file whose
+   * annotation disagrees is rejected by {@link ParquetSchemaValidator}).
+   */
   static ColumnWriter computeColumnWriter(
-      final ResultSetMetaData meta, final int column, final String arrayMode, final Type fieldType)
+      final ResultSetMetaData meta,
+      final int column,
+      final String arrayMode,
+      final Type fieldType,
+      final boolean useTimestampMicros)
       throws SQLException {
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
@@ -174,7 +185,7 @@ public class JdbcParquetWriteSupport {
       case DATE: // written as epoch millis/micros for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
-        if (isTimestampMicros(fieldType)) {
+        if (useTimestampMicros) {
           return (consumer, rs) -> {
             final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
             if (timestamp != null && !rs.wasNull()) {
@@ -326,17 +337,6 @@ public class JdbcParquetWriteSupport {
           }
         };
     }
-  }
-
-  /**
-   * The timestamp unit is taken from the target Parquet field, so the written values always match
-   * the declared TIMESTAMP(MILLIS|MICROS) annotation, including for a user-provided schema file.
-   */
-  static boolean isTimestampMicros(final Type fieldType) {
-    final LogicalTypeAnnotation annotation = fieldType.getLogicalTypeAnnotation();
-    return annotation instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation
-        && ((LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) annotation).getUnit()
-            == LogicalTypeAnnotation.TimeUnit.MICROS;
   }
 
   /** Epoch microseconds, keeping the sub-millisecond part of {@link Timestamp#getNanos()}. */

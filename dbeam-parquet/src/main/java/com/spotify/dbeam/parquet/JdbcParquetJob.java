@@ -189,7 +189,8 @@ public class JdbcParquetJob {
             parquetOptions.getRowGroupSize(),
             parquetOptions.getPageSize(),
             jdbcExportArgs.jdbcAvroOptions().preCommand(),
-            arrayMode);
+            arrayMode,
+            jdbcExportArgs.useTimestampMicros());
 
     pipeline
         .apply("JdbcQueries", Create.of(queries))

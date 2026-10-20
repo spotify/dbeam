@@ -168,6 +168,7 @@ public class PostgresJdbcParquetTest {
     final Path tempFile = Files.createTempFile("parquet-ts-micros-test-", ".parquet");
     Files.delete(tempFile);
     writeAndVerify(
+        true,
         schema,
         resultSet,
         tempFile,
@@ -476,6 +477,16 @@ public class PostgresJdbcParquetTest {
   private void writeAndVerify(
       MessageType schema, ResultSet resultSet, Path tempFile, RecordAssertion assertion)
       throws IOException {
+    writeAndVerify(false, schema, resultSet, tempFile, assertion);
+  }
+
+  private void writeAndVerify(
+      boolean useTimestampMicros,
+      MessageType schema,
+      ResultSet resultSet,
+      Path tempFile,
+      RecordAssertion assertion)
+      throws IOException {
     final OutputFile outputFile =
         new ChannelOutputFile(
             java.nio.channels.FileChannel.open(
@@ -484,7 +495,8 @@ public class PostgresJdbcParquetTest {
                 java.nio.file.StandardOpenOption.WRITE));
 
     try (ParquetWriter<ResultSet> writer =
-        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(
+                outputFile, schema, null, "typed_first_row", useTimestampMicros)
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       writer.write(resultSet);

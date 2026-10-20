@@ -42,19 +42,20 @@ import org.apache.parquet.schema.Type;
  * logical type annotation must be one of:
  *
  * <ul>
- *   <li>the annotation of the derived field (with or without {@code --useAvroLogicalTypes}),
+ *   <li>the annotation of the derived field (with or without {@code --useLogicalTypes}),
  *   <li>no annotation, except for UUID and LIST, which change what the writer emits,
  *   <li>{@code ENUM} or {@code JSON} where the derived field is {@code STRING},
  *   <li>a signed {@code INT(32)} on {@code int32} or {@code INT(64)} on {@code int64}.
  * </ul>
  *
- * <p>Timestamp/date/time columns: the writer takes the unit from the target field's annotation, so
- * the only accepted TIMESTAMP annotation is the one {@code --useTimestampMicros} asks for: {@code
- * TIMESTAMP(MICROS,true)} with the flag, {@code TIMESTAMP(MILLIS,true)} without it (no annotation
- * is also accepted and is written as millis). {@code NANOS} is never accepted.
+ * <p>Timestamp/date/time columns: {@code --useTimestampMicros} alone decides the written unit
+ * (epoch micros with the flag, epoch millis without it), so the only accepted TIMESTAMP annotation
+ * is the one that agrees with the flag: {@code TIMESTAMP(MICROS,true)} with the flag, {@code
+ * TIMESTAMP(MILLIS,true)} without it. No annotation is also accepted and is written in the flag's
+ * unit. {@code NANOS} and non-UTC timestamps are never accepted.
  *
  * <p>A PostgreSQL {@code uuid} column may be either {@code binary (STRING)} or {@code
- * fixed_len_byte_array(16) (UUID)} regardless of {@code --useAvroLogicalTypes}, since the writer
+ * fixed_len_byte_array(16) (UUID)} regardless of {@code --useLogicalTypes}, since the writer
  * follows the schema's annotation for that column.
  */
 public class ParquetSchemaValidator {

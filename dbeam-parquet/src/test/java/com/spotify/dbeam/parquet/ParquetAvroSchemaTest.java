@@ -228,7 +228,8 @@ public class ParquetAvroSchemaTest {
                         tempFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)),
                 schema,
                 avro.toString(),
-                arrayMode)
+                arrayMode,
+                false)
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       for (int i = 0; i < rows; i++) {
