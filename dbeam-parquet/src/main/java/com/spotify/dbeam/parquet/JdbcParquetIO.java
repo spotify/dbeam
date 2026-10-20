@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.spotify.dbeam.avro.JdbcMetering;
+import java.io.Closeable;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,6 +39,8 @@ import org.apache.beam.sdk.io.ShardNameTemplate;
 import org.apache.beam.sdk.io.WriteFiles;
 import org.apache.beam.sdk.io.WriteFilesResult;
 import org.apache.beam.sdk.io.fs.ResourceId;
+import org.apache.beam.sdk.metrics.MetricsContainer;
+import org.apache.beam.sdk.metrics.MetricsEnvironment;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -69,6 +72,16 @@ public class JdbcParquetIO {
       final MessageType schema,
       final JdbcParquetArgs jdbcParquetArgs,
       final String avroSchemaJson) {
+    return WriteFiles.to(
+        createSink(filenamePrefix, filenameSuffix, schema, jdbcParquetArgs, avroSchemaJson));
+  }
+
+  static FileBasedSink<String, Void, String> createSink(
+      final String filenamePrefix,
+      final String filenameSuffix,
+      final MessageType schema,
+      final JdbcParquetArgs jdbcParquetArgs,
+      final String avroSchemaJson) {
     final ValueProvider<ResourceId> prefixProvider =
         StaticValueProvider.of(
             FileBasedSink.convertToFileResourceIfPossible(
@@ -82,10 +95,8 @@ public class JdbcParquetIO {
 
     // Store schema as String for serialization (MessageType is not Serializable)
     final String schemaString = schema.toString();
-    final FileBasedSink<String, Void, String> sink =
-        new JdbcParquetSink(
-            prefixProvider, destinations, schemaString, jdbcParquetArgs, avroSchemaJson);
-    return WriteFiles.to(sink);
+    return new JdbcParquetSink(
+        prefixProvider, destinations, schemaString, jdbcParquetArgs, avroSchemaJson);
   }
 
   static class JdbcParquetSink extends FileBasedSink<String, Void, String> {
@@ -147,6 +158,7 @@ public class JdbcParquetIO {
     private Connection connection;
     private JdbcMetering metering;
     private ChannelOutputFile channelOutputFile;
+    private MetricsContainer bundleMetricsContainer;
 
     JdbcParquetWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -221,6 +233,7 @@ public class JdbcParquetIO {
     @Override
     public void write(final String query) throws Exception {
       checkArgument(parquetWriter != null, "ParquetWriter was not properly created");
+      bundleMetricsContainer = MetricsEnvironment.getCurrentContainer();
       LOGGER.info("jdbcparquetio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
         metering.startWriteMeter();
@@ -229,9 +242,24 @@ public class JdbcParquetIO {
           this.metering.incrementRecordCount();
         }
         this.metering.exposeWriteElapsed();
-        if (channelOutputFile != null) {
-          this.metering.exposeWrittenBytes(channelOutputFile.getBytesWritten());
+      }
+    }
+
+    /**
+     * Count each file exactly once, after close() wrote the last row group and the footer (a
+     * writer can handle several queries, so counting per query would double-count). Beam closes
+     * writers in {@code @FinishBundle}, where the DirectRunner has no current metrics container;
+     * fall back to the bundle's container captured in {@link #write}.
+     */
+    private void exposeWrittenBytes() throws Exception {
+      final long bytes = channelOutputFile.getBytesWritten();
+      if (MetricsEnvironment.getCurrentContainer() == null && bundleMetricsContainer != null) {
+        try (Closeable ignored =
+            MetricsEnvironment.scopedMetricsContainer(bundleMetricsContainer)) {
+          this.metering.exposeWrittenBytes(bytes);
         }
+      } else {
+        this.metering.exposeWrittenBytes(bytes);
       }
     }
 
@@ -240,6 +268,7 @@ public class JdbcParquetIO {
       LOGGER.info("jdbcparquetio : Closing connection, flushing writer...");
       if (parquetWriter != null) {
         parquetWriter.close();
+        exposeWrittenBytes();
       }
       if (connection != null) {
         connection.close();

@@ -74,6 +74,12 @@ public class JdbcParquetJobTest {
       connection
           .createStatement()
           .execute("INSERT INTO TS_MICROS VALUES (1, TIMESTAMP '2026-08-20 19:06:01.879123')");
+      connection
+          .createStatement()
+          .execute("CREATE TABLE MANY_ROWS (ID BIGINT NOT NULL, NAME VARCHAR(20))");
+      connection
+          .createStatement()
+          .execute("INSERT INTO MANY_ROWS SELECT X, CONCAT('name', X) FROM SYSTEM_RANGE(1, 1000)");
     }
   }
 
@@ -607,6 +613,38 @@ public class JdbcParquetJobTest {
     args.addAll(List.of(extraArgs));
     JdbcParquetJob.create(args.toArray(new String[0])).runExport();
     return outputPath.resolve("part-00000-of-00001.parquet");
+  }
+
+  @Test
+  public void shouldCountBytesWrittenOncePerFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldCountBytesWrittenOncePerFile");
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=MANY_ROWS",
+              "--output=" + outputPath,
+              "--splitColumn=ID",
+              "--queryParallelism=4"
+            })
+        .runExport();
+    long totalSize = 0;
+    int files = 0;
+    for (File file : outputPath.toFile().listFiles()) {
+      if (file.getName().endsWith(".parquet")) {
+        totalSize += file.length();
+        files++;
+      }
+    }
+    assertThat(files, greaterThan(0));
+    assertThat(outputPath.resolve("_queries").toFile().listFiles().length, greaterThan(1));
+    final String metrics = new String(Files.readAllBytes(outputPath.resolve("_METRICS.json")));
+    Assertions.assertTrue(
+        metrics.contains("\"bytesWritten\":" + totalSize + ","), metrics + " vs " + totalSize);
   }
 
   @Test

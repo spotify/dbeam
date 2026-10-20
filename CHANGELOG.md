@@ -45,6 +45,11 @@
     TIMESTAMP field whose unit disagrees with `--useTimestampMicros`. The flag alone decides the
     written unit; unannotated `int64` fields in a schema file are written in the flag's unit.
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
+  - `bytesWritten` metric (`JdbcParquetMetering`): total bytes of the output files, counted once
+    per file after the writer is closed (last row group and footer included), also when one
+    writer handles several queries. (dbeam-core's Avro `bytesWritten` is still reported after
+    each query with the cumulative file size, so it over-counts when a writer handles several
+    queries.)
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.
   - End-to-end test support in `e2e/e2e.sh` with `parquet-tools` validation.
