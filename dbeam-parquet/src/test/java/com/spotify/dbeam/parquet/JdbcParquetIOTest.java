@@ -28,6 +28,9 @@ import java.io.File;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.beam.runners.core.metrics.MetricsContainerImpl;
@@ -55,6 +58,11 @@ public class JdbcParquetIOTest {
 
   private static FileBasedSink.Writer<Void, String> createWriter(final String name)
       throws Exception {
+    return createWriter(name, Collections.emptyList());
+  }
+
+  private static FileBasedSink.Writer<Void, String> createWriter(
+      final String name, final List<String> preCommand) throws Exception {
     final MessageType schema;
     try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
         ResultSet rs =
@@ -64,9 +72,13 @@ public class JdbcParquetIOTest {
     }
     final JdbcParquetArgs args =
         JdbcParquetArgs.create(
-            JdbcConnectionArgs.create(CONNECTION_URL)
-                .withUsername("")
-                .withPassword(""));
+            JdbcConnectionArgs.create(CONNECTION_URL).withUsername("").withPassword(""),
+            10000,
+            "snappy",
+            128 * 1024 * 1024,
+            1024 * 1024,
+            preCommand,
+            "typed_first_row");
     return JdbcParquetIO.createSink(
             testDir.resolve(name).toString(), ".parquet", schema, args, null)
         .createWriteOperation()
@@ -99,5 +111,33 @@ public class JdbcParquetIOTest {
                 new org.apache.hadoop.conf.Configuration()))) {
       Assertions.assertEquals(6, reader.getRecordCount());
     }
+  }
+
+  @Test
+  public void shouldRunPreCommandBeforeEveryQuery() throws Exception {
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      connection.createStatement().execute("CREATE SEQUENCE PRE_COMMAND_SEQ START WITH 1");
+    }
+    // sequences are not transactional, so the count survives the writer's rollback on close
+    final FileBasedSink.Writer<Void, String> writer =
+        createWriter("preCommand", List.of("SELECT NEXT VALUE FOR PRE_COMMAND_SEQ"));
+    writer.open(UUID.randomUUID().toString());
+    writer.write("SELECT COF_NAME, TOTAL FROM COFFEES");
+    writer.write("SELECT COF_NAME, TOTAL FROM COFFEES");
+    writer.close();
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL);
+        ResultSet rs =
+            connection.createStatement().executeQuery("SELECT NEXT VALUE FOR PRE_COMMAND_SEQ")) {
+      rs.next();
+      Assertions.assertEquals(3, rs.getInt(1));
+    }
+  }
+
+  @Test
+  public void shouldPropagateQueryFailure() throws Exception {
+    final FileBasedSink.Writer<Void, String> writer = createWriter("queryFailure");
+    writer.open(UUID.randomUUID().toString());
+    Assertions.assertThrows(SQLException.class, () -> writer.write("SELECT * FROM NO_SUCH_TABLE"));
+    writer.cleanup();
   }
 }

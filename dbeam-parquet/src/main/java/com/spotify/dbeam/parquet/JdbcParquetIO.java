@@ -180,7 +180,16 @@ public class JdbcParquetIO {
     protected void prepareWrite(final WritableByteChannel channel) throws Exception {
       LOGGER.info("jdbcparquetio : Preparing write...");
       connection = jdbcParquetArgs.jdbcConnectionConfiguration().createConnection();
+      try {
+        createParquetWriter(channel);
+      } catch (Exception e) {
+        closeConnectionQuietly();
+        throw e;
+      }
+      LOGGER.info("jdbcparquetio : Write prepared");
+    }
 
+    private void createParquetWriter(final WritableByteChannel channel) throws Exception {
       final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
       channelOutputFile = new ChannelOutputFile(channel);
       final ResultSetParquetWriterBuilder builder =
@@ -200,10 +209,20 @@ public class JdbcParquetIO {
               level ->
                   builder.config(ZstandardCodec.PARQUET_COMPRESS_ZSTD_LEVEL, level.toString()));
       parquetWriter = builder.build();
-      LOGGER.info("jdbcparquetio : Write prepared");
     }
 
-    private ResultSet executeQuery(final String query) throws Exception {
+    private void closeConnectionQuietly() {
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (Exception e) {
+          LOGGER.warn("jdbcparquetio : Failed to close JDBC connection", e);
+        }
+        connection = null;
+      }
+    }
+
+    private PreparedStatement prepareStatement(final String query) throws Exception {
       checkArgument(connection != null, "JDBC connection was not properly created");
       final PreparedStatement statement =
           connection.prepareStatement(
@@ -212,13 +231,22 @@ public class JdbcParquetIO {
       if (jdbcParquetArgs.statementPreparator() != null) {
         jdbcParquetArgs.statementPreparator().setParameters(statement);
       }
+      return statement;
+    }
 
+    /** Runs --preCommand before every query, like dbeam-core's JdbcAvroIO. */
+    private void executePreCommands() throws Exception {
       if (jdbcParquetArgs.preCommand() != null && !jdbcParquetArgs.preCommand().isEmpty()) {
-        final Statement stmt = connection.createStatement();
-        for (String command : jdbcParquetArgs.preCommand()) {
-          stmt.execute(command);
+        try (Statement stmt = connection.createStatement()) {
+          for (String command : jdbcParquetArgs.preCommand()) {
+            stmt.execute(command);
+          }
         }
       }
+    }
+
+    private ResultSet executeQuery(final PreparedStatement statement) throws Exception {
+      executePreCommands();
 
       final long startTime = System.nanoTime();
       LOGGER.info(
@@ -235,13 +263,21 @@ public class JdbcParquetIO {
       checkArgument(parquetWriter != null, "ParquetWriter was not properly created");
       bundleMetricsContainer = MetricsEnvironment.getCurrentContainer();
       LOGGER.info("jdbcparquetio : Starting write...");
-      try (ResultSet resultSet = executeQuery(query)) {
+      try (PreparedStatement statement = prepareStatement(query);
+          ResultSet resultSet = executeQuery(statement)) {
         metering.startWriteMeter();
         while (resultSet.next()) {
           parquetWriter.write(resultSet);
           this.metering.incrementRecordCount();
         }
         this.metering.exposeWriteElapsed();
+      } catch (Exception e) {
+        // Beam discards this writer's temp file (Writer.cleanup) without calling finishWrite, so
+        // release the connection here. The ParquetWriter is dropped without close(), which would
+        // only flush a partial row group and footer into the discarded file.
+        closeConnectionQuietly();
+        parquetWriter = null;
+        throw e;
       }
     }
 
@@ -266,12 +302,15 @@ public class JdbcParquetIO {
     @Override
     protected void finishWrite() throws Exception {
       LOGGER.info("jdbcparquetio : Closing connection, flushing writer...");
-      if (parquetWriter != null) {
-        parquetWriter.close();
-        exposeWrittenBytes();
-      }
-      if (connection != null) {
-        connection.close();
+      try {
+        if (parquetWriter != null) {
+          parquetWriter.close();
+          exposeWrittenBytes();
+        }
+      } finally {
+        if (connection != null) {
+          connection.close();
+        }
       }
       LOGGER.info("jdbcparquetio : Write finished");
     }

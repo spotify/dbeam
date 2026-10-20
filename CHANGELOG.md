@@ -46,6 +46,9 @@
     `timestamp-micros` to match. With `--parquetSchemaFilePath`, schema validation rejects a
     TIMESTAMP field whose unit disagrees with `--useTimestampMicros`. The flag alone decides the
     written unit; unannotated `int64` fields in a schema file are written in the flag's unit.
+  - `JdbcParquetIO` closes the PreparedStatement and `--preCommand` Statement of every query, and
+    the JDBC connection when preparing the writer or a query fails (`--preCommand` still runs
+    before every query, as in `JdbcAvroIO`).
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
   - `bytesWritten` metric (`JdbcParquetMetering`): total bytes of the output files, counted once
     per file after the writer is closed (last row group and footer included), also when one
