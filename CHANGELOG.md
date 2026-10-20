@@ -32,13 +32,15 @@
     or invalid Avro names in a schema file), the key is omitted and the export continues.
   - `_AVRO_SCHEMA.avsc` file saved alongside `_PARQUET_SCHEMA.json` in output directory,
     identical to the footer schema.
-  - `--parquetSchemaFilePath`: Input schema override (Parquet MessageType text format).
+  - `--parquetSchemaFilePath`: Input schema override (Parquet MessageType text format),
+    validated against the JDBC-derived schema before export (renames and compatible annotations
+    only; fails with `FailedValidationException` otherwise).
   - `--rowGroupSize` (default 128MB) and `--pageSize` (default 1MB) options.
   - `--useTimestampMicros` (requires `--useLogicalTypes`) writes TIMESTAMP, DATE, TIME and
     TIME_WITH_TIMEZONE columns as `TIMESTAMP(MICROS, isAdjustedToUTC=true)` epoch microseconds
     instead of `TIMESTAMP(MILLIS, ...)`, and the footer Avro schema and `_AVRO_SCHEMA.avsc` use
-    `timestamp-micros` to match. With `--parquetSchemaFilePath`, the job fails fast if a
-    TIMESTAMP field's unit disagrees with `--useTimestampMicros`.
+    `timestamp-micros` to match. With `--parquetSchemaFilePath`, schema validation rejects a
+    TIMESTAMP field whose unit disagrees with `--useTimestampMicros`.
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.

@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.greaterThan;
 
 import com.spotify.dbeam.DbTestHelper;
 import com.spotify.dbeam.TestHelper;
+import com.spotify.dbeam.jobs.FailedValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,8 +43,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.MessageTypeParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -166,14 +165,14 @@ public class JdbcParquetJobTest {
     Files.write(
         schemaFile,
         ("message TS_MICROS {\n"
-                + "  required int32 ID;\n"
-                + "  required int64 CREATED_AT (TIMESTAMP(MICROS,true));\n"
+                + "  optional int32 ID;\n"
+                + "  optional int64 CREATED_AT (TIMESTAMP(MICROS,true));\n"
                 + "}")
             .getBytes());
 
-    final IllegalArgumentException exception =
+    final FailedValidationException exception =
         Assertions.assertThrows(
-            IllegalArgumentException.class,
+            FailedValidationException.class,
             () ->
                 runTimestampExport(
                     "shouldFailWhenSchemaFileTimestampUnitDisagreesWithFlag",
@@ -183,47 +182,29 @@ public class JdbcParquetJobTest {
   }
 
   @Test
-  public void shouldAcceptMatchingTimestampUnits() {
-    final MessageType millis =
-        MessageTypeParser.parseMessageType(
-            "message t { optional int64 ts (TIMESTAMP(MILLIS,true)); optional int64 n; }");
-    final MessageType micros =
-        MessageTypeParser.parseMessageType(
-            "message t { optional int64 ts (TIMESTAMP(MICROS,true)); optional binary s (UTF8); }");
-    JdbcParquetJob.checkTimestampUnits(millis, false);
-    JdbcParquetJob.checkTimestampUnits(micros, true);
-  }
+  public void shouldRoundTripTimestampMicrosWithSchemaFile() throws Exception {
+    final Path schemaFile = testDir.resolve("ts_micros_schema_ok.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message renamed {\n"
+                + "  optional int32 ID;\n"
+                + "  optional int64 CREATED_AT (TIMESTAMP(MICROS,true));\n"
+                + "}")
+            .getBytes());
 
-  @Test
-  public void shouldRejectMicrosSchemaWithoutTimestampMicrosFlag() {
-    final MessageType micros =
-        MessageTypeParser.parseMessageType(
-            "message t { optional int64 ts (TIMESTAMP(MICROS,true)); }");
-    final IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () -> JdbcParquetJob.checkTimestampUnits(micros, false));
-    Assertions.assertTrue(
-        exception.getMessage().contains("TIMESTAMP(MICROS)"), exception.getMessage());
-  }
+    final Path parquetFile =
+        runTimestampExport(
+            "shouldRoundTripTimestampMicrosWithSchemaFile",
+            "--useTimestampMicros",
+            "--parquetSchemaFilePath=" + schemaFile);
 
-  @Test
-  public void shouldRejectMillisSchemaWithTimestampMicrosFlag() {
-    final MessageType millis =
-        MessageTypeParser.parseMessageType(
-            "message t { optional int64 ts (TIMESTAMP(MILLIS,true)); }");
-    Assertions.assertThrows(
-        IllegalArgumentException.class, () -> JdbcParquetJob.checkTimestampUnits(millis, true));
-  }
-
-  @Test
-  public void shouldRejectNestedMismatchedTimestampUnit() {
-    final MessageType nested =
-        MessageTypeParser.parseMessageType(
-            "message t { optional group arr (LIST) { repeated group list {"
-                + " optional int64 element (TIMESTAMP(MICROS,true)); } } }");
-    Assertions.assertThrows(
-        IllegalArgumentException.class, () -> JdbcParquetJob.checkTimestampUnits(nested, false));
+    final TimestampColumn column = readCreatedAtWithAvro(parquetFile);
+    final long expectedMicros =
+        ChronoUnit.MICROS.between(
+            LocalDateTime.of(1970, 1, 1, 0, 0).atOffset(ZoneOffset.UTC),
+            TS_MICROS_VALUE.atOffset(ZoneOffset.UTC));
+    Assertions.assertEquals("timestamp-micros", column.logicalType);
+    Assertions.assertEquals(List.of(expectedMicros), column.values);
   }
 
   @Test
@@ -475,6 +456,38 @@ public class JdbcParquetJobTest {
     Assertions.assertTrue(schemaJson.contains("TOTAL"));
     final File parquetFile = outputPath.resolve("part-00000-of-00001.parquet").toFile();
     assertThat(parquetFile.length(), greaterThan(0L));
+  }
+
+  @Test
+  public void shouldFailParquetJobWithIncompatibleInputSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldFailParquetJobWithIncompatibleInputSchemaFile");
+    final Path schemaFile = testDir.resolve("incompatible_schema.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message COFFEES {\n"
+                + "  optional binary name (STRING);\n"
+                + "  optional float SIZE;\n"
+                + "  optional int64 TOTAL;\n"
+                + "}")
+            .getBytes());
+
+    final JdbcParquetJob job =
+        JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--partition=2025-02-28",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--output=" + outputPath,
+              "--parquetSchemaFilePath=" + schemaFile.toString(),
+              "--sqlFile=" + sqlPath.toString()
+            });
+    final FailedValidationException e =
+        Assertions.assertThrows(FailedValidationException.class, job::prepareExport);
+    Assertions.assertTrue(e.getMessage().contains("SIZE (#2, JDBC column SIZE)"), e.getMessage());
   }
 
   @Test

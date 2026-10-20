@@ -46,10 +46,7 @@ import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Create;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +136,7 @@ public class JdbcParquetJob {
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
-        checkTimestampUnits(generatedSchema, jdbcExportArgs.useTimestampMicros());
+        validateInputSchema(connection, generatedSchema, arrayMode);
         avroSchema =
             footerAvroSchema(() -> deriveFooterAvroSchema(generatedSchema, connection));
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
@@ -206,40 +203,6 @@ public class JdbcParquetJob {
                 avroSchema == null ? null : avroSchema.toString()));
   }
 
-  /**
-   * The writer and the footer Avro schema both take the timestamp unit from the target Parquet
-   * field, so a user-provided schema silently overrides {@code --useTimestampMicros}. Fail fast
-   * when its TIMESTAMP unit disagrees with the flag instead of exporting a unit the user did not
-   * ask for.
-   */
-  static void checkTimestampUnits(final GroupType schema, final boolean useTimestampMicros) {
-    final LogicalTypeAnnotation.TimeUnit expected =
-        useTimestampMicros
-            ? LogicalTypeAnnotation.TimeUnit.MICROS
-            : LogicalTypeAnnotation.TimeUnit.MILLIS;
-    for (final Type field : schema.getFields()) {
-      if (!field.isPrimitive()) {
-        checkTimestampUnits(field.asGroupType(), useTimestampMicros);
-        continue;
-      }
-      final LogicalTypeAnnotation annotation = field.getLogicalTypeAnnotation();
-      if (annotation instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
-        final LogicalTypeAnnotation.TimeUnit unit =
-            ((LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) annotation).getUnit();
-        Preconditions.checkArgument(
-            unit == expected,
-            "Field '%s' in --parquetSchemaFilePath is TIMESTAMP(%s) but %s, which asks for %s. "
-                + "Use TIMESTAMP(%s) in the schema file or %s.",
-            field.getName(),
-            unit,
-            useTimestampMicros ? "--useTimestampMicros is set" : "--useTimestampMicros is not set",
-            useTimestampMicros ? "timestamp-micros" : "timestamp-millis",
-            expected,
-            useTimestampMicros ? "remove --useTimestampMicros" : "set --useTimestampMicros");
-      }
-    }
-  }
-
   private void checkMetrics(PipelineResult pipelineResult) throws FailedValidationException {
     final Map<String, Long> metrics = MetricsHelper.getMetrics(pipelineResult);
     if (!this.dataOnly) {
@@ -281,6 +244,34 @@ public class JdbcParquetJob {
       LOGGER.warn(
           "Could not generate Avro schema; writing Parquet without parquet.avro.schema footer", e);
       return null;
+    }
+  }
+
+  /**
+   * Fail fast if the schema from --parquetSchemaFilePath does not match what the writers emit for
+   * the JDBC result set. See {@link ParquetSchemaValidator} for the rules. This is the only
+   * metadata query on the schema-file path; the footer Avro schema is derived from the schema
+   * file itself.
+   */
+  private void validateInputSchema(
+      final Connection connection, final MessageType inputSchema, final String arrayMode)
+      throws Exception {
+    try (Statement stmt = connection.createStatement()) {
+      final ResultSet rs =
+          stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+      rs.next();
+      final boolean micros = jdbcExportArgs.useTimestampMicros();
+      final MessageType derived =
+          JdbcParquetSchema.createParquetSchema(
+              rs, jdbcExportArgs.avroSchemaName(), false, micros, arrayMode);
+      final MessageType derivedLogical =
+          JdbcParquetSchema.createParquetSchema(
+              rs, jdbcExportArgs.avroSchemaName(), true, micros, arrayMode);
+      ParquetSchemaValidator.validate(
+          inputSchema,
+          derived,
+          derivedLogical,
+          jdbcExportArgs.useAvroLogicalTypes() ? derivedLogical : derived);
     }
   }
 

@@ -10,9 +10,9 @@ When `--useTimestampMicros` is also set (it requires `--useLogicalTypes`), TIMES
 TIME and TIME_WITH_TIMEZONE columns use `TIMESTAMP(MICROS, isAdjustedToUTC=true)` and values are
 written as epoch microseconds, keeping the sub-millisecond part of `java.sql.Timestamp`. The Avro
 schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micros` to match.
-When `--parquetSchemaFilePath` is used, every TIMESTAMP field in the schema file must use the unit
-selected by `--useTimestampMicros` (MICROS with the flag, MILLIS without it); otherwise the job
-fails fast instead of silently exporting a different unit.
+With `--parquetSchemaFilePath`, the writer takes the unit from the schema file's annotation, so
+the file must use the unit selected by `--useTimestampMicros` (see
+[Input schema file](#input-schema-file---parquetschemafilepath)).
 
 | **Java SQL type**        | **Parquet physical type** | **Parquet logical type**        | **Comments**                          |
 |--------------------------|---------------------------|---------------------------------|---------------------------------------|
@@ -103,3 +103,34 @@ When using `JdbcParquetJob`, the `--avroCodec` parameter is mapped to Parquet co
 | snappy                | SNAPPY            |
 | deflate1 .. deflate9  | GZIP              |
 | zstandard1 .. zstandard9 | ZSTD           |
+
+#### Input schema file (`--parquetSchemaFilePath`)
+
+The Parquet writers always take column types from the JDBC result set and write fields by
+position, so an input schema file can only rename fields and adjust annotations. Before the
+export starts, the file is checked against the schema derived from JDBC metadata (the table
+above, using the job's `--useTimestampMicros` value) with a single `LIMIT 1` query, and the job
+fails with a `FailedValidationException` listing every offending column if:
+
+- the number of fields differs (at the top level or inside a `LIST` group),
+- a field changes between primitive and group,
+- a primitive type (`int32`, `int64`, `binary`, ...) or `fixed_len_byte_array` length differs,
+- a repetition differs (all derived fields are `optional`; `required` is rejected),
+- a group's annotation differs (`LIST` groups must stay `LIST`),
+- a logical type annotation is not one of the allowed ones below.
+
+Allowed annotations on a primitive field:
+
+| **Derived field**                                | **Allowed annotations in the schema file**          |
+|--------------------------------------------------|-----------------------------------------------------|
+| `binary (STRING)`                                | none, `STRING`, `ENUM`, `JSON`                      |
+| `binary` (bytes)                                 | none                                                |
+| `int32`                                          | none, `INTEGER(32,true)`                            |
+| `int64` from BIGINT                              | none, `INTEGER(64,true)`                            |
+| `int64` from TIMESTAMP/DATE/TIME                 | none (written as millis); `TIMESTAMP(MICROS,true)` with `--useTimestampMicros`, otherwise `TIMESTAMP(MILLIS,true)` (with or without `--useLogicalTypes`) |
+| `boolean`, `float`, `double`                     | none                                                |
+| PostgreSQL `uuid`                                | `binary (STRING)`, `binary`, or `fixed_len_byte_array(16) (UUID)` (the writer follows the schema file) |
+
+Everything else (e.g. `DECIMAL`, `DATE`, a TIMESTAMP unit that disagrees with
+`--useTimestampMicros`, `TIMESTAMP(NANOS,...)`, non-UTC timestamps, narrower `INTEGER` widths, or
+`STRING` on raw bytes) is rejected because it would change how the written bytes are read.

@@ -46,7 +46,7 @@ Type conversion details: [Avro](docs/type-conversion.md) | [Parquet](docs/parque
 - Supports Parquet compression codecs: snappy, gzip, zstd, lz4, uncompressed
 - No full Hadoop dependency — uses a minimal `hadoop-common` for the Parquet API surface
 - Separate `--parquetCodec` option or automatic mapping from `--avroCodec`
-- Optional input schema file via `--parquetSchemaFilePath` (Parquet MessageType text format)
+- Optional input schema file via `--parquetSchemaFilePath` (Parquet MessageType text format), validated against the JDBC metadata: it may rename fields and change compatible annotations only (see [rules](docs/parquet-type-conversion.md#input-schema-file---parquetschemafilepath))
 - PostgreSQL replication check via `PsqlParquetJob`
 
 ### DBeam export parameters
