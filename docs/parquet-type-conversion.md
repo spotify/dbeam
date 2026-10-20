@@ -4,7 +4,10 @@ Java SQL types (java.sql.Types.*) are converted to Parquet types according to th
 When applicable and `--useLogicalTypes` parameter is set to `true`, Parquet logical types are used.
 `--useAvroLogicalTypes` is a deprecated alias of `--useLogicalTypes` and is still supported.
 
-All columns are represented as `optional` (nullable) fields in the Parquet schema.
+All columns are represented as `optional` (nullable) fields in the Parquet schema. Field names
+are the column names with characters outside `[A-Za-z0-9_]` replaced by `_`; if two columns end
+up with the same field name (e.g. `a-b` and `a_b`), the export fails listing the colliding
+columns (use column aliases to fix it).
 
 When `--useTimestampMicros` is also set (it requires `--useLogicalTypes`), TIMESTAMP, DATE,
 TIME and TIME_WITH_TIMEZONE columns use `TIMESTAMP(MICROS, isAdjustedToUTC=true)` and values are

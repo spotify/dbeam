@@ -60,7 +60,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
@@ -152,6 +154,7 @@ public class JdbcParquetSchema {
     final String schemaName = maybeSchemaName.orElse(tableName);
 
     final List<Type> fields = new ArrayList<>();
+    final Map<String, List<String>> columnsByFieldName = new LinkedHashMap<>();
     for (int i = 1; i <= meta.getColumnCount(); i++) {
       final String columnName;
       if (meta.getColumnName(i).isEmpty()) {
@@ -160,6 +163,9 @@ public class JdbcParquetSchema {
         columnName = meta.getColumnName(i);
       }
 
+      columnsByFieldName
+          .computeIfAbsent(normalizeFieldName(columnName), k -> new ArrayList<>())
+          .add(columnName);
       final int columnType = meta.getColumnType(i);
       final int precision = meta.getPrecision(i);
       final int scale = meta.getScale(i);
@@ -180,7 +186,30 @@ public class JdbcParquetSchema {
               nativeTypes));
     }
 
+    checkUniqueFieldNames(columnsByFieldName);
     return new MessageType(schemaName, fields);
+  }
+
+  /**
+   * Field names are the column names with characters other than {@code [A-Za-z0-9_]} replaced by
+   * {@code _}, so distinct columns (e.g. {@code a-b} and {@code a_b}) can collide. Fail with the
+   * colliding columns instead of writing a schema with duplicate field names.
+   */
+  static void checkUniqueFieldNames(final Map<String, List<String>> columnsByFieldName) {
+    final List<String> collisions = new ArrayList<>();
+    columnsByFieldName.forEach(
+        (fieldName, columns) -> {
+          if (columns.size() > 1) {
+            collisions.add(
+                String.format("columns %s all map to field name '%s'", columns, fieldName));
+          }
+        });
+    if (!collisions.isEmpty()) {
+      throw new RuntimeException(
+          "Duplicate field names after normalizing column names to [A-Za-z0-9_]: "
+              + String.join("; ", collisions)
+              + ". Use column aliases (e.g. with --sqlFile) to make them unique.");
+    }
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {

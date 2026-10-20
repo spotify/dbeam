@@ -38,7 +38,9 @@ job fails with `FailedValidationException` listing every offending field if:
 With `--arrayMode=typed_first_row` and no row (or a NULL first value), the array item type
 cannot be derived and is taken from the schema file.
 
-To represent nullable columns, unions with the Avro NULL type are used.
+To represent nullable columns, unions with the Avro NULL type are used. Field names are the
+column names with characters outside `[A-Za-z0-9_]` replaced by `_`; if two columns end up with
+the same field name (e.g. `a-b` and `a_b`), the export fails listing the colliding columns.
 
 | **Java SQL type**        | **Avro type**   | **Avro schema annotations** | **Comments**                          |
 |--------------------------|-----------------|-----------------------------|---------------------------------------|

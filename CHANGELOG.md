@@ -76,6 +76,11 @@
   including array items and their nullability, and logical types must match what the writer
   emits; renames and doc/namespace changes are allowed (`AvroSchemaValidator`).
 
+- Avro and Parquet: columns whose names collide after normalization to `[A-Za-z0-9_]` (e.g.
+  `a-b` and `a_b`) fail schema generation with an error listing the colliding columns (Avro
+  previously failed with a generic duplicate field error; Parquet silently produced a schema
+  with duplicate names).
+
 ### Changed
 
 - Minimum supported JDK raised from 11 to 17.

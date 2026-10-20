@@ -924,4 +924,29 @@ public class JdbcParquetJobTest {
     Assertions.assertTrue(
         scale.getMessage().contains("p5 (#5, JDBC column P5)"), scale.getMessage());
   }
+
+  @Test
+  public void shouldFailOnNormalizedFieldNameCollision() throws Exception {
+    final Path sql = testDir.resolve("collide-parquet.sql");
+    Files.write(
+        sql,
+        "SELECT COF_NAME AS \"cof-name\", COF_NAME AS \"cof_name\", TOTAL FROM COFFEES"
+            .getBytes());
+    final Path outputPath = testDir.resolve("collide-parquet");
+    final JdbcParquetJob job =
+        JdbcParquetJob.create(
+            new String[] {
+              "--skipPartitionCheck",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--sqlFile=" + sql,
+              "--output=" + outputPath
+            });
+    final RuntimeException e = Assertions.assertThrows(RuntimeException.class, job::prepareExport);
+    Assertions.assertTrue(
+        e.getMessage().contains("columns [cof-name, cof_name] all map to field name 'cof_name'"),
+        e.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
 }

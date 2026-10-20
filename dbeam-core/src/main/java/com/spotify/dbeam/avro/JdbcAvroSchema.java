@@ -59,6 +59,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -193,6 +197,7 @@ public class JdbcAvroSchema {
       throws SQLException {
 
     ResultSetMetaData meta = resultSet.getMetaData();
+    checkUniqueFieldNames(meta);
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
@@ -418,6 +423,36 @@ public class JdbcAvroSchema {
       default:
         throw new RuntimeException("columnName=" + columnName + " Postgres type '"
                                    + columnTypeName + "' is " + "not " + "supported");
+    }
+  }
+
+  /**
+   * Field names are the column names with characters other than {@code [A-Za-z0-9_]} replaced by
+   * {@code _}, so distinct columns (e.g. {@code a-b} and {@code a_b}) can collide. Fail with the
+   * colliding columns instead of Avro's generic duplicate field error.
+   */
+  static void checkUniqueFieldNames(final ResultSetMetaData meta) throws SQLException {
+    final Map<String, List<String>> columnsByFieldName = new LinkedHashMap<>();
+    for (int i = 1; i <= meta.getColumnCount(); i++) {
+      final String columnName =
+          meta.getColumnName(i).isEmpty() ? meta.getColumnLabel(i) : meta.getColumnName(i);
+      columnsByFieldName
+          .computeIfAbsent(normalizeForAvro(columnName), k -> new ArrayList<>())
+          .add(columnName);
+    }
+    final List<String> collisions = new ArrayList<>();
+    columnsByFieldName.forEach(
+        (fieldName, columns) -> {
+          if (columns.size() > 1) {
+            collisions.add(
+                String.format("columns %s all map to field name '%s'", columns, fieldName));
+          }
+        });
+    if (!collisions.isEmpty()) {
+      throw new RuntimeException(
+          "Duplicate field names after normalizing column names to [A-Za-z0-9_]: "
+              + String.join("; ", collisions)
+              + ". Use column aliases (e.g. with --sqlFile) to make them unique.");
     }
   }
 
