@@ -39,6 +39,11 @@
     validated against the JDBC-derived schema before export (renames and compatible annotations
     only; fails with `FailedValidationException` otherwise). `--avroSchemaFilePath` is rejected
     on Parquet jobs with an `IllegalArgumentException` pointing to `--parquetSchemaFilePath`.
+  - `--parquetNativeTypes` (default false, requires `--useLogicalTypes`): DATE as `int32 (DATE)`,
+    TIME/TIME_WITH_TIMEZONE as `TIME(MILLIS|MICROS, true)` and DECIMAL/NUMERIC with JDBC
+    precision 1..38 as `fixed_len_byte_array (DECIMAL(p,s))`, with a string fallback for
+    unbounded precision (e.g. PostgreSQL NUMERIC). Values that do not fit fail the export.
+    Schema files may use these annotations only with the flag.
   - `--rowGroupSize` (default 128MB) and `--pageSize` (default 1MB) options.
   - `--useTimestampMicros` (requires `--useLogicalTypes`) writes TIMESTAMP, DATE, TIME and
     TIME_WITH_TIMEZONE columns as `TIMESTAMP(MICROS, isAdjustedToUTC=true)` epoch microseconds

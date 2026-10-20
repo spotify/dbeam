@@ -42,6 +42,16 @@ public interface ParquetPipelineOptions extends PipelineOptions {
 
   void setParquetCodec(String value);
 
+  @Default.Boolean(false)
+  @Description(
+      "Requires --useLogicalTypes. Write DATE as Parquet DATE, TIME/TIME_WITH_TIMEZONE as"
+          + " TIME(MILLIS|MICROS per --useTimestampMicros, UTC) and DECIMAL/NUMERIC with a JDBC"
+          + " precision of 1..38 as DECIMAL(precision, scale), instead of the Avro-compatible"
+          + " timestamp and string encodings. Default: false.")
+  Boolean isParquetNativeTypes();
+
+  void setParquetNativeTypes(Boolean value);
+
   @Description(
       "Parquet row group size in bytes. Larger values improve read performance "
           + "but use more memory during writes.")

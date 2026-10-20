@@ -57,6 +57,9 @@ public abstract class JdbcParquetArgs implements Serializable {
   /** Write timestamp/date/time columns as epoch micros instead of millis. */
   public abstract boolean useTimestampMicros();
 
+  /** {@code --parquetNativeTypes}: native Parquet DATE, TIME and DECIMAL types. */
+  public abstract boolean useNativeTypes();
+
   abstract Builder builder();
 
   static final String SUPPORTED_CODECS =
@@ -127,6 +130,8 @@ public abstract class JdbcParquetArgs implements Serializable {
 
     abstract Builder setUseTimestampMicros(boolean useTimestampMicros);
 
+    abstract Builder setUseNativeTypes(boolean useNativeTypes);
+
     abstract JdbcParquetArgs build();
   }
 
@@ -158,6 +163,28 @@ public abstract class JdbcParquetArgs implements Serializable {
       final List<String> preCommand,
       final String arrayMode,
       final boolean useTimestampMicros) {
+    return create(
+        jdbcConnectionArgs,
+        fetchSize,
+        parquetCodec,
+        rowGroupSize,
+        pageSize,
+        preCommand,
+        arrayMode,
+        useTimestampMicros,
+        false);
+  }
+
+  public static JdbcParquetArgs create(
+      final JdbcConnectionArgs jdbcConnectionArgs,
+      final int fetchSize,
+      final String parquetCodec,
+      final long rowGroupSize,
+      final long pageSize,
+      final List<String> preCommand,
+      final String arrayMode,
+      final boolean useTimestampMicros,
+      final boolean useNativeTypes) {
     validateParquetCodec(parquetCodec);
     return new AutoValue_JdbcParquetArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)
@@ -168,6 +195,7 @@ public abstract class JdbcParquetArgs implements Serializable {
         .setPreCommand(preCommand)
         .setArrayMode(arrayMode)
         .setUseTimestampMicros(useTimestampMicros)
+        .setUseNativeTypes(useNativeTypes)
         .build();
   }
 

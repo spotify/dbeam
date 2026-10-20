@@ -198,7 +198,8 @@ public class JdbcParquetIO {
                   schema,
                   avroSchemaJson,
                   jdbcParquetArgs.arrayMode(),
-                  jdbcParquetArgs.useTimestampMicros())
+                  jdbcParquetArgs.useTimestampMicros(),
+                  jdbcParquetArgs.useNativeTypes())
               .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
               .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
               .withPageSize((int) jdbcParquetArgs.pageSize())
@@ -323,6 +324,7 @@ public class JdbcParquetIO {
     private final String avroSchemaJson;
     private final String arrayMode;
     private final boolean useTimestampMicros;
+    private final boolean nativeTypes;
 
     ResultSetParquetWriterBuilder(OutputFile outputFile, MessageType schema) {
       this(outputFile, schema, null, "typed_first_row", false);
@@ -339,11 +341,22 @@ public class JdbcParquetIO {
         String avroSchemaJson,
         String arrayMode,
         boolean useTimestampMicros) {
+      this(outputFile, schema, avroSchemaJson, arrayMode, useTimestampMicros, false);
+    }
+
+    ResultSetParquetWriterBuilder(
+        OutputFile outputFile,
+        MessageType schema,
+        String avroSchemaJson,
+        String arrayMode,
+        boolean useTimestampMicros,
+        boolean nativeTypes) {
       super(outputFile);
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
       this.arrayMode = arrayMode;
       this.useTimestampMicros = useTimestampMicros;
+      this.nativeTypes = nativeTypes;
     }
 
     @Override
@@ -353,7 +366,8 @@ public class JdbcParquetIO {
 
     @Override
     protected WriteSupport<ResultSet> getWriteSupport(Configuration conf) {
-      return new ResultSetWriteSupport(schema, avroSchemaJson, arrayMode, useTimestampMicros);
+      return new ResultSetWriteSupport(
+          schema, avroSchemaJson, arrayMode, useTimestampMicros, nativeTypes);
     }
   }
 
@@ -363,6 +377,7 @@ public class JdbcParquetIO {
     private final String avroSchemaJson;
     private final String arrayMode;
     private final boolean useTimestampMicros;
+    private final boolean nativeTypes;
     private JdbcParquetWriteSupport writeSupport;
     private RecordConsumer recordConsumer;
     private boolean initialized = false;
@@ -372,10 +387,20 @@ public class JdbcParquetIO {
         String avroSchemaJson,
         String arrayMode,
         boolean useTimestampMicros) {
+      this(schema, avroSchemaJson, arrayMode, useTimestampMicros, false);
+    }
+
+    ResultSetWriteSupport(
+        MessageType schema,
+        String avroSchemaJson,
+        String arrayMode,
+        boolean useTimestampMicros,
+        boolean nativeTypes) {
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
       this.arrayMode = arrayMode;
       this.useTimestampMicros = useTimestampMicros;
+      this.nativeTypes = nativeTypes;
     }
 
     @Override
@@ -399,12 +424,14 @@ public class JdbcParquetIO {
       try {
         if (!initialized) {
           this.writeSupport =
-              JdbcParquetWriteSupport.create(resultSet, schema, arrayMode, useTimestampMicros);
+              JdbcParquetWriteSupport.create(
+                  resultSet, schema, arrayMode, useTimestampMicros, nativeTypes);
           initialized = true;
         }
         writeSupport.writeRecord(recordConsumer, resultSet);
       } catch (Exception e) {
-        throw new RuntimeException("Failed to write ResultSet row to Parquet", e);
+        throw new RuntimeException(
+            "Failed to write ResultSet row to Parquet: " + e.getMessage(), e);
       }
     }
   }

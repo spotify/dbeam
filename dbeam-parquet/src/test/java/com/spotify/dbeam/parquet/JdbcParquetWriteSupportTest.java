@@ -224,4 +224,48 @@ public class JdbcParquetWriteSupportTest {
         "com.spotify.dbeam.parquet.JdbcParquetMetering",
         JdbcParquetMetering.create().getClass().getCanonicalName());
   }
+
+  @Test
+  public void shouldRescaleDecimals() {
+    Assertions.assertEquals(
+        java.math.BigInteger.valueOf(15000),
+        JdbcParquetWriteSupport.unscaledDecimal(new java.math.BigDecimal("1.5"), 6, 4, "c"));
+    Assertions.assertEquals(
+        java.math.BigInteger.valueOf(-99999),
+        JdbcParquetWriteSupport.unscaledDecimal(new java.math.BigDecimal("-999.99"), 5, 2, "c"));
+  }
+
+  @Test
+  public void shouldFailOnDecimalOverflowOrRounding() {
+    final IllegalArgumentException precision =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetWriteSupport.unscaledDecimal(
+                    new java.math.BigDecimal("1000.00"), 5, 2, "price"));
+    Assertions.assertTrue(
+        precision.getMessage().contains("exceeds the precision of DECIMAL(5,2)"),
+        precision.getMessage());
+    final IllegalArgumentException rounding =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetWriteSupport.unscaledDecimal(
+                    new java.math.BigDecimal("1.234"), 5, 2, "price"));
+    Assertions.assertTrue(
+        rounding.getMessage().contains("more than 2 fractional digits"), rounding.getMessage());
+  }
+
+  @Test
+  public void shouldEncodeFixedTwosComplement() {
+    Assertions.assertArrayEquals(
+        new byte[] {0, 0, 1},
+        JdbcParquetWriteSupport.toFixed(java.math.BigInteger.ONE, 3));
+    Assertions.assertArrayEquals(
+        new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF},
+        JdbcParquetWriteSupport.toFixed(java.math.BigInteger.ONE.negate(), 3));
+    Assertions.assertArrayEquals(
+        new byte[] {(byte) 0xFF, (byte) 0x7F},
+        JdbcParquetWriteSupport.toFixed(java.math.BigInteger.valueOf(-129), 2));
+  }
 }

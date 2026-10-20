@@ -480,4 +480,68 @@ public class JdbcParquetSchemaTest {
       Assertions.assertEquals(messages[i], e.getMessage());
     }
   }
+
+  private static Type nativeField(final int type, final int precision, final int scale,
+      final boolean micros) {
+    return JdbcParquetSchema.buildParquetFieldType(
+        "c", type, precision, scale, "java.lang.Object", "t", true, micros, "typed_first_row",
+        true);
+  }
+
+  @Test
+  public void shouldMapNativeTypes() {
+    Assertions.assertEquals("optional int32 c (DATE)", nativeField(Types.DATE, 0, 0, false)
+        .toString());
+    Assertions.assertEquals("optional int32 c (DATE)", nativeField(Types.DATE, 0, 0, true)
+        .toString());
+    Assertions.assertEquals(
+        "optional int32 c (TIME(MILLIS,true))", nativeField(Types.TIME, 0, 0, false).toString());
+    Assertions.assertEquals(
+        "optional int64 c (TIME(MICROS,true))",
+        nativeField(Types.TIME_WITH_TIMEZONE, 0, 0, true).toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(1) c (DECIMAL(1,0))",
+        nativeField(Types.DECIMAL, 1, 0, false).toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(16) c (DECIMAL(38,10))",
+        nativeField(Types.NUMERIC, 38, 10, false).toString());
+    // TIMESTAMP keeps its mapping
+    Assertions.assertEquals(
+        "optional int64 c (TIMESTAMP(MILLIS,true))",
+        nativeField(Types.TIMESTAMP, 0, 0, false).toString());
+  }
+
+  @Test
+  public void shouldFallBackToStringForInvalidDecimalPrecision() {
+    for (int[] ps : new int[][] {{0, 0}, {39, 2}, {131089, 0}, {10, -2}, {5, 6}}) {
+      Assertions.assertEquals(
+          "optional binary c (STRING)",
+          nativeField(Types.NUMERIC, ps[0], ps[1], false).toString(),
+          ps[0] + "," + ps[1]);
+    }
+  }
+
+  @Test
+  public void shouldNotUseNativeTypesByDefault() {
+    Assertions.assertEquals(
+        "optional int64 c (TIMESTAMP(MILLIS,true))",
+        JdbcParquetSchema.buildParquetFieldType(
+                "c", Types.DATE, 0, "java.sql.Date", "date", true, "typed_first_row")
+            .toString());
+    Assertions.assertEquals(
+        "optional binary c (STRING)",
+        JdbcParquetSchema.buildParquetFieldType(
+                "c", Types.DECIMAL, 10, "java.math.BigDecimal", "numeric", true, "typed_first_row")
+            .toString());
+  }
+
+  @Test
+  public void shouldComputeDecimalByteLength() {
+    Assertions.assertEquals(1, JdbcParquetSchema.decimalByteLength(2));
+    Assertions.assertEquals(2, JdbcParquetSchema.decimalByteLength(3));
+    Assertions.assertEquals(4, JdbcParquetSchema.decimalByteLength(9));
+    Assertions.assertEquals(8, JdbcParquetSchema.decimalByteLength(18));
+    Assertions.assertEquals(9, JdbcParquetSchema.decimalByteLength(21));
+    Assertions.assertEquals(16, JdbcParquetSchema.decimalByteLength(38));
+  }
 }

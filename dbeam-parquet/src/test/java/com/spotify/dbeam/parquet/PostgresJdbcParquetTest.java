@@ -54,6 +54,93 @@ public class PostgresJdbcParquetTest {
     return resultSet;
   }
 
+  private static ResultSet mockNumeric(final int precision, final int scale, final String value)
+      throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(
+        meta, 1, Types.NUMERIC, "numeric_field", "java.math.BigDecimal", "numeric");
+    when(meta.getPrecision(1)).thenReturn(precision);
+    when(meta.getScale(1)).thenReturn(scale);
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+    when(resultSet.getString(1)).thenReturn(value);
+    when(resultSet.getBigDecimal(1)).thenReturn(new java.math.BigDecimal(value));
+    when(resultSet.wasNull()).thenReturn(false);
+    return resultSet;
+  }
+
+  @Test
+  public void shouldFallBackToStringForUnboundedNumericWithNativeTypes()
+      throws SQLException, IOException {
+    // PostgreSQL reports precision 0 (or 131089 with older drivers) for unconstrained NUMERIC
+    for (int precision : new int[] {0, 131089}) {
+      final ResultSet resultSet = mockNumeric(precision, 0, "12345678901234567890.123456789");
+      final MessageType schema =
+          JdbcParquetSchema.createParquetSchema(
+              resultSet, Optional.empty(), true, false, "typed_first_row", true);
+      Assertions.assertEquals(
+          LogicalTypeAnnotation.stringType(), schema.getType(0).getLogicalTypeAnnotation());
+
+      final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
+      Files.delete(tempFile);
+      writeAndVerify(
+          false,
+          true,
+          schema,
+          resultSet,
+          tempFile,
+          record ->
+              Assertions.assertEquals(
+                  "12345678901234567890.123456789", record.getString("numeric_field", 0)));
+    }
+  }
+
+  @Test
+  public void shouldEncodeBoundedNumericAsDecimalWithNativeTypes()
+      throws SQLException, IOException {
+    final ResultSet resultSet = mockNumeric(10, 2, "-1234.5");
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), true, false, "typed_first_row", true);
+    Assertions.assertEquals(
+        LogicalTypeAnnotation.decimalType(2, 10), schema.getType(0).getLogicalTypeAnnotation());
+
+    final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
+    Files.delete(tempFile);
+    writeAndVerify(
+        false,
+        true,
+        schema,
+        resultSet,
+        tempFile,
+        record ->
+            Assertions.assertEquals(
+                new java.math.BigDecimal("-1234.50"),
+                new java.math.BigDecimal(
+                    new java.math.BigInteger(record.getBinary("numeric_field", 0).getBytes()),
+                    2)));
+  }
+
+  @Test
+  public void shouldFailOnDecimalValueExceedingSchemaScale() throws SQLException, IOException {
+    final ResultSet resultSet = mockNumeric(10, 2, "1234.567");
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), true, false, "typed_first_row", true);
+    final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
+    Files.delete(tempFile);
+    final RuntimeException e =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () -> writeAndVerify(false, true, schema, resultSet, tempFile, record -> {}));
+    Assertions.assertTrue(
+        e.getMessage().contains("Value 1234.567 in column 'numeric_field' has more than 2"),
+        e.getMessage());
+    Files.deleteIfExists(tempFile);
+  }
+
   @Test
   public void shouldEncodeUuidAsString() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
@@ -487,6 +574,17 @@ public class PostgresJdbcParquetTest {
       Path tempFile,
       RecordAssertion assertion)
       throws IOException {
+    writeAndVerify(useTimestampMicros, false, schema, resultSet, tempFile, assertion);
+  }
+
+  private void writeAndVerify(
+      boolean useTimestampMicros,
+      boolean nativeTypes,
+      MessageType schema,
+      ResultSet resultSet,
+      Path tempFile,
+      RecordAssertion assertion)
+      throws IOException {
     final OutputFile outputFile =
         new ChannelOutputFile(
             java.nio.channels.FileChannel.open(
@@ -496,7 +594,7 @@ public class PostgresJdbcParquetTest {
 
     try (ParquetWriter<ResultSet> writer =
         new JdbcParquetIO.ResultSetParquetWriterBuilder(
-                outputFile, schema, null, "typed_first_row", useTimestampMicros)
+                outputFile, schema, null, "typed_first_row", useTimestampMicros, nativeTypes)
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       writer.write(resultSet);

@@ -54,6 +54,9 @@ import org.apache.parquet.schema.Type;
  * TIMESTAMP(MILLIS,true)} without it. No annotation is also accepted and is written in the flag's
  * unit. {@code NANOS} and non-UTC timestamps are never accepted.
  *
+ * <p>With {@code --parquetNativeTypes} the derived schemas use native DATE, TIME and DECIMAL
+ * types, so those annotations (and their physical types) are accepted only with the flag.
+ *
  * <p>A PostgreSQL {@code uuid} column may be either {@code binary (STRING)} or {@code
  * fixed_len_byte_array(16) (UUID)} regardless of {@code --useLogicalTypes}, since the writer
  * follows the schema's annotation for that column.

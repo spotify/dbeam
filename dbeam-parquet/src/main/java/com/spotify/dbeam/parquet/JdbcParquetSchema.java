@@ -30,6 +30,7 @@ import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
 import static java.sql.Types.DATALINK;
 import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
@@ -37,6 +38,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
 import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.REF;
@@ -51,6 +53,7 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -124,6 +127,26 @@ public class JdbcParquetSchema {
       final boolean useTimestampMicros,
       final String arrayMode)
       throws SQLException {
+    return createParquetSchema(
+        resultSet, maybeSchemaName, useLogicalTypes, useTimestampMicros, arrayMode, false);
+  }
+
+  /**
+   * Creates the Parquet schema for a result set.
+   *
+   * @param nativeTypes {@code --parquetNativeTypes}: DATE, TIME and DECIMAL/NUMERIC (with a valid
+   *     precision) use Parquet's DATE, TIME and DECIMAL types instead of the Avro-compatible
+   *     encodings. Annotations are added even without {@code useLogicalTypes}, since the physical
+   *     type depends on them (only used that way to validate schema files).
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
     final String schemaName = maybeSchemaName.orElse(tableName);
@@ -139,6 +162,7 @@ public class JdbcParquetSchema {
 
       final int columnType = meta.getColumnType(i);
       final int precision = meta.getPrecision(i);
+      final int scale = meta.getScale(i);
       final String columnClassName = meta.getColumnClassName(i);
       final String columnTypeName = meta.getColumnTypeName(i);
 
@@ -147,11 +171,13 @@ public class JdbcParquetSchema {
               normalizeFieldName(columnName),
               columnType,
               precision,
+              scale,
               columnClassName,
               columnTypeName,
               useLogicalTypes,
               useTimestampMicros,
-              arrayMode));
+              arrayMode,
+              nativeTypes));
     }
 
     return new MessageType(schemaName, fields);
@@ -196,6 +222,37 @@ public class JdbcParquetSchema {
       final boolean useLogicalTypes,
       final boolean useTimestampMicros,
       final String arrayMode) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        0,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        false);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes) {
+    if (nativeTypes) {
+      final Optional<Type> nativeType =
+          buildNativeFieldType(columnName, columnType, precision, scale, useTimestampMicros);
+      if (nativeType.isPresent()) {
+        return nativeType.get();
+      }
+    }
     switch (columnType) {
       case BIGINT:
         return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
@@ -275,6 +332,76 @@ public class JdbcParquetSchema {
         return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
             .as(LogicalTypeAnnotation.stringType())
             .named(columnName);
+    }
+  }
+
+  /** Largest DECIMAL precision written as a Parquet DECIMAL with {@code --parquetNativeTypes}. */
+  static final int MAX_NATIVE_DECIMAL_PRECISION = 38;
+
+  /** Whether a DECIMAL/NUMERIC column is written as Parquet DECIMAL with --parquetNativeTypes. */
+  static boolean isNativeDecimal(final int precision, final int scale) {
+    return precision >= 1
+        && precision <= MAX_NATIVE_DECIMAL_PRECISION
+        && scale >= 0
+        && scale <= precision;
+  }
+
+  /** Smallest FIXED_LEN_BYTE_ARRAY length holding any unscaled value of {@code precision}. */
+  static int decimalByteLength(final int precision) {
+    final BigInteger max = BigInteger.TEN.pow(precision);
+    int bytes = 1;
+    while (BigInteger.ONE.shiftLeft(8 * bytes - 1).compareTo(max) < 0) {
+      bytes++;
+    }
+    return bytes;
+  }
+
+  /**
+   * {@code --parquetNativeTypes} mapping: DATE as {@code int32 (DATE)}, TIME/TIME_WITH_TIMEZONE
+   * as {@code TIME(MILLIS|MICROS, true)} ({@code int32} for millis, {@code int64} for micros),
+   * DECIMAL/NUMERIC with precision 1..38 and 0 <= scale <= precision as {@code
+   * fixed_len_byte_array(n) (DECIMAL(p,s))} with the smallest {@code n} for {@code p}. Empty for
+   * other columns, which keep the default mapping.
+   */
+  static Optional<Type> buildNativeFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final boolean useTimestampMicros) {
+    switch (columnType) {
+      case DATE:
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                .as(LogicalTypeAnnotation.dateType())
+                .named(columnName));
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return Optional.of(
+              Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                  .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MICROS))
+                  .named(columnName));
+        }
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                .named(columnName));
+      case DECIMAL:
+      case NUMERIC:
+        if (!isNativeDecimal(precision, scale)) {
+          return Optional.empty();
+        }
+        // Always fixed_len_byte_array (allowed by the Parquet spec for any precision): parquet-avro
+        // maps int32/int64 DECIMAL to plain Avro int/long, which would lose the scale in the
+        // footer Avro schema used by AvroParquetReader (Scio, Beam ParquetIO).
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)
+                .length(decimalByteLength(precision))
+                .as(LogicalTypeAnnotation.decimalType(scale, precision))
+                .named(columnName));
+      default:
+        return Optional.empty();
     }
   }
 

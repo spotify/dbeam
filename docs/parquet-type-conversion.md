@@ -41,13 +41,40 @@ TIMESTAMP annotation in the schema file must agree with the flag or be absent (a
 | LONGNVARCHAR             | BINARY                    | STRING (UTF8)                   |                                       |
 | LONGVARCHAR              | BINARY                    | STRING (UTF8)                   |                                       |
 | NCHAR                    | BINARY                    | STRING (UTF8)                   |                                       |
-| DECIMAL / NUMERIC        | BINARY                    | STRING (UTF8)                   | Exported as string representation; no fixed-point Parquet DECIMAL type |
+| DECIMAL / NUMERIC        | BINARY                    | STRING (UTF8)                   | Exported as string representation; DECIMAL with `--parquetNativeTypes` (see below) |
 | OTHER (uuid)             | FIXED_LEN_BYTE_ARRAY(16)  | UUID                            | Only with `--useLogicalTypes`; otherwise STRING |
 | OTHER                    | BINARY                    | STRING (UTF8)                   | Default for unrecognized OTHER types  |
 | STRUCT                   |                           |                                 | NOT SUPPORTED (fails, as in Avro)     |
 | REF / REF_CURSOR         |                           |                                 | NOT SUPPORTED (fails, as in Avro)     |
 | DATALINK                 |                           |                                 | NOT SUPPORTED (fails, as in Avro)     |
 | all other Java SQL types | BINARY                    | STRING (UTF8)                   |                                       |
+
+#### Native Parquet types (`--parquetNativeTypes`)
+
+By default DATE, TIME and DECIMAL columns use the same encodings as the Avro export. With
+`--parquetNativeTypes` (default `false`; requires `--useLogicalTypes`, otherwise the job fails
+with `IllegalArgumentException`), they use native Parquet types instead:
+
+| **Java SQL type**        | **Parquet type**                                                     |
+|--------------------------|----------------------------------------------------------------------|
+| DATE                     | `int32 (DATE)`: days since 1970-01-01                                |
+| TIME, TIME_WITH_TIMEZONE | `int32 (TIME(MILLIS,true))`; `int64 (TIME(MICROS,true))` with `--useTimestampMicros` |
+| DECIMAL / NUMERIC        | `fixed_len_byte_array(n) (DECIMAL(precision,scale))` when the JDBC precision is 1..38 and 0 <= scale <= precision; `n` is the smallest length holding the precision (e.g. 3 bytes for precision 5, 16 for 38) |
+
+Time values are UTC (`isAdjustedToUTC=true`, like the timestamps), read from the column the same
+way as timestamps. DECIMAL values are rescaled to the column scale; a value with more fractional
+digits than the scale or more digits than the precision fails the export with a clear error
+instead of being rounded or truncated. DECIMAL always uses `fixed_len_byte_array` (valid for any
+precision in the Parquet spec) rather than `int32`/`int64` for small precisions, because
+parquet-avro maps `int32`/`int64` DECIMAL to a plain Avro `int`/`long`, which would drop the scale
+from the footer Avro schema.
+
+DECIMAL/NUMERIC columns without a usable precision keep the string encoding: e.g. PostgreSQL's
+unconstrained `NUMERIC` reports precision 0 (131089 with older drivers), H2's unconstrained
+`NUMERIC` reports 100000, and a precision above 38 or a negative scale also falls back.
+
+The footer Avro schema (`AvroSchemaConverter`) maps these to Avro `int`/`date`,
+`int`/`time-millis` or `long`/`time-micros`, and `fixed`/`decimal`.
 
 #### Array element type mapping
 
@@ -140,7 +167,8 @@ Allowed annotations on a primitive field:
 | `int64` from TIMESTAMP/DATE/TIME                 | none (written in the flag's unit); `TIMESTAMP(MICROS,true)` with `--useTimestampMicros`, otherwise `TIMESTAMP(MILLIS,true)` (with or without `--useLogicalTypes`) |
 | `boolean`, `float`, `double`                     | none                                                |
 | PostgreSQL `uuid`                                | `binary (STRING)`, `binary`, or `fixed_len_byte_array(16) (UUID)` (the writer follows the schema file) |
+| DATE / TIME / DECIMAL with `--parquetNativeTypes` | none, or the exact native annotation (`DATE`, `TIME(MILLIS\|MICROS,true)`, `DECIMAL(p,s)`) on the native physical type |
 
-Everything else (e.g. `DECIMAL`, `DATE`, a TIMESTAMP unit that disagrees with
+Everything else (e.g. `DECIMAL`, `DATE` or `TIME` without `--parquetNativeTypes`, a TIMESTAMP unit that disagrees with
 `--useTimestampMicros`, `TIMESTAMP(NANOS,...)`, non-UTC timestamps, narrower `INTEGER` widths, or
 `STRING` on raw bytes) is rejected because it would change how the written bytes are read.

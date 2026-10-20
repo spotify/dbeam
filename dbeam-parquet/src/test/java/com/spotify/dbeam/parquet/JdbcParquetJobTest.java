@@ -45,6 +45,7 @@ import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.schema.MessageType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,20 @@ public class JdbcParquetJobTest {
       connection
           .createStatement()
           .execute("INSERT INTO TS_MICROS VALUES (1, TIMESTAMP '2026-08-20 19:06:01.879123')");
+      connection
+          .createStatement()
+          .execute(
+              "CREATE TABLE NATIVE_TYPES (ID INT, D DATE, T TIME, T6 TIME(6), P5 DECIMAL(5,2),"
+                  + " P15 DECIMAL(15,3), P21 DECIMAL(21,2), BIG NUMERIC)");
+      connection
+          .createStatement()
+          .execute(
+              "INSERT INTO NATIVE_TYPES VALUES (1, DATE '2026-08-20', TIME '19:06:01.879',"
+                  + " TIME '19:06:01.879123', 123.45, -123456789012.345,"
+                  + " 1234567890123456789.12, 1.5)");
+      connection
+          .createStatement()
+          .execute("INSERT INTO NATIVE_TYPES VALUES (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL)");
       connection
           .createStatement()
           .execute("CREATE TABLE MANY_ROWS (ID BIGINT NOT NULL, NAME VARCHAR(20))");
@@ -705,5 +720,208 @@ public class JdbcParquetJobTest {
     Assertions.assertTrue(
         e.getMessage().contains("Supported values: snappy, gzip"), e.getMessage());
     Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  private static Path runNativeTypesExport(final String name, final String... extraArgs)
+      throws Exception {
+    final Path outputPath = testDir.resolve(name);
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--sqlFile=" + nativeTypesSql(),
+                "--output=" + outputPath,
+                "--useLogicalTypes"));
+    args.addAll(List.of(extraArgs));
+    JdbcParquetJob.create(args.toArray(new String[0])).runExport();
+    return outputPath;
+  }
+
+  private static Path nativeTypesSql() throws IOException {
+    final Path sql = testDir.resolve("native_types.sql");
+    Files.write(sql, "SELECT * FROM NATIVE_TYPES ORDER BY ID".getBytes());
+    return sql;
+  }
+
+  private static List<GenericRecord> readAllWithAvro(final Path parquetFile) throws IOException {
+    final List<GenericRecord> records = new ArrayList<>();
+    try (ParquetReader<GenericRecord> reader =
+        AvroParquetReader.<GenericRecord>builder(
+                HadoopInputFile.fromPath(
+                    new org.apache.hadoop.fs.Path(parquetFile.toUri()),
+                    new org.apache.hadoop.conf.Configuration()))
+            .build()) {
+      GenericRecord record;
+      while ((record = reader.read()) != null) {
+        records.add(record);
+      }
+    }
+    records.sort(java.util.Comparator.comparing(r -> (Integer) r.get(0)));
+    return records;
+  }
+
+  private static Schema nonNull(final Schema schema) {
+    if (schema.getType() == Schema.Type.UNION) {
+      for (Schema branch : schema.getTypes()) {
+        if (branch.getType() != Schema.Type.NULL) {
+          return branch;
+        }
+      }
+    }
+    return schema;
+  }
+
+  private static java.math.BigDecimal decimal(final GenericRecord record, final String field) {
+    final Schema schema = nonNull(record.getSchema().getField(field).schema());
+    final org.apache.avro.LogicalTypes.Decimal type =
+        (org.apache.avro.LogicalTypes.Decimal) schema.getLogicalType();
+    final Object value = record.get(field);
+    if (value instanceof java.math.BigDecimal) {
+      return (java.math.BigDecimal) value;
+    }
+    final java.nio.ByteBuffer bytes =
+        value instanceof org.apache.avro.generic.GenericFixed
+            ? java.nio.ByteBuffer.wrap(((org.apache.avro.generic.GenericFixed) value).bytes())
+            : (java.nio.ByteBuffer) value;
+    return new org.apache.avro.Conversions.DecimalConversion().fromBytes(bytes, schema, type);
+  }
+
+  @Test
+  public void shouldWriteNativeParquetTypes() throws Exception {
+    final Path outputPath = runNativeTypesExport("nativeTypesMillis", "--parquetNativeTypes");
+    final MessageType schema =
+        org.apache.parquet.schema.MessageTypeParser.parseMessageType(
+            new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json"))));
+    Assertions.assertEquals("optional int32 D (DATE)", schema.getType("D").toString());
+    Assertions.assertEquals(
+        "optional int32 T (TIME(MILLIS,true))", schema.getType("T").toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(3) P5 (DECIMAL(5,2))", schema.getType("P5").toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(7) P15 (DECIMAL(15,3))", schema.getType("P15").toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(9) P21 (DECIMAL(21,2))", schema.getType("P21").toString());
+    // H2's unconstrained NUMERIC has a precision above 38: string fallback
+    Assertions.assertEquals("optional binary BIG (STRING)", schema.getType("BIG").toString());
+
+    final List<GenericRecord> records =
+        readAllWithAvro(outputPath.resolve("part-00000-of-00001.parquet"));
+    Assertions.assertEquals(2, records.size());
+    final GenericRecord row = records.get(0);
+    Assertions.assertEquals(
+        "date", nonNull(row.getSchema().getField("D").schema()).getProp("logicalType"));
+    Assertions.assertEquals(
+        java.time.LocalDate.of(2026, 8, 20).toEpochDay(), ((Number) row.get("D")).longValue());
+    Assertions.assertEquals(
+        "time-millis", nonNull(row.getSchema().getField("T").schema()).getProp("logicalType"));
+    Assertions.assertEquals((19 * 3600 + 6 * 60 + 1) * 1000 + 879, row.get("T6"));
+    Assertions.assertEquals(new java.math.BigDecimal("123.45"), decimal(row, "P5"));
+    Assertions.assertEquals(new java.math.BigDecimal("-123456789012.345"), decimal(row, "P15"));
+    Assertions.assertEquals(
+        new java.math.BigDecimal("1234567890123456789.12"), decimal(row, "P21"));
+    Assertions.assertEquals("1.5", row.get("BIG").toString());
+    Assertions.assertNull(records.get(1).get("D"));
+    Assertions.assertNull(records.get(1).get("P21"));
+  }
+
+  @Test
+  public void shouldWriteNativeTimeMicros() throws Exception {
+    final Path outputPath =
+        runNativeTypesExport("nativeTypesMicros", "--parquetNativeTypes", "--useTimestampMicros");
+    final List<GenericRecord> records =
+        readAllWithAvro(outputPath.resolve("part-00000-of-00001.parquet"));
+    final GenericRecord row = records.get(0);
+    Assertions.assertEquals(
+        "time-micros", nonNull(row.getSchema().getField("T6").schema()).getProp("logicalType"));
+    Assertions.assertEquals((19 * 3600 + 6 * 60 + 1) * 1_000_000L + 879_123L, row.get("T6"));
+  }
+
+  @Test
+  public void shouldKeepDefaultEncodingsWithoutNativeTypes() throws Exception {
+    final Path outputPath = runNativeTypesExport("nativeTypesOff");
+    final MessageType schema =
+        org.apache.parquet.schema.MessageTypeParser.parseMessageType(
+            new String(Files.readAllBytes(outputPath.resolve("_PARQUET_SCHEMA.json"))));
+    Assertions.assertEquals(
+        "optional int64 D (TIMESTAMP(MILLIS,true))", schema.getType("D").toString());
+    Assertions.assertEquals("optional binary P5 (STRING)", schema.getType("P5").toString());
+  }
+
+  @Test
+  public void shouldRejectNativeTypesWithoutLogicalTypes() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetJob.create(
+                    new String[] {
+                      "--skipPartitionCheck",
+                      "--connectionUrl=" + CONNECTION_URL,
+                      "--username=",
+                      "--passwordFile=" + passwordPath.toString(),
+                      "--table=NATIVE_TYPES",
+                      "--output=" + testDir.resolve("nativeTypesNoLogical"),
+                      "--parquetNativeTypes"
+                    }));
+    Assertions.assertTrue(e.getMessage().contains("--useLogicalTypes"), e.getMessage());
+  }
+
+  private static final String NATIVE_SCHEMA_FILE =
+      "message renamed {\n"
+          + "  optional int32 id;\n"
+          + "  optional int32 day (DATE);\n"
+          + "  optional int32 t (TIME(MILLIS,true));\n"
+          + "  optional int64 t6 (TIME(MILLIS,true));\n"
+          + "  optional fixed_len_byte_array(3) p5 (DECIMAL(5,2));\n"
+          + "  optional fixed_len_byte_array(7) p15;\n"
+          + "  optional fixed_len_byte_array(9) p21 (DECIMAL(21,2));\n"
+          + "  optional binary big (STRING);\n"
+          + "}";
+
+  @Test
+  public void shouldAcceptNativeSchemaFileOnlyWithNativeTypes() throws Exception {
+    final Path schemaFile = testDir.resolve("native_schema.parquet.txt");
+    // T6 is TIME(6) but without --useTimestampMicros it is TIME(MILLIS) in int32
+    Files.write(
+        schemaFile,
+        NATIVE_SCHEMA_FILE
+            .replace("optional int64 t6 (TIME(MILLIS,true))", "optional int32 t6")
+            .getBytes());
+    final Path outputPath =
+        runNativeTypesExport(
+            "nativeSchemaFile", "--parquetNativeTypes", "--parquetSchemaFilePath=" + schemaFile);
+    final List<GenericRecord> records =
+        readAllWithAvro(outputPath.resolve("part-00000-of-00001.parquet").toAbsolutePath());
+    Assertions.assertEquals(2, records.size());
+
+    final FailedValidationException e =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                runNativeTypesExport(
+                    "nativeSchemaFileWithoutFlag", "--parquetSchemaFilePath=" + schemaFile));
+    Assertions.assertTrue(e.getMessage().contains("day (#2, JDBC column D)"), e.getMessage());
+
+    Files.write(
+        schemaFile,
+        NATIVE_SCHEMA_FILE
+            .replace("optional int64 t6 (TIME(MILLIS,true))", "optional int32 t6")
+            .replace("DECIMAL(5,2)", "DECIMAL(5,1)")
+            .getBytes());
+    final FailedValidationException scale =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                runNativeTypesExport(
+                    "nativeSchemaFileScale",
+                    "--parquetNativeTypes",
+                    "--parquetSchemaFilePath=" + schemaFile));
+    Assertions.assertTrue(
+        scale.getMessage().contains("p5 (#5, JDBC column P5)"), scale.getMessage());
   }
 }

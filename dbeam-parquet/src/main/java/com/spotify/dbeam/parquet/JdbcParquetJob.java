@@ -83,10 +83,17 @@ public class JdbcParquetJob {
       throws IOException, ClassNotFoundException {
     rejectAvroOnlyOptions(pipelineOptions);
     pipelineOptions.as(DirectOptions.class).setBlockOnRun(false);
+    final JdbcExportArgs jdbcExportArgs =
+        JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions);
+    Preconditions.checkArgument(
+        !pipelineOptions.as(ParquetPipelineOptions.class).isParquetNativeTypes()
+            || jdbcExportArgs.useAvroLogicalTypes(),
+        "--parquetNativeTypes requires --useLogicalTypes (or its deprecated alias "
+            + "--useAvroLogicalTypes)");
     return new JdbcParquetJob(
         pipelineOptions,
         Pipeline.create(pipelineOptions),
-        JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
+        jdbcExportArgs,
         output,
         pipelineOptions.as(OutputOptions.class).getDataOnly(),
         pipelineOptions.as(JdbcExportPipelineOptions.class).getMinRows());
@@ -141,6 +148,7 @@ public class JdbcParquetJob {
     final MessageType generatedSchema;
     final Schema avroSchema;
     final String arrayMode = jdbcExportArgs.jdbcAvroOptions().arrayMode();
+    final boolean nativeTypes = parquetOptions.isParquetNativeTypes();
     if (Boolean.TRUE.equals(jdbcExportArgs.jdbcAvroOptions().nullableArrayItems())) {
       LOGGER.warn(
           "--nullableArrayItems has no effect on Parquet exports: "
@@ -154,7 +162,7 @@ public class JdbcParquetJob {
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
-        validateInputSchema(connection, generatedSchema, arrayMode);
+        validateInputSchema(connection, generatedSchema, arrayMode, nativeTypes);
         avroSchema =
             footerAvroSchema(() -> deriveFooterAvroSchema(generatedSchema, connection));
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
@@ -171,7 +179,8 @@ public class JdbcParquetJob {
                   jdbcExportArgs.avroSchemaName(),
                   jdbcExportArgs.useAvroLogicalTypes(),
                   jdbcExportArgs.useTimestampMicros(),
-                  arrayMode);
+                  arrayMode,
+                  nativeTypes);
           final MessageType writeSchema = generatedSchema;
           avroSchema =
               footerAvroSchema(
@@ -207,7 +216,8 @@ public class JdbcParquetJob {
             parquetOptions.getPageSize(),
             jdbcExportArgs.jdbcAvroOptions().preCommand(),
             arrayMode,
-            jdbcExportArgs.useTimestampMicros());
+            jdbcExportArgs.useTimestampMicros(),
+            nativeTypes);
 
     pipeline
         .apply("JdbcQueries", Create.of(queries))
@@ -272,7 +282,10 @@ public class JdbcParquetJob {
    * file itself.
    */
   private void validateInputSchema(
-      final Connection connection, final MessageType inputSchema, final String arrayMode)
+      final Connection connection,
+      final MessageType inputSchema,
+      final String arrayMode,
+      final boolean nativeTypes)
       throws Exception {
     try (Statement stmt = connection.createStatement()) {
       final ResultSet rs =
@@ -281,10 +294,10 @@ public class JdbcParquetJob {
       final boolean micros = jdbcExportArgs.useTimestampMicros();
       final MessageType derived =
           JdbcParquetSchema.createParquetSchema(
-              rs, jdbcExportArgs.avroSchemaName(), false, micros, arrayMode);
+              rs, jdbcExportArgs.avroSchemaName(), false, micros, arrayMode, nativeTypes);
       final MessageType derivedLogical =
           JdbcParquetSchema.createParquetSchema(
-              rs, jdbcExportArgs.avroSchemaName(), true, micros, arrayMode);
+              rs, jdbcExportArgs.avroSchemaName(), true, micros, arrayMode, nativeTypes);
       ParquetSchemaValidator.validate(
           inputSchema,
           derived,

@@ -29,6 +29,7 @@ import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
 import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
@@ -36,6 +37,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
 import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.SMALLINT;
@@ -46,6 +48,9 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -72,6 +77,8 @@ public class JdbcParquetWriteSupport {
   private static final ThreadLocal<Calendar> CALENDAR =
       ThreadLocal.withInitial(() -> new GregorianCalendar(TimeZone.getTimeZone("UTC")));
 
+  private static final long MILLIS_PER_DAY = 86_400_000L;
+
   @FunctionalInterface
   interface ColumnWriter {
     void write(RecordConsumer consumer, ResultSet rs) throws SQLException;
@@ -91,13 +98,24 @@ public class JdbcParquetWriteSupport {
   public static JdbcParquetWriteSupport create(
       ResultSet resultSet, MessageType schema, String arrayMode, boolean useTimestampMicros)
       throws SQLException {
+    return create(resultSet, schema, arrayMode, useTimestampMicros, false);
+  }
+
+  public static JdbcParquetWriteSupport create(
+      ResultSet resultSet,
+      MessageType schema,
+      String arrayMode,
+      boolean useTimestampMicros,
+      boolean nativeTypes)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
       writers[i] =
-          computeColumnWriter(meta, i, arrayMode, schema.getType(i - 1), useTimestampMicros);
+          computeColumnWriter(
+              meta, i, arrayMode, schema.getType(i - 1), useTimestampMicros, nativeTypes);
     }
 
     return new JdbcParquetWriteSupport(schema, writers, columnCount);
@@ -128,6 +146,22 @@ public class JdbcParquetWriteSupport {
       final Type fieldType,
       final boolean useTimestampMicros)
       throws SQLException {
+    return computeColumnWriter(meta, column, arrayMode, fieldType, useTimestampMicros, false);
+  }
+
+  /**
+   * With {@code nativeTypes} ({@code --parquetNativeTypes}), DATE, TIME and DECIMAL/NUMERIC
+   * columns are written as described in {@link JdbcParquetSchema#buildNativeFieldType}; like the
+   * schema, this depends only on the JDBC metadata and the flags.
+   */
+  static ColumnWriter computeColumnWriter(
+      final ResultSetMetaData meta,
+      final int column,
+      final String arrayMode,
+      final Type fieldType,
+      final boolean useTimestampMicros,
+      final boolean nativeTypes)
+      throws SQLException {
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
     final String fieldName =
@@ -135,6 +169,14 @@ public class JdbcParquetWriteSupport {
             ? meta.getColumnLabel(column)
             : meta.getColumnName(column);
     final String normalizedName = JdbcParquetSchema.normalizeFieldName(fieldName);
+
+    if (nativeTypes) {
+      final ColumnWriter nativeWriter =
+          nativeColumnWriter(meta, column, fieldIndex, normalizedName, useTimestampMicros);
+      if (nativeWriter != null) {
+        return nativeWriter;
+      }
+    }
 
     switch (columnType) {
       case VARCHAR:
@@ -337,6 +379,106 @@ public class JdbcParquetWriteSupport {
           }
         };
     }
+  }
+
+  private static ColumnWriter nativeColumnWriter(
+      final ResultSetMetaData meta,
+      final int column,
+      final int fieldIndex,
+      final String name,
+      final boolean useTimestampMicros)
+      throws SQLException {
+    switch (meta.getColumnType(column)) {
+      case DATE:
+        return (consumer, rs) -> {
+          final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+          if (timestamp != null && !rs.wasNull()) {
+            consumer.startField(name, fieldIndex);
+            consumer.addInteger(
+                Math.toIntExact(Math.floorDiv(timestamp.getTime(), MILLIS_PER_DAY)));
+            consumer.endField(name, fieldIndex);
+          }
+        };
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return (consumer, rs) -> {
+            final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+            if (timestamp != null && !rs.wasNull()) {
+              consumer.startField(name, fieldIndex);
+              consumer.addLong(Math.floorMod(toEpochMicros(timestamp), MILLIS_PER_DAY * 1000L));
+              consumer.endField(name, fieldIndex);
+            }
+          };
+        }
+        return (consumer, rs) -> {
+          final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+          if (timestamp != null && !rs.wasNull()) {
+            consumer.startField(name, fieldIndex);
+            consumer.addInteger((int) Math.floorMod(timestamp.getTime(), MILLIS_PER_DAY));
+            consumer.endField(name, fieldIndex);
+          }
+        };
+      case DECIMAL:
+      case NUMERIC:
+        final int precision = meta.getPrecision(column);
+        final int scale = meta.getScale(column);
+        if (!JdbcParquetSchema.isNativeDecimal(precision, scale)) {
+          return null;
+        }
+        final int byteLength = JdbcParquetSchema.decimalByteLength(precision);
+        return (consumer, rs) -> {
+          final BigDecimal value = rs.getBigDecimal(column);
+          if (value != null && !rs.wasNull()) {
+            final BigInteger unscaled = unscaledDecimal(value, precision, scale, name);
+            consumer.startField(name, fieldIndex);
+            consumer.addBinary(Binary.fromConstantByteArray(toFixed(unscaled, byteLength)));
+            consumer.endField(name, fieldIndex);
+          }
+        };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Unscaled value of {@code value} at {@code scale}. Fails instead of rounding or truncating if
+   * the value has more fractional digits than {@code scale} or more digits than {@code
+   * precision}.
+   */
+  static BigInteger unscaledDecimal(
+      final BigDecimal value, final int precision, final int scale, final String column) {
+    final BigDecimal rescaled;
+    try {
+      rescaled = value.setScale(scale, RoundingMode.UNNECESSARY);
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value %s in column '%s' has more than %d fractional digits and cannot be written"
+                  + " as DECIMAL(%d,%d) without rounding",
+              value.toPlainString(), column, scale, precision, scale),
+          e);
+    }
+    if (rescaled.precision() > precision && rescaled.signum() != 0) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value %s in column '%s' exceeds the precision of DECIMAL(%d,%d)",
+              value.toPlainString(), column, precision, scale));
+    }
+    return rescaled.unscaledValue();
+  }
+
+  /** Big-endian two's complement, sign-extended to {@code length} bytes. */
+  static byte[] toFixed(final BigInteger unscaled, final int length) {
+    final byte[] bytes = unscaled.toByteArray();
+    final byte[] fixed = new byte[length];
+    final byte pad = (byte) (unscaled.signum() < 0 ? 0xFF : 0x00);
+    final int offset = length - bytes.length;
+    for (int i = 0; i < offset; i++) {
+      fixed[i] = pad;
+    }
+    System.arraycopy(bytes, 0, fixed, offset, bytes.length);
+    return fixed;
   }
 
   /** Epoch microseconds, keeping the sub-millisecond part of {@link Timestamp#getNanos()}. */
