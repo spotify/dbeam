@@ -38,8 +38,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import org.apache.avro.Schema;
 import org.apache.beam.sdk.options.PipelineOptions;
 
 public class JdbcExportArgsFactory {
@@ -79,6 +84,11 @@ public class JdbcExportArgsFactory {
             exportOptions.isUseTimestampMicros()
             );
 
+    final Optional<Schema> inputAvroSchema =
+        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath());
+    inputAvroSchema.ifPresent(
+        schema -> validateInputSchemaTimestampUnits(schema, exportOptions.isUseTimestampMicros()));
+
     return JdbcExportArgs.create(
         jdbcAvroArgs,
         createQueryArgs(exportOptions),
@@ -88,7 +98,76 @@ public class JdbcExportArgsFactory {
         useLogicalTypes,
         exportOptions.isUseTimestampMicros(),
         Duration.parse(exportOptions.getExportTimeout()),
-        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
+        inputAvroSchema);
+  }
+
+  /**
+   * {@code --useTimestampMicros} alone decides whether timestamp/date/time columns are written as
+   * epoch millis or micros, while a {@code --avroSchemaFilePath} schema is used verbatim as the
+   * writer schema. Reject a schema file whose timestamp logical types declare a different unit, so
+   * readers never misinterpret the values. Plain {@code long} fields are accepted.
+   *
+   * @throws IllegalArgumentException naming every offending field
+   */
+  public static void validateInputSchemaTimestampUnits(
+      final Schema schema, final boolean useTimestampMicros) {
+    final List<String> errors = new ArrayList<>();
+    collectTimestampUnitErrors(schema, "", useTimestampMicros, errors, new HashSet<>());
+    checkArgument(
+        errors.isEmpty(),
+        "--avroSchemaFilePath schema declares timestamp units that do not match "
+            + "--useTimestampMicros (%s). Values are written as epoch %s. Either %s the flag or "
+            + "change the schema to use %s (or plain long). Problems: %s",
+        useTimestampMicros ? "set" : "not set",
+        useTimestampMicros ? "micros" : "millis",
+        useTimestampMicros ? "remove" : "set",
+        useTimestampMicros ? "timestamp-micros" : "timestamp-millis",
+        String.join("; ", errors));
+  }
+
+  private static void collectTimestampUnitErrors(
+      final Schema schema,
+      final String path,
+      final boolean useTimestampMicros,
+      final List<String> errors,
+      final Set<String> visitedRecords) {
+    switch (schema.getType()) {
+      case RECORD:
+        if (!visitedRecords.add(schema.getFullName())) {
+          return;
+        }
+        for (Schema.Field field : schema.getFields()) {
+          final String fieldPath = path.isEmpty() ? field.name() : path + "." + field.name();
+          collectTimestampUnitErrors(
+              field.schema(), fieldPath, useTimestampMicros, errors, visitedRecords);
+        }
+        return;
+      case UNION:
+        for (Schema branch : schema.getTypes()) {
+          collectTimestampUnitErrors(branch, path, useTimestampMicros, errors, visitedRecords);
+        }
+        return;
+      case ARRAY:
+        collectTimestampUnitErrors(
+            schema.getElementType(), path + "[]", useTimestampMicros, errors, visitedRecords);
+        return;
+      case MAP:
+        collectTimestampUnitErrors(
+            schema.getValueType(), path + "{}", useTimestampMicros, errors, visitedRecords);
+        return;
+      default:
+        final String logicalType = schema.getProp("logicalType");
+        if (logicalType == null) {
+          return;
+        }
+        final String expected = useTimestampMicros ? "timestamp-micros" : "timestamp-millis";
+        final boolean isTimestamp =
+            logicalType.startsWith("timestamp-") || logicalType.startsWith("local-timestamp-");
+        if (isTimestamp && !logicalType.equals(expected)) {
+          errors.add(String.format("%s has logicalType %s, expected %s", path, logicalType,
+              expected));
+        }
+    }
   }
 
   /**

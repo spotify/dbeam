@@ -219,6 +219,79 @@ public class JdbcAvroJobTest {
     assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
+  private static Path createdSchemaFile(final String name, final String logicalType)
+      throws IOException {
+    final Path schemaFile = testDir.resolve(name + ".avsc");
+    Files.write(
+        schemaFile,
+        ("{\"type\":\"record\",\"name\":\"created\",\"fields\":[{\"name\":\"CREATED\","
+                + "\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\""
+                + logicalType
+                + "\"}]}]}")
+            .getBytes());
+    return schemaFile;
+  }
+
+  private static String[] createdOnlyArgs(final Path outputPath, final String... extraArgs)
+      throws IOException {
+    final Path createdSql = testDir.resolve("created.sql");
+    Files.write(createdSql, "SELECT CREATED FROM COFFEES".getBytes());
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--partition=2025-02-28",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--sqlFile=" + createdSql,
+                "--output=" + outputPath,
+                "--useLogicalTypes"));
+    args.addAll(List.of(extraArgs));
+    return args.toArray(new String[0]);
+  }
+
+  @Test
+  public void shouldFailFastWhenSchemaFileTimestampUnitDisagreesWithFlag() throws IOException {
+    final Path outputPath = testDir.resolve("shouldFailFastOnSchemaFileTimestampUnit");
+    final Path schemaFile = createdSchemaFile("created_millis", "timestamp-millis");
+
+    final IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcAvroJob.create(
+                        createdOnlyArgs(
+                            outputPath,
+                            "--useTimestampMicros",
+                            "--avroSchemaFilePath=" + schemaFile))
+                    .runExport());
+    Assertions.assertTrue(exception.getMessage().contains("CREATED"), exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  @Test
+  public void shouldWriteMicrosWithMatchingSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldWriteMicrosWithMatchingSchemaFile");
+    final Path schemaFile = createdSchemaFile("created_micros", "timestamp-micros");
+
+    JdbcAvroJob.create(
+            createdOnlyArgs(
+                outputPath, "--useTimestampMicros", "--avroSchemaFilePath=" + schemaFile))
+        .runExport();
+
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final List<Long> values =
+        readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema).stream()
+            .map(r -> (Long) r.get("CREATED"))
+            .sorted()
+            .collect(Collectors.toList());
+    Assertions.assertEquals(List.of(1488300723000000L, 1488300933000000L), values);
+  }
+
   @Test
   public void shouldFailWithNotEnoughRows() {
     final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");

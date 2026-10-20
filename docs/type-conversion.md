@@ -12,6 +12,12 @@ and values are written as epoch microseconds, preserving the sub-millisecond par
 Without `--useTimestampMicros`, values are epoch milliseconds and sub-millisecond precision is
 truncated. Without `--useLogicalTypes`, these columns are a plain `long` with no logical type.
 
+`--useTimestampMicros` alone decides the unit, also with `--avroSchemaFilePath` (whose schema is
+used verbatim as the writer schema). The job fails fast, before writing any output, if the schema
+file has a field (including inside unions, arrays, maps and nested records) with logical type
+`timestamp-millis` while the flag is set, `timestamp-micros` while it is not, or any
+`local-timestamp-*` / `timestamp-nanos`. Plain `long` fields are accepted and hold the flag's unit.
+
 To represent nullable columns, unions with the Avro NULL type are used.
 
 | **Java SQL type**        | **Avro type**   | **Avro schema annotations** | **Comments**                          |

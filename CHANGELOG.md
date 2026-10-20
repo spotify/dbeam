@@ -40,13 +40,18 @@
     TIME_WITH_TIMEZONE columns as `TIMESTAMP(MICROS, isAdjustedToUTC=true)` epoch microseconds
     instead of `TIMESTAMP(MILLIS, ...)`, and the footer Avro schema and `_AVRO_SCHEMA.avsc` use
     `timestamp-micros` to match. With `--parquetSchemaFilePath`, schema validation rejects a
-    TIMESTAMP field whose unit disagrees with `--useTimestampMicros`.
+    TIMESTAMP field whose unit disagrees with `--useTimestampMicros`. The flag alone decides the
+    written unit; unannotated `int64` fields in a schema file are written in the flag's unit.
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.
   - End-to-end test support in `e2e/e2e.sh` with `parquet-tools` validation.
   - Comprehensive test suite (90+ tests) covering schema conversion, record roundtrips,
     typed arrays, null handling, mock-based PostgreSQL type tests, and footer metadata.
+
+- dbeam-core: `--avroSchemaFilePath` schemas are checked against `--useTimestampMicros`; a
+  `timestamp-millis`/`timestamp-micros` field disagreeing with the flag, or any
+  `local-timestamp-*`/`timestamp-nanos` field, fails fast with `IllegalArgumentException`.
 
 ### Changed
 

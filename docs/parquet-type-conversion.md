@@ -10,8 +10,9 @@ When `--useTimestampMicros` is also set (it requires `--useLogicalTypes`), TIMES
 TIME and TIME_WITH_TIMEZONE columns use `TIMESTAMP(MICROS, isAdjustedToUTC=true)` and values are
 written as epoch microseconds, keeping the sub-millisecond part of `java.sql.Timestamp`. The Avro
 schema stored in the `parquet.avro.schema` footer key then uses `timestamp-micros` to match.
-With `--parquetSchemaFilePath`, the writer takes the unit from the schema file's annotation, so
-the file must use the unit selected by `--useTimestampMicros` (see
+`--useTimestampMicros` alone decides the written unit, also with `--parquetSchemaFilePath`: a
+TIMESTAMP annotation in the schema file must agree with the flag or be absent (an unannotated
+`int64` holds the flag's unit), otherwise the job fails (see
 [Input schema file](#input-schema-file---parquetschemafilepath)).
 
 | **Java SQL type**        | **Parquet physical type** | **Parquet logical type**        | **Comments**                          |
@@ -127,7 +128,7 @@ Allowed annotations on a primitive field:
 | `binary` (bytes)                                 | none                                                |
 | `int32`                                          | none, `INTEGER(32,true)`                            |
 | `int64` from BIGINT                              | none, `INTEGER(64,true)`                            |
-| `int64` from TIMESTAMP/DATE/TIME                 | none (written as millis); `TIMESTAMP(MICROS,true)` with `--useTimestampMicros`, otherwise `TIMESTAMP(MILLIS,true)` (with or without `--useLogicalTypes`) |
+| `int64` from TIMESTAMP/DATE/TIME                 | none (written in the flag's unit); `TIMESTAMP(MICROS,true)` with `--useTimestampMicros`, otherwise `TIMESTAMP(MILLIS,true)` (with or without `--useLogicalTypes`) |
 | `boolean`, `float`, `double`                     | none                                                |
 | PostgreSQL `uuid`                                | `binary (STRING)`, `binary`, or `fixed_len_byte_array(16) (UUID)` (the writer follows the schema file) |
 
