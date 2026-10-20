@@ -91,7 +91,7 @@ The record is named after the Parquet message (`--avroSchemaName` or the table n
 `--avroSchemaNamespace` and `--avroDoc` (default `Generate schema from JDBC ResultSet from
 <connection URL>`). Unlike dbeam-core's Avro export, it carries no `tableName`/`connectionUrl`
 record properties and no per-field docs or properties. `--nullableArrayItems` has no effect on
-Parquet exports. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
+Parquet exports (list elements are always optional); passing it logs a warning. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
 are not valid Avro names is exported without the footer key and `_AVRO_SCHEMA.avsc`.
 
 #### Codec mapping

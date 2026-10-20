@@ -126,6 +126,11 @@ public class JdbcParquetJob {
     final MessageType generatedSchema;
     final Schema avroSchema;
     final String arrayMode = jdbcExportArgs.jdbcAvroOptions().arrayMode();
+    if (Boolean.TRUE.equals(jdbcExportArgs.jdbcAvroOptions().nullableArrayItems())) {
+      LOGGER.warn(
+          "--nullableArrayItems has no effect on Parquet exports: "
+              + "Parquet list elements are always optional");
+    }
     try (Connection connection = jdbcExportArgs.createConnection()) {
       final String schemaFilePath =
           pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
