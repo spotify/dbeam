@@ -28,6 +28,7 @@ import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.beam.BeamHelper;
+import com.spotify.dbeam.jobs.FailedValidationException;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -86,8 +87,6 @@ public class JdbcExportArgsFactory {
 
     final Optional<Schema> inputAvroSchema =
         BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath());
-    inputAvroSchema.ifPresent(
-        schema -> validateInputSchemaTimestampUnits(schema, exportOptions.isUseTimestampMicros()));
 
     return JdbcExportArgs.create(
         jdbcAvroArgs,
@@ -107,22 +106,28 @@ public class JdbcExportArgsFactory {
    * writer schema. Reject a schema file whose timestamp logical types declare a different unit, so
    * readers never misinterpret the values. Plain {@code long} fields are accepted.
    *
-   * @throws IllegalArgumentException naming every offending field
+   * <p>This is a schema-file-vs-data check, so like the Parquet schema-file validation it fails
+   * with {@link FailedValidationException} (exit code 50); it runs in {@code
+   * JdbcAvroJob.prepareExport}, before any output is written.
+   *
+   * @throws FailedValidationException naming every offending field
    */
   public static void validateInputSchemaTimestampUnits(
-      final Schema schema, final boolean useTimestampMicros) {
+      final Schema schema, final boolean useTimestampMicros) throws FailedValidationException {
     final List<String> errors = new ArrayList<>();
     collectTimestampUnitErrors(schema, "", useTimestampMicros, errors, new HashSet<>());
-    checkArgument(
-        errors.isEmpty(),
-        "--avroSchemaFilePath schema declares timestamp units that do not match "
-            + "--useTimestampMicros (%s). Values are written as epoch %s. Either %s the flag or "
-            + "change the schema to use %s (or plain long). Problems: %s",
-        useTimestampMicros ? "set" : "not set",
-        useTimestampMicros ? "micros" : "millis",
-        useTimestampMicros ? "remove" : "set",
-        useTimestampMicros ? "timestamp-micros" : "timestamp-millis",
-        String.join("; ", errors));
+    if (!errors.isEmpty()) {
+      throw new FailedValidationException(
+          String.format(
+              "--avroSchemaFilePath schema declares timestamp units that do not match "
+                  + "--useTimestampMicros (%s). Values are written as epoch %s. Either %s the flag"
+                  + " or change the schema to use %s (or plain long). Problems: %s",
+              useTimestampMicros ? "set" : "not set",
+              useTimestampMicros ? "micros" : "millis",
+              useTimestampMicros ? "remove" : "set",
+              useTimestampMicros ? "timestamp-micros" : "timestamp-millis",
+              String.join("; ", errors)));
+    }
   }
 
   private static void collectTimestampUnitErrors(

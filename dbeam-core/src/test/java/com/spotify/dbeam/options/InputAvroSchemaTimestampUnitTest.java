@@ -20,6 +20,7 @@
 
 package com.spotify.dbeam.options;
 
+import com.spotify.dbeam.jobs.FailedValidationException;
 import org.apache.avro.Schema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -42,44 +43,45 @@ public class InputAvroSchemaTimestampUnitTest {
 
   private static String rejected(final Schema schema, final boolean micros) {
     return Assertions.assertThrows(
-            IllegalArgumentException.class,
+            FailedValidationException.class,
             () -> JdbcExportArgsFactory.validateInputSchemaTimestampUnits(schema, micros))
         .getMessage();
   }
 
-  private static void accepted(final Schema schema, final boolean micros) {
+  private static void accepted(final Schema schema, final boolean micros)
+      throws FailedValidationException {
     JdbcExportArgsFactory.validateInputSchemaTimestampUnits(schema, micros);
   }
 
   @Test
-  public void shouldAcceptMatchingUnits() {
+  public void shouldAcceptMatchingUnits() throws FailedValidationException {
     accepted(record(ts("timestamp-millis")), false);
     accepted(record(ts("timestamp-micros")), true);
   }
 
   @Test
-  public void shouldAcceptPlainLong() {
+  public void shouldAcceptPlainLong() throws FailedValidationException {
     accepted(record("\"long\""), false);
     accepted(record("\"long\""), true);
     accepted(record("[\"null\",\"long\"]"), true);
   }
 
   @Test
-  public void shouldRejectMillisWithFlag() {
+  public void shouldRejectMillisWithFlag() throws FailedValidationException {
     final String msg = rejected(record(ts("timestamp-millis")), true);
     Assertions.assertTrue(msg.contains("ts has logicalType timestamp-millis"), msg);
     Assertions.assertTrue(msg.contains("remove the flag"), msg);
   }
 
   @Test
-  public void shouldRejectMicrosWithoutFlag() {
+  public void shouldRejectMicrosWithoutFlag() throws FailedValidationException {
     final String msg = rejected(record(ts("timestamp-micros")), false);
     Assertions.assertTrue(msg.contains("ts has logicalType timestamp-micros"), msg);
     Assertions.assertTrue(msg.contains("set the flag"), msg);
   }
 
   @Test
-  public void shouldRejectLocalAndNanosTimestamps() {
+  public void shouldRejectLocalAndNanosTimestamps() throws FailedValidationException {
     for (String type :
         new String[] {
           "local-timestamp-millis", "local-timestamp-micros", "timestamp-nanos",
@@ -91,7 +93,7 @@ public class InputAvroSchemaTimestampUnitTest {
   }
 
   @Test
-  public void shouldRejectNestedUnionArrayAndMapFields() {
+  public void shouldRejectNestedUnionArrayAndMapFields() throws FailedValidationException {
     final String micros = ts("timestamp-micros");
     final Schema schema =
         record(

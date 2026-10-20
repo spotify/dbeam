@@ -258,9 +258,9 @@ public class JdbcAvroJobTest {
     final Path outputPath = testDir.resolve("shouldFailFastOnSchemaFileTimestampUnit");
     final Path schemaFile = createdSchemaFile("created_millis", "timestamp-millis");
 
-    final IllegalArgumentException exception =
+    final FailedValidationException exception =
         Assertions.assertThrows(
-            IllegalArgumentException.class,
+            FailedValidationException.class,
             () ->
                 JdbcAvroJob.create(
                         createdOnlyArgs(

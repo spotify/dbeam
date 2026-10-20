@@ -145,7 +145,10 @@ public class JdbcAvroJob {
 
   private Schema createSchema(final Connection connection) throws Exception {
     if (this.jdbcExportArgs.inputAvroSchema().isPresent()) {
-      return this.jdbcExportArgs.inputAvroSchema().get();
+      final Schema inputSchema = this.jdbcExportArgs.inputAvroSchema().get();
+      JdbcExportArgsFactory.validateInputSchemaTimestampUnits(
+          inputSchema, jdbcExportArgs.useTimestampMicros());
+      return inputSchema;
     } else {
       return BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
     }

@@ -286,6 +286,20 @@ java \
 
 When using Google Cloud, [IAM authentication](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/blob/main/docs/jdbc.md#iam-authentication) may be used by adding `enableIamAuth=true` to the JDBC URL, providing a dummy password, and following the appropriate rules for user naming with respect to the Service Account name.
 
+### Exit codes
+
+`JdbcAvroJob`, `JdbcParquetJob` and the other jobs exit with a code derived from the failure:
+
+| **Code** | **Exception**                     | **Typical cause**                                         |
+|----------|-----------------------------------|-----------------------------------------------------------|
+| 20       | `NotReadyException`               | PostgreSQL replication check: replica not up to date      |
+| 41       | `IOException`                     | Cannot read/write files (schema files, output, password)  |
+| 43       | `IllegalArgumentException`        | Invalid or conflicting command-line options               |
+| 45       | `SQLException`                    | Database connection or query failure                      |
+| 47       | `PipelineExecutionException`      | Failure while running the Beam pipeline                   |
+| 50       | `FailedValidationException`       | Validation failure: `--minRows` not met, or a `--avroSchemaFilePath` / `--parquetSchemaFilePath` schema that does not match what is written |
+| 49       | any other exception               |                                                           |
+
 ## Using as a library
 
 

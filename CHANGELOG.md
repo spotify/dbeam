@@ -52,7 +52,9 @@
 
 - dbeam-core: `--avroSchemaFilePath` schemas are checked against `--useTimestampMicros`; a
   `timestamp-millis`/`timestamp-micros` field disagreeing with the flag, or any
-  `local-timestamp-*`/`timestamp-nanos` field, fails fast with `IllegalArgumentException`.
+  `local-timestamp-*`/`timestamp-nanos` field, fails fast (in `prepareExport`, before any output)
+  with `FailedValidationException` (exit code 50), the same exception and exit code as Parquet
+  schema-file validation. Pure option conflicts stay `IllegalArgumentException` (exit code 43).
 
 ### Changed
 

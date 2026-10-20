@@ -13,7 +13,8 @@ Without `--useTimestampMicros`, values are epoch milliseconds and sub-millisecon
 truncated. Without `--useLogicalTypes`, these columns are a plain `long` with no logical type.
 
 `--useTimestampMicros` alone decides the unit, also with `--avroSchemaFilePath` (whose schema is
-used verbatim as the writer schema). The job fails fast, before writing any output, if the schema
+used verbatim as the writer schema). The job fails fast with `FailedValidationException` (exit
+code 50), before writing any output, if the schema
 file has a field (including inside unions, arrays, maps and nested records) with logical type
 `timestamp-millis` while the flag is set, `timestamp-micros` while it is not, or any
 `local-timestamp-*` / `timestamp-nanos`. Plain `long` fields are accepted and hold the flag's unit.
