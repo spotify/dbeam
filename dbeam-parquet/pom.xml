@@ -37,6 +37,18 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- parquet-avro: AvroSchemaConverter derives the parquet.avro.schema footer key -->
+    <dependency>
+      <groupId>org.apache.parquet</groupId>
+      <artifactId>parquet-avro</artifactId>
+      <version>${parquet.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <!-- Hadoop: needed for Configuration class used by parquet-java API -->
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -64,19 +76,6 @@
     </dependency>
 
     <!-- Test Deps -->
-    <!-- parquet-avro: read Parquet output back through the footer Avro schema in tests -->
-    <dependency>
-      <groupId>org.apache.parquet</groupId>
-      <artifactId>parquet-avro</artifactId>
-      <version>${parquet.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
     <dependency>
       <groupId>com.spotify</groupId>
       <artifactId>dbeam-core</artifactId>

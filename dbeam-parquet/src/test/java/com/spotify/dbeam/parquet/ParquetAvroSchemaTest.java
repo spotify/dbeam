@@ -44,7 +44,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.avro.AvroParquetReader;
-import org.apache.parquet.avro.AvroSchemaConverter;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
@@ -171,25 +170,46 @@ public class ParquetAvroSchemaTest {
         JdbcParquetJob.footerAvroSchema(() -> convert("message t { optional int96 x; }")));
   }
 
-  /** Same Avro types as parquet-avro's AvroSchemaConverter, ignoring names/docs/namespaces. */
   @Test
-  public void shouldMatchAvroSchemaConverterForDbeamTypes() throws SQLException {
-    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
-    when(meta.getColumnCount()).thenReturn(5);
-    TestHelper.mockResultSetMeta(meta, 1, Types.OTHER, "u", "java.util.UUID", "uuid");
-    TestHelper.mockResultSetMeta(meta, 2, Types.TIMESTAMP, "ts", "java.sql.Timestamp", "ts");
-    TestHelper.mockResultSetMeta(meta, 3, Types.VARCHAR, "s", "java.lang.String", "text");
-    TestHelper.mockResultSetMeta(meta, 4, Types.VARBINARY, "b", "[B", "bytea");
-    TestHelper.mockResultSetMeta(meta, 5, Types.INTEGER, "i", "java.lang.Integer", "int4");
-    final ResultSet rs = Mockito.mock(ResultSet.class);
-    when(rs.getMetaData()).thenReturn(meta);
-    for (boolean logical : new boolean[] {true, false}) {
-      final MessageType parquet =
-          JdbcParquetSchema.createParquetSchema(rs, Optional.of("t"), logical, true, "bytes");
-      Assertions.assertEquals(
-          new AvroSchemaConverter().convert(parquet).toString(),
-          ParquetAvroSchema.toAvroSchema(parquet, null, null).toString());
+  public void shouldSetNameNamespaceAndDocOnTopLevelRecordOnly() {
+    final Schema schema =
+        convert("message my_table { optional group s { optional int32 x; } required int32 i; }");
+    Assertions.assertEquals("my_table", schema.getName());
+    Assertions.assertEquals("ns.my_table", schema.getFullName());
+    Assertions.assertEquals("doc", schema.getDoc());
+    Assertions.assertTrue(schema.getObjectProps().isEmpty());
+    for (Schema.Field field : schema.getFields()) {
+      Assertions.assertNull(field.doc());
+      Assertions.assertTrue(field.getObjectProps().isEmpty());
     }
+    Assertions.assertNull(schema.getField("s").schema().getTypes().get(1).getDoc());
+    Assertions.assertEquals(schema, new Schema.Parser().parse(schema.toString()));
+  }
+
+  @Test
+  public void shouldAllowMissingNamespaceAndDoc() {
+    final Schema schema =
+        ParquetAvroSchema.toAvroSchema(
+            MessageTypeParser.parseMessageType("message t { optional int32 i; }"), null, null);
+    Assertions.assertEquals("t", schema.getFullName());
+    Assertions.assertNull(schema.getDoc());
+  }
+
+  @Test
+  public void shouldConvertArrayColumnWithoutListWrapperRecord() throws SQLException {
+    final ResultSet rs = arrayResultSet("_int8", new Long[] {1L});
+    final MessageType parquet =
+        JdbcParquetSchema.createParquetSchema(rs, Optional.of("t"), true, "typed_postgres");
+    final Schema arr = convert(parquet.toString()).getField("arr").schema();
+    Assertions.assertEquals(
+        nullable(Schema.createArray(nullable(Schema.create(Schema.Type.LONG)))), arr);
+    Assertions.assertFalse(arr.toString().contains("\"record\""));
+  }
+
+  @Test
+  public void shouldRejectInvalidAvroNames() {
+    Assertions.assertNull(
+        JdbcParquetJob.footerAvroSchema(() -> convert("message t { optional int32 `a-b`; }")));
   }
 
   // ---- round trips through AvroParquetReader with the footer schema (mocked PostgreSQL) ----
@@ -198,12 +218,7 @@ public class ParquetAvroSchemaTest {
       final MessageType schema, final ResultSet resultSet, final String arrayMode, final int rows)
       throws IOException, SQLException {
     final Schema avro =
-        ParquetAvroSchema.toAvroSchema(
-            schema,
-            "ns",
-            "doc",
-            java.util.Collections.emptyMap(),
-            ParquetAvroSchema.fieldInfos(resultSet.getMetaData()));
+        ParquetAvroSchema.toAvroSchema(schema, "ns", "doc");
     final Path tempFile = Files.createTempFile("parquet-footer-test-", ".parquet");
     Files.delete(tempFile);
     try (ParquetWriter<ResultSet> writer =

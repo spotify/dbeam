@@ -198,10 +198,9 @@ public class FooterAvroSchemaTest {
     Assertions.assertEquals(
         Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)),
         nums.getElementType());
-    // field docs/props keep dbeam-core's JdbcAvroSchema conventions
-    Assertions.assertEquals("TS", schema.getField("TS").getProp("columnName"));
-    Assertions.assertTrue(schema.getField("TS").doc().startsWith("From sqlType 93 TIMESTAMP"));
-    Assertions.assertEquals("ALL_KINDS", schema.getProp("tableName"));
+    // minimal schema: no per-field docs/props or record props
+    Assertions.assertNull(schema.getField("TS").doc());
+    Assertions.assertTrue(schema.getObjectProps().isEmpty());
     final Instant ts = TS.toInstant(ZoneOffset.UTC);
     assertAllKinds(
         records,
@@ -254,8 +253,6 @@ public class FooterAvroSchemaTest {
         schema.getFields().stream().map(Schema.Field::name).collect(Collectors.toList()));
     Assertions.assertEquals(
         Schema.Type.INT, nonNull(schema.getField("identifier").schema()).getType());
-    // JDBC column info is matched by position
-    Assertions.assertEquals("NAME", schema.getField("label").getProp("columnName"));
     Assertions.assertEquals(2, records.size());
     Assertions.assertEquals(1, records.get(0).get("identifier"));
     Assertions.assertEquals("one", records.get(0).get("label").toString());

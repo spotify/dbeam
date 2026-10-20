@@ -22,12 +22,14 @@
   - SQL ARRAY columns use Parquet 3-level LIST type with typed elements (INT32, INT64, FLOAT,
     DOUBLE, BOOLEAN, BINARY, STRING) inferred from column type name.
   - Parquet file footer includes `parquet.avro.schema` key with the Avro schema JSON, derived
-    from the Parquet schema used for writing (also for `--parquetSchemaFilePath`) so that it
-    always matches the written columns and `AvroParquetReader` can decode the files: LIST items
-    are nullable, UUID is `string`/`uuid`, typed_first_row array element types follow the Parquet
-    schema, and a NULL first-row ARRAY no longer drops the key. Record namespace, doc and column
-    properties follow dbeam-core's JdbcAvroSchema conventions. If the Avro schema cannot be
-    derived (e.g. INT96 in a schema file), the key is omitted and the export continues.
+    from the Parquet schema used for writing (also for `--parquetSchemaFilePath`) with
+    parquet-avro's `AvroSchemaConverter` (`parquet.avro.add-list-element-records=false`), so that
+    it always matches the written columns and `AvroParquetReader` can decode the files: LIST items
+    are nullable (`array<["null", T]>`, no wrapper record), UUID is `string`/`uuid`,
+    typed_first_row array element types follow the Parquet schema, and a NULL first-row ARRAY no
+    longer drops the key. Only the top-level record's name, namespace and doc are set by dbeam;
+    no record or per-field properties are added. If the Avro schema cannot be derived (e.g. INT96
+    or invalid Avro names in a schema file), the key is omitted and the export continues.
   - `_AVRO_SCHEMA.avsc` file saved alongside `_PARQUET_SCHEMA.json` in output directory,
     identical to the footer schema.
   - `--parquetSchemaFilePath`: Input schema override (Parquet MessageType text format).
