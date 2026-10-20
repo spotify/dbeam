@@ -55,6 +55,10 @@
   `local-timestamp-*`/`timestamp-nanos` field, fails fast (in `prepareExport`, before any output)
   with `FailedValidationException` (exit code 50), the same exception and exit code as Parquet
   schema-file validation. Pure option conflicts stay `IllegalArgumentException` (exit code 43).
+- dbeam-core: `--avroSchemaFilePath` schemas are validated against the JDBC metadata (one
+  `LIMIT 1` query in `JdbcAvroJob.prepareExport`): field count, `["null", T]` unions, Avro types
+  including array items and their nullability, and logical types must match what the writer
+  emits; renames and doc/namespace changes are allowed (`AvroSchemaValidator`).
 
 ### Changed
 

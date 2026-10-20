@@ -19,6 +19,25 @@ file has a field (including inside unions, arrays, maps and nested records) with
 `timestamp-millis` while the flag is set, `timestamp-micros` while it is not, or any
 `local-timestamp-*` / `timestamp-nanos`. Plain `long` fields are accepted and hold the flag's unit.
 
+More generally, values are binary-encoded by field position from the JDBC column types (the
+table below), so before the export a single `LIMIT 1` query derives the expected schema and the
+schema file must match it except for record/field names, docs, namespaces and properties. The
+job fails with `FailedValidationException` listing every offending field if:
+
+- the number of fields differs,
+- a field is not a `["null", T]` union (null first; values are written with union index 0 for
+  NULL and 1 otherwise),
+- `T` has a different Avro type than the one written (e.g. `bytes`/`decimal` or `fixed` for a
+  DECIMAL column, which is written as `string`; `int` for a TIMESTAMP column, written as `long`),
+- array items have a different type, or their nullability does not follow `--nullableArrayItems`
+  (`[T, "null"]` with the flag, `T` without),
+- a `logicalType` is neither absent nor the one dbeam generates for that column with
+  `--useLogicalTypes` (`timestamp-millis`/`timestamp-micros` per `--useTimestampMicros`, `uuid`
+  for PostgreSQL uuid); e.g. `date`, `time-*`, `local-timestamp-*` or `decimal` are rejected.
+
+With `--arrayMode=typed_first_row` and no row (or a NULL first value), the array item type
+cannot be derived and is taken from the schema file.
+
 To represent nullable columns, unions with the Avro NULL type are used.
 
 | **Java SQL type**        | **Avro type**   | **Avro schema annotations** | **Comments**                          |

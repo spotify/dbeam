@@ -157,7 +157,10 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
 #### Input Avro schema file
 
 If provided an input Avro schema file, dbeam will read input schema file and use some of the 
-properties when an output Avro schema is created.
+properties when an output Avro schema is created. The schema file is validated against the JDBC
+metadata before the export: it may rename fields and change docs/namespaces, but types, union
+shape and logical types must match what dbeam writes (see
+[rules](docs/type-conversion.md)).
 
 #### Following fields will be propagated from input into output schema:
 

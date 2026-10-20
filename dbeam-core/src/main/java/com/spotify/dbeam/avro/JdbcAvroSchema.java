@@ -116,6 +116,37 @@ public class JdbcAvroSchema {
       final String arrayMode,
       final boolean nullableArrayItems)
       throws SQLException {
+    return createAvroSchema(
+        resultSet,
+        avroSchemaNamespace,
+        connectionUrl,
+        maybeSchemaName,
+        avroDoc,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nullableArrayItems,
+        false);
+  }
+
+  /**
+   * Same as above; with {@code unknownArrayItemsAsNull} a typed_first_row ARRAY column whose item
+   * type cannot be inferred (no row or a NULL first value) gets {@code null} items instead of
+   * failing. Only used to validate a {@code --avroSchemaFilePath} schema, where the item type
+   * comes from the schema file.
+   */
+  static Schema createAvroSchema(
+      final ResultSet resultSet,
+      final String avroSchemaNamespace,
+      final String connectionUrl,
+      final Optional<String> maybeSchemaName,
+      final String avroDoc,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nullableArrayItems,
+      final boolean unknownArrayItemsAsNull)
+      throws SQLException {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
@@ -129,7 +160,13 @@ public class JdbcAvroSchema {
             .prop("connectionUrl", connectionUrl)
             .fields();
     return createAvroFields(
-            resultSet, builder, useLogicalTypes, useTimestampMicros, arrayMode, nullableArrayItems)
+            resultSet,
+            builder,
+            useLogicalTypes,
+            useTimestampMicros,
+            arrayMode,
+            nullableArrayItems,
+            unknownArrayItemsAsNull)
         .endRecord();
   }
 
@@ -151,7 +188,8 @@ public class JdbcAvroSchema {
       final boolean useLogicalTypes,
       final boolean useTimestampMicros,
       final String arrayMode,
-      final boolean nullableArrayItems)
+      final boolean nullableArrayItems,
+      final boolean unknownArrayItemsAsNull)
       throws SQLException {
 
     ResultSetMetaData meta = resultSet.getMetaData();
@@ -187,7 +225,7 @@ public class JdbcAvroSchema {
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
       Array arrayInstance =
-          resultSet.isFirst() && columnType == ARRAY
+          columnType == ARRAY && resultSet.isFirst()
           && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
           ? resultSet.getArray(i) : null;
 
@@ -203,6 +241,7 @@ public class JdbcAvroSchema {
               useTimestampMicros,
               arrayMode,
               nullableArrayItems,
+              unknownArrayItemsAsNull,
               fieldSchemaBuilder);
 
       schemaFieldAssembler.endUnion().nullDefault();
@@ -233,6 +272,7 @@ public class JdbcAvroSchema {
       final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nullableArrayItems,
+      final boolean unknownArrayItemsAsNull,
       final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
           SchemaBuilder.NullDefault<Schema>>> field) throws SQLException {
     switch (columnType) {
@@ -284,6 +324,9 @@ public class JdbcAvroSchema {
               useLogicalTypes, buildArrayItems(nullableArrayItems, field));
         }
 
+        if (arrayInstance == null && unknownArrayItemsAsNull) {
+          return field.array().items().nullType();
+        }
         if (arrayInstance == null) {
           throw new RuntimeException(
               "When inspecting ARRAY column type in '" + columnName
@@ -300,6 +343,7 @@ public class JdbcAvroSchema {
             useTimestampMicros,
             arrayMode,
             nullableArrayItems,
+            unknownArrayItemsAsNull,
             buildArrayItems(nullableArrayItems, field));
       case BINARY:
       case VARBINARY:

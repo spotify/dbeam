@@ -272,6 +272,116 @@ public class JdbcAvroJobTest {
     Assertions.assertFalse(outputPath.toFile().exists());
   }
 
+  private static String[] coffeesArgs(final Path outputPath, final String... extraArgs) {
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--partition=2025-02-28",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--table=COFFEES",
+                "--output=" + outputPath,
+                "--useLogicalTypes"));
+    args.addAll(List.of(extraArgs));
+    return args.toArray(new String[0]);
+  }
+
+  /** The schema dbeam generates for COFFEES, with every field renamed and docs/props changed. */
+  private static String renamedCoffeesSchema() throws Exception {
+    final Path generated = testDir.resolve("coffeesSchemaSource");
+    JdbcAvroJob.create(coffeesArgs(generated)).runExport();
+    final Schema schema =
+        new Schema.Parser().parse(generated.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final StringBuilder sb =
+        new StringBuilder(
+            "{\"type\":\"record\",\"name\":\"renamed\",\"namespace\":\"other.ns\","
+                + "\"doc\":\"custom\",\"fields\":[");
+    for (int i = 0; i < schema.getFields().size(); i++) {
+      final Schema.Field field = schema.getFields().get(i);
+      sb.append(i == 0 ? "" : ",")
+          .append("{\"name\":\"renamed_")
+          .append(field.name().toLowerCase())
+          .append("\",\"doc\":\"custom doc\",\"type\":")
+          .append(field.schema().toString())
+          .append(",\"default\":null}");
+    }
+    return sb.append("]}").toString();
+  }
+
+  @Test
+  public void shouldAcceptRenamedSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldAcceptRenamedSchemaFile");
+    final Path schemaFile = testDir.resolve("coffees_renamed.avsc");
+    Files.write(schemaFile, renamedCoffeesSchema().getBytes());
+
+    JdbcAvroJob.create(coffeesArgs(outputPath, "--avroSchemaFilePath=" + schemaFile))
+        .runExport();
+
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final List<GenericRecord> records =
+        readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
+    assertThat(records, hasSize(2));
+    assertThat(
+        records.stream()
+            .map(r -> r.get("renamed_cof_name").toString())
+            .collect(Collectors.toList()),
+        containsInAnyOrder("costa rica caffee", "colombian caffee"));
+  }
+
+  @Test
+  public void shouldFailFastWhenSchemaFileTypeDoesNotMatchJdbcColumn() throws Exception {
+    final Path outputPath = testDir.resolve("shouldFailFastWhenSchemaFileTypeDoesNotMatch");
+    final Path schemaFile = testDir.resolve("coffees_decimal.avsc");
+    // PRICE is a DECIMAL column, which dbeam writes as a string
+    Files.write(
+        schemaFile,
+        renamedCoffeesSchema()
+            .replaceFirst(
+                "(\"renamed_price\",\"doc\":\"custom doc\",\"type\":\\[\"null\",)\"string\"",
+                "$1{\"type\":\"bytes\",\"logicalType\":\"decimal\",\"precision\":21,"
+                    + "\"scale\":2}")
+            .getBytes());
+
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                JdbcAvroJob.create(coffeesArgs(outputPath, "--avroSchemaFilePath=" + schemaFile))
+                    .runExport());
+    Assertions.assertTrue(
+        exception.getMessage().contains("renamed_price (#3, JDBC column PRICE): expected string"),
+        exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  @Test
+  public void shouldFailFastWhenSchemaFileArrayItemsDoNotMatch() throws Exception {
+    final Path outputPath = testDir.resolve("shouldFailFastWhenSchemaFileArrayItemsDoNotMatch");
+    final Path schemaFile = testDir.resolve("coffees_array.avsc");
+    Files.write(
+        schemaFile,
+        renamedCoffeesSchema()
+            .replace("{\"type\":\"array\",\"items\":\"int\"}",
+                "{\"type\":\"array\",\"items\":\"string\"}")
+            .getBytes());
+
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                JdbcAvroJob.create(coffeesArgs(outputPath, "--avroSchemaFilePath=" + schemaFile))
+                    .runExport());
+    Assertions.assertTrue(
+        exception.getMessage().contains("JDBC column INT_ARR)[]: expected int"),
+        exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
   @Test
   public void shouldWriteMicrosWithMatchingSchemaFile() throws Exception {
     final Path outputPath = testDir.resolve("shouldWriteMicrosWithMatchingSchemaFile");
