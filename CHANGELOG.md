@@ -34,7 +34,8 @@
     identical to the footer schema.
   - `--parquetSchemaFilePath`: Input schema override (Parquet MessageType text format),
     validated against the JDBC-derived schema before export (renames and compatible annotations
-    only; fails with `FailedValidationException` otherwise).
+    only; fails with `FailedValidationException` otherwise). `--avroSchemaFilePath` is rejected
+    on Parquet jobs with an `IllegalArgumentException` pointing to `--parquetSchemaFilePath`.
   - `--rowGroupSize` (default 128MB) and `--pageSize` (default 1MB) options.
   - `--useTimestampMicros` (requires `--useLogicalTypes`) writes TIMESTAMP, DATE, TIME and
     TIME_WITH_TIMEZONE columns as `TIMESTAMP(MICROS, isAdjustedToUTC=true)` epoch microseconds

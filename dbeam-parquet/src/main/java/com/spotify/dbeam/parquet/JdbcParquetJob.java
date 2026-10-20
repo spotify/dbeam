@@ -80,6 +80,7 @@ public class JdbcParquetJob {
 
   public static JdbcParquetJob create(final PipelineOptions pipelineOptions, final String output)
       throws IOException, ClassNotFoundException {
+    rejectAvroOnlyOptions(pipelineOptions);
     pipelineOptions.as(DirectOptions.class).setBlockOnRun(false);
     return new JdbcParquetJob(
         pipelineOptions,
@@ -105,6 +106,19 @@ public class JdbcParquetJob {
     PipelineOptionsFactory.register(OutputOptions.class);
     PipelineOptionsFactory.register(ParquetPipelineOptions.class);
     return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
+  }
+
+  /**
+   * Fail fast on options that only apply to Avro exports and would otherwise be silently ignored
+   * (or, for {@code --avroSchemaFilePath}, parsed and validated against the Avro writer).
+   */
+  static void rejectAvroOnlyOptions(final PipelineOptions pipelineOptions) {
+    final String avroSchemaFilePath =
+        pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroSchemaFilePath();
+    Preconditions.checkArgument(
+        avroSchemaFilePath == null || avroSchemaFilePath.isEmpty(),
+        "--avroSchemaFilePath is not supported for Parquet exports; "
+            + "use --parquetSchemaFilePath with a Parquet schema (MessageType text format)");
   }
 
   private void configureVersion() {

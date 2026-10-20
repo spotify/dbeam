@@ -107,6 +107,9 @@ When using `JdbcParquetJob`, the `--avroCodec` parameter is mapped to Parquet co
 
 #### Input schema file (`--parquetSchemaFilePath`)
 
+`--avroSchemaFilePath` is not supported by Parquet jobs: passing it fails immediately with an
+`IllegalArgumentException` (exit code 43) before any query runs or output is written.
+
 The Parquet writers always take column types from the JDBC result set and write fields by
 position, so an input schema file can only rename fields and adjust annotations. Before the
 export starts, the file is checked against the schema derived from JDBC metadata (the table

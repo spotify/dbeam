@@ -555,6 +555,29 @@ public class JdbcParquetJobTest {
   }
 
   @Test
+  public void shouldRejectAvroSchemaFilePath() throws Exception {
+    final Path outputPath = testDir.resolve("shouldRejectAvroSchemaFilePath");
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetJob.create(
+                    new String[] {
+                      "--targetParallelism=1",
+                      "--partition=2025-02-28",
+                      "--skipPartitionCheck",
+                      "--connectionUrl=" + CONNECTION_URL,
+                      "--username=",
+                      "--passwordFile=" + passwordPath.toString(),
+                      "--table=COFFEES",
+                      "--output=" + outputPath,
+                      "--avroSchemaFilePath=/does/not/exist.avsc"
+                    }));
+    Assertions.assertTrue(e.getMessage().contains("--parquetSchemaFilePath"), e.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  @Test
   public void shouldMapAvroCodecToParquetCodec() {
     Assertions.assertEquals("snappy", JdbcParquetJob.mapAvroCodecToParquetCodec("snappy"));
     Assertions.assertEquals("gzip", JdbcParquetJob.mapAvroCodecToParquetCodec("deflate1"));
