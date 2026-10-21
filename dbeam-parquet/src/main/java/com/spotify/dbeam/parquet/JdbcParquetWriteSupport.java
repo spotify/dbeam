@@ -291,6 +291,12 @@ public class JdbcParquetWriteSupport {
           final java.sql.Array sqlArray = rs.getArray(column);
           if (sqlArray != null && !rs.wasNull()) {
             final Object[] items = (Object[]) sqlArray.getArray();
+            // check before writing anything, so no partial or garbage list is written
+            for (Object item : items) {
+              if (isNestedArray(item, arrayElementType)) {
+                throw multidimensionalArrayException(fieldName);
+              }
+            }
             consumer.startField(normalizedName, fieldIndex);
             consumer.startGroup(); // LIST group
             consumer.startField("list", 0); // repeated list field
@@ -484,6 +490,31 @@ public class JdbcParquetWriteSupport {
   /** Epoch microseconds, keeping the sub-millisecond part of {@link Timestamp#getNanos()}. */
   static long toEpochMicros(final Timestamp timestamp) {
     return timestamp.getTime() * 1000 + (timestamp.getNanos() / 1000) % 1000;
+  }
+
+  /**
+   * Whether an ARRAY element is itself an array (a multidimensional SQL array). A {@code byte[]}
+   * is the value of a {@code bytea} element, so only {@code byte[][]} and deeper count there.
+   */
+  static boolean isNestedArray(final Object item, final String elementType) {
+    if (item == null) {
+      return false;
+    }
+    if (item instanceof java.sql.Array) {
+      return true;
+    }
+    if (item instanceof byte[]) {
+      return !"bytea".equals(elementType);
+    }
+    return item.getClass().isArray();
+  }
+
+  static IllegalArgumentException multidimensionalArrayException(final String columnName) {
+    return new IllegalArgumentException(
+        String.format(
+            "Column '%s' contains a multidimensional array, which is not supported;"
+                + " use --arrayMode=bytes to export the column as bytes",
+            columnName));
   }
 
   static void writeArrayElement(RecordConsumer consumer, Object item, String elementType) {

@@ -102,6 +102,10 @@ Any other element type (e.g. `_timestamp`, `_date`, `_numeric`, `_json`, `TIMEST
 schema generation, before any output is written, with an error naming the column and the element
 type. Use `--arrayMode=bytes` to export such columns as bytes.
 
+Multidimensional arrays (e.g. `int4[][]`, `bytea[][]`) are not supported with typed arrays: the
+JDBC metadata does not expose the number of dimensions, so the export fails on the first such
+value with an error naming the column. Use `--arrayMode=bytes` for them.
+
 #### Footer Avro schema (`parquet.avro.schema`)
 
 The Avro schema stored in the `parquet.avro.schema` footer key, and saved as `_AVRO_SCHEMA.avsc`

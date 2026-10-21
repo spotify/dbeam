@@ -25,7 +25,8 @@
   - SQL ARRAY columns use Parquet 3-level LIST type with typed elements (INT32, INT64, FLOAT,
     DOUBLE, BOOLEAN, BINARY, STRING) inferred from column type name. Other element types
     (timestamp, date, numeric, json, ...) fail schema generation naming the column and element
-    type (use `--arrayMode=bytes`) instead of being written as strings.
+    type (use `--arrayMode=bytes`) instead of being written as strings. Multidimensional
+    arrays fail with an error naming the column before anything of the value is written.
   - Parquet file footer includes `parquet.avro.schema` key with the Avro schema JSON, derived
     from the Parquet schema used for writing (also for `--parquetSchemaFilePath`) with
     parquet-avro's `AvroSchemaConverter` (`parquet.avro.add-list-element-records=false`), so that
@@ -88,6 +89,8 @@
 ### Changed
 
 - Minimum supported JDK raised from 11 to 17.
+- dbeam-core: Multidimensional ARRAY values fail with an error naming the column and suggesting
+  `--arrayMode=bytes`, instead of the generic "Value of type ... is not supported" error.
 - dbeam-core: Avro `bytesWritten` metric counts each output file once, after the writer is
   closed (last block included), instead of the cumulative file size after each query, which
   over-counted when one writer handled several queries.

@@ -183,6 +183,59 @@ public class JdbcParquetWriteSupportTest {
   }
 
   @Test
+  public void shouldFailClearlyOnMultidimensionalArrays() throws SQLException {
+    final Object[][] cases = {
+      {"_int2", new Short[][] {{1, 2}}},
+      {"_int4", new Integer[][] {{1, 2}, {3, 4}}},
+      {"_int8", new Long[][] {{1L}}},
+      {"_float4", new Float[][] {{1f}}},
+      {"_float8", new Double[][] {{1d}}},
+      {"_bool", new Boolean[][] {{true}}},
+      {"_bytea", new byte[][][] {{{1, 2}}, {{3}}}},
+      {"_text", new String[][] {{"a", "b"}}},
+      {"_varchar", new String[][] {{"a"}}},
+      {"_bpchar", new String[][] {{"a"}}},
+      {"_uuid", new java.util.UUID[][] {{java.util.UUID.randomUUID()}}},
+      {"_int4", new Object[] {mock(Array.class)}},
+      {"_int4", new Object[] {new int[] {1}}},
+      {"_text", new Object[] {new byte[] {1}}},
+    };
+    for (Object[] c : cases) {
+      for (String arrayMode : new String[] {"typed_first_row", "typed_postgres"}) {
+        final RecordConsumer recordConsumer = mock(RecordConsumer.class);
+        final Array array = mock(Array.class);
+        when(meta.getColumnTypeName(1)).thenReturn((String) c[0]);
+        when(meta.getColumnType(1)).thenReturn(Types.ARRAY);
+        when(rs.getArray(1)).thenReturn(array);
+        when(array.getArray()).thenReturn(c[1]);
+        final JdbcParquetWriteSupport.ColumnWriter writer =
+            JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, null, false);
+        final IllegalArgumentException e =
+            Assertions.assertThrows(
+                IllegalArgumentException.class, () -> writer.write(recordConsumer, rs));
+        Assertions.assertEquals(
+            "Column 'col' contains a multidimensional array, which is not supported;"
+                + " use --arrayMode=bytes to export the column as bytes",
+            e.getMessage(),
+            (String) c[0]);
+        // nothing (in particular no "[Ljava.lang.String;@..." toString garbage) is written
+        Mockito.verifyNoInteractions(recordConsumer);
+      }
+    }
+  }
+
+  @Test
+  public void shouldWriteOneDimensionalByteaArray() throws SQLException {
+    final Array array = mock(Array.class);
+    final byte[] bytes = {1, 2};
+    when(meta.getColumnTypeName(1)).thenReturn("_bytea");
+    when(rs.getArray(1)).thenReturn(array);
+    when(array.getArray()).thenReturn(new byte[][] {bytes});
+    write(Types.ARRAY, "typed_postgres", null);
+    verify(consumer).addBinary(Binary.fromConstantByteArray(bytes));
+  }
+
+  @Test
   public void shouldWriteArrayElementsByType() {
     JdbcParquetWriteSupport.writeArrayElement(consumer, 1.5f, "float4");
     JdbcParquetWriteSupport.writeArrayElement(consumer, 2.5d, "float8");

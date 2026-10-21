@@ -58,7 +58,7 @@ the same field name (e.g. `a-b` and `a_b`), the export fails listing the collidi
 | BINARY                   | bytes           |                             |                                       |
 | VARBINARY                | bytes           |                             |                                       |
 | LONGVARBINARY            | bytes           |                             |                                       |
-| ARRAY                    | array           |                             | Propagates an array item type as well |
+| ARRAY                    | array           |                             | Propagates an array item type as well; multidimensional arrays fail (use `--arrayMode=bytes`) |
 | OTHER                    | string          | logicalType: uuid           |                                       |
 | BLOB                     | bytes           |                             |                                       |
 | DOUBLE                   | double          |                             |                                       |

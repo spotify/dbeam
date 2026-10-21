@@ -138,6 +138,20 @@ public class JdbcAvroRecordConverter {
     } else if (value instanceof java.sql.Array) {
       binaryEncoder.writeArrayStart();
       Object[] array = (Object[]) ((java.sql.Array) value).getArray();
+      // PostgreSQL metadata does not expose the number of dimensions (int4[][] is also _int4),
+      // so multidimensional arrays are detected on the first nested value
+      for (Object arrayItem : array) {
+        if (arrayItem instanceof java.sql.Array
+            || (arrayItem != null
+                && arrayItem.getClass().isArray()
+                && !(arrayItem instanceof byte[]))) {
+          throw new RuntimeException(
+              String.format(
+                  "Column '%s' contains a multidimensional array, which is not supported;"
+                      + " use --arrayMode=bytes to export the column as bytes",
+                  column));
+        }
+      }
       binaryEncoder.setItemCount(array.length);
       for (Object arrayItem : array) {
         binaryEncoder.startItem();
