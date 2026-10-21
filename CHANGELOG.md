@@ -89,6 +89,8 @@
 ### Changed
 
 - Minimum supported JDK raised from 11 to 17.
+- An invalid `--arrayMode` value fails with `IllegalArgumentException` (exit code 43, like other
+  invalid arguments) listing the allowed values, instead of a plain `RuntimeException` (49).
 - dbeam-core: Multidimensional ARRAY values fail with an error naming the column and suggesting
   `--arrayMode=bytes`, instead of the generic "Value of type ... is not supported" error.
 - dbeam-core: Avro `bytesWritten` metric counts each output file once, after the writer is

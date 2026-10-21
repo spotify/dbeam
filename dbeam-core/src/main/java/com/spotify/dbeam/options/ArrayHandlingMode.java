@@ -31,8 +31,8 @@ public class ArrayHandlingMode {
   public static String validateValue(String value) {
     List<String> possibleValues = Arrays.asList(Bytes, TypedMetaFromFirstRow, TypedMetaPostgres);
     if (value == null || !possibleValues.contains(value)) {
-      throw new RuntimeException(
-          String.format("Invalid value '%s' for array handling mode. Allowed values: %s",
+      throw new IllegalArgumentException(
+          String.format("Invalid --arrayMode value '%s'. Allowed values: %s",
               value, possibleValues));
     }
 

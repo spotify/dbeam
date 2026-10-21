@@ -89,6 +89,27 @@ public class JdbcAvroJobTest {
   }
 
   @Test
+  public void shouldExit43OnInvalidArrayMode() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcAvroJob.create(
+                    new String[] {
+                      "--connectionUrl=" + CONNECTION_URL,
+                      "--username=",
+                      "--passwordFile=" + passwordPath.toString(),
+                      "--table=COFFEES",
+                      "--output=" + testDir.resolve("shouldExit43OnInvalidArrayMode"),
+                      "--arrayMode=typed"
+                    }));
+    Assertions.assertTrue(e.getMessage().contains("Invalid --arrayMode value 'typed'"));
+    Assertions.assertTrue(
+        e.getMessage().contains("[bytes, typed_first_row, typed_postgres]"), e.getMessage());
+    Assertions.assertEquals(43, ExceptionHandling.exitCode(e));
+  }
+
+  @Test
   public void shouldCountBytesWrittenOncePerFile() throws Exception {
     final Path outputPath = testDir.resolve("shouldCountBytesWrittenOncePerFile");
     JdbcAvroJob.create(
