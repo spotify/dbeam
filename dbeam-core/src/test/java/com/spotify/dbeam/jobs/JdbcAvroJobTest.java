@@ -23,6 +23,7 @@ package com.spotify.dbeam.jobs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 
 import com.spotify.dbeam.DbTestHelper;
@@ -77,6 +78,46 @@ public class JdbcAvroJobTest {
     passwordPath.toFile().createNewFile();
     Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      connection
+          .createStatement()
+          .execute("CREATE TABLE MANY_ROWS (ID BIGINT NOT NULL, NAME VARCHAR(20))");
+      connection
+          .createStatement()
+          .execute("INSERT INTO MANY_ROWS SELECT X, CONCAT('name', X) FROM SYSTEM_RANGE(1, 1000)");
+    }
+  }
+
+  @Test
+  public void shouldCountBytesWrittenOncePerFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldCountBytesWrittenOncePerFile");
+    JdbcAvroJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=MANY_ROWS",
+              "--output=" + outputPath,
+              "--splitColumn=ID",
+              "--queryParallelism=4"
+            })
+        .runExport();
+    long totalSize = 0;
+    int files = 0;
+    for (File file : outputPath.toFile().listFiles()) {
+      if (file.getName().endsWith(".avro")) {
+        totalSize += file.length();
+        files++;
+      }
+    }
+    assertThat(files, greaterThan(0));
+    assertThat(outputPath.resolve("_queries").toFile().listFiles().length, greaterThan(1));
+    final String metrics = new String(Files.readAllBytes(outputPath.resolve("_METRICS.json")));
+    Assertions.assertTrue(
+        metrics.contains("\"bytesWritten\":" + totalSize + ","), metrics + " vs " + totalSize);
   }
 
   @Test

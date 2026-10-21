@@ -57,9 +57,7 @@
   - `BeamJdbcParquetSchema`: Exposes schema creation timing as Beam metric.
   - `bytesWritten` metric (`JdbcParquetMetering`): total bytes of the output files, counted once
     per file after the writer is closed (last row group and footer included), also when one
-    writer handles several queries. (dbeam-core's Avro `bytesWritten` is still reported after
-    each query with the cumulative file size, so it over-counts when a writer handles several
-    queries.)
+    writer handles several queries.
   - `PsqlParquetJob`: PostgreSQL-specific job with replication lag check.
   - `BenchJdbcParquetJob`: Benchmarking job for multi-execution performance testing.
   - End-to-end test support in `e2e/e2e.sh`: the Parquet suite mirrors the Avro runs (codecs,
@@ -88,6 +86,9 @@
 ### Changed
 
 - Minimum supported JDK raised from 11 to 17.
+- dbeam-core: Avro `bytesWritten` metric counts each output file once, after the writer is
+  closed (last block included), instead of the cumulative file size after each query, which
+  over-counted when one writer handled several queries.
 - dbeam-core: `JdbcMetering` and `BenchJdbcJob` extracted as format-agnostic base classes;
   `JdbcAvroMetering` keeps its metric namespace, and Parquet metrics use `JdbcParquetMetering`.
 - Parent POM: Shade plugin config parameterized via `${dbeam.mainClass}` property,
