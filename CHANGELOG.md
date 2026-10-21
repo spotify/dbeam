@@ -23,7 +23,9 @@
   - STRUCT, REF, REF_CURSOR and DATALINK columns fail schema generation with the same messages
     as the Avro export.
   - SQL ARRAY columns use Parquet 3-level LIST type with typed elements (INT32, INT64, FLOAT,
-    DOUBLE, BOOLEAN, BINARY, STRING) inferred from column type name.
+    DOUBLE, BOOLEAN, BINARY, STRING) inferred from column type name. Other element types
+    (timestamp, date, numeric, json, ...) fail schema generation naming the column and element
+    type (use `--arrayMode=bytes`) instead of being written as strings.
   - Parquet file footer includes `parquet.avro.schema` key with the Avro schema JSON, derived
     from the Parquet schema used for writing (also for `--parquetSchemaFilePath`) with
     parquet-avro's `AvroSchemaConverter` (`parquet.avro.add-list-element-records=false`), so that

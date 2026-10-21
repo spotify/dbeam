@@ -509,6 +509,12 @@ public class JdbcParquetWriteSupport {
         consumer.addBinary(Binary.fromConstantByteArray((byte[]) item));
         break;
       default:
+        if (!JdbcParquetSchema.isStringArrayElementType(elementType)) {
+          // rejected by JdbcParquetSchema.buildArrayElementType, unless the schema came elsewhere
+          throw new IllegalArgumentException(
+              "ARRAY element type '" + elementType + "' is not supported for typed Parquet arrays;"
+                  + " use --arrayMode=bytes to export the column as bytes");
+        }
         consumer.addBinary(Binary.fromString(item.toString()));
         break;
     }

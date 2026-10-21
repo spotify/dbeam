@@ -91,10 +91,16 @@ Array element types are inferred from the column type name. For PostgreSQL, the 
 | `_float8`                | DOUBLE                   |
 | `_bool`                  | BOOLEAN                  |
 | `_bytea`                 | BINARY                   |
-| `_text`, `_varchar`, `_uuid`, others | BINARY (STRING) |
-| `INTEGER ARRAY`          | INT32                    |
+| `_text`, `_varchar`, `_bpchar`, `_char`, `_name`, `_uuid` | BINARY (STRING) |
+| `INTEGER ARRAY`, `SMALLINT ARRAY` | INT32           |
 | `BIGINT ARRAY`           | INT64                    |
-| `VARCHAR ARRAY`, others  | BINARY (STRING)          |
+| `DOUBLE PRECISION ARRAY` | DOUBLE                   |
+| `BOOLEAN ARRAY`          | BOOLEAN                  |
+| `VARCHAR ARRAY`, `CHARACTER VARYING ARRAY`, `UUID ARRAY` | BINARY (STRING) |
+
+Any other element type (e.g. `_timestamp`, `_date`, `_numeric`, `_json`, `TIMESTAMP ARRAY`) fails
+schema generation, before any output is written, with an error naming the column and the element
+type. Use `--arrayMode=bytes` to export such columns as bytes.
 
 #### Footer Avro schema (`parquet.avro.schema`)
 

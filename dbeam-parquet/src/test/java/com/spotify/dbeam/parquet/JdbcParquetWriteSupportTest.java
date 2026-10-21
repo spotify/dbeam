@@ -203,7 +203,22 @@ public class JdbcParquetWriteSupportTest {
     verify(consumer).addBinary(Binary.fromConstantByteArray(bytes));
     Assertions.assertEquals(
         PrimitiveTypeName.BINARY,
-        JdbcParquetSchema.buildArrayElementType("_bytea").asPrimitiveType().getPrimitiveTypeName());
+        JdbcParquetSchema.buildArrayElementType("arr", "_bytea")
+            .asPrimitiveType()
+            .getPrimitiveTypeName());
+  }
+
+  @Test
+  public void shouldRejectUnsupportedArrayElementTypeInsteadOfToString() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetWriteSupport.writeArrayElement(
+                    consumer, new java.sql.Timestamp(0), "timestamp"));
+    Assertions.assertTrue(e.getMessage().contains("'timestamp'"), e.getMessage());
+    Assertions.assertTrue(e.getMessage().contains("--arrayMode=bytes"), e.getMessage());
+    Mockito.verifyNoInteractions(consumer);
   }
 
   @Test

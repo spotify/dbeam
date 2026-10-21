@@ -62,6 +62,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
@@ -333,7 +334,7 @@ public class JdbcParquetSchema {
         // Parquet 3-level LIST convention with typed elements.
         // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()
-            .element(buildArrayElementType(columnTypeName))
+            .element(buildArrayElementType(columnName, columnTypeName))
             .named(columnName);
       // Same as dbeam-core's JdbcAvroSchema
       case STRUCT:
@@ -436,10 +437,11 @@ public class JdbcParquetSchema {
 
   /**
    * Determine the Parquet element type for an ARRAY column based on the column type name. For
-   * PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text). Falls
-   * back to STRING for unrecognized types.
+   * PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text). Element
+   * types other than the integer, floating point, boolean, bytea and string-like types (text,
+   * varchar, bpchar/char, name, uuid) are rejected, instead of being written as strings.
    */
-  static Type buildArrayElementType(final String columnTypeName) {
+  static Type buildArrayElementType(final String columnName, final String columnTypeName) {
     final String elementType = resolveArrayElementTypeName(columnTypeName);
     switch (elementType) {
       case "int":
@@ -457,15 +459,42 @@ public class JdbcParquetSchema {
       case "bytea":
         return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named("element");
       default:
+        if (!isStringArrayElementType(elementType)) {
+          throw new IllegalArgumentException(
+              "columnName="
+                  + columnName
+                  + " ARRAY element type '"
+                  + elementType
+                  + "' (column type '"
+                  + columnTypeName
+                  + "') is not supported for typed Parquet arrays;"
+                  + " use --arrayMode=bytes to export the column as bytes");
+        }
         return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
             .as(LogicalTypeAnnotation.stringType())
             .named("element");
     }
   }
 
+  /** ARRAY element types written as {@code binary (STRING)} with the value's toString(). */
+  static boolean isStringArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "text":
+      case "varchar":
+      case "bpchar":
+      case "char":
+      case "name":
+      case "uuid":
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /**
    * Extract the element type name from an array column type name. PostgreSQL uses underscore prefix
-   * (e.g. _int4 -> int4, _text -> text). H2 and others use "INTEGER ARRAY" style names.
+   * (e.g. _int4 -> int4, _text -> text). H2 and others use "INTEGER ARRAY" style names; unknown
+   * ones resolve to the lower-case base name (e.g. "TIMESTAMP ARRAY" -> timestamp).
    */
   static String resolveArrayElementTypeName(final String columnTypeName) {
     if (columnTypeName == null) {
@@ -474,10 +503,12 @@ public class JdbcParquetSchema {
     if (columnTypeName.startsWith("_")) {
       return columnTypeName.substring(1);
     }
-    // H2 style: "INTEGER ARRAY", "VARCHAR ARRAY", etc.
-    final String lower = columnTypeName.toLowerCase();
-    if (lower.startsWith("integer")) {
+    // H2 style: "INTEGER ARRAY", "CHARACTER VARYING(10) ARRAY", etc.
+    final String lower = columnTypeName.toLowerCase(Locale.ROOT);
+    if (lower.startsWith("integer") || lower.startsWith("int ")) {
       return "int4";
+    } else if (lower.startsWith("smallint") || lower.startsWith("tinyint")) {
+      return "int2";
     } else if (lower.startsWith("bigint")) {
       return "int8";
     } else if (lower.startsWith("real") || lower.startsWith("float")) {
@@ -486,8 +517,18 @@ public class JdbcParquetSchema {
       return "float8";
     } else if (lower.startsWith("boolean")) {
       return "bool";
+    } else if (lower.startsWith("binary") || lower.startsWith("varbinary")) {
+      return "bytea";
+    } else if (lower.startsWith("uuid")) {
+      return "uuid";
+    } else if (lower.startsWith("char")
+        || lower.startsWith("varchar")
+        || lower.startsWith("clob")
+        || lower.startsWith("text")) {
+      // includes "character", "character varying", "character large object"
+      return "text";
     }
-    return "text";
+    return lower.replaceAll("\\(.*?\\)", "").replaceAll("\\s+array$", "").trim();
   }
 
   static String normalizeFieldName(final String input) {
