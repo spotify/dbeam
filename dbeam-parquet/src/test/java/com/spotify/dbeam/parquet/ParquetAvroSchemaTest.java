@@ -201,9 +201,23 @@ public class ParquetAvroSchemaTest {
     final MessageType parquet =
         JdbcParquetSchema.createParquetSchema(rs, Optional.of("t"), true, "typed_postgres");
     final Schema arr = convert(parquet.toString()).getField("arr").schema();
-    Assertions.assertEquals(
-        nullable(Schema.createArray(nullable(Schema.create(Schema.Type.LONG)))), arr);
+    // required elements (no --nullableArrayItems): array<long>
+    Assertions.assertEquals(nullable(Schema.createArray(Schema.create(Schema.Type.LONG))), arr);
     Assertions.assertFalse(arr.toString().contains("\"record\""));
+    final Schema nullableItems =
+        convert(nullableItemsSchema(rs, true, "typed_postgres").toString())
+            .getField("arr")
+            .schema();
+    // optional elements (--nullableArrayItems): array<["null", long]>
+    Assertions.assertEquals(
+        nullable(Schema.createArray(nullable(Schema.create(Schema.Type.LONG)))), nullableItems);
+  }
+
+  private static MessageType nullableItemsSchema(
+      final ResultSet rs, final boolean useLogicalTypes, final String arrayMode)
+      throws SQLException {
+    return JdbcParquetSchema.createParquetSchema(
+        rs, Optional.empty(), useLogicalTypes, false, arrayMode, false, true);
   }
 
   @Test
@@ -317,8 +331,7 @@ public class ParquetAvroSchemaTest {
   public void shouldRoundTripTextArrayWithNullElements() throws Exception {
     for (String mode : new String[] {"typed_first_row", "typed_postgres"}) {
       final ResultSet rs = arrayResultSet("_text", new String[] {"a", null, "c"});
-      final MessageType schema =
-          JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, mode);
+      final MessageType schema = nullableItemsSchema(rs, true, mode);
       final List<GenericRecord> records = writeAndRead(schema, rs, mode, 2);
       Assertions.assertEquals(Arrays.asList("a", null, "c"), items(records.get(0)));
       Assertions.assertNull(records.get(1).get("arr"));
@@ -328,14 +341,42 @@ public class ParquetAvroSchemaTest {
   @Test
   public void shouldRoundTripIntArrayWithNullElements() throws Exception {
     final ResultSet rs = arrayResultSet("_int8", new Long[] {1L, null, 3L});
-    final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "typed_postgres");
+    final MessageType schema = nullableItemsSchema(rs, true, "typed_postgres");
     final List<GenericRecord> records = writeAndRead(schema, rs, "typed_postgres", 2);
     Assertions.assertEquals(
         nullable(Schema.createArray(nullable(Schema.create(Schema.Type.LONG)))),
         records.get(0).getSchema().getField("arr").schema());
     Assertions.assertEquals(Arrays.asList(1L, null, 3L), items(records.get(0)));
     Assertions.assertNull(records.get(1).get("arr"));
+  }
+
+  @Test
+  public void shouldRoundTripIntArrayWithRequiredElements() throws Exception {
+    final ResultSet rs = arrayResultSet("_int8", new Long[] {1L, 3L});
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "typed_postgres");
+    final List<GenericRecord> records = writeAndRead(schema, rs, "typed_postgres", 2);
+    Assertions.assertEquals(
+        nullable(Schema.createArray(Schema.create(Schema.Type.LONG))),
+        records.get(0).getSchema().getField("arr").schema());
+    Assertions.assertEquals(Arrays.asList(1L, 3L), items(records.get(0)));
+    Assertions.assertNull(records.get(1).get("arr"));
+  }
+
+  @Test
+  public void shouldRejectNullElementWithRequiredElements() throws Exception {
+    final ResultSet rs = arrayResultSet("_int8", new Long[] {1L, null, 3L});
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "typed_postgres");
+    final RuntimeException e =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> writeAndRead(schema, rs, "typed_postgres", 1));
+    Throwable cause = e;
+    while (cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+    Assertions.assertEquals(
+        "Array item is null in column 'arr', use --nullableArrayItems", cause.getMessage());
   }
 
   @Test

@@ -169,6 +169,41 @@ public class ParquetSchemaValidatorTest {
   }
 
   @Test
+  public void shouldRequireListElementRepetitionToMatchNullableArrayItems() throws Exception {
+    final MessageType requiredDerived =
+        MessageTypeParser.parseMessageType(
+            DERIVED.toString().replace("optional int32 element", "required int32 element"));
+    final MessageType requiredDerivedLogical =
+        MessageTypeParser.parseMessageType(
+            DERIVED_LOGICAL.toString().replace("optional int32 element", "required int32 element"));
+    final String requiredTags =
+        "optional group tags (LIST) { repeated group list { required int32 element; } }";
+    // without --nullableArrayItems: required elements only
+    ParquetSchemaValidator.validate(
+        MessageTypeParser.parseMessageType(
+            schema(NAME, QTY, TOTAL, CREATED, RAW, ID, requiredTags)),
+        requiredDerived,
+        requiredDerivedLogical);
+    final String msg =
+        Assertions.assertThrows(
+                FailedValidationException.class,
+                () ->
+                    ParquetSchemaValidator.validate(
+                        MessageTypeParser.parseMessageType(
+                            schema(NAME, QTY, TOTAL, CREATED, RAW, ID, TAGS)),
+                        requiredDerived,
+                        requiredDerivedLogical))
+            .getMessage();
+    Assertions.assertTrue(
+        msg.contains("expected repetition REQUIRED but schema file has OPTIONAL"), msg);
+    Assertions.assertTrue(msg.contains("--nullableArrayItems"), msg);
+    // with --nullableArrayItems (optional derived elements): required is rejected
+    final String msg2 = rejected(schema(NAME, QTY, TOTAL, CREATED, RAW, ID, requiredTags));
+    Assertions.assertTrue(
+        msg2.contains("expected repetition OPTIONAL but schema file has REQUIRED"), msg2);
+  }
+
+  @Test
   public void shouldListAllOffendingColumns() {
     final String msg =
         rejected(schema("optional int32 name;", "optional double qty;", TOTAL, CREATED, RAW, ID,

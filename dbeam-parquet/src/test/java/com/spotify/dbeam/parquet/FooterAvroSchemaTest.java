@@ -83,6 +83,12 @@ public class FooterAvroSchemaTest {
               "INSERT INTO ALL_KINDS VALUES (2, 20000000000, TRUE, 1.5, 2.5, 'txt', X'0102',"
                   + " DATE '2026-08-20', TIMESTAMP '2026-08-20 19:06:01.879123',"
                   + " ARRAY[1, NULL, 3], ARRAY['a', NULL])");
+      connection
+          .createStatement()
+          .execute("CREATE TABLE NON_NULL_ITEMS (ID INT, NUMS INTEGER ARRAY)");
+      connection
+          .createStatement()
+          .execute("INSERT INTO NON_NULL_ITEMS VALUES (1, ARRAY[1, 2]), (2, NULL)");
       connection.createStatement().execute("CREATE TABLE SIMPLE (ID INT, NAME VARCHAR(10))");
       connection.createStatement().execute("INSERT INTO SIMPLE VALUES (1, 'one'), (2, NULL)");
     }
@@ -185,7 +191,12 @@ public class FooterAvroSchemaTest {
   @Test
   public void shouldRoundTripAllKindsWithTimestampMicros() throws Exception {
     final Path out =
-        runExport("allKindsMicros", "ALL_KINDS", "--useLogicalTypes", "--useTimestampMicros");
+        runExport(
+            "allKindsMicros",
+            "ALL_KINDS",
+            "--useLogicalTypes",
+            "--useTimestampMicros",
+            "--nullableArrayItems");
     final List<GenericRecord> records = readAndCheckFooter(out);
     final Schema schema = records.get(0).getSchema();
     Assertions.assertEquals(
@@ -194,7 +205,7 @@ public class FooterAvroSchemaTest {
         "timestamp-micros", nonNull(schema.getField("DT").schema()).getProp("logicalType"));
     final Schema nums = nonNull(schema.getField("NUMS").schema());
     Assertions.assertEquals(Schema.Type.ARRAY, nums.getType());
-    // Parquet LIST elements are optional, so the Avro items must be nullable
+    // --nullableArrayItems: optional Parquet LIST elements, nullable Avro items
     Assertions.assertEquals(
         Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)),
         nums.getElementType());
@@ -209,8 +220,38 @@ public class FooterAvroSchemaTest {
   }
 
   @Test
+  public void shouldFailOnNullArrayItemWithoutNullableArrayItems() {
+    final Exception e =
+        Assertions.assertThrows(
+            Exception.class, () -> runExport("allKindsNoNullable", "ALL_KINDS"));
+    Throwable cause = e;
+    while (cause.getCause() != null
+        && !String.valueOf(cause.getMessage()).contains("Array item is null")) {
+      cause = cause.getCause();
+    }
+    Assertions.assertTrue(
+        String.valueOf(cause.getMessage())
+            .contains("Array item is null in column 'NUMS', use --nullableArrayItems"),
+        String.valueOf(e));
+  }
+
+  @Test
+  public void shouldRoundTripRequiredArrayItemsWithoutNullableArrayItems() throws Exception {
+    final Path out = runExport("nonNullItems", "NON_NULL_ITEMS");
+    final List<GenericRecord> records = readAndCheckFooter(out);
+    final Schema nums = nonNull(records.get(0).getSchema().getField("NUMS").schema());
+    // required Parquet LIST elements: non-null Avro items, as in the Avro export
+    Assertions.assertEquals(Schema.create(Schema.Type.INT), nums.getElementType());
+    Assertions.assertEquals(2, records.size());
+    Assertions.assertEquals(
+        Arrays.asList(1, 2), new ArrayList<>((List<?>) records.get(0).get("NUMS")));
+    Assertions.assertNull(records.get(1).get("NUMS"));
+  }
+
+  @Test
   public void shouldRoundTripAllKindsWithTimestampMillis() throws Exception {
-    final Path out = runExport("allKindsMillis", "ALL_KINDS", "--useLogicalTypes");
+    final Path out =
+        runExport("allKindsMillis", "ALL_KINDS", "--useLogicalTypes", "--nullableArrayItems");
     final List<GenericRecord> records = readAndCheckFooter(out);
     Assertions.assertEquals(
         "timestamp-millis",
@@ -223,7 +264,7 @@ public class FooterAvroSchemaTest {
 
   @Test
   public void shouldRoundTripAllKindsWithoutLogicalTypes() throws Exception {
-    final Path out = runExport("allKindsPlain", "ALL_KINDS");
+    final Path out = runExport("allKindsPlain", "ALL_KINDS", "--nullableArrayItems");
     final List<GenericRecord> records = readAndCheckFooter(out);
     Assertions.assertNull(
         nonNull(records.get(0).getSchema().getField("TS").schema()).getProp("logicalType"));

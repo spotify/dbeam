@@ -282,6 +282,42 @@ public class JdbcParquetSchemaTest {
   }
 
   @Test
+  public void shouldMakeArrayElementsRequiredUnlessNullableArrayItems() {
+    for (String typeName : new String[] {"_int4", "_int8", "_float8", "_bool", "_bytea", "_text"}) {
+      Assertions.assertEquals(
+          Type.Repetition.REQUIRED,
+          JdbcParquetSchema.buildArrayElementType("arr", typeName).getRepetition(),
+          typeName);
+      Assertions.assertEquals(
+          Type.Repetition.REQUIRED,
+          JdbcParquetSchema.buildArrayElementType("arr", typeName, false).getRepetition(),
+          typeName);
+      Assertions.assertEquals(
+          Type.Repetition.OPTIONAL,
+          JdbcParquetSchema.buildArrayElementType("arr", typeName, true).getRepetition(),
+          typeName);
+    }
+    final Type list =
+        JdbcParquetSchema.buildParquetFieldType(
+            "arr",
+            Types.ARRAY,
+            0,
+            0,
+            "java.sql.Array",
+            "_int4",
+            false,
+            false,
+            "typed_postgres",
+            false,
+            true);
+    // the LIST group itself stays optional
+    Assertions.assertEquals(Type.Repetition.OPTIONAL, list.getRepetition());
+    Assertions.assertEquals(
+        "optional group arr (LIST) {\n  repeated group list {\n    optional int32 element;\n  }\n}",
+        list.toString());
+  }
+
+  @Test
   public void shouldConvertIntegerArrayToListOfInt32() {
     final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_int4");
 

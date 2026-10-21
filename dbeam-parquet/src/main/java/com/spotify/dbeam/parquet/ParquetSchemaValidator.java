@@ -60,6 +60,9 @@ import org.apache.parquet.schema.Type;
  * <p>A PostgreSQL {@code uuid} column may be either {@code binary (STRING)} or {@code
  * fixed_len_byte_array(16) (UUID)} regardless of {@code --useLogicalTypes}, since the writer
  * follows the schema's annotation for that column.
+ *
+ * <p>Typed LIST elements are derived as {@code required} without {@code --nullableArrayItems} and
+ * {@code optional} with it, so the schema file's element repetition must agree with the flag.
  */
 public class ParquetSchemaValidator {
 
@@ -204,8 +207,14 @@ public class ParquetSchemaValidator {
     if (provided.getRepetition() != derived.getRepetition()) {
       errors.add(
           String.format(
-              "%s: expected repetition %s but schema file has %s",
-              path, derived.getRepetition(), provided.getRepetition()));
+              "%s: expected repetition %s but schema file has %s%s",
+              path,
+              derived.getRepetition(),
+              provided.getRepetition(),
+              "element".equals(derived.getName())
+                  ? " (list element repetition must be required without --nullableArrayItems"
+                      + " and optional with it)"
+                  : ""));
     }
   }
 

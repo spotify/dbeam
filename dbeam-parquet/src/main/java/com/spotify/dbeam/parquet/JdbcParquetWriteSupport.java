@@ -287,6 +287,7 @@ public class JdbcParquetWriteSupport {
         }
         final String arrayElementType =
             JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column));
+        final boolean nullableItems = hasOptionalListElement(fieldType);
         return (consumer, rs) -> {
           final java.sql.Array sqlArray = rs.getArray(column);
           if (sqlArray != null && !rs.wasNull()) {
@@ -295,6 +296,9 @@ public class JdbcParquetWriteSupport {
             for (Object item : items) {
               if (isNestedArray(item, arrayElementType)) {
                 throw multidimensionalArrayException(fieldName);
+              }
+              if (item == null && !nullableItems) {
+                throw nullArrayItemException(fieldName);
               }
             }
             consumer.startField(normalizedName, fieldIndex);
@@ -507,6 +511,28 @@ public class JdbcParquetWriteSupport {
       return !"bytea".equals(elementType);
     }
     return item.getClass().isArray();
+  }
+
+  /**
+   * Whether the LIST element of {@code fieldType} is {@code optional} ({@code
+   * --nullableArrayItems}). Elements of the derived schema are {@code required} without the flag,
+   * and a schema file must agree (see {@link ParquetSchemaValidator}).
+   */
+  static boolean hasOptionalListElement(final Type fieldType) {
+    if (fieldType == null || fieldType.isPrimitive()) {
+      return true;
+    }
+    final Type repeated = fieldType.asGroupType().getType(0);
+    if (repeated.isPrimitive() || repeated.asGroupType().getFieldCount() == 0) {
+      return true;
+    }
+    return repeated.asGroupType().getType(0).getRepetition() != Type.Repetition.REQUIRED;
+  }
+
+  /** Same message as the Avro export (dbeam-core JdbcAvroRecordConverter). */
+  static RuntimeException nullArrayItemException(final String columnName) {
+    return new RuntimeException(
+        String.format("Array item is null in column '%s', use --nullableArrayItems", columnName));
   }
 
   static IllegalArgumentException multidimensionalArrayException(final String columnName) {

@@ -42,6 +42,7 @@ import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -508,7 +509,10 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), false, false, "typed_first_row", false, true);
+    Assertions.assertEquals(
+        Type.Repetition.OPTIONAL,
+        schema.getType("tags").asGroupType().getType(0).asGroupType().getType(0).getRepetition());
 
     final Path tempFile = Files.createTempFile("parquet-null-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -527,6 +531,37 @@ public class PostgresJdbcParquetTest {
           // Third element: present
           Assertions.assertEquals("third", tagsList.getGroup("list", 2).getString("element", 0));
         });
+  }
+
+  @Test
+  public void shouldRejectNullArrayElementsWithoutNullableArrayItems() throws SQLException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(1);
+    when(meta.getTableName(1)).thenReturn("test_table");
+    TestHelper.mockResultSetMeta(meta, 1, Types.ARRAY, "tags", "java.sql.Array", "_text");
+    final ResultSet resultSet = buildMockResultSet(meta);
+    final java.sql.Array mockArray = Mockito.mock(java.sql.Array.class);
+    when(mockArray.getArray()).thenReturn(new String[] {"first", null, "third"});
+    when(resultSet.getArray(1)).thenReturn(mockArray);
+    when(resultSet.wasNull()).thenReturn(false);
+
+    final MessageType schema =
+        JdbcParquetSchema.createParquetSchema(
+            resultSet, Optional.empty(), false, "typed_first_row");
+    Assertions.assertEquals(
+        Type.Repetition.REQUIRED,
+        schema.getType("tags").asGroupType().getType(0).asGroupType().getType(0).getRepetition());
+    final JdbcParquetWriteSupport.ColumnWriter writer =
+        JdbcParquetWriteSupport.computeColumnWriter(
+            meta, 1, "typed_first_row", schema.getType(0), false, false);
+    final org.apache.parquet.io.api.RecordConsumer consumer =
+        Mockito.mock(org.apache.parquet.io.api.RecordConsumer.class);
+    final RuntimeException e =
+        Assertions.assertThrows(RuntimeException.class, () -> writer.write(consumer, resultSet));
+    Assertions.assertEquals(
+        "Array item is null in column 'tags', use --nullableArrayItems", e.getMessage());
+    // checked before writing, so nothing of the record's value is written
+    Mockito.verifyNoInteractions(consumer);
   }
 
   @Test

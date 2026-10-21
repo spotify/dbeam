@@ -106,6 +106,11 @@ Multidimensional arrays (e.g. `int4[][]`, `bytea[][]`) are not supported with ty
 JDBC metadata does not expose the number of dimensions, so the export fails on the first such
 value with an error naming the column. Use `--arrayMode=bytes` for them.
 
+As in the Avro export, typed list elements are `required` unless `--nullableArrayItems` is set,
+which makes them `optional`. Without the flag, a NULL array item fails the export with `Array item
+is null in column '<column>', use --nullableArrayItems` before any part of that value is written.
+`--nullableArrayItems` is ignored with `--arrayMode=bytes`.
+
 #### Footer Avro schema (`parquet.avro.schema`)
 
 The Avro schema stored in the `parquet.avro.schema` footer key, and saved as `_AVRO_SCHEMA.avsc`
@@ -127,15 +132,14 @@ with it. The conversion is parquet-avro's `AvroSchemaConverter`, configured with
 | BINARY (no annotation) / DECIMAL               | bytes / bytes `decimal`                          |
 | FIXED_LEN_BYTE_ARRAY(16) UUID                  | string `uuid` (decoded to the canonical UUID string) |
 | FIXED_LEN_BYTE_ARRAY(n) / DECIMAL              | fixed(n) / fixed `decimal`                       |
-| LIST                                           | array; items are `["null", T]` (no wrapper record) because dbeam always writes optional list elements |
+| LIST                                           | array (no wrapper record); items are `T` for `required` elements, `["null", T]` for `optional` ones (`--nullableArrayItems`) |
 | MAP with STRING keys                           | map                                              |
 | group                                          | nested record                                    |
 
 The record is named after the Parquet message (`--avroSchemaName` or the table name), uses
 `--avroSchemaNamespace` and `--avroDoc` (default `Generate schema from JDBC ResultSet from
 <connection URL>`). Unlike dbeam-core's Avro export, it carries no `tableName`/`connectionUrl`
-record properties and no per-field docs or properties. `--nullableArrayItems` has no effect on
-Parquet exports (list elements are always optional); passing it logs a warning. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
+record properties and no per-field docs or properties. A schema file with types that have no Avro equivalent (e.g. INT96) or names that
 are not valid Avro names is exported without the footer key and `_AVRO_SCHEMA.avsc`.
 
 #### Compression codec (`--parquetCodec`)
@@ -165,7 +169,8 @@ fails with a `FailedValidationException` listing every offending column if:
 - the number of fields differs (at the top level or inside a `LIST` group),
 - a field changes between primitive and group,
 - a primitive type (`int32`, `int64`, `binary`, ...) or `fixed_len_byte_array` length differs,
-- a repetition differs (all derived fields are `optional`; `required` is rejected),
+- a repetition differs (all derived fields are `optional`, except typed list elements, which are
+  `required` without `--nullableArrayItems` and `optional` with it),
 - a group's annotation differs (`LIST` groups must stay `LIST`),
 - a logical type annotation is not one of the allowed ones below.
 

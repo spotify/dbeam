@@ -27,6 +27,8 @@
     (timestamp, date, numeric, json, ...) fail schema generation naming the column and element
     type (use `--arrayMode=bytes`) instead of being written as strings. Multidimensional
     arrays fail with an error naming the column before anything of the value is written.
+    List elements follow `--nullableArrayItems` like the Avro export: `required` by default
+    (a NULL item fails with the Avro export's error), `optional` with the flag.
   - Parquet file footer includes `parquet.avro.schema` key with the Avro schema JSON, derived
     from the Parquet schema used for writing (also for `--parquetSchemaFilePath`) with
     parquet-avro's `AvroSchemaConverter` (`parquet.avro.add-list-element-records=false`), so that

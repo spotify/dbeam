@@ -150,6 +150,31 @@ public class JdbcParquetSchema {
       final String arrayMode,
       final boolean nativeTypes)
       throws SQLException {
+    return createParquetSchema(
+        resultSet,
+        maybeSchemaName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        false);
+  }
+
+  /**
+   * Creates the Parquet schema for a result set.
+   *
+   * @param nullableArrayItems {@code --nullableArrayItems}: typed LIST elements are {@code
+   *     optional} with the flag and {@code required} without it, as in the Avro export.
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
     final String schemaName = maybeSchemaName.orElse(tableName);
@@ -184,7 +209,8 @@ public class JdbcParquetSchema {
               useLogicalTypes,
               useTimestampMicros,
               arrayMode,
-              nativeTypes));
+              nativeTypes,
+              nullableArrayItems));
     }
 
     checkUniqueFieldNames(columnsByFieldName);
@@ -276,6 +302,32 @@ public class JdbcParquetSchema {
       final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nativeTypes) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        scale,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        false);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems) {
     if (nativeTypes) {
       final Optional<Type> nativeType =
           buildNativeFieldType(columnName, columnType, precision, scale, useTimestampMicros);
@@ -334,7 +386,7 @@ public class JdbcParquetSchema {
         // Parquet 3-level LIST convention with typed elements.
         // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()
-            .element(buildArrayElementType(columnName, columnTypeName))
+            .element(buildArrayElementType(columnName, columnTypeName, nullableArrayItems))
             .named(columnName);
       // Same as dbeam-core's JdbcAvroSchema
       case STRUCT:
@@ -442,22 +494,34 @@ public class JdbcParquetSchema {
    * varchar, bpchar/char, name, uuid) are rejected, instead of being written as strings.
    */
   static Type buildArrayElementType(final String columnName, final String columnTypeName) {
+    return buildArrayElementType(columnName, columnTypeName, false);
+  }
+
+  /**
+   * Like {@link #buildArrayElementType(String, String)}; the element is {@code optional} with
+   * {@code nullableArrayItems} and {@code required} without it.
+   */
+  static Type buildArrayElementType(
+      final String columnName, final String columnTypeName, final boolean nullableArrayItems) {
+    final Type.Repetition repetition =
+        nullableArrayItems ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED;
     final String elementType = resolveArrayElementTypeName(columnTypeName);
     switch (elementType) {
       case "int":
       case "int4":
       case "int2":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.INT32, repetition).named("element");
       case "int8":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.INT64, repetition).named("element");
       case "float4":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.FLOAT, repetition).named("element");
       case "float8":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.DOUBLE, repetition).named("element");
       case "bool":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BOOLEAN, repetition)
+            .named("element");
       case "bytea":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition).named("element");
       default:
         if (!isStringArrayElementType(elementType)) {
           throw new IllegalArgumentException(
@@ -470,7 +534,7 @@ public class JdbcParquetSchema {
                   + "') is not supported for typed Parquet arrays;"
                   + " use --arrayMode=bytes to export the column as bytes");
         }
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition)
             .as(LogicalTypeAnnotation.stringType())
             .named("element");
     }
