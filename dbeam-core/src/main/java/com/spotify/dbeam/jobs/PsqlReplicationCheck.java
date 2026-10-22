@@ -53,7 +53,7 @@ public class PsqlReplicationCheck {
     return new PsqlReplicationCheck(jdbcExportArgs, REPLICATION_QUERY);
   }
 
-  static void validateOptions(final JdbcExportArgs jdbcExportArgs) {
+  public static void validateOptions(final JdbcExportArgs jdbcExportArgs) {
     Preconditions.checkArgument(
         jdbcExportArgs
             .jdbcAvroOptions()
