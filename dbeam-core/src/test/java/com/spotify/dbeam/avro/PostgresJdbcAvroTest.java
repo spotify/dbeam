@@ -477,4 +477,39 @@ public class PostgresJdbcAvroTest {
     // Should be plain millis — sub-ms precision lost
     Assertions.assertEquals(ts.getTime(), millisValue);
   }
+
+  @Test
+  public void shouldFailClearlyOnMultidimensionalArrays() throws SQLException {
+    final Object[][] cases = {
+      {"_int4", Types.INTEGER, "int4", new Integer[][] {{1, 2}, {3, 4}}},
+      {"_int8", Types.BIGINT, "int8", new Long[][] {{1L}}},
+      {"_text", Types.VARCHAR, "text", new String[][] {{"a"}, {"b"}}},
+      {"_varchar", Types.VARCHAR, "varchar", new String[][] {{"a"}}},
+    };
+    for (Object[] c : cases) {
+      for (String arrayMode :
+          new String[] {
+            ArrayHandlingMode.TypedMetaFromFirstRow, ArrayHandlingMode.TypedMetaPostgres
+          }) {
+        final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+        when(meta.getColumnCount()).thenReturn(1);
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
+        when(resultSet.getMetaData()).thenReturn(meta);
+        TestHelper.mockArrayColumn(
+            meta, resultSet, 1, "matrix", (String) c[0], (Integer) c[1], (String) c[2], c[3], c[3]);
+        when(resultSet.isFirst()).thenReturn(true);
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "ns", "conn_url", Optional.empty(), "doc", true, false, arrayMode, false);
+        final JdbcAvroRecordConverter converter =
+            JdbcAvroRecordConverter.create(resultSet, arrayMode, false, false);
+        final RuntimeException e =
+            Assertions.assertThrows(
+                RuntimeException.class, converter::convertResultSetIntoAvroBytes);
+        Assertions.assertEquals(
+            "Column 'matrix' contains a multidimensional array, which is not supported;"
+                + " use --arrayMode=bytes to export the column as bytes",
+            e.getMessage());
+      }
+    }
+  }
 }

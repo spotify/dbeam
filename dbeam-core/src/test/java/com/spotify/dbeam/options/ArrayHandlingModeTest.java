@@ -38,12 +38,14 @@ public class ArrayHandlingModeTest {
 
   @Test
   public void invalidValueShouldThrow() {
-    RuntimeException thrown =
+    IllegalArgumentException thrown =
         Assertions.assertThrows(
-            RuntimeException.class, () -> ArrayHandlingMode.validateValue("invalid"));
+            IllegalArgumentException.class, () -> ArrayHandlingMode.validateValue("invalid"));
     Assertions.assertEquals(
-        "Invalid value 'invalid' for array handling mode. Allowed values: "
+        "Invalid --arrayMode value 'invalid'. Allowed values: "
             + "[bytes, typed_first_row, typed_postgres]",
         thrown.getMessage());
+    Assertions.assertThrows(
+        IllegalArgumentException.class, () -> ArrayHandlingMode.validateValue(null));
   }
 }

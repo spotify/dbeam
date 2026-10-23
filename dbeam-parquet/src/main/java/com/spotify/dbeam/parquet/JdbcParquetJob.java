@@ -22,7 +22,6 @@ package com.spotify.dbeam.parquet;
 
 import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
-import com.spotify.dbeam.avro.JdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcMetering;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
@@ -36,6 +35,7 @@ import com.spotify.dbeam.options.OutputOptions;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 public class JdbcParquetJob {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JdbcParquetJob.class);
+  private static final String DEFAULT_AVRO_CODEC = "deflate6";
 
   private final PipelineOptions pipelineOptions;
   private final Pipeline pipeline;
@@ -80,11 +81,19 @@ public class JdbcParquetJob {
 
   public static JdbcParquetJob create(final PipelineOptions pipelineOptions, final String output)
       throws IOException, ClassNotFoundException {
+    rejectAvroOnlyOptions(pipelineOptions);
     pipelineOptions.as(DirectOptions.class).setBlockOnRun(false);
+    final JdbcExportArgs jdbcExportArgs =
+        JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions);
+    Preconditions.checkArgument(
+        !pipelineOptions.as(ParquetPipelineOptions.class).isParquetNativeTypes()
+            || jdbcExportArgs.useAvroLogicalTypes(),
+        "--parquetNativeTypes requires --useLogicalTypes (or its deprecated alias "
+            + "--useAvroLogicalTypes)");
     return new JdbcParquetJob(
         pipelineOptions,
         Pipeline.create(pipelineOptions),
-        JdbcExportArgsFactory.fromPipelineOptions(pipelineOptions),
+        jdbcExportArgs,
         output,
         pipelineOptions.as(OutputOptions.class).getDataOnly(),
         pipelineOptions.as(JdbcExportPipelineOptions.class).getMinRows());
@@ -107,6 +116,19 @@ public class JdbcParquetJob {
     return PipelineOptionsFactory.fromArgs(cmdLineArgs).withValidation().create();
   }
 
+  /**
+   * Fail fast on options that only apply to Avro exports and would otherwise be silently ignored
+   * (or, for {@code --avroSchemaFilePath}, parsed and validated against the Avro writer).
+   */
+  static void rejectAvroOnlyOptions(final PipelineOptions pipelineOptions) {
+    final String avroSchemaFilePath =
+        pipelineOptions.as(JdbcExportPipelineOptions.class).getAvroSchemaFilePath();
+    Preconditions.checkArgument(
+        avroSchemaFilePath == null || avroSchemaFilePath.isEmpty(),
+        "--avroSchemaFilePath is not supported for Parquet exports; "
+            + "use --parquetSchemaFilePath with a Parquet schema (MessageType text format)");
+  }
+
   private void configureVersion() {
     final String dbeamVersion = this.getClass().getPackage().getImplementationVersion();
     LOGGER.info(
@@ -118,11 +140,19 @@ public class JdbcParquetJob {
   }
 
   public void prepareExport() throws Exception {
+    final ParquetPipelineOptions parquetOptions = pipelineOptions.as(ParquetPipelineOptions.class);
+    JdbcParquetArgs.validateParquetCodec(parquetOptions.getParquetCodec());
+    warnIgnoredAvroCodec(pipelineOptions);
     configureVersion();
     final List<String> queries;
     final MessageType generatedSchema;
     final Schema avroSchema;
     final String arrayMode = jdbcExportArgs.jdbcAvroOptions().arrayMode();
+    final boolean nativeTypes = parquetOptions.isParquetNativeTypes();
+    final boolean nullableArrayItems =
+        Boolean.TRUE.equals(jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
+    final boolean unsupportedArrayItemsAsString =
+        parquetOptions.isParquetUnsupportedArrayItemsAsString();
     try (Connection connection = jdbcExportArgs.createConnection()) {
       final String schemaFilePath =
           pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
@@ -131,7 +161,20 @@ public class JdbcParquetJob {
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
-        avroSchema = footerAvroSchema(() -> generateAvroSchema(connection));
+        try (Statement stmt = connection.createStatement()) {
+          final ResultSet rs =
+              stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+          rs.next();
+          validateInputSchema(
+              rs,
+              generatedSchema,
+              arrayMode,
+              nativeTypes,
+              nullableArrayItems,
+              unsupportedArrayItemsAsString);
+          avroSchema =
+              footerAvroSchema(() -> deriveFooterAvroSchema(generatedSchema, connection, rs));
+        }
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
         // Query DB once for both Parquet and Avro schemas
@@ -145,28 +188,15 @@ public class JdbcParquetJob {
                   rs,
                   jdbcExportArgs.avroSchemaName(),
                   jdbcExportArgs.useAvroLogicalTypes(),
-                  arrayMode);
-          final String dbUrl = connection.getMetaData().getURL();
-          final String avroDoc =
-              jdbcExportArgs
-                  .avroDoc()
-                  .orElseGet(
-                      () -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
+                  jdbcExportArgs.useTimestampMicros(),
+                  arrayMode,
+                  nativeTypes,
+                  nullableArrayItems,
+                  unsupportedArrayItemsAsString);
+          final MessageType writeSchema = generatedSchema;
           avroSchema =
               footerAvroSchema(
-                  () ->
-                      JdbcAvroSchema.createAvroSchema(
-                          rs,
-                          jdbcExportArgs.avroSchemaNamespace(),
-                          dbUrl,
-                          jdbcExportArgs.avroSchemaName(),
-                          avroDoc,
-                          jdbcExportArgs.useAvroLogicalTypes(),
-                          // Parquet timestamps are written as MILLIS; keep the footer Avro schema
-                          // in sync
-                          false,
-                          arrayMode,
-                          jdbcExportArgs.jdbcAvroOptions().nullableArrayItems()));
+                  () -> deriveFooterAvroSchema(writeSchema, connection, rs));
         }
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       }
@@ -188,8 +218,7 @@ public class JdbcParquetJob {
     }
     LOGGER.info("Running queries: {}", queries.toString());
 
-    final String parquetCodec = resolveParquetCodec(pipelineOptions);
-    final ParquetPipelineOptions parquetOptions = pipelineOptions.as(ParquetPipelineOptions.class);
+    final String parquetCodec = parquetOptions.getParquetCodec();
     final JdbcParquetArgs parquetArgs =
         JdbcParquetArgs.create(
             jdbcExportArgs.jdbcAvroOptions().jdbcConnectionConfiguration(),
@@ -198,7 +227,9 @@ public class JdbcParquetJob {
             parquetOptions.getRowGroupSize(),
             parquetOptions.getPageSize(),
             jdbcExportArgs.jdbcAvroOptions().preCommand(),
-            arrayMode);
+            arrayMode,
+            jdbcExportArgs.useTimestampMicros(),
+            nativeTypes);
 
     pipeline
         .apply("JdbcQueries", Create.of(queries))
@@ -243,8 +274,8 @@ public class JdbcParquetJob {
 
   /**
    * The Avro schema only feeds the optional {@code parquet.avro.schema} footer key, so failing to
-   * build it (e.g. typed_first_row ARRAY with a NULL first value, or element types the Avro path
-   * does not support) should not fail a Parquet export that is otherwise valid.
+   * build it (e.g. a schema file using INT96 or names that are not valid Avro names) should not
+   * fail a Parquet export that is otherwise valid.
    */
   static Schema footerAvroSchema(final AvroSchemaSupplier supplier) {
     try {
@@ -256,23 +287,64 @@ public class JdbcParquetJob {
     }
   }
 
-  private Schema generateAvroSchema(final Connection connection) throws Exception {
+  /**
+   * Fail fast if the schema from --parquetSchemaFilePath does not match what the writers emit for
+   * the JDBC result set. See {@link ParquetSchemaValidator} for the rules.
+   */
+  private void validateInputSchema(
+      final ResultSet rs,
+      final MessageType inputSchema,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString)
+      throws Exception {
+    final boolean micros = jdbcExportArgs.useTimestampMicros();
+    final MessageType derived =
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            jdbcExportArgs.avroSchemaName(),
+            false,
+            micros,
+            arrayMode,
+            nativeTypes,
+            nullableArrayItems,
+            unsupportedArrayItemsAsString);
+    final MessageType derivedLogical =
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            jdbcExportArgs.avroSchemaName(),
+            true,
+            micros,
+            arrayMode,
+            nativeTypes,
+            nullableArrayItems,
+            unsupportedArrayItemsAsString);
+    ParquetSchemaValidator.validate(
+        inputSchema,
+        derived,
+        derivedLogical,
+        jdbcExportArgs.useAvroLogicalTypes() ? derivedLogical : derived);
+  }
+
+  /**
+   * The footer Avro schema is derived from the Parquet schema used for writing, so it always
+   * describes the actual columns (see {@link ParquetAvroSchema}), with dbeam's JDBC field
+   * properties taken from {@code rs}.
+   */
+  private Schema deriveFooterAvroSchema(
+      final MessageType schema, final Connection connection, final ResultSet rs)
+      throws SQLException {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
         jdbcExportArgs
             .avroDoc()
             .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
-    return JdbcAvroSchema.createSchemaByReadingOneRow(
-        connection,
-        jdbcExportArgs.queryBuilderArgs(),
-        jdbcExportArgs.avroSchemaNamespace(),
-        jdbcExportArgs.avroSchemaName(),
-        avroDoc,
-        jdbcExportArgs.useAvroLogicalTypes(),
-        // Parquet timestamps are written as MILLIS; keep the footer Avro schema in sync
-        false,
-        jdbcExportArgs.jdbcAvroOptions().arrayMode(),
-        jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
+    final Schema avroSchema =
+        ParquetAvroSchema.toAvroSchema(
+            schema, jdbcExportArgs.avroSchemaNamespace(), avroDoc, rs.getMetaData(), dbUrl);
+    LOGGER.info("Footer Avro schema derived from Parquet schema: {}", avroSchema);
+    return avroSchema;
   }
 
   public Pipeline getPipeline() {
@@ -287,26 +359,20 @@ public class JdbcParquetJob {
     return output;
   }
 
-  static String resolveParquetCodec(final PipelineOptions options) {
-    final String parquetCodec = options.as(ParquetPipelineOptions.class).getParquetCodec();
-    if (parquetCodec != null && !parquetCodec.isEmpty()) {
-      return parquetCodec;
+  /**
+   * {@code --avroCodec} has a default value, so passing it explicitly with that default
+   * ({@code deflate6}) cannot be told apart from not passing it; any other value is reported.
+   */
+  static boolean warnIgnoredAvroCodec(final PipelineOptions options) {
+    final String avroCodec = options.as(JdbcExportPipelineOptions.class).getAvroCodec();
+    if (avroCodec != null && !DEFAULT_AVRO_CODEC.equals(avroCodec)) {
+      LOGGER.warn(
+          "--avroCodec={} is ignored by Parquet exports; use --parquetCodec (current: {})",
+          avroCodec,
+          options.as(ParquetPipelineOptions.class).getParquetCodec());
+      return true;
     }
-    return mapAvroCodecToParquetCodec(options.as(JdbcExportPipelineOptions.class).getAvroCodec());
-  }
-
-  static String mapAvroCodecToParquetCodec(final String avroCodec) {
-    if (avroCodec == null) {
-      return "snappy";
-    }
-    if (avroCodec.equals("snappy")) {
-      return "snappy";
-    } else if (avroCodec.startsWith("deflate")) {
-      return "gzip";
-    } else if (avroCodec.startsWith("zstandard")) {
-      return "zstd";
-    }
-    return avroCodec;
+    return false;
   }
 
   public static void main(String[] cmdLineArgs) {

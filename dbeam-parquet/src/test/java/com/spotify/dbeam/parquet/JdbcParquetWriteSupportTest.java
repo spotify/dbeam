@@ -59,7 +59,44 @@ public class JdbcParquetWriteSupportTest {
 
   private void write(int sqlType, String arrayMode, Type fieldType) throws SQLException {
     when(meta.getColumnType(1)).thenReturn(sqlType);
-    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, fieldType).write(consumer, rs);
+    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, fieldType, false)
+        .write(consumer, rs);
+  }
+
+  private void writeTimestamp(final Type fieldType, final boolean micros) throws SQLException {
+    final java.sql.Timestamp ts = new java.sql.Timestamp(1488300933123L);
+    ts.setNanos(123456789);
+    when(meta.getColumnType(1)).thenReturn(Types.TIMESTAMP);
+    when(rs.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
+    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, "bytes", fieldType, micros)
+        .write(consumer, rs);
+  }
+
+  private static Type int64(final LogicalTypeAnnotation annotation) {
+    return org.apache.parquet.schema.Types.optional(PrimitiveTypeName.INT64)
+        .as(annotation)
+        .named("col");
+  }
+
+  @Test
+  public void shouldWriteTimestampUnitFromFlagNotAnnotation() throws SQLException {
+    // the flag decides; the annotation is not consulted (the validator rejects mismatches)
+    writeTimestamp(
+        int64(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS)),
+        true);
+    verify(consumer).addLong(1488300933123456L);
+  }
+
+  @Test
+  public void shouldWriteUnannotatedTimestampAsMicrosWithFlag() throws SQLException {
+    writeTimestamp(int64(null), true);
+    verify(consumer).addLong(1488300933123456L);
+  }
+
+  @Test
+  public void shouldWriteUnannotatedTimestampAsMillisWithoutFlag() throws SQLException {
+    writeTimestamp(int64(null), false);
+    verify(consumer).addLong(1488300933123L);
   }
 
   @Test
@@ -146,6 +183,59 @@ public class JdbcParquetWriteSupportTest {
   }
 
   @Test
+  public void shouldFailClearlyOnMultidimensionalArrays() throws SQLException {
+    final Object[][] cases = {
+      {"_int2", new Short[][] {{1, 2}}},
+      {"_int4", new Integer[][] {{1, 2}, {3, 4}}},
+      {"_int8", new Long[][] {{1L}}},
+      {"_float4", new Float[][] {{1f}}},
+      {"_float8", new Double[][] {{1d}}},
+      {"_bool", new Boolean[][] {{true}}},
+      {"_bytea", new byte[][][] {{{1, 2}}, {{3}}}},
+      {"_text", new String[][] {{"a", "b"}}},
+      {"_varchar", new String[][] {{"a"}}},
+      {"_bpchar", new String[][] {{"a"}}},
+      {"_uuid", new java.util.UUID[][] {{java.util.UUID.randomUUID()}}},
+      {"_int4", new Object[] {mock(Array.class)}},
+      {"_int4", new Object[] {new int[] {1}}},
+      {"_text", new Object[] {new byte[] {1}}},
+    };
+    for (Object[] c : cases) {
+      for (String arrayMode : new String[] {"typed_first_row", "typed_postgres"}) {
+        final RecordConsumer recordConsumer = mock(RecordConsumer.class);
+        final Array array = mock(Array.class);
+        when(meta.getColumnTypeName(1)).thenReturn((String) c[0]);
+        when(meta.getColumnType(1)).thenReturn(Types.ARRAY);
+        when(rs.getArray(1)).thenReturn(array);
+        when(array.getArray()).thenReturn(c[1]);
+        final JdbcParquetWriteSupport.ColumnWriter writer =
+            JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, null, false);
+        final IllegalArgumentException e =
+            Assertions.assertThrows(
+                IllegalArgumentException.class, () -> writer.write(recordConsumer, rs));
+        Assertions.assertEquals(
+            "Column 'col' contains a multidimensional array, which is not supported;"
+                + " use --arrayMode=bytes to export the column as bytes",
+            e.getMessage(),
+            (String) c[0]);
+        // nothing (in particular no "[Ljava.lang.String;@..." toString garbage) is written
+        Mockito.verifyNoInteractions(recordConsumer);
+      }
+    }
+  }
+
+  @Test
+  public void shouldWriteOneDimensionalByteaArray() throws SQLException {
+    final Array array = mock(Array.class);
+    final byte[] bytes = {1, 2};
+    when(meta.getColumnTypeName(1)).thenReturn("_bytea");
+    when(rs.getArray(1)).thenReturn(array);
+    when(array.getArray()).thenReturn(new byte[][] {bytes});
+    write(Types.ARRAY, "typed_postgres", null);
+    verify(consumer).addBinary(Binary.fromConstantByteArray(bytes));
+  }
+
+  @Test
   public void shouldWriteArrayElementsByType() {
     JdbcParquetWriteSupport.writeArrayElement(consumer, 1.5f, "float4");
     JdbcParquetWriteSupport.writeArrayElement(consumer, 2.5d, "float8");
@@ -166,7 +256,40 @@ public class JdbcParquetWriteSupportTest {
     verify(consumer).addBinary(Binary.fromConstantByteArray(bytes));
     Assertions.assertEquals(
         PrimitiveTypeName.BINARY,
-        JdbcParquetSchema.buildArrayElementType("_bytea").asPrimitiveType().getPrimitiveTypeName());
+        JdbcParquetSchema.buildArrayElementType("arr", "_bytea")
+            .asPrimitiveType()
+            .getPrimitiveTypeName());
+  }
+
+  @Test
+  public void shouldRejectUnsupportedArrayElementTypeInsteadOfToString() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetWriteSupport.writeArrayElement(
+                    consumer, new java.sql.Timestamp(0), "timestamp"));
+    Assertions.assertTrue(e.getMessage().contains("'timestamp'"), e.getMessage());
+    Assertions.assertTrue(e.getMessage().contains("--arrayMode=bytes"), e.getMessage());
+    Mockito.verifyNoInteractions(consumer);
+  }
+
+  @Test
+  public void shouldWriteUnsupportedArrayElementAsStringOnlyForStringSchemaElement() {
+    final org.apache.parquet.schema.Type stringList =
+        org.apache.parquet.schema.Types.optionalList()
+            .element(JdbcParquetSchema.buildArrayElementType("arr", "_timestamp", false, true))
+            .named("arr");
+    Assertions.assertEquals(
+        "text", JdbcParquetWriteSupport.writtenArrayElementType("timestamp", stringList));
+    final org.apache.parquet.schema.Type intList =
+        org.apache.parquet.schema.Types.optionalList()
+            .element(JdbcParquetSchema.buildArrayElementType("arr", "_int4", false))
+            .named("arr");
+    Assertions.assertEquals(
+        "timestamp", JdbcParquetWriteSupport.writtenArrayElementType("timestamp", intList));
+    Assertions.assertEquals(
+        "int4", JdbcParquetWriteSupport.writtenArrayElementType("int4", stringList));
   }
 
   @Test
@@ -186,5 +309,49 @@ public class JdbcParquetWriteSupportTest {
     Assertions.assertEquals(
         "com.spotify.dbeam.parquet.JdbcParquetMetering",
         JdbcParquetMetering.create().getClass().getCanonicalName());
+  }
+
+  @Test
+  public void shouldRescaleDecimals() {
+    Assertions.assertEquals(
+        java.math.BigInteger.valueOf(15000),
+        JdbcParquetWriteSupport.unscaledDecimal(new java.math.BigDecimal("1.5"), 6, 4, "c"));
+    Assertions.assertEquals(
+        java.math.BigInteger.valueOf(-99999),
+        JdbcParquetWriteSupport.unscaledDecimal(new java.math.BigDecimal("-999.99"), 5, 2, "c"));
+  }
+
+  @Test
+  public void shouldFailOnDecimalOverflowOrRounding() {
+    final IllegalArgumentException precision =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetWriteSupport.unscaledDecimal(
+                    new java.math.BigDecimal("1000.00"), 5, 2, "price"));
+    Assertions.assertTrue(
+        precision.getMessage().contains("exceeds the precision of DECIMAL(5,2)"),
+        precision.getMessage());
+    final IllegalArgumentException rounding =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcParquetWriteSupport.unscaledDecimal(
+                    new java.math.BigDecimal("1.234"), 5, 2, "price"));
+    Assertions.assertTrue(
+        rounding.getMessage().contains("more than 2 fractional digits"), rounding.getMessage());
+  }
+
+  @Test
+  public void shouldEncodeFixedTwosComplement() {
+    Assertions.assertArrayEquals(
+        new byte[] {0, 0, 1},
+        JdbcParquetWriteSupport.toFixed(java.math.BigInteger.ONE, 3));
+    Assertions.assertArrayEquals(
+        new byte[] {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF},
+        JdbcParquetWriteSupport.toFixed(java.math.BigInteger.ONE.negate(), 3));
+    Assertions.assertArrayEquals(
+        new byte[] {(byte) 0xFF, (byte) 0x7F},
+        JdbcParquetWriteSupport.toFixed(java.math.BigInteger.valueOf(-129), 2));
   }
 }

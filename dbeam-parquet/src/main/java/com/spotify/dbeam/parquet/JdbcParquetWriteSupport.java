@@ -29,6 +29,7 @@ import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
 import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
@@ -36,6 +37,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
 import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
 import static java.sql.Types.SMALLINT;
@@ -46,6 +48,9 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -60,6 +65,7 @@ import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
 /**
@@ -71,6 +77,8 @@ public class JdbcParquetWriteSupport {
 
   private static final ThreadLocal<Calendar> CALENDAR =
       ThreadLocal.withInitial(() -> new GregorianCalendar(TimeZone.getTimeZone("UTC")));
+
+  private static final long MILLIS_PER_DAY = 86_400_000L;
 
   @FunctionalInterface
   interface ColumnWriter {
@@ -89,13 +97,26 @@ public class JdbcParquetWriteSupport {
   }
 
   public static JdbcParquetWriteSupport create(
-      ResultSet resultSet, MessageType schema, String arrayMode) throws SQLException {
+      ResultSet resultSet, MessageType schema, String arrayMode, boolean useTimestampMicros)
+      throws SQLException {
+    return create(resultSet, schema, arrayMode, useTimestampMicros, false);
+  }
+
+  public static JdbcParquetWriteSupport create(
+      ResultSet resultSet,
+      MessageType schema,
+      String arrayMode,
+      boolean useTimestampMicros,
+      boolean nativeTypes)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      writers[i] = computeColumnWriter(meta, i, arrayMode, schema.getType(i - 1));
+      writers[i] =
+          computeColumnWriter(
+              meta, i, arrayMode, schema.getType(i - 1), useTimestampMicros, nativeTypes);
     }
 
     return new JdbcParquetWriteSupport(schema, writers, columnCount);
@@ -114,8 +135,33 @@ public class JdbcParquetWriteSupport {
     consumer.endMessage();
   }
 
+  /**
+   * Timestamp/date/time columns are written as epoch micros when {@code useTimestampMicros} is set
+   * and as epoch millis otherwise, regardless of the target field's annotation (a schema file whose
+   * annotation disagrees is rejected by {@link ParquetSchemaValidator}).
+   */
   static ColumnWriter computeColumnWriter(
-      final ResultSetMetaData meta, final int column, final String arrayMode, final Type fieldType)
+      final ResultSetMetaData meta,
+      final int column,
+      final String arrayMode,
+      final Type fieldType,
+      final boolean useTimestampMicros)
+      throws SQLException {
+    return computeColumnWriter(meta, column, arrayMode, fieldType, useTimestampMicros, false);
+  }
+
+  /**
+   * With {@code nativeTypes} ({@code --parquetNativeTypes}), DATE, TIME and DECIMAL/NUMERIC
+   * columns are written as described in {@link JdbcParquetSchema#buildNativeFieldType}; like the
+   * schema, this depends only on the JDBC metadata and the flags.
+   */
+  static ColumnWriter computeColumnWriter(
+      final ResultSetMetaData meta,
+      final int column,
+      final String arrayMode,
+      final Type fieldType,
+      final boolean useTimestampMicros,
+      final boolean nativeTypes)
       throws SQLException {
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
@@ -124,6 +170,14 @@ public class JdbcParquetWriteSupport {
             ? meta.getColumnLabel(column)
             : meta.getColumnName(column);
     final String normalizedName = JdbcParquetSchema.normalizeFieldName(fieldName);
+
+    if (nativeTypes) {
+      final ColumnWriter nativeWriter =
+          nativeColumnWriter(meta, column, fieldIndex, normalizedName, useTimestampMicros);
+      if (nativeWriter != null) {
+        return nativeWriter;
+      }
+    }
 
     switch (columnType) {
       case VARCHAR:
@@ -171,9 +225,19 @@ public class JdbcParquetWriteSupport {
           }
         };
       case TIMESTAMP:
-      case DATE: // written as epoch millis for Avro-path compatibility
+      case DATE: // written as epoch millis/micros for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return (consumer, rs) -> {
+            final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+            if (timestamp != null && !rs.wasNull()) {
+              consumer.startField(normalizedName, fieldIndex);
+              consumer.addLong(toEpochMicros(timestamp));
+              consumer.endField(normalizedName, fieldIndex);
+            }
+          };
+        }
         return (consumer, rs) -> {
           final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
           if (timestamp != null && !rs.wasNull()) {
@@ -223,11 +287,23 @@ public class JdbcParquetWriteSupport {
           };
         }
         final String arrayElementType =
-            JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column));
+            writtenArrayElementType(
+                JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column)),
+                fieldType);
+        final boolean nullableItems = hasOptionalListElement(fieldType);
         return (consumer, rs) -> {
           final java.sql.Array sqlArray = rs.getArray(column);
           if (sqlArray != null && !rs.wasNull()) {
             final Object[] items = (Object[]) sqlArray.getArray();
+            // check before writing anything, so no partial or garbage list is written
+            for (Object item : items) {
+              if (isNestedArray(item, arrayElementType)) {
+                throw multidimensionalArrayException(fieldName);
+              }
+              if (item == null && !nullableItems) {
+                throw nullArrayItemException(fieldName);
+              }
+            }
             consumer.startField(normalizedName, fieldIndex);
             consumer.startGroup(); // LIST group
             consumer.startField("list", 0); // repeated list field
@@ -318,6 +394,196 @@ public class JdbcParquetWriteSupport {
     }
   }
 
+  private static ColumnWriter nativeColumnWriter(
+      final ResultSetMetaData meta,
+      final int column,
+      final int fieldIndex,
+      final String name,
+      final boolean useTimestampMicros)
+      throws SQLException {
+    switch (meta.getColumnType(column)) {
+      case DATE:
+        return (consumer, rs) -> {
+          final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+          if (timestamp != null && !rs.wasNull()) {
+            consumer.startField(name, fieldIndex);
+            consumer.addInteger(
+                Math.toIntExact(Math.floorDiv(timestamp.getTime(), MILLIS_PER_DAY)));
+            consumer.endField(name, fieldIndex);
+          }
+        };
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return (consumer, rs) -> {
+            final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+            if (timestamp != null && !rs.wasNull()) {
+              consumer.startField(name, fieldIndex);
+              consumer.addLong(Math.floorMod(toEpochMicros(timestamp), MILLIS_PER_DAY * 1000L));
+              consumer.endField(name, fieldIndex);
+            }
+          };
+        }
+        return (consumer, rs) -> {
+          final Timestamp timestamp = rs.getTimestamp(column, CALENDAR.get());
+          if (timestamp != null && !rs.wasNull()) {
+            consumer.startField(name, fieldIndex);
+            consumer.addInteger((int) Math.floorMod(timestamp.getTime(), MILLIS_PER_DAY));
+            consumer.endField(name, fieldIndex);
+          }
+        };
+      case DECIMAL:
+      case NUMERIC:
+        final int precision = meta.getPrecision(column);
+        final int scale = meta.getScale(column);
+        if (!JdbcParquetSchema.isNativeDecimal(precision, scale)) {
+          return null;
+        }
+        final int byteLength = JdbcParquetSchema.decimalByteLength(precision);
+        return (consumer, rs) -> {
+          final BigDecimal value = rs.getBigDecimal(column);
+          if (value != null && !rs.wasNull()) {
+            final BigInteger unscaled = unscaledDecimal(value, precision, scale, name);
+            consumer.startField(name, fieldIndex);
+            consumer.addBinary(Binary.fromConstantByteArray(toFixed(unscaled, byteLength)));
+            consumer.endField(name, fieldIndex);
+          }
+        };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Unscaled value of {@code value} at {@code scale}. Fails instead of rounding or truncating if
+   * the value has more fractional digits than {@code scale} or more digits than {@code
+   * precision}.
+   */
+  static BigInteger unscaledDecimal(
+      final BigDecimal value, final int precision, final int scale, final String column) {
+    final BigDecimal rescaled;
+    try {
+      rescaled = value.setScale(scale, RoundingMode.UNNECESSARY);
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value %s in column '%s' has more than %d fractional digits and cannot be written"
+                  + " as DECIMAL(%d,%d) without rounding",
+              value.toPlainString(), column, scale, precision, scale),
+          e);
+    }
+    if (rescaled.precision() > precision && rescaled.signum() != 0) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Value %s in column '%s' exceeds the precision of DECIMAL(%d,%d)",
+              value.toPlainString(), column, precision, scale));
+    }
+    return rescaled.unscaledValue();
+  }
+
+  /** Big-endian two's complement, sign-extended to {@code length} bytes. */
+  static byte[] toFixed(final BigInteger unscaled, final int length) {
+    final byte[] bytes = unscaled.toByteArray();
+    final byte[] fixed = new byte[length];
+    final byte pad = (byte) (unscaled.signum() < 0 ? 0xFF : 0x00);
+    final int offset = length - bytes.length;
+    for (int i = 0; i < offset; i++) {
+      fixed[i] = pad;
+    }
+    System.arraycopy(bytes, 0, fixed, offset, bytes.length);
+    return fixed;
+  }
+
+  /** Epoch microseconds, keeping the sub-millisecond part of {@link Timestamp#getNanos()}. */
+  static long toEpochMicros(final Timestamp timestamp) {
+    return timestamp.getTime() * 1000 + (timestamp.getNanos() / 1000) % 1000;
+  }
+
+  /**
+   * Whether an ARRAY element is itself an array (a multidimensional SQL array). A {@code byte[]}
+   * is the value of a {@code bytea} element, so only {@code byte[][]} and deeper count there.
+   */
+  static boolean isNestedArray(final Object item, final String elementType) {
+    if (item == null) {
+      return false;
+    }
+    if (item instanceof java.sql.Array) {
+      return true;
+    }
+    if (item instanceof byte[]) {
+      return !"bytea".equals(elementType);
+    }
+    return item.getClass().isArray();
+  }
+
+  /**
+   * Whether the LIST element of {@code fieldType} is {@code optional} ({@code
+   * --nullableArrayItems}). Elements of the derived schema are {@code required} without the flag,
+   * and a schema file must agree (see {@link ParquetSchemaValidator}).
+   */
+  /**
+   * An element type without a Parquet mapping is written as a string (toString()) when the schema
+   * declares the element as {@code binary (STRING)}, which only {@code
+   * --parquetUnsupportedArrayItemsAsString} produces; otherwise it is kept, and rejected on write.
+   */
+  static String writtenArrayElementType(final String elementType, final Type fieldType) {
+    if (isKnownArrayElementType(elementType) || fieldType == null || fieldType.isPrimitive()) {
+      return elementType;
+    }
+    final Type repeated = fieldType.asGroupType().getType(0);
+    if (repeated.isPrimitive() || repeated.asGroupType().getFieldCount() == 0) {
+      return elementType;
+    }
+    final Type element = repeated.asGroupType().getType(0);
+    final boolean isString =
+        element.isPrimitive()
+            && element.asPrimitiveType().getPrimitiveTypeName()
+                == PrimitiveType.PrimitiveTypeName.BINARY
+            && LogicalTypeAnnotation.stringType().equals(element.getLogicalTypeAnnotation());
+    return isString ? "text" : elementType;
+  }
+
+  private static boolean isKnownArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+      case "int8":
+      case "float4":
+      case "float8":
+      case "bool":
+      case "bytea":
+        return true;
+      default:
+        return JdbcParquetSchema.isStringArrayElementType(elementType);
+    }
+  }
+
+  static boolean hasOptionalListElement(final Type fieldType) {
+    if (fieldType == null || fieldType.isPrimitive()) {
+      return true;
+    }
+    final Type repeated = fieldType.asGroupType().getType(0);
+    if (repeated.isPrimitive() || repeated.asGroupType().getFieldCount() == 0) {
+      return true;
+    }
+    return repeated.asGroupType().getType(0).getRepetition() != Type.Repetition.REQUIRED;
+  }
+
+  /** Same message as the Avro export (dbeam-core JdbcAvroRecordConverter). */
+  static RuntimeException nullArrayItemException(final String columnName) {
+    return new RuntimeException(
+        String.format("Array item is null in column '%s', use --nullableArrayItems", columnName));
+  }
+
+  static IllegalArgumentException multidimensionalArrayException(final String columnName) {
+    return new IllegalArgumentException(
+        String.format(
+            "Column '%s' contains a multidimensional array, which is not supported;"
+                + " use --arrayMode=bytes to export the column as bytes",
+            columnName));
+  }
+
   static void writeArrayElement(RecordConsumer consumer, Object item, String elementType) {
     switch (elementType) {
       case "int":
@@ -341,6 +607,12 @@ public class JdbcParquetWriteSupport {
         consumer.addBinary(Binary.fromConstantByteArray((byte[]) item));
         break;
       default:
+        if (!JdbcParquetSchema.isStringArrayElementType(elementType)) {
+          // rejected by JdbcParquetSchema.buildArrayElementType, unless the schema came elsewhere
+          throw new IllegalArgumentException(
+              "ARRAY element type '" + elementType + "' is not supported for typed Parquet arrays;"
+                  + " use --arrayMode=bytes to export the column as bytes");
+        }
         consumer.addBinary(Binary.fromString(item.toString()));
         break;
     }

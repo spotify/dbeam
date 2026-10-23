@@ -23,6 +23,7 @@ package com.spotify.dbeam.jobs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 
 import com.spotify.dbeam.DbTestHelper;
@@ -77,6 +78,67 @@ public class JdbcAvroJobTest {
     passwordPath.toFile().createNewFile();
     Files.write(sqlPath, "SELECT COF_NAME, SIZE, TOTAL FROM COFFEES WHERE SIZE >= 300".getBytes());
     DbTestHelper.createFixtures(CONNECTION_URL);
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      connection
+          .createStatement()
+          .execute("CREATE TABLE MANY_ROWS (ID BIGINT NOT NULL, NAME VARCHAR(20))");
+      connection
+          .createStatement()
+          .execute("INSERT INTO MANY_ROWS SELECT X, CONCAT('name', X) FROM SYSTEM_RANGE(1, 1000)");
+    }
+  }
+
+  @Test
+  public void shouldExit43OnInvalidArrayMode() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                JdbcAvroJob.create(
+                    new String[] {
+                      "--connectionUrl=" + CONNECTION_URL,
+                      "--username=",
+                      "--passwordFile=" + passwordPath.toString(),
+                      "--table=COFFEES",
+                      "--output=" + testDir.resolve("shouldExit43OnInvalidArrayMode"),
+                      "--arrayMode=typed"
+                    }));
+    Assertions.assertTrue(e.getMessage().contains("Invalid --arrayMode value 'typed'"));
+    Assertions.assertTrue(
+        e.getMessage().contains("[bytes, typed_first_row, typed_postgres]"), e.getMessage());
+    Assertions.assertEquals(43, ExceptionHandling.exitCode(e));
+  }
+
+  @Test
+  public void shouldCountBytesWrittenOncePerFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldCountBytesWrittenOncePerFile");
+    JdbcAvroJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--table=MANY_ROWS",
+              "--output=" + outputPath,
+              "--splitColumn=ID",
+              "--queryParallelism=4"
+            })
+        .runExport();
+    long totalSize = 0;
+    int files = 0;
+    for (File file : outputPath.toFile().listFiles()) {
+      if (file.getName().endsWith(".avro")) {
+        totalSize += file.length();
+        files++;
+      }
+    }
+    assertThat(files, greaterThan(0));
+    assertThat(outputPath.resolve("_queries").toFile().listFiles().length, greaterThan(1));
+    final String metrics = new String(Files.readAllBytes(outputPath.resolve("_METRICS.json")));
+    Assertions.assertTrue(
+        metrics.contains("\"bytesWritten\":" + totalSize + ","), metrics + " vs " + totalSize);
   }
 
   @Test
@@ -219,6 +281,189 @@ public class JdbcAvroJobTest {
     assertThat(schemas, CoreMatchers.hasItems(expectedSchemas));
   }
 
+  private static Path createdSchemaFile(final String name, final String logicalType)
+      throws IOException {
+    final Path schemaFile = testDir.resolve(name + ".avsc");
+    Files.write(
+        schemaFile,
+        ("{\"type\":\"record\",\"name\":\"created\",\"fields\":[{\"name\":\"CREATED\","
+                + "\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\""
+                + logicalType
+                + "\"}]}]}")
+            .getBytes());
+    return schemaFile;
+  }
+
+  private static String[] createdOnlyArgs(final Path outputPath, final String... extraArgs)
+      throws IOException {
+    final Path createdSql = testDir.resolve("created.sql");
+    Files.write(createdSql, "SELECT CREATED FROM COFFEES".getBytes());
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--partition=2025-02-28",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--sqlFile=" + createdSql,
+                "--output=" + outputPath,
+                "--useLogicalTypes"));
+    args.addAll(List.of(extraArgs));
+    return args.toArray(new String[0]);
+  }
+
+  @Test
+  public void shouldFailFastWhenSchemaFileTimestampUnitDisagreesWithFlag() throws IOException {
+    final Path outputPath = testDir.resolve("shouldFailFastOnSchemaFileTimestampUnit");
+    final Path schemaFile = createdSchemaFile("created_millis", "timestamp-millis");
+
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                JdbcAvroJob.create(
+                        createdOnlyArgs(
+                            outputPath,
+                            "--useTimestampMicros",
+                            "--avroSchemaFilePath=" + schemaFile))
+                    .runExport());
+    Assertions.assertTrue(exception.getMessage().contains("CREATED"), exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  private static String[] coffeesArgs(final Path outputPath, final String... extraArgs) {
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--partition=2025-02-28",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--table=COFFEES",
+                "--output=" + outputPath,
+                "--useLogicalTypes"));
+    args.addAll(List.of(extraArgs));
+    return args.toArray(new String[0]);
+  }
+
+  /** The schema dbeam generates for COFFEES, with every field renamed and docs/props changed. */
+  private static String renamedCoffeesSchema() throws Exception {
+    final Path generated = testDir.resolve("coffeesSchemaSource");
+    JdbcAvroJob.create(coffeesArgs(generated)).runExport();
+    final Schema schema =
+        new Schema.Parser().parse(generated.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final StringBuilder sb =
+        new StringBuilder(
+            "{\"type\":\"record\",\"name\":\"renamed\",\"namespace\":\"other.ns\","
+                + "\"doc\":\"custom\",\"fields\":[");
+    for (int i = 0; i < schema.getFields().size(); i++) {
+      final Schema.Field field = schema.getFields().get(i);
+      sb.append(i == 0 ? "" : ",")
+          .append("{\"name\":\"renamed_")
+          .append(field.name().toLowerCase())
+          .append("\",\"doc\":\"custom doc\",\"type\":")
+          .append(field.schema().toString())
+          .append(",\"default\":null}");
+    }
+    return sb.append("]}").toString();
+  }
+
+  @Test
+  public void shouldAcceptRenamedSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldAcceptRenamedSchemaFile");
+    final Path schemaFile = testDir.resolve("coffees_renamed.avsc");
+    Files.write(schemaFile, renamedCoffeesSchema().getBytes());
+
+    JdbcAvroJob.create(coffeesArgs(outputPath, "--avroSchemaFilePath=" + schemaFile))
+        .runExport();
+
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final List<GenericRecord> records =
+        readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
+    assertThat(records, hasSize(2));
+    assertThat(
+        records.stream()
+            .map(r -> r.get("renamed_cof_name").toString())
+            .collect(Collectors.toList()),
+        containsInAnyOrder("costa rica caffee", "colombian caffee"));
+  }
+
+  @Test
+  public void shouldFailFastWhenSchemaFileTypeDoesNotMatchJdbcColumn() throws Exception {
+    final Path outputPath = testDir.resolve("shouldFailFastWhenSchemaFileTypeDoesNotMatch");
+    final Path schemaFile = testDir.resolve("coffees_decimal.avsc");
+    // PRICE is a DECIMAL column, which dbeam writes as a string
+    Files.write(
+        schemaFile,
+        renamedCoffeesSchema()
+            .replaceFirst(
+                "(\"renamed_price\",\"doc\":\"custom doc\",\"type\":\\[\"null\",)\"string\"",
+                "$1{\"type\":\"bytes\",\"logicalType\":\"decimal\",\"precision\":21,"
+                    + "\"scale\":2}")
+            .getBytes());
+
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                JdbcAvroJob.create(coffeesArgs(outputPath, "--avroSchemaFilePath=" + schemaFile))
+                    .runExport());
+    Assertions.assertTrue(
+        exception.getMessage().contains("renamed_price (#3, JDBC column PRICE): expected string"),
+        exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  @Test
+  public void shouldFailFastWhenSchemaFileArrayItemsDoNotMatch() throws Exception {
+    final Path outputPath = testDir.resolve("shouldFailFastWhenSchemaFileArrayItemsDoNotMatch");
+    final Path schemaFile = testDir.resolve("coffees_array.avsc");
+    Files.write(
+        schemaFile,
+        renamedCoffeesSchema()
+            .replace("{\"type\":\"array\",\"items\":\"int\"}",
+                "{\"type\":\"array\",\"items\":\"string\"}")
+            .getBytes());
+
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () ->
+                JdbcAvroJob.create(coffeesArgs(outputPath, "--avroSchemaFilePath=" + schemaFile))
+                    .runExport());
+    Assertions.assertTrue(
+        exception.getMessage().contains("JDBC column INT_ARR)[]: expected int"),
+        exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
+
+  @Test
+  public void shouldWriteMicrosWithMatchingSchemaFile() throws Exception {
+    final Path outputPath = testDir.resolve("shouldWriteMicrosWithMatchingSchemaFile");
+    final Path schemaFile = createdSchemaFile("created_micros", "timestamp-micros");
+
+    JdbcAvroJob.create(
+            createdOnlyArgs(
+                outputPath, "--useTimestampMicros", "--avroSchemaFilePath=" + schemaFile))
+        .runExport();
+
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final List<Long> values =
+        readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema).stream()
+            .map(r -> (Long) r.get("CREATED"))
+            .sorted()
+            .collect(Collectors.toList());
+    Assertions.assertEquals(List.of(1488300723000000L, 1488300933000000L), values);
+  }
+
   @Test
   public void shouldFailWithNotEnoughRows() {
     final Path outputPath = testDir.resolve("shouldRunJdbcAvroJob");
@@ -299,5 +544,30 @@ public class JdbcAvroJobTest {
     metering.exposeWriteElapsed();
     metering.incrementRecordCount();
     metering.exposeWriteElapsed();
+  }
+
+  @Test
+  public void shouldFailOnNormalizedFieldNameCollision() throws Exception {
+    final Path sql = testDir.resolve("collide-avro.sql");
+    Files.write(
+        sql,
+        "SELECT COF_NAME AS \"cof-name\", COF_NAME AS \"cof_name\", TOTAL FROM COFFEES"
+            .getBytes());
+    final Path outputPath = testDir.resolve("collide-avro");
+    final JdbcAvroJob job =
+        JdbcAvroJob.create(
+            new String[] {
+              "--skipPartitionCheck",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--sqlFile=" + sql,
+              "--output=" + outputPath
+            });
+    final RuntimeException e = Assertions.assertThrows(RuntimeException.class, job::prepareExport);
+    Assertions.assertTrue(
+        e.getMessage().contains("columns [cof-name, cof_name] all map to field name 'cof_name'"),
+        e.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
   }
 }

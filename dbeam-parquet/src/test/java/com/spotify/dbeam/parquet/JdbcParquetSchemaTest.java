@@ -132,6 +132,31 @@ public class JdbcParquetSchemaTest {
   }
 
   @Test
+  public void shouldConvertTimestampTypesToMicrosWhenEnabled() throws SQLException {
+    for (int sqlType :
+        new int[] {Types.TIMESTAMP, Types.DATE, Types.TIME, Types.TIME_WITH_TIMEZONE}) {
+      final Type fieldType =
+          JdbcParquetSchema.buildParquetFieldType(
+              "column1", sqlType, 0, "foobar", null, true, true, "typed_first_row");
+
+      assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
+      Assertions.assertEquals(
+          LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS),
+          fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+    }
+  }
+
+  @Test
+  public void shouldIgnoreTimestampMicrosWithoutLogicalTypes() throws SQLException {
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "column1", Types.TIMESTAMP, 0, "foobar", null, false, true, "typed_first_row");
+
+    assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
+    Assertions.assertNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
+  }
+
+  @Test
   public void shouldConvertDateSqlTypeToInt64() throws SQLException {
     final Type fieldType = buildFieldType(Types.DATE, false);
 
@@ -257,48 +282,173 @@ public class JdbcParquetSchemaTest {
   }
 
   @Test
+  public void shouldMakeArrayElementsRequiredUnlessNullableArrayItems() {
+    for (String typeName : new String[] {"_int4", "_int8", "_float8", "_bool", "_bytea", "_text"}) {
+      Assertions.assertEquals(
+          Type.Repetition.REQUIRED,
+          JdbcParquetSchema.buildArrayElementType("arr", typeName).getRepetition(),
+          typeName);
+      Assertions.assertEquals(
+          Type.Repetition.REQUIRED,
+          JdbcParquetSchema.buildArrayElementType("arr", typeName, false).getRepetition(),
+          typeName);
+      Assertions.assertEquals(
+          Type.Repetition.OPTIONAL,
+          JdbcParquetSchema.buildArrayElementType("arr", typeName, true).getRepetition(),
+          typeName);
+    }
+    final Type list =
+        JdbcParquetSchema.buildParquetFieldType(
+            "arr",
+            Types.ARRAY,
+            0,
+            0,
+            "java.sql.Array",
+            "_int4",
+            false,
+            false,
+            "typed_postgres",
+            false,
+            true);
+    // the LIST group itself stays optional
+    Assertions.assertEquals(Type.Repetition.OPTIONAL, list.getRepetition());
+    Assertions.assertEquals(
+        "optional group arr (LIST) {\n  repeated group list {\n    optional int32 element;\n  }\n}",
+        list.toString());
+  }
+
+  @Test
   public void shouldConvertIntegerArrayToListOfInt32() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("_int4");
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_int4");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.INT32);
   }
 
   @Test
   public void shouldConvertBigintArrayToListOfInt64() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("_int8");
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_int8");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.INT64);
   }
 
   @Test
   public void shouldConvertFloat4ArrayToListOfFloat() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("_float4");
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_float4");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.FLOAT);
   }
 
   @Test
   public void shouldConvertFloat8ArrayToListOfDouble() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("_float8");
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_float8");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.DOUBLE);
   }
 
   @Test
   public void shouldConvertBoolArrayToListOfBoolean() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("_bool");
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_bool");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BOOLEAN);
   }
 
   @Test
   public void shouldConvertTextArrayToListOfString() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("_text");
+    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_text");
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assertions.assertEquals(
         LogicalTypeAnnotation.stringType(),
         elementType.asPrimitiveType().getLogicalTypeAnnotation());
+  }
+
+  @Test
+  public void shouldConvertStringLikeArraysToListOfString() {
+    for (String typeName :
+        new String[] {"_text", "_varchar", "_bpchar", "_char", "_name", "_uuid", "VARCHAR ARRAY",
+            "CHARACTER VARYING ARRAY", "CHARACTER(3) ARRAY", "UUID ARRAY"}) {
+      final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", typeName);
+      assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
+      Assertions.assertEquals(
+          LogicalTypeAnnotation.stringType(),
+          elementType.asPrimitiveType().getLogicalTypeAnnotation(),
+          typeName);
+    }
+  }
+
+  @Test
+  public void shouldConvertTypedArraysToTypedLists() {
+    assertPrimitiveType(
+        JdbcParquetSchema.buildArrayElementType("arr", "_int2"),
+        PrimitiveType.PrimitiveTypeName.INT32);
+    assertPrimitiveType(
+        JdbcParquetSchema.buildArrayElementType("arr", "SMALLINT ARRAY"),
+        PrimitiveType.PrimitiveTypeName.INT32);
+    assertPrimitiveType(
+        JdbcParquetSchema.buildArrayElementType("arr", "DOUBLE PRECISION ARRAY"),
+        PrimitiveType.PrimitiveTypeName.DOUBLE);
+    assertPrimitiveType(
+        JdbcParquetSchema.buildArrayElementType("arr", "BOOLEAN ARRAY"),
+        PrimitiveType.PrimitiveTypeName.BOOLEAN);
+    final Type bytea = JdbcParquetSchema.buildArrayElementType("arr", "_bytea");
+    assertPrimitiveType(bytea, PrimitiveType.PrimitiveTypeName.BINARY);
+    Assertions.assertNull(bytea.asPrimitiveType().getLogicalTypeAnnotation());
+  }
+
+  @Test
+  public void shouldRejectUnsupportedArrayElementTypes() {
+    for (String[] typeName :
+        new String[][] {
+          {"_timestamp", "timestamp"},
+          {"_timestamptz", "timestamptz"},
+          {"_date", "date"},
+          {"_numeric", "numeric"},
+          {"_json", "json"},
+          {"_jsonb", "jsonb"},
+          {"_interval", "interval"},
+          {"TIMESTAMP ARRAY", "timestamp"},
+          {"NUMERIC(10, 2) ARRAY", "numeric"}
+        }) {
+      for (String arrayMode : new String[] {"typed_first_row", "typed_postgres"}) {
+        final IllegalArgumentException e =
+            Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                    JdbcParquetSchema.buildParquetFieldType(
+                        "my_col", Types.ARRAY, 0, "java.sql.Array", typeName[0], false, arrayMode));
+        Assertions.assertTrue(e.getMessage().contains("columnName=my_col"), e.getMessage());
+        Assertions.assertTrue(
+            e.getMessage().contains("element type '" + typeName[1] + "'"), e.getMessage());
+        Assertions.assertTrue(e.getMessage().contains("--arrayMode=bytes"), e.getMessage());
+        Assertions.assertTrue(
+            e.getMessage().contains("--parquetUnsupportedArrayItemsAsString"), e.getMessage());
+      }
+    }
+  }
+
+  @Test
+  public void shouldWriteUnsupportedArrayElementTypesAsStringWhenEnabled() {
+    for (String typeName : new String[] {"_timestamp", "_numeric", "_json", "TIMESTAMP ARRAY"}) {
+      for (boolean nullable : new boolean[] {false, true}) {
+        final Type element =
+            JdbcParquetSchema.buildArrayElementType("my_col", typeName, nullable, true);
+        Assertions.assertEquals(PrimitiveType.PrimitiveTypeName.BINARY, element.asPrimitiveType()
+            .getPrimitiveTypeName());
+        Assertions.assertEquals(
+            LogicalTypeAnnotation.stringType(), element.getLogicalTypeAnnotation());
+        Assertions.assertEquals(
+            nullable ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED,
+            element.getRepetition());
+      }
+    }
+  }
+
+  @Test
+  public void shouldKeepUnsupportedArrayElementTypesAsBytesWithBytesMode() throws SQLException {
+    final Type fieldType =
+        JdbcParquetSchema.buildParquetFieldType(
+            "my_col", Types.ARRAY, 0, "java.sql.Array", "_timestamp", false, "bytes");
+    assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
   }
 
   @Test
@@ -433,5 +583,90 @@ public class JdbcParquetSchemaTest {
       final Type actual, final PrimitiveType.PrimitiveTypeName expected) {
     Assertions.assertTrue(actual.isPrimitive());
     Assertions.assertEquals(expected, actual.asPrimitiveType().getPrimitiveTypeName());
+  }
+
+  @Test
+  public void shouldRejectUnsupportedTypesLikeAvro() {
+    final int[] types = {Types.STRUCT, Types.REF, Types.REF_CURSOR, Types.DATALINK};
+    final String[] messages = {
+      "STRUCT type is not supported",
+      "REF and REF_CURSOR type are not supported",
+      "REF and REF_CURSOR type are not supported",
+      "DATALINK type is not supported"
+    };
+    for (int i = 0; i < types.length; i++) {
+      final int type = types[i];
+      final RuntimeException e =
+          Assertions.assertThrows(
+              RuntimeException.class,
+              () ->
+                  JdbcParquetSchema.buildParquetFieldType(
+                      "col", type, 0, "java.lang.Object", "t", false, "typed_first_row"));
+      Assertions.assertEquals(messages[i], e.getMessage());
+    }
+  }
+
+  private static Type nativeField(final int type, final int precision, final int scale,
+      final boolean micros) {
+    return JdbcParquetSchema.buildParquetFieldType(
+        "c", type, precision, scale, "java.lang.Object", "t", true, micros, "typed_first_row",
+        true);
+  }
+
+  @Test
+  public void shouldMapNativeTypes() {
+    Assertions.assertEquals("optional int32 c (DATE)", nativeField(Types.DATE, 0, 0, false)
+        .toString());
+    Assertions.assertEquals("optional int32 c (DATE)", nativeField(Types.DATE, 0, 0, true)
+        .toString());
+    Assertions.assertEquals(
+        "optional int32 c (TIME(MILLIS,true))", nativeField(Types.TIME, 0, 0, false).toString());
+    Assertions.assertEquals(
+        "optional int64 c (TIME(MICROS,true))",
+        nativeField(Types.TIME_WITH_TIMEZONE, 0, 0, true).toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(1) c (DECIMAL(1,0))",
+        nativeField(Types.DECIMAL, 1, 0, false).toString());
+    Assertions.assertEquals(
+        "optional fixed_len_byte_array(16) c (DECIMAL(38,10))",
+        nativeField(Types.NUMERIC, 38, 10, false).toString());
+    // TIMESTAMP keeps its mapping
+    Assertions.assertEquals(
+        "optional int64 c (TIMESTAMP(MILLIS,true))",
+        nativeField(Types.TIMESTAMP, 0, 0, false).toString());
+  }
+
+  @Test
+  public void shouldFallBackToStringForInvalidDecimalPrecision() {
+    for (int[] ps : new int[][] {{0, 0}, {39, 2}, {131089, 0}, {10, -2}, {5, 6}}) {
+      Assertions.assertEquals(
+          "optional binary c (STRING)",
+          nativeField(Types.NUMERIC, ps[0], ps[1], false).toString(),
+          ps[0] + "," + ps[1]);
+    }
+  }
+
+  @Test
+  public void shouldNotUseNativeTypesByDefault() {
+    Assertions.assertEquals(
+        "optional int64 c (TIMESTAMP(MILLIS,true))",
+        JdbcParquetSchema.buildParquetFieldType(
+                "c", Types.DATE, 0, "java.sql.Date", "date", true, "typed_first_row")
+            .toString());
+    Assertions.assertEquals(
+        "optional binary c (STRING)",
+        JdbcParquetSchema.buildParquetFieldType(
+                "c", Types.DECIMAL, 10, "java.math.BigDecimal", "numeric", true, "typed_first_row")
+            .toString());
+  }
+
+  @Test
+  public void shouldComputeDecimalByteLength() {
+    Assertions.assertEquals(1, JdbcParquetSchema.decimalByteLength(2));
+    Assertions.assertEquals(2, JdbcParquetSchema.decimalByteLength(3));
+    Assertions.assertEquals(4, JdbcParquetSchema.decimalByteLength(9));
+    Assertions.assertEquals(8, JdbcParquetSchema.decimalByteLength(18));
+    Assertions.assertEquals(9, JdbcParquetSchema.decimalByteLength(21));
+    Assertions.assertEquals(16, JdbcParquetSchema.decimalByteLength(38));
   }
 }

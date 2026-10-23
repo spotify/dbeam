@@ -28,6 +28,7 @@ import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.args.QueryBuilderArgs;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.beam.BeamHelper;
+import com.spotify.dbeam.jobs.FailedValidationException;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,8 +39,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import org.apache.avro.Schema;
 import org.apache.beam.sdk.options.PipelineOptions;
 
 public class JdbcExportArgsFactory {
@@ -61,9 +67,11 @@ public class JdbcExportArgsFactory {
   public static JdbcExportArgs fromPipelineOptions(final PipelineOptions options)
       throws ClassNotFoundException, IOException {
     final JdbcExportPipelineOptions exportOptions = options.as(JdbcExportPipelineOptions.class);
+    final boolean useLogicalTypes = resolveUseLogicalTypes(exportOptions);
     checkArgument(
-        !exportOptions.isUseTimestampMicros() || exportOptions.isUseAvroLogicalTypes(),
-        "--useTimestampMicros requires --useAvroLogicalTypes");
+        !exportOptions.isUseTimestampMicros() || useLogicalTypes,
+        "--useTimestampMicros requires --useLogicalTypes (or its deprecated alias "
+            + "--useAvroLogicalTypes)");
     final JdbcAvroArgs jdbcAvroArgs =
         JdbcAvroArgs.create(
             JdbcConnectionArgs.create(exportOptions.getConnectionUrl())
@@ -77,16 +85,121 @@ public class JdbcExportArgsFactory {
             exportOptions.isUseTimestampMicros()
             );
 
+    final Optional<Schema> inputAvroSchema =
+        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath());
+
     return JdbcExportArgs.create(
         jdbcAvroArgs,
         createQueryArgs(exportOptions),
         exportOptions.getAvroSchemaNamespace(),
         Optional.ofNullable(exportOptions.getAvroSchemaName()),
         Optional.ofNullable(exportOptions.getAvroDoc()),
-        exportOptions.isUseAvroLogicalTypes(),
+        useLogicalTypes,
         exportOptions.isUseTimestampMicros(),
         Duration.parse(exportOptions.getExportTimeout()),
-        BeamJdbcAvroSchema.parseOptionalInputAvroSchemaFile(exportOptions.getAvroSchemaFilePath()));
+        inputAvroSchema);
+  }
+
+  /**
+   * {@code --useTimestampMicros} alone decides whether timestamp/date/time columns are written as
+   * epoch millis or micros, while a {@code --avroSchemaFilePath} schema is used verbatim as the
+   * writer schema. Reject a schema file whose timestamp logical types declare a different unit, so
+   * readers never misinterpret the values. Plain {@code long} fields are accepted.
+   *
+   * <p>This is a schema-file-vs-data check, so like the Parquet schema-file validation it fails
+   * with {@link FailedValidationException} (exit code 50); it runs in {@code
+   * JdbcAvroJob.prepareExport}, before any output is written.
+   *
+   * @throws FailedValidationException naming every offending field
+   */
+  public static void validateInputSchemaTimestampUnits(
+      final Schema schema, final boolean useTimestampMicros) throws FailedValidationException {
+    final List<String> errors = new ArrayList<>();
+    collectTimestampUnitErrors(schema, "", useTimestampMicros, errors, new HashSet<>());
+    if (!errors.isEmpty()) {
+      throw new FailedValidationException(
+          String.format(
+              "--avroSchemaFilePath schema declares timestamp units that do not match "
+                  + "--useTimestampMicros (%s). Values are written as epoch %s. Either %s the flag"
+                  + " or change the schema to use %s (or plain long). Problems: %s",
+              useTimestampMicros ? "set" : "not set",
+              useTimestampMicros ? "micros" : "millis",
+              useTimestampMicros ? "remove" : "set",
+              useTimestampMicros ? "timestamp-micros" : "timestamp-millis",
+              String.join("; ", errors)));
+    }
+  }
+
+  private static void collectTimestampUnitErrors(
+      final Schema schema,
+      final String path,
+      final boolean useTimestampMicros,
+      final List<String> errors,
+      final Set<String> visitedRecords) {
+    switch (schema.getType()) {
+      case RECORD:
+        if (!visitedRecords.add(schema.getFullName())) {
+          return;
+        }
+        for (Schema.Field field : schema.getFields()) {
+          final String fieldPath = path.isEmpty() ? field.name() : path + "." + field.name();
+          collectTimestampUnitErrors(
+              field.schema(), fieldPath, useTimestampMicros, errors, visitedRecords);
+        }
+        return;
+      case UNION:
+        for (Schema branch : schema.getTypes()) {
+          collectTimestampUnitErrors(branch, path, useTimestampMicros, errors, visitedRecords);
+        }
+        return;
+      case ARRAY:
+        collectTimestampUnitErrors(
+            schema.getElementType(), path + "[]", useTimestampMicros, errors, visitedRecords);
+        return;
+      case MAP:
+        collectTimestampUnitErrors(
+            schema.getValueType(), path + "{}", useTimestampMicros, errors, visitedRecords);
+        return;
+      default:
+        final String logicalType = schema.getProp("logicalType");
+        if (logicalType == null) {
+          return;
+        }
+        final String expected = useTimestampMicros ? "timestamp-micros" : "timestamp-millis";
+        final boolean isTimestamp =
+            logicalType.startsWith("timestamp-") || logicalType.startsWith("local-timestamp-");
+        if (isTimestamp && !logicalType.equals(expected)) {
+          errors.add(String.format("%s has logicalType %s, expected %s", path, logicalType,
+              expected));
+        }
+    }
+  }
+
+  /**
+   * Resolves the effective value of {@code --useLogicalTypes}, honoring the deprecated
+   * {@code --useAvroLogicalTypes} alias. Fails if both are set to different values.
+   */
+  @SuppressWarnings("deprecation")
+  static boolean resolveUseLogicalTypes(final JdbcExportPipelineOptions options) {
+    final Boolean useLogicalTypes = options.isUseLogicalTypes();
+    final Boolean useAvroLogicalTypes = options.isUseAvroLogicalTypes();
+    if (useLogicalTypes != null && useAvroLogicalTypes != null) {
+      checkArgument(
+          useLogicalTypes.equals(useAvroLogicalTypes),
+          "Conflicting values: --useLogicalTypes=%s and --useAvroLogicalTypes=%s. "
+              + "--useAvroLogicalTypes is a deprecated alias of --useLogicalTypes; "
+              + "set only --useLogicalTypes.",
+          useLogicalTypes,
+          useAvroLogicalTypes);
+      return useLogicalTypes;
+    }
+    if (useLogicalTypes != null) {
+      return useLogicalTypes;
+    }
+    if (useAvroLogicalTypes != null) {
+      return useAvroLogicalTypes;
+    }
+    return false;
   }
 
   public static QueryBuilderArgs createQueryArgs(final JdbcExportPipelineOptions options)

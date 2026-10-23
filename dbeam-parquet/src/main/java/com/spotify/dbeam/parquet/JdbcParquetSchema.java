@@ -28,7 +28,9 @@ import static java.sql.Types.BLOB;
 import static java.sql.Types.BOOLEAN;
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
+import static java.sql.Types.DATALINK;
 import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
@@ -36,9 +38,13 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
 import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
+import static java.sql.Types.REF;
+import static java.sql.Types.REF_CURSOR;
 import static java.sql.Types.SMALLINT;
+import static java.sql.Types.STRUCT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TIME_WITH_TIMEZONE;
@@ -47,13 +53,17 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
@@ -75,15 +85,30 @@ public class JdbcParquetSchema {
       final boolean useLogicalTypes,
       final String arrayMode)
       throws SQLException {
+    return createSchemaByReadingOneRow(
+        connection, queryBuilderArgs, schemaName, useLogicalTypes, false, arrayMode);
+  }
+
+  public static MessageType createSchemaByReadingOneRow(
+      final Connection connection,
+      final QueryBuilderArgs queryBuilderArgs,
+      final Optional<String> schemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode)
+      throws SQLException {
     LOGGER.debug("Creating Parquet schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
       resultSet.next();
       final MessageType schema =
-          createParquetSchema(resultSet, schemaName, useLogicalTypes, arrayMode);
+          createParquetSchema(
+              resultSet, schemaName, useLogicalTypes, useTimestampMicros, arrayMode);
       LOGGER.info(
-          "Parquet schema created successfully. useLogicalTypes={}. Generated schema: {}",
+          "Parquet schema created successfully. useLogicalTypes={}, useTimestampMicros={}. "
+              + "Generated schema: {}",
           useLogicalTypes,
+          useTimestampMicros,
           schema);
       return schema;
     }
@@ -95,11 +120,95 @@ public class JdbcParquetSchema {
       final boolean useLogicalTypes,
       final String arrayMode)
       throws SQLException {
+    return createParquetSchema(resultSet, maybeSchemaName, useLogicalTypes, false, arrayMode);
+  }
+
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode)
+      throws SQLException {
+    return createParquetSchema(
+        resultSet, maybeSchemaName, useLogicalTypes, useTimestampMicros, arrayMode, false);
+  }
+
+  /**
+   * Creates the Parquet schema for a result set.
+   *
+   * @param nativeTypes {@code --parquetNativeTypes}: DATE, TIME and DECIMAL/NUMERIC (with a valid
+   *     precision) use Parquet's DATE, TIME and DECIMAL types instead of the Avro-compatible
+   *     encodings. Annotations are added even without {@code useLogicalTypes}, since the physical
+   *     type depends on them (only used that way to validate schema files).
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes)
+      throws SQLException {
+    return createParquetSchema(
+        resultSet,
+        maybeSchemaName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        false);
+  }
+
+  /**
+   * Creates the Parquet schema for a result set.
+   *
+   * @param nullableArrayItems {@code --nullableArrayItems}: typed LIST elements are {@code
+   *     optional} with the flag and {@code required} without it, as in the Avro export.
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems)
+      throws SQLException {
+    return createParquetSchema(
+        resultSet,
+        maybeSchemaName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        nullableArrayItems,
+        false);
+  }
+
+  /**
+   * Creates the Parquet schema for a result set.
+   *
+   * @param unsupportedArrayItemsAsString {@code --parquetUnsupportedArrayItemsAsString}: typed
+   *     LIST elements without a Parquet mapping (e.g. numeric, timestamp, date, json) become
+   *     {@code binary (STRING)} instead of failing.
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
     final String schemaName = maybeSchemaName.orElse(tableName);
 
     final List<Type> fields = new ArrayList<>();
+    final Map<String, List<String>> columnsByFieldName = new LinkedHashMap<>();
     for (int i = 1; i <= meta.getColumnCount(); i++) {
       final String columnName;
       if (meta.getColumnName(i).isEmpty()) {
@@ -108,8 +217,12 @@ public class JdbcParquetSchema {
         columnName = meta.getColumnName(i);
       }
 
+      columnsByFieldName
+          .computeIfAbsent(normalizeFieldName(columnName), k -> new ArrayList<>())
+          .add(columnName);
       final int columnType = meta.getColumnType(i);
       final int precision = meta.getPrecision(i);
+      final int scale = meta.getScale(i);
       final String columnClassName = meta.getColumnClassName(i);
       final String columnTypeName = meta.getColumnTypeName(i);
 
@@ -118,13 +231,41 @@ public class JdbcParquetSchema {
               normalizeFieldName(columnName),
               columnType,
               precision,
+              scale,
               columnClassName,
               columnTypeName,
               useLogicalTypes,
-              arrayMode));
+              useTimestampMicros,
+              arrayMode,
+              nativeTypes,
+              nullableArrayItems,
+              unsupportedArrayItemsAsString));
     }
 
+    checkUniqueFieldNames(columnsByFieldName);
     return new MessageType(schemaName, fields);
+  }
+
+  /**
+   * Field names are the column names with characters other than {@code [A-Za-z0-9_]} replaced by
+   * {@code _}, so distinct columns (e.g. {@code a-b} and {@code a_b}) can collide. Fail with the
+   * colliding columns instead of writing a schema with duplicate field names.
+   */
+  static void checkUniqueFieldNames(final Map<String, List<String>> columnsByFieldName) {
+    final List<String> collisions = new ArrayList<>();
+    columnsByFieldName.forEach(
+        (fieldName, columns) -> {
+          if (columns.size() > 1) {
+            collisions.add(
+                String.format("columns %s all map to field name '%s'", columns, fieldName));
+          }
+        });
+    if (!collisions.isEmpty()) {
+      throw new RuntimeException(
+          "Duplicate field names after normalizing column names to [A-Za-z0-9_]: "
+              + String.join("; ", collisions)
+              + ". Use column aliases (e.g. with --sqlFile) to make them unique.");
+    }
   }
 
   static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
@@ -146,6 +287,111 @@ public class JdbcParquetSchema {
       final String columnTypeName,
       final boolean useLogicalTypes,
       final String arrayMode) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        false,
+        arrayMode);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        0,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        false);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        scale,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        false);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        scale,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        nullableArrayItems,
+        false);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString) {
+    if (nativeTypes) {
+      final Optional<Type> nativeType =
+          buildNativeFieldType(columnName, columnType, precision, scale, useTimestampMicros);
+      if (nativeType.isPresent()) {
+        return nativeType.get();
+      }
+    }
     switch (columnType) {
       case BIGINT:
         return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
@@ -158,12 +404,16 @@ public class JdbcParquetSchema {
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named(columnName);
         }
       case TIMESTAMP:
-      case DATE: // stored as TIMESTAMP(MILLIS) for Avro-path compatibility
+      case DATE: // stored as TIMESTAMP(MILLIS|MICROS) for Avro-path compatibility
       case TIME:
       case TIME_WITH_TIMEZONE:
         if (useLogicalTypes) {
+          final LogicalTypeAnnotation.TimeUnit unit =
+              useTimestampMicros
+                  ? LogicalTypeAnnotation.TimeUnit.MICROS
+                  : LogicalTypeAnnotation.TimeUnit.MILLIS;
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
-              .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+              .as(LogicalTypeAnnotation.timestampType(true, unit))
               .named(columnName);
         } else {
           return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
@@ -193,8 +443,21 @@ public class JdbcParquetSchema {
         // Parquet 3-level LIST convention with typed elements.
         // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()
-            .element(buildArrayElementType(columnTypeName))
+            .element(
+                buildArrayElementType(
+                    columnName,
+                    columnTypeName,
+                    nullableArrayItems,
+                    unsupportedArrayItemsAsString))
             .named(columnName);
+      // Same as dbeam-core's JdbcAvroSchema
+      case STRUCT:
+        throw new RuntimeException("STRUCT type is not supported");
+      case REF:
+      case REF_CURSOR:
+        throw new RuntimeException("REF and REF_CURSOR type are not supported");
+      case DATALINK:
+        throw new RuntimeException("DATALINK type is not supported");
       case OTHER:
         if (useLogicalTypes && "uuid".equals(columnTypeName)) {
           return Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)
@@ -216,38 +479,170 @@ public class JdbcParquetSchema {
     }
   }
 
+  /** Largest DECIMAL precision written as a Parquet DECIMAL with {@code --parquetNativeTypes}. */
+  static final int MAX_NATIVE_DECIMAL_PRECISION = 38;
+
+  /** Whether a DECIMAL/NUMERIC column is written as Parquet DECIMAL with --parquetNativeTypes. */
+  static boolean isNativeDecimal(final int precision, final int scale) {
+    return precision >= 1
+        && precision <= MAX_NATIVE_DECIMAL_PRECISION
+        && scale >= 0
+        && scale <= precision;
+  }
+
+  /** Smallest FIXED_LEN_BYTE_ARRAY length holding any unscaled value of {@code precision}. */
+  static int decimalByteLength(final int precision) {
+    final BigInteger max = BigInteger.TEN.pow(precision);
+    int bytes = 1;
+    while (BigInteger.ONE.shiftLeft(8 * bytes - 1).compareTo(max) < 0) {
+      bytes++;
+    }
+    return bytes;
+  }
+
+  /**
+   * {@code --parquetNativeTypes} mapping: DATE as {@code int32 (DATE)}, TIME/TIME_WITH_TIMEZONE
+   * as {@code TIME(MILLIS|MICROS, true)} ({@code int32} for millis, {@code int64} for micros),
+   * DECIMAL/NUMERIC with precision 1..38 and 0 <= scale <= precision as {@code
+   * fixed_len_byte_array(n) (DECIMAL(p,s))} with the smallest {@code n} for {@code p}. Empty for
+   * other columns, which keep the default mapping.
+   */
+  static Optional<Type> buildNativeFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final boolean useTimestampMicros) {
+    switch (columnType) {
+      case DATE:
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                .as(LogicalTypeAnnotation.dateType())
+                .named(columnName));
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return Optional.of(
+              Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                  .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MICROS))
+                  .named(columnName));
+        }
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                .named(columnName));
+      case DECIMAL:
+      case NUMERIC:
+        if (!isNativeDecimal(precision, scale)) {
+          return Optional.empty();
+        }
+        // Always fixed_len_byte_array (allowed by the Parquet spec for any precision): parquet-avro
+        // maps int32/int64 DECIMAL to plain Avro int/long, which would lose the scale in the
+        // footer Avro schema used by AvroParquetReader (Scio, Beam ParquetIO).
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)
+                .length(decimalByteLength(precision))
+                .as(LogicalTypeAnnotation.decimalType(scale, precision))
+                .named(columnName));
+      default:
+        return Optional.empty();
+    }
+  }
+
   /**
    * Determine the Parquet element type for an ARRAY column based on the column type name. For
-   * PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text). Falls
-   * back to STRING for unrecognized types.
+   * PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text). Element
+   * types other than the integer, floating point, boolean, bytea and string-like types (text,
+   * varchar, bpchar/char, name, uuid) are rejected, instead of being written as strings.
    */
-  static Type buildArrayElementType(final String columnTypeName) {
+  static Type buildArrayElementType(final String columnName, final String columnTypeName) {
+    return buildArrayElementType(columnName, columnTypeName, false);
+  }
+
+  /**
+   * Like {@link #buildArrayElementType(String, String)}; the element is {@code optional} with
+   * {@code nullableArrayItems} and {@code required} without it.
+   */
+  static Type buildArrayElementType(
+      final String columnName, final String columnTypeName, final boolean nullableArrayItems) {
+    return buildArrayElementType(columnName, columnTypeName, nullableArrayItems, false);
+  }
+
+  /**
+   * Like {@link #buildArrayElementType(String, String, boolean)}; with {@code
+   * unsupportedArrayItemsAsString}, unsupported element types become {@code binary (STRING)}
+   * (written with the value's toString()) and a warning is logged, instead of failing.
+   */
+  static Type buildArrayElementType(
+      final String columnName,
+      final String columnTypeName,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString) {
+    final Type.Repetition repetition =
+        nullableArrayItems ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED;
     final String elementType = resolveArrayElementTypeName(columnTypeName);
     switch (elementType) {
       case "int":
       case "int4":
       case "int2":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.INT32, repetition).named("element");
       case "int8":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.INT64, repetition).named("element");
       case "float4":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.FLOAT, repetition).named("element");
       case "float8":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.DOUBLE, repetition).named("element");
       case "bool":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BOOLEAN, repetition)
+            .named("element");
       case "bytea":
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named("element");
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition).named("element");
       default:
-        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+        if (!isStringArrayElementType(elementType)) {
+          if (!unsupportedArrayItemsAsString) {
+            throw new IllegalArgumentException(
+                "columnName="
+                    + columnName
+                    + " ARRAY element type '"
+                    + elementType
+                    + "' (column type '"
+                    + columnTypeName
+                    + "') is not supported for typed Parquet arrays;"
+                    + " use --arrayMode=bytes to export the column as bytes, or"
+                    + " --parquetUnsupportedArrayItemsAsString to write the elements as strings");
+          }
+          LOGGER.warn(
+              "columnName={} ARRAY element type '{}' (column type '{}') has no Parquet mapping;"
+                  + " writing elements as STRING (--parquetUnsupportedArrayItemsAsString)",
+              columnName,
+              elementType,
+              columnTypeName);
+        }
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition)
             .as(LogicalTypeAnnotation.stringType())
             .named("element");
     }
   }
 
+  /** ARRAY element types written as {@code binary (STRING)} with the value's toString(). */
+  static boolean isStringArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "text":
+      case "varchar":
+      case "bpchar":
+      case "char":
+      case "name":
+      case "uuid":
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /**
    * Extract the element type name from an array column type name. PostgreSQL uses underscore prefix
-   * (e.g. _int4 -> int4, _text -> text). H2 and others use "INTEGER ARRAY" style names.
+   * (e.g. _int4 -> int4, _text -> text). H2 and others use "INTEGER ARRAY" style names; unknown
+   * ones resolve to the lower-case base name (e.g. "TIMESTAMP ARRAY" -> timestamp).
    */
   static String resolveArrayElementTypeName(final String columnTypeName) {
     if (columnTypeName == null) {
@@ -256,10 +651,12 @@ public class JdbcParquetSchema {
     if (columnTypeName.startsWith("_")) {
       return columnTypeName.substring(1);
     }
-    // H2 style: "INTEGER ARRAY", "VARCHAR ARRAY", etc.
-    final String lower = columnTypeName.toLowerCase();
-    if (lower.startsWith("integer")) {
+    // H2 style: "INTEGER ARRAY", "CHARACTER VARYING(10) ARRAY", etc.
+    final String lower = columnTypeName.toLowerCase(Locale.ROOT);
+    if (lower.startsWith("integer") || lower.startsWith("int ")) {
       return "int4";
+    } else if (lower.startsWith("smallint") || lower.startsWith("tinyint")) {
+      return "int2";
     } else if (lower.startsWith("bigint")) {
       return "int8";
     } else if (lower.startsWith("real") || lower.startsWith("float")) {
@@ -268,8 +665,18 @@ public class JdbcParquetSchema {
       return "float8";
     } else if (lower.startsWith("boolean")) {
       return "bool";
+    } else if (lower.startsWith("binary") || lower.startsWith("varbinary")) {
+      return "bytea";
+    } else if (lower.startsWith("uuid")) {
+      return "uuid";
+    } else if (lower.startsWith("char")
+        || lower.startsWith("varchar")
+        || lower.startsWith("clob")
+        || lower.startsWith("text")) {
+      // includes "character", "character varying", "character large object"
+      return "text";
     }
-    return "text";
+    return lower.replaceAll("\\(.*?\\)", "").replaceAll("\\s+array$", "").trim();
   }
 
   static String normalizeFieldName(final String input) {
