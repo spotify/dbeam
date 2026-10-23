@@ -230,6 +230,57 @@ public class JdbcParquetJobTest {
     Assertions.assertEquals(List.of(expectedMicros), column.values);
   }
 
+  @Test
+  public void shouldKeepJdbcFieldPropertiesInFooterAvroSchema() throws Exception {
+    final Path parquetFile = runTimestampExport("shouldKeepJdbcFieldPropertiesInFooter");
+
+    final Schema avsc =
+        new Schema.Parser().parse(parquetFile.resolveSibling("_AVRO_SCHEMA.avsc").toFile());
+    Assertions.assertEquals("TS_MICROS", avsc.getProp("tableName"));
+    Assertions.assertTrue(
+        avsc.getProp("connectionUrl").startsWith("jdbc:h2:mem:"), avsc.getProp("connectionUrl"));
+    final Schema.Field createdAt = avsc.getField("CREATED_AT");
+    Assertions.assertEquals("CREATED_AT", createdAt.getProp("columnName"));
+    Assertions.assertEquals("93", createdAt.getProp("sqlCode"));
+    Assertions.assertEquals("TIMESTAMP", createdAt.getProp("typeName"));
+    Assertions.assertEquals("java.sql.Timestamp", createdAt.getProp("columnClassName"));
+    Assertions.assertTrue(createdAt.doc().startsWith("From sqlType 93 TIMESTAMP"), createdAt.doc());
+    Assertions.assertEquals(avsc.toString(), readFooterAvroSchema(parquetFile));
+  }
+
+  @Test
+  public void shouldKeepJdbcFieldPropertiesForRenamedSchemaFileFields() throws Exception {
+    final Path schemaFile = testDir.resolve("renamed_fields_schema.parquet.txt");
+    Files.write(
+        schemaFile,
+        ("message renamed {\n"
+                + "  optional int32 id_renamed;\n"
+                + "  optional int64 created_renamed (TIMESTAMP(MILLIS,true));\n"
+                + "}")
+            .getBytes());
+
+    final Path parquetFile =
+        runTimestampExport(
+            "shouldKeepJdbcFieldPropertiesForRenamedSchemaFileFields",
+            "--parquetSchemaFilePath=" + schemaFile);
+
+    final Schema avsc =
+        new Schema.Parser().parse(parquetFile.resolveSibling("_AVRO_SCHEMA.avsc").toFile());
+    Assertions.assertNull(avsc.getField("CREATED_AT"));
+    Assertions.assertEquals("CREATED_AT", avsc.getField("created_renamed").getProp("columnName"));
+    Assertions.assertEquals("ID", avsc.getField("id_renamed").getProp("columnName"));
+  }
+
+  private static String readFooterAvroSchema(final Path parquetFile) throws IOException {
+    try (ParquetFileReader reader =
+        ParquetFileReader.open(
+            HadoopInputFile.fromPath(
+                new org.apache.hadoop.fs.Path(parquetFile.toUri()),
+                new org.apache.hadoop.conf.Configuration()))) {
+      return reader.getFooter().getFileMetaData().getKeyValueMetaData().get("parquet.avro.schema");
+    }
+  }
+
   private static Path unannotatedTimestampSchemaFile() throws IOException {
     final Path schemaFile = testDir.resolve("ts_unannotated_schema.parquet.txt");
     Files.write(

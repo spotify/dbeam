@@ -420,6 +420,25 @@ public class JdbcParquetSchemaTest {
         Assertions.assertTrue(
             e.getMessage().contains("element type '" + typeName[1] + "'"), e.getMessage());
         Assertions.assertTrue(e.getMessage().contains("--arrayMode=bytes"), e.getMessage());
+        Assertions.assertTrue(
+            e.getMessage().contains("--parquetUnsupportedArrayItemsAsString"), e.getMessage());
+      }
+    }
+  }
+
+  @Test
+  public void shouldWriteUnsupportedArrayElementTypesAsStringWhenEnabled() {
+    for (String typeName : new String[] {"_timestamp", "_numeric", "_json", "TIMESTAMP ARRAY"}) {
+      for (boolean nullable : new boolean[] {false, true}) {
+        final Type element =
+            JdbcParquetSchema.buildArrayElementType("my_col", typeName, nullable, true);
+        Assertions.assertEquals(PrimitiveType.PrimitiveTypeName.BINARY, element.asPrimitiveType()
+            .getPrimitiveTypeName());
+        Assertions.assertEquals(
+            LogicalTypeAnnotation.stringType(), element.getLogicalTypeAnnotation());
+        Assertions.assertEquals(
+            nullable ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED,
+            element.getRepetition());
       }
     }
   }

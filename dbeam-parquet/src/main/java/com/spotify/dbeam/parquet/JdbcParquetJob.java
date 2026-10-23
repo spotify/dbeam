@@ -151,6 +151,8 @@ public class JdbcParquetJob {
     final boolean nativeTypes = parquetOptions.isParquetNativeTypes();
     final boolean nullableArrayItems =
         Boolean.TRUE.equals(jdbcExportArgs.jdbcAvroOptions().nullableArrayItems());
+    final boolean unsupportedArrayItemsAsString =
+        parquetOptions.isParquetUnsupportedArrayItemsAsString();
     try (Connection connection = jdbcExportArgs.createConnection()) {
       final String schemaFilePath =
           pipelineOptions.as(ParquetPipelineOptions.class).getParquetSchemaFilePath();
@@ -159,10 +161,20 @@ public class JdbcParquetJob {
       if (inputSchema.isPresent()) {
         final long startTime = System.nanoTime();
         generatedSchema = inputSchema.get();
-        validateInputSchema(
-            connection, generatedSchema, arrayMode, nativeTypes, nullableArrayItems);
-        avroSchema =
-            footerAvroSchema(() -> deriveFooterAvroSchema(generatedSchema, connection));
+        try (Statement stmt = connection.createStatement()) {
+          final ResultSet rs =
+              stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
+          rs.next();
+          validateInputSchema(
+              rs,
+              generatedSchema,
+              arrayMode,
+              nativeTypes,
+              nullableArrayItems,
+              unsupportedArrayItemsAsString);
+          avroSchema =
+              footerAvroSchema(() -> deriveFooterAvroSchema(generatedSchema, connection, rs));
+        }
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       } else {
         // Query DB once for both Parquet and Avro schemas
@@ -179,11 +191,12 @@ public class JdbcParquetJob {
                   jdbcExportArgs.useTimestampMicros(),
                   arrayMode,
                   nativeTypes,
-                  nullableArrayItems);
+                  nullableArrayItems,
+                  unsupportedArrayItemsAsString);
           final MessageType writeSchema = generatedSchema;
           avroSchema =
               footerAvroSchema(
-                  () -> deriveFooterAvroSchema(writeSchema, connection));
+                  () -> deriveFooterAvroSchema(writeSchema, connection, rs));
         }
         BeamJdbcParquetSchema.exposeSchemaMetrics(pipeline, System.nanoTime() - startTime);
       }
@@ -276,53 +289,51 @@ public class JdbcParquetJob {
 
   /**
    * Fail fast if the schema from --parquetSchemaFilePath does not match what the writers emit for
-   * the JDBC result set. See {@link ParquetSchemaValidator} for the rules. This is the only
-   * metadata query on the schema-file path; the footer Avro schema is derived from the schema
-   * file itself.
+   * the JDBC result set. See {@link ParquetSchemaValidator} for the rules.
    */
   private void validateInputSchema(
-      final Connection connection,
+      final ResultSet rs,
       final MessageType inputSchema,
       final String arrayMode,
       final boolean nativeTypes,
-      final boolean nullableArrayItems)
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString)
       throws Exception {
-    try (Statement stmt = connection.createStatement()) {
-      final ResultSet rs =
-          stmt.executeQuery(jdbcExportArgs.queryBuilderArgs().sqlQueryWithLimitOne());
-      rs.next();
-      final boolean micros = jdbcExportArgs.useTimestampMicros();
-      final MessageType derived =
-          JdbcParquetSchema.createParquetSchema(
-              rs,
-              jdbcExportArgs.avroSchemaName(),
-              false,
-              micros,
-              arrayMode,
-              nativeTypes,
-              nullableArrayItems);
-      final MessageType derivedLogical =
-          JdbcParquetSchema.createParquetSchema(
-              rs,
-              jdbcExportArgs.avroSchemaName(),
-              true,
-              micros,
-              arrayMode,
-              nativeTypes,
-              nullableArrayItems);
-      ParquetSchemaValidator.validate(
-          inputSchema,
-          derived,
-          derivedLogical,
-          jdbcExportArgs.useAvroLogicalTypes() ? derivedLogical : derived);
-    }
+    final boolean micros = jdbcExportArgs.useTimestampMicros();
+    final MessageType derived =
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            jdbcExportArgs.avroSchemaName(),
+            false,
+            micros,
+            arrayMode,
+            nativeTypes,
+            nullableArrayItems,
+            unsupportedArrayItemsAsString);
+    final MessageType derivedLogical =
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            jdbcExportArgs.avroSchemaName(),
+            true,
+            micros,
+            arrayMode,
+            nativeTypes,
+            nullableArrayItems,
+            unsupportedArrayItemsAsString);
+    ParquetSchemaValidator.validate(
+        inputSchema,
+        derived,
+        derivedLogical,
+        jdbcExportArgs.useAvroLogicalTypes() ? derivedLogical : derived);
   }
 
   /**
    * The footer Avro schema is derived from the Parquet schema used for writing, so it always
-   * describes the actual columns (see {@link ParquetAvroSchema}).
+   * describes the actual columns (see {@link ParquetAvroSchema}), with dbeam's JDBC field
+   * properties taken from {@code rs}.
    */
-  private Schema deriveFooterAvroSchema(final MessageType schema, final Connection connection)
+  private Schema deriveFooterAvroSchema(
+      final MessageType schema, final Connection connection, final ResultSet rs)
       throws SQLException {
     final String dbUrl = connection.getMetaData().getURL();
     final String avroDoc =
@@ -330,7 +341,8 @@ public class JdbcParquetJob {
             .avroDoc()
             .orElseGet(() -> String.format("Generate schema from JDBC ResultSet from %s", dbUrl));
     final Schema avroSchema =
-        ParquetAvroSchema.toAvroSchema(schema, jdbcExportArgs.avroSchemaNamespace(), avroDoc);
+        ParquetAvroSchema.toAvroSchema(
+            schema, jdbcExportArgs.avroSchemaNamespace(), avroDoc, rs.getMetaData(), dbUrl);
     LOGGER.info("Footer Avro schema derived from Parquet schema: {}", avroSchema);
     return avroSchema;
   }

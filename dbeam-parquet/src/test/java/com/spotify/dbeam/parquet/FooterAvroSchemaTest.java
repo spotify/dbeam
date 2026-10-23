@@ -209,9 +209,12 @@ public class FooterAvroSchemaTest {
     Assertions.assertEquals(
         Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)),
         nums.getElementType());
-    // minimal schema: no per-field docs/props or record props
-    Assertions.assertNull(schema.getField("TS").doc());
-    Assertions.assertTrue(schema.getObjectProps().isEmpty());
+    // dbeam's JDBC docs and props, as in the Avro export
+    Assertions.assertTrue(
+        schema.getField("TS").doc().startsWith("From sqlType 93"), schema.getField("TS").doc());
+    Assertions.assertEquals("TS", schema.getField("TS").getProp("columnName"));
+    Assertions.assertNotNull(schema.getProp("tableName"));
+    Assertions.assertNotNull(schema.getProp("connectionUrl"));
     final Instant ts = TS.toInstant(ZoneOffset.UTC);
     assertAllKinds(
         records,

@@ -175,6 +175,34 @@ public class JdbcParquetSchema {
       final boolean nativeTypes,
       final boolean nullableArrayItems)
       throws SQLException {
+    return createParquetSchema(
+        resultSet,
+        maybeSchemaName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        nullableArrayItems,
+        false);
+  }
+
+  /**
+   * Creates the Parquet schema for a result set.
+   *
+   * @param unsupportedArrayItemsAsString {@code --parquetUnsupportedArrayItemsAsString}: typed
+   *     LIST elements without a Parquet mapping (e.g. numeric, timestamp, date, json) become
+   *     {@code binary (STRING)} instead of failing.
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString)
+      throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
     final String schemaName = maybeSchemaName.orElse(tableName);
@@ -210,7 +238,8 @@ public class JdbcParquetSchema {
               useTimestampMicros,
               arrayMode,
               nativeTypes,
-              nullableArrayItems));
+              nullableArrayItems,
+              unsupportedArrayItemsAsString));
     }
 
     checkUniqueFieldNames(columnsByFieldName);
@@ -328,6 +357,34 @@ public class JdbcParquetSchema {
       final String arrayMode,
       final boolean nativeTypes,
       final boolean nullableArrayItems) {
+    return buildParquetFieldType(
+        columnName,
+        columnType,
+        precision,
+        scale,
+        columnClassName,
+        columnTypeName,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nativeTypes,
+        nullableArrayItems,
+        false);
+  }
+
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nativeTypes,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString) {
     if (nativeTypes) {
       final Optional<Type> nativeType =
           buildNativeFieldType(columnName, columnType, precision, scale, useTimestampMicros);
@@ -386,7 +443,12 @@ public class JdbcParquetSchema {
         // Parquet 3-level LIST convention with typed elements.
         // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()
-            .element(buildArrayElementType(columnName, columnTypeName, nullableArrayItems))
+            .element(
+                buildArrayElementType(
+                    columnName,
+                    columnTypeName,
+                    nullableArrayItems,
+                    unsupportedArrayItemsAsString))
             .named(columnName);
       // Same as dbeam-core's JdbcAvroSchema
       case STRUCT:
@@ -503,6 +565,19 @@ public class JdbcParquetSchema {
    */
   static Type buildArrayElementType(
       final String columnName, final String columnTypeName, final boolean nullableArrayItems) {
+    return buildArrayElementType(columnName, columnTypeName, nullableArrayItems, false);
+  }
+
+  /**
+   * Like {@link #buildArrayElementType(String, String, boolean)}; with {@code
+   * unsupportedArrayItemsAsString}, unsupported element types become {@code binary (STRING)}
+   * (written with the value's toString()) and a warning is logged, instead of failing.
+   */
+  static Type buildArrayElementType(
+      final String columnName,
+      final String columnTypeName,
+      final boolean nullableArrayItems,
+      final boolean unsupportedArrayItemsAsString) {
     final Type.Repetition repetition =
         nullableArrayItems ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED;
     final String elementType = resolveArrayElementTypeName(columnTypeName);
@@ -524,15 +599,24 @@ public class JdbcParquetSchema {
         return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition).named("element");
       default:
         if (!isStringArrayElementType(elementType)) {
-          throw new IllegalArgumentException(
-              "columnName="
-                  + columnName
-                  + " ARRAY element type '"
-                  + elementType
-                  + "' (column type '"
-                  + columnTypeName
-                  + "') is not supported for typed Parquet arrays;"
-                  + " use --arrayMode=bytes to export the column as bytes");
+          if (!unsupportedArrayItemsAsString) {
+            throw new IllegalArgumentException(
+                "columnName="
+                    + columnName
+                    + " ARRAY element type '"
+                    + elementType
+                    + "' (column type '"
+                    + columnTypeName
+                    + "') is not supported for typed Parquet arrays;"
+                    + " use --arrayMode=bytes to export the column as bytes, or"
+                    + " --parquetUnsupportedArrayItemsAsString to write the elements as strings");
+          }
+          LOGGER.warn(
+              "columnName={} ARRAY element type '{}' (column type '{}') has no Parquet mapping;"
+                  + " writing elements as STRING (--parquetUnsupportedArrayItemsAsString)",
+              columnName,
+              elementType,
+              columnTypeName);
         }
         return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition)
             .as(LogicalTypeAnnotation.stringType())

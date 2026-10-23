@@ -275,6 +275,24 @@ public class JdbcParquetWriteSupportTest {
   }
 
   @Test
+  public void shouldWriteUnsupportedArrayElementAsStringOnlyForStringSchemaElement() {
+    final org.apache.parquet.schema.Type stringList =
+        org.apache.parquet.schema.Types.optionalList()
+            .element(JdbcParquetSchema.buildArrayElementType("arr", "_timestamp", false, true))
+            .named("arr");
+    Assertions.assertEquals(
+        "text", JdbcParquetWriteSupport.writtenArrayElementType("timestamp", stringList));
+    final org.apache.parquet.schema.Type intList =
+        org.apache.parquet.schema.Types.optionalList()
+            .element(JdbcParquetSchema.buildArrayElementType("arr", "_int4", false))
+            .named("arr");
+    Assertions.assertEquals(
+        "timestamp", JdbcParquetWriteSupport.writtenArrayElementType("timestamp", intList));
+    Assertions.assertEquals(
+        "int4", JdbcParquetWriteSupport.writtenArrayElementType("int4", stringList));
+  }
+
+  @Test
   public void shouldOmitFooterAvroSchemaWhenGenerationFails() {
     Assertions.assertNull(
         JdbcParquetJob.footerAvroSchema(

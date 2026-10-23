@@ -52,6 +52,15 @@ public interface ParquetPipelineOptions extends PipelineOptions {
 
   void setParquetNativeTypes(Boolean value);
 
+  @Default.Boolean(false)
+  @Description(
+      "With a typed --arrayMode, write ARRAY elements of types without a Parquet mapping (e.g."
+          + " numeric, timestamp, date, json) as STRING using the JDBC driver's toString() of each"
+          + " element, logging a warning per column, instead of failing. Default: false.")
+  Boolean isParquetUnsupportedArrayItemsAsString();
+
+  void setParquetUnsupportedArrayItemsAsString(Boolean value);
+
   @Description(
       "Parquet row group size in bytes. Larger values improve read performance "
           + "but use more memory during writes.")

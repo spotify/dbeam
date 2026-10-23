@@ -100,7 +100,11 @@ Array element types are inferred from the column type name. For PostgreSQL, the 
 
 Any other element type (e.g. `_timestamp`, `_date`, `_numeric`, `_json`, `TIMESTAMP ARRAY`) fails
 schema generation, before any output is written, with an error naming the column and the element
-type. Use `--arrayMode=bytes` to export such columns as bytes.
+type. Use `--arrayMode=bytes` to export such columns as bytes, or
+`--parquetUnsupportedArrayItemsAsString` (default `false`) to write the elements as BINARY (STRING)
+using the JDBC driver's `toString()` of each element; a warning naming the column is logged. The
+string format is driver-specific (e.g. a timestamp's `java.sql.Timestamp.toString()`), and nothing
+in the schema marks such a column as converted.
 
 Multidimensional arrays (e.g. `int4[][]`, `bytea[][]`) are not supported with typed arrays: the
 JDBC metadata does not expose the number of dimensions, so the export fails on the first such
@@ -113,11 +117,14 @@ is null in column '<column>', use --nullableArrayItems` before any part of that 
 
 #### Footer Avro schema (`parquet.avro.schema`)
 
-The Avro schema stored in the `parquet.avro.schema` footer key, and saved as `_AVRO_SCHEMA.avsc`
-(identical content), is derived from the Parquet schema actually used for writing, including a
-schema given with `--parquetSchemaFilePath`. It therefore always describes the written columns,
-and `AvroParquetReader` (Scio, Beam `ParquetIO`, Spark with parquet-avro) can decode the files
-with it. The conversion is parquet-avro's `AvroSchemaConverter`, configured with
+The Avro schema in each file's `parquet.avro.schema` footer key, and in `_AVRO_SCHEMA.avsc`
+(identical content), is generated from the Parquet schema used for writing. When
+`--parquetSchemaFilePath` is given, it reflects that file's field names and annotations. It
+therefore always describes the written columns, and `AvroParquetReader` (Scio, Beam `ParquetIO`,
+Spark with parquet-avro) can decode the files with it. As in the Avro export, the record has
+`tableName` and `connectionUrl` properties, and each field has a `From sqlType ...` doc and
+`columnName`, `sqlCode`, `typeName`, `columnClassName` and `columnTypeName` properties, taken
+from the JDBC metadata by column position. The conversion is parquet-avro's `AvroSchemaConverter`, configured with
 `parquet.avro.add-list-element-records=false` so lists map directly to Avro arrays:
 
 | **Parquet type**                               | **Avro type**                                    |

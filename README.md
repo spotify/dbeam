@@ -48,6 +48,7 @@ Type conversion details: [Avro](docs/type-conversion.md) | [Parquet](docs/parque
 - `--parquetCodec` option (default `snappy`, `zstd1` .. `zstd22` for a Zstandard level); `--avroCodec` is ignored
 - Optional input schema file via `--parquetSchemaFilePath` (Parquet MessageType text format), validated against the JDBC metadata: it may rename fields and change compatible annotations only (see [rules](docs/parquet-type-conversion.md#input-schema-file---parquetschemafilepath)); `--avroSchemaFilePath` is rejected on Parquet jobs
 - Optional native Parquet DATE, TIME and DECIMAL types via `--parquetNativeTypes` (see [native types](docs/parquet-type-conversion.md#native-parquet-types---parquetnativetypes))
+- Typed ARRAY element types without a Parquet mapping fail by default; `--parquetUnsupportedArrayItemsAsString` writes them as strings instead
 - PostgreSQL replication check via `PsqlParquetJob`
 
 ### DBeam export parameters

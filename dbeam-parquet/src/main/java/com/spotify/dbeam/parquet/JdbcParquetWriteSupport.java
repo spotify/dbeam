@@ -65,6 +65,7 @@ import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
 /**
@@ -286,7 +287,9 @@ public class JdbcParquetWriteSupport {
           };
         }
         final String arrayElementType =
-            JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column));
+            writtenArrayElementType(
+                JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column)),
+                fieldType);
         final boolean nullableItems = hasOptionalListElement(fieldType);
         return (consumer, rs) -> {
           final java.sql.Array sqlArray = rs.getArray(column);
@@ -518,6 +521,44 @@ public class JdbcParquetWriteSupport {
    * --nullableArrayItems}). Elements of the derived schema are {@code required} without the flag,
    * and a schema file must agree (see {@link ParquetSchemaValidator}).
    */
+  /**
+   * An element type without a Parquet mapping is written as a string (toString()) when the schema
+   * declares the element as {@code binary (STRING)}, which only {@code
+   * --parquetUnsupportedArrayItemsAsString} produces; otherwise it is kept, and rejected on write.
+   */
+  static String writtenArrayElementType(final String elementType, final Type fieldType) {
+    if (isKnownArrayElementType(elementType) || fieldType == null || fieldType.isPrimitive()) {
+      return elementType;
+    }
+    final Type repeated = fieldType.asGroupType().getType(0);
+    if (repeated.isPrimitive() || repeated.asGroupType().getFieldCount() == 0) {
+      return elementType;
+    }
+    final Type element = repeated.asGroupType().getType(0);
+    final boolean isString =
+        element.isPrimitive()
+            && element.asPrimitiveType().getPrimitiveTypeName()
+                == PrimitiveType.PrimitiveTypeName.BINARY
+            && LogicalTypeAnnotation.stringType().equals(element.getLogicalTypeAnnotation());
+    return isString ? "text" : elementType;
+  }
+
+  private static boolean isKnownArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+      case "int8":
+      case "float4":
+      case "float8":
+      case "bool":
+      case "bytea":
+        return true;
+      default:
+        return JdbcParquetSchema.isStringArrayElementType(elementType);
+    }
+  }
+
   static boolean hasOptionalListElement(final Type fieldType) {
     if (fieldType == null || fieldType.isPrimitive()) {
       return true;

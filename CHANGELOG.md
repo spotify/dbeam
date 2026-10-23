@@ -25,7 +25,9 @@
   - SQL ARRAY columns use Parquet 3-level LIST type with typed elements (INT32, INT64, FLOAT,
     DOUBLE, BOOLEAN, BINARY, STRING) inferred from column type name. Other element types
     (timestamp, date, numeric, json, ...) fail schema generation naming the column and element
-    type (use `--arrayMode=bytes`) instead of being written as strings. Multidimensional
+    type (use `--arrayMode=bytes`) instead of being written as strings;
+    `--parquetUnsupportedArrayItemsAsString` opts into writing them as STRING (each element's
+    `toString()`, with a warning per column). Multidimensional
     arrays fail with an error naming the column before anything of the value is written.
     List elements follow `--nullableArrayItems` like the Avro export: `required` by default
     (a NULL item fails with the Avro export's error), `optional` with the flag.
@@ -35,8 +37,10 @@
     it always matches the written columns and `AvroParquetReader` can decode the files: LIST items
     are nullable (`array<["null", T]>`, no wrapper record), UUID is `string`/`uuid`,
     typed_first_row array element types follow the Parquet schema, and a NULL first-row ARRAY no
-    longer drops the key. Only the top-level record's name, namespace and doc are set by dbeam;
-    no record or per-field properties are added. If the Avro schema cannot be derived (e.g. INT96
+    longer drops the key. The record and field docs and properties (`tableName`, `connectionUrl`,
+    `columnName`, `sqlCode`, `typeName`, `columnClassName`, `columnTypeName`) are added from the
+    JDBC metadata as in the Avro export, matched to columns by position so schema-file names are
+    kept. If the Avro schema cannot be derived (e.g. INT96
     or invalid Avro names in a schema file), the key is omitted and the export continues.
   - `_AVRO_SCHEMA.avsc` file saved alongside `_PARQUET_SCHEMA.json` in output directory,
     identical to the footer schema.
