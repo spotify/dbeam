@@ -140,14 +140,19 @@ run_docker_dbeam_parquet_jdbc() {
 
 # Classpath for the Java Parquet verifiers. The shaded jar includes parquet-avro, but
 # AvroParquetReader also needs hadoop-mapreduce-client-core, which is test-scoped, so add the
-# test classpath. Computed once per e2e run.
+# test classpath. Computed once per e2e run, in the reactor (-am, after test-compile) so the
+# dbeam-core SNAPSHOT jar and test-jar resolve to its target/ directories instead of the local
+# Maven repository, where a clean CI cache does not have them. Each module writes its own
+# target/verify-classpath.txt; dbeam-parquet's is the one used.
 parquetVerifierClasspath() {
   local VERIFY_CP_FILE
   VERIFY_CP_FILE="$SCRIPT_PATH/results/verify_parquet_classpath.txt"
   if [[ ! -s "$VERIFY_CP_FILE" ]]; then
     mkdir -p "$SCRIPT_PATH/results"
-    (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet dependency:build-classpath \
-      -Dmdep.includeScope=test "-Dmdep.outputFile=$VERIFY_CP_FILE") >&2
+    (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet -am test-compile \
+      dependency:build-classpath -Dmdep.includeScope=test \
+      -Dmdep.outputFile=target/verify-classpath.txt) >&2
+    cp "$PROJECT_PATH/dbeam-parquet/target/verify-classpath.txt" "$VERIFY_CP_FILE"
   fi
   echo "$PROJECT_PATH/dbeam-parquet/target/dbeam-parquet-shaded.jar:$(cat "$VERIFY_CP_FILE")"
 }

@@ -517,14 +517,11 @@ public class JdbcParquetWriteSupport {
   }
 
   /**
-   * Whether the LIST element of {@code fieldType} is {@code optional} ({@code
-   * --nullableArrayItems}). Elements of the derived schema are {@code required} without the flag,
-   * and a schema file must agree (see {@link ParquetSchemaValidator}).
-   */
-  /**
    * An element type without a Parquet mapping is written as a string (toString()) when the schema
-   * declares the element as {@code binary (STRING)}, which only {@code
-   * --parquetUnsupportedArrayItemsAsString} produces; otherwise it is kept, and rejected on write.
+   * declares the element as {@code binary}: {@code STRING} as derived with {@code
+   * --parquetUnsupportedArrayItemsAsString}, or the unannotated, {@code JSON} or {@code ENUM}
+   * binary a schema file may use instead (see {@link ParquetSchemaValidator}). Without the flag no
+   * such schema passes validation, so the type is kept and rejected on write.
    */
   static String writtenArrayElementType(final String elementType, final Type fieldType) {
     if (isKnownArrayElementType(elementType) || fieldType == null || fieldType.isPrimitive()) {
@@ -535,12 +532,11 @@ public class JdbcParquetWriteSupport {
       return elementType;
     }
     final Type element = repeated.asGroupType().getType(0);
-    final boolean isString =
+    final boolean isBinary =
         element.isPrimitive()
             && element.asPrimitiveType().getPrimitiveTypeName()
-                == PrimitiveType.PrimitiveTypeName.BINARY
-            && LogicalTypeAnnotation.stringType().equals(element.getLogicalTypeAnnotation());
-    return isString ? "text" : elementType;
+                == PrimitiveType.PrimitiveTypeName.BINARY;
+    return isBinary ? "text" : elementType;
   }
 
   private static boolean isKnownArrayElementType(final String elementType) {
@@ -559,6 +555,11 @@ public class JdbcParquetWriteSupport {
     }
   }
 
+  /**
+   * Whether the LIST element of {@code fieldType} is {@code optional} ({@code
+   * --nullableArrayItems}). Elements of the derived schema are {@code required} without the flag,
+   * and a schema file must agree (see {@link ParquetSchemaValidator}).
+   */
   static boolean hasOptionalListElement(final Type fieldType) {
     if (fieldType == null || fieldType.isPrimitive()) {
       return true;

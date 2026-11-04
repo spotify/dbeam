@@ -417,6 +417,13 @@ public class JdbcAvroSchema {
         return field.intType();
       case "int8":
         return field.longType();
+      // PostgreSQL JDBC returns Boolean, Float and Double elements, which the converter writes
+      case "bool":
+        return field.booleanType();
+      case "float4":
+        return field.floatType();
+      case "float8":
+        return field.doubleType();
       case "varchar":
       case "text":
         return field.stringType();

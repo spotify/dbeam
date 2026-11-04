@@ -328,6 +328,41 @@ public class ParquetAvroSchemaTest {
   }
 
   @Test
+  public void shouldRoundTripUnsupportedArrayItemsAsStringForEveryAcceptedElementAnnotation()
+      throws Exception {
+    final Object[] values = {new java.math.BigDecimal("1.50"), new java.math.BigDecimal("-2")};
+    for (String annotation : new String[] {" (STRING)", "", " (JSON)", " (ENUM)"}) {
+      final ResultSet rs = arrayResultSet("_numeric", values);
+      final MessageType derived =
+          JdbcParquetSchema.createParquetSchema(
+              rs, Optional.empty(), false, false, "typed_postgres", false, false, true);
+      final MessageType derivedLogical =
+          JdbcParquetSchema.createParquetSchema(
+              rs, Optional.empty(), true, false, "typed_postgres", false, false, true);
+      final MessageType provided =
+          MessageTypeParser.parseMessageType(
+              "message t { optional group arr (LIST) { repeated group list {"
+                  + " required binary element" + annotation + "; } } }");
+      ParquetSchemaValidator.validate(provided, derived, derivedLogical);
+
+      final List<GenericRecord> records = writeAndRead(provided, rs, "typed_postgres", 2);
+      // an unannotated binary element reads back as Avro bytes
+      final List<String> written =
+          items(records.get(0)).stream()
+              .map(
+                  o ->
+                      o instanceof java.nio.ByteBuffer
+                          ? java.nio.charset.StandardCharsets.UTF_8
+                              .decode((java.nio.ByteBuffer) o)
+                              .toString()
+                          : o.toString())
+              .collect(Collectors.toList());
+      Assertions.assertEquals(List.of("1.50", "-2"), written, annotation);
+      Assertions.assertNull(records.get(1).get("arr"), annotation);
+    }
+  }
+
+  @Test
   public void shouldRoundTripTextArrayWithNullElements() throws Exception {
     for (String mode : new String[] {"typed_first_row", "typed_postgres"}) {
       final ResultSet rs = arrayResultSet("_text", new String[] {"a", null, "c"});
