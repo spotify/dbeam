@@ -424,8 +424,12 @@ public class JdbcAvroSchema {
         return field.floatType();
       case "float8":
         return field.doubleType();
+      // PostgreSQL JDBC returns String elements for these, which the converter writes
       case "varchar":
       case "text":
+      case "bpchar":
+      case "json":
+      case "jsonb":
         return field.stringType();
       default:
         throw new RuntimeException("columnName=" + columnName + " Postgres type '"

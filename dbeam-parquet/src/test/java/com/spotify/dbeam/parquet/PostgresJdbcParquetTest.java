@@ -137,8 +137,8 @@ public class PostgresJdbcParquetTest {
             RuntimeException.class,
             () -> writeAndVerify(false, true, schema, resultSet, tempFile, record -> {}));
     Assertions.assertTrue(
-        e.getMessage().contains("Value 1234.567 in column 'numeric_field' has more than 2"),
-        e.getMessage());
+        e.getMessage().contains("column 'numeric_field' has more than 2"), e.getMessage());
+    Assertions.assertFalse(e.getMessage().contains("1234.567"), e.getMessage());
     Files.deleteIfExists(tempFile);
   }
 

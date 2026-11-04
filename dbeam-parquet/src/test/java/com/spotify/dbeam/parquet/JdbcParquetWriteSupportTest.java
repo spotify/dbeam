@@ -330,8 +330,9 @@ public class JdbcParquetWriteSupportTest {
                 JdbcParquetWriteSupport.unscaledDecimal(
                     new java.math.BigDecimal("1000.00"), 5, 2, "price"));
     Assertions.assertTrue(
-        precision.getMessage().contains("exceeds the precision of DECIMAL(5,2)"),
+        precision.getMessage().contains("'price' exceeds the precision of DECIMAL(5,2)"),
         precision.getMessage());
+    Assertions.assertFalse(precision.getMessage().contains("1000"), precision.getMessage());
     final IllegalArgumentException rounding =
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -339,7 +340,9 @@ public class JdbcParquetWriteSupportTest {
                 JdbcParquetWriteSupport.unscaledDecimal(
                     new java.math.BigDecimal("1.234"), 5, 2, "price"));
     Assertions.assertTrue(
-        rounding.getMessage().contains("more than 2 fractional digits"), rounding.getMessage());
+        rounding.getMessage().contains("'price' has more than 2 fractional digits"),
+        rounding.getMessage());
+    Assertions.assertFalse(rounding.getMessage().contains("1.234"), rounding.getMessage());
   }
 
   @Test

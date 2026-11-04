@@ -8,8 +8,8 @@
   Parquet schemas. `--useAvroLogicalTypes` remains supported as a deprecated alias; setting
   both to conflicting values fails with an error.
 - `--arrayMode=typed_postgres` (Avro): PostgreSQL `bool[]`, `float4[]` and `float8[]` columns
-  map to `array<boolean>`, `array<float>` and `array<double>` instead of failing schema
-  generation.
+  map to `array<boolean>`, `array<float>` and `array<double>`, and `json[]`, `jsonb[]` and
+  `char(n)[]` (`bpchar`) to `array<string>`, instead of failing schema generation.
 - **dbeam-parquet module**: New module for exporting SQL databases directly to Parquet files,
   complementing the existing Avro export in dbeam-core.
   - `JdbcParquetJob`: Main entry point for Parquet exports, reuses all shared infrastructure

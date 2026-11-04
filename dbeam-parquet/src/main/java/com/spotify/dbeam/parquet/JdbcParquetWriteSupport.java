@@ -457,7 +457,8 @@ public class JdbcParquetWriteSupport {
   /**
    * Unscaled value of {@code value} at {@code scale}. Fails instead of rounding or truncating if
    * the value has more fractional digits than {@code scale} or more digits than {@code
-   * precision}.
+   * precision}. The error messages leave out the value so that row data does not end up in task
+   * exceptions.
    */
   static BigInteger unscaledDecimal(
       final BigDecimal value, final int precision, final int scale, final String column) {
@@ -467,16 +468,16 @@ public class JdbcParquetWriteSupport {
     } catch (ArithmeticException e) {
       throw new IllegalArgumentException(
           String.format(
-              "Value %s in column '%s' has more than %d fractional digits and cannot be written"
+              "A value in column '%s' has more than %d fractional digits and cannot be written"
                   + " as DECIMAL(%d,%d) without rounding",
-              value.toPlainString(), column, scale, precision, scale),
+              column, scale, precision, scale),
           e);
     }
     if (rescaled.precision() > precision && rescaled.signum() != 0) {
       throw new IllegalArgumentException(
           String.format(
-              "Value %s in column '%s' exceeds the precision of DECIMAL(%d,%d)",
-              value.toPlainString(), column, precision, scale));
+              "A value in column '%s' exceeds the precision of DECIMAL(%d,%d)",
+              column, precision, scale));
     }
     return rescaled.unscaledValue();
   }
