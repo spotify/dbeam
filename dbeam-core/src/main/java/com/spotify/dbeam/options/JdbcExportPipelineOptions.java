@@ -81,15 +81,30 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setAvroDoc(String value);
 
-  @Default.Boolean(false)
-  @Description("Controls whether generated Avro schema will contain logicalTypes or not.")
+  @Description(
+      "Controls whether the generated schema (Avro or Parquet) will contain logical types "
+          + "or not. Default: false.")
+  Boolean isUseLogicalTypes();
+
+  void setUseLogicalTypes(Boolean value);
+
+  /**
+   * Deprecated alias of {@link #isUseLogicalTypes()}.
+   *
+   * @deprecated use {@code --useLogicalTypes} instead.
+   */
+  @Deprecated
+  @Description(
+      "Deprecated alias of --useLogicalTypes, still supported. Controls whether generated "
+          + "schema will contain logicalTypes or not. Default: false.")
   Boolean isUseAvroLogicalTypes();
 
+  @Deprecated
   void setUseAvroLogicalTypes(Boolean value);
 
   @Default.Boolean(false)
   @Description(
-      "When set with --useAvroLogicalTypes, timestamp columns use timestamp-micros "
+      "When set with --useLogicalTypes, timestamp columns use timestamp-micros "
           + "(microsecond precision) instead of the default timestamp-millis. "
           + "PostgreSQL stores TIMESTAMPTZ at microsecond precision; this flag preserves it.")
   Boolean isUseTimestampMicros();

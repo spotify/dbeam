@@ -22,6 +22,7 @@ package com.spotify.dbeam.jobs;
 
 import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
+import com.spotify.dbeam.avro.AvroSchemaValidator;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
 import com.spotify.dbeam.avro.JdbcMetering;
@@ -145,7 +146,9 @@ public class JdbcAvroJob {
 
   private Schema createSchema(final Connection connection) throws Exception {
     if (this.jdbcExportArgs.inputAvroSchema().isPresent()) {
-      return this.jdbcExportArgs.inputAvroSchema().get();
+      final Schema inputSchema = this.jdbcExportArgs.inputAvroSchema().get();
+      AvroSchemaValidator.validate(connection, jdbcExportArgs, inputSchema);
+      return inputSchema;
     } else {
       return BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
     }

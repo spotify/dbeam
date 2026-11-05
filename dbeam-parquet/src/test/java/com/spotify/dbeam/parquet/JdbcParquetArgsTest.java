@@ -87,6 +87,35 @@ public class JdbcParquetArgsTest {
   }
 
   @Test
+  public void shouldParseZstdLevel() {
+    for (String codec : new String[] {"zstd1", "zstd9", "zstd22"}) {
+      final JdbcParquetArgs args =
+          JdbcParquetArgs.create(
+              CONN_ARGS,
+              10000,
+              codec,
+              64 * 1024 * 1024,
+              1024 * 1024,
+              Collections.emptyList(),
+              "typed_first_row");
+      Assertions.assertEquals(CompressionCodecName.ZSTD, args.getCompressionCodecName());
+      Assertions.assertEquals(
+          Integer.valueOf(codec.substring(4)), args.zstdLevel().orElseThrow());
+    }
+    Assertions.assertTrue(JdbcParquetArgs.create(CONN_ARGS).zstdLevel().isEmpty());
+  }
+
+  @Test
+  public void shouldRejectInvalidZstdLevel() {
+    for (String codec : new String[] {"zstd0", "zstd23", "zstd-1", "zstandard3", "deflate6"}) {
+      final IllegalArgumentException e =
+          Assertions.assertThrows(
+              IllegalArgumentException.class, () -> JdbcParquetArgs.validateParquetCodec(codec));
+      Assertions.assertTrue(e.getMessage().contains("Supported values"), e.getMessage());
+    }
+  }
+
+  @Test
   public void shouldMapLz4Codec() {
     final JdbcParquetArgs args =
         JdbcParquetArgs.create(

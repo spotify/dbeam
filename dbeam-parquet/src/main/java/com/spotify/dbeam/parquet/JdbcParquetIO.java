@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.spotify.dbeam.avro.JdbcMetering;
+import java.io.Closeable;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,6 +39,8 @@ import org.apache.beam.sdk.io.ShardNameTemplate;
 import org.apache.beam.sdk.io.WriteFiles;
 import org.apache.beam.sdk.io.WriteFilesResult;
 import org.apache.beam.sdk.io.fs.ResourceId;
+import org.apache.beam.sdk.metrics.MetricsContainer;
+import org.apache.beam.sdk.metrics.MetricsEnvironment;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -48,6 +51,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.api.WriteSupport;
+import org.apache.parquet.hadoop.codec.ZstandardCodec;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.io.api.RecordConsumer;
 import org.apache.parquet.schema.MessageType;
@@ -68,6 +72,16 @@ public class JdbcParquetIO {
       final MessageType schema,
       final JdbcParquetArgs jdbcParquetArgs,
       final String avroSchemaJson) {
+    return WriteFiles.to(
+        createSink(filenamePrefix, filenameSuffix, schema, jdbcParquetArgs, avroSchemaJson));
+  }
+
+  static FileBasedSink<String, Void, String> createSink(
+      final String filenamePrefix,
+      final String filenameSuffix,
+      final MessageType schema,
+      final JdbcParquetArgs jdbcParquetArgs,
+      final String avroSchemaJson) {
     final ValueProvider<ResourceId> prefixProvider =
         StaticValueProvider.of(
             FileBasedSink.convertToFileResourceIfPossible(
@@ -81,10 +95,8 @@ public class JdbcParquetIO {
 
     // Store schema as String for serialization (MessageType is not Serializable)
     final String schemaString = schema.toString();
-    final FileBasedSink<String, Void, String> sink =
-        new JdbcParquetSink(
-            prefixProvider, destinations, schemaString, jdbcParquetArgs, avroSchemaJson);
-    return WriteFiles.to(sink);
+    return new JdbcParquetSink(
+        prefixProvider, destinations, schemaString, jdbcParquetArgs, avroSchemaJson);
   }
 
   static class JdbcParquetSink extends FileBasedSink<String, Void, String> {
@@ -146,6 +158,7 @@ public class JdbcParquetIO {
     private Connection connection;
     private JdbcMetering metering;
     private ChannelOutputFile channelOutputFile;
+    private MetricsContainer bundleMetricsContainer;
 
     JdbcParquetWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -167,21 +180,50 @@ public class JdbcParquetIO {
     protected void prepareWrite(final WritableByteChannel channel) throws Exception {
       LOGGER.info("jdbcparquetio : Preparing write...");
       connection = jdbcParquetArgs.jdbcConnectionConfiguration().createConnection();
-
-      final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
-      channelOutputFile = new ChannelOutputFile(channel);
-      parquetWriter =
-          new ResultSetParquetWriterBuilder(
-                  channelOutputFile, schema, avroSchemaJson, jdbcParquetArgs.arrayMode())
-              .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
-              .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
-              .withPageSize((int) jdbcParquetArgs.pageSize())
-              .withWriteMode(ParquetFileWriter.Mode.CREATE)
-              .build();
+      try {
+        createParquetWriter(channel);
+      } catch (Exception e) {
+        closeConnectionQuietly();
+        throw e;
+      }
       LOGGER.info("jdbcparquetio : Write prepared");
     }
 
-    private ResultSet executeQuery(final String query) throws Exception {
+    private void createParquetWriter(final WritableByteChannel channel) throws Exception {
+      final MessageType schema = MessageTypeParser.parseMessageType(schemaString);
+      channelOutputFile = new ChannelOutputFile(channel);
+      final ResultSetParquetWriterBuilder builder =
+          new ResultSetParquetWriterBuilder(
+                  channelOutputFile,
+                  schema,
+                  avroSchemaJson,
+                  jdbcParquetArgs.arrayMode(),
+                  jdbcParquetArgs.useTimestampMicros(),
+                  jdbcParquetArgs.useNativeTypes())
+              .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
+              .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
+              .withPageSize((int) jdbcParquetArgs.pageSize())
+              .withWriteMode(ParquetFileWriter.Mode.CREATE);
+      jdbcParquetArgs
+          .zstdLevel()
+          .ifPresent(
+              level ->
+                  builder.config(ZstandardCodec.PARQUET_COMPRESS_ZSTD_LEVEL, level.toString()));
+      parquetWriter = builder.build();
+    }
+
+    private void closeConnectionQuietly() {
+      if (connection != null) {
+        try {
+          connection.close();
+        } catch (Exception e) {
+          LOGGER.warn("jdbcparquetio : Failed to close JDBC connection", e);
+        }
+        connection = null;
+      }
+    }
+
+    private PreparedStatement prepareStatement(final String query) throws Exception {
       checkArgument(connection != null, "JDBC connection was not properly created");
       final PreparedStatement statement =
           connection.prepareStatement(
@@ -190,13 +232,22 @@ public class JdbcParquetIO {
       if (jdbcParquetArgs.statementPreparator() != null) {
         jdbcParquetArgs.statementPreparator().setParameters(statement);
       }
+      return statement;
+    }
 
+    /** Runs --preCommand before every query, like dbeam-core's JdbcAvroIO. */
+    private void executePreCommands() throws Exception {
       if (jdbcParquetArgs.preCommand() != null && !jdbcParquetArgs.preCommand().isEmpty()) {
-        final Statement stmt = connection.createStatement();
-        for (String command : jdbcParquetArgs.preCommand()) {
-          stmt.execute(command);
+        try (Statement stmt = connection.createStatement()) {
+          for (String command : jdbcParquetArgs.preCommand()) {
+            stmt.execute(command);
+          }
         }
       }
+    }
+
+    private ResultSet executeQuery(final PreparedStatement statement) throws Exception {
+      executePreCommands();
 
       final long startTime = System.nanoTime();
       LOGGER.info(
@@ -211,28 +262,56 @@ public class JdbcParquetIO {
     @Override
     public void write(final String query) throws Exception {
       checkArgument(parquetWriter != null, "ParquetWriter was not properly created");
+      bundleMetricsContainer = MetricsEnvironment.getCurrentContainer();
       LOGGER.info("jdbcparquetio : Starting write...");
-      try (ResultSet resultSet = executeQuery(query)) {
+      try (PreparedStatement statement = prepareStatement(query);
+          ResultSet resultSet = executeQuery(statement)) {
         metering.startWriteMeter();
         while (resultSet.next()) {
           parquetWriter.write(resultSet);
           this.metering.incrementRecordCount();
         }
         this.metering.exposeWriteElapsed();
-        if (channelOutputFile != null) {
-          this.metering.exposeWrittenBytes(channelOutputFile.getBytesWritten());
+      } catch (Exception e) {
+        // Beam discards this writer's temp file (Writer.cleanup) without calling finishWrite, so
+        // release the connection here. The ParquetWriter is dropped without close(), which would
+        // only flush a partial row group and footer into the discarded file.
+        closeConnectionQuietly();
+        parquetWriter = null;
+        throw e;
+      }
+    }
+
+    /**
+     * Count each file exactly once, after close() wrote the last row group and the footer (a
+     * writer can handle several queries, so counting per query would double-count). Beam closes
+     * writers in {@code @FinishBundle}, where the DirectRunner has no current metrics container;
+     * fall back to the bundle's container captured in {@link #write}.
+     */
+    private void exposeWrittenBytes() throws Exception {
+      final long bytes = channelOutputFile.getBytesWritten();
+      if (MetricsEnvironment.getCurrentContainer() == null && bundleMetricsContainer != null) {
+        try (Closeable ignored =
+            MetricsEnvironment.scopedMetricsContainer(bundleMetricsContainer)) {
+          this.metering.exposeWrittenBytes(bytes);
         }
+      } else {
+        this.metering.exposeWrittenBytes(bytes);
       }
     }
 
     @Override
     protected void finishWrite() throws Exception {
       LOGGER.info("jdbcparquetio : Closing connection, flushing writer...");
-      if (parquetWriter != null) {
-        parquetWriter.close();
-      }
-      if (connection != null) {
-        connection.close();
+      try {
+        if (parquetWriter != null) {
+          parquetWriter.close();
+          exposeWrittenBytes();
+        }
+      } finally {
+        if (connection != null) {
+          connection.close();
+        }
       }
       LOGGER.info("jdbcparquetio : Write finished");
     }
@@ -244,22 +323,40 @@ public class JdbcParquetIO {
     private final MessageType schema;
     private final String avroSchemaJson;
     private final String arrayMode;
+    private final boolean useTimestampMicros;
+    private final boolean nativeTypes;
 
     ResultSetParquetWriterBuilder(OutputFile outputFile, MessageType schema) {
-      this(outputFile, schema, null, "typed_first_row");
+      this(outputFile, schema, null, "typed_first_row", false);
     }
 
     ResultSetParquetWriterBuilder(
         OutputFile outputFile, MessageType schema, String avroSchemaJson) {
-      this(outputFile, schema, avroSchemaJson, "typed_first_row");
+      this(outputFile, schema, avroSchemaJson, "typed_first_row", false);
     }
 
     ResultSetParquetWriterBuilder(
-        OutputFile outputFile, MessageType schema, String avroSchemaJson, String arrayMode) {
+        OutputFile outputFile,
+        MessageType schema,
+        String avroSchemaJson,
+        String arrayMode,
+        boolean useTimestampMicros) {
+      this(outputFile, schema, avroSchemaJson, arrayMode, useTimestampMicros, false);
+    }
+
+    ResultSetParquetWriterBuilder(
+        OutputFile outputFile,
+        MessageType schema,
+        String avroSchemaJson,
+        String arrayMode,
+        boolean useTimestampMicros,
+        boolean nativeTypes) {
       super(outputFile);
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
       this.arrayMode = arrayMode;
+      this.useTimestampMicros = useTimestampMicros;
+      this.nativeTypes = nativeTypes;
     }
 
     @Override
@@ -269,7 +366,8 @@ public class JdbcParquetIO {
 
     @Override
     protected WriteSupport<ResultSet> getWriteSupport(Configuration conf) {
-      return new ResultSetWriteSupport(schema, avroSchemaJson, arrayMode);
+      return new ResultSetWriteSupport(
+          schema, avroSchemaJson, arrayMode, useTimestampMicros, nativeTypes);
     }
   }
 
@@ -278,14 +376,31 @@ public class JdbcParquetIO {
     private final MessageType schema;
     private final String avroSchemaJson;
     private final String arrayMode;
+    private final boolean useTimestampMicros;
+    private final boolean nativeTypes;
     private JdbcParquetWriteSupport writeSupport;
     private RecordConsumer recordConsumer;
     private boolean initialized = false;
 
-    ResultSetWriteSupport(MessageType schema, String avroSchemaJson, String arrayMode) {
+    ResultSetWriteSupport(
+        MessageType schema,
+        String avroSchemaJson,
+        String arrayMode,
+        boolean useTimestampMicros) {
+      this(schema, avroSchemaJson, arrayMode, useTimestampMicros, false);
+    }
+
+    ResultSetWriteSupport(
+        MessageType schema,
+        String avroSchemaJson,
+        String arrayMode,
+        boolean useTimestampMicros,
+        boolean nativeTypes) {
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
       this.arrayMode = arrayMode;
+      this.useTimestampMicros = useTimestampMicros;
+      this.nativeTypes = nativeTypes;
     }
 
     @Override
@@ -308,12 +423,15 @@ public class JdbcParquetIO {
     public void write(ResultSet resultSet) {
       try {
         if (!initialized) {
-          this.writeSupport = JdbcParquetWriteSupport.create(resultSet, schema, arrayMode);
+          this.writeSupport =
+              JdbcParquetWriteSupport.create(
+                  resultSet, schema, arrayMode, useTimestampMicros, nativeTypes);
           initialized = true;
         }
         writeSupport.writeRecord(recordConsumer, resultSet);
       } catch (Exception e) {
-        throw new RuntimeException("Failed to write ResultSet row to Parquet", e);
+        throw new RuntimeException(
+            "Failed to write ResultSet row to Parquet: " + e.getMessage(), e);
       }
     }
   }

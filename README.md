@@ -45,8 +45,10 @@ Type conversion details: [Avro](docs/type-conversion.md) | [Parquet](docs/parque
 - Reuses all dbeam-core infrastructure (JDBC connectors, CloudSQL, partitioning, parallel queries)
 - Supports Parquet compression codecs: snappy, gzip, zstd, lz4, uncompressed
 - No full Hadoop dependency — uses a minimal `hadoop-common` for the Parquet API surface
-- Separate `--parquetCodec` option or automatic mapping from `--avroCodec`
-- Optional input schema file via `--parquetSchemaFilePath` (Parquet MessageType text format)
+- `--parquetCodec` option (default `snappy`, `zstd1` .. `zstd22` for a Zstandard level); `--avroCodec` is ignored
+- Optional input schema file via `--parquetSchemaFilePath` (Parquet MessageType text format), validated against the JDBC metadata: it may rename fields and change compatible annotations only (see [rules](docs/parquet-type-conversion.md#input-schema-file---parquetschemafilepath)); `--avroSchemaFilePath` is rejected on Parquet jobs
+- Optional native Parquet DATE, TIME and DECIMAL types via `--parquetNativeTypes` (see [native types](docs/parquet-type-conversion.md#native-parquet-types---parquetnativetypes))
+- Typed ARRAY element types without a Parquet mapping fail by default; `--parquetUnsupportedArrayItemsAsString` writes them as strings instead
 - PostgreSQL replication check via `PsqlParquetJob`
 
 ### DBeam export parameters
@@ -131,9 +133,18 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
   --splitColumn=<String>
     A long/integer column used to create splits for parallel queries. Should be
     used with queryParallelism.
-  --useAvroLogicalTypes=<Boolean>
+  --useLogicalTypes=<Boolean>
     Default: false
-    Controls whether generated Avro schema will contain logicalTypes or not.
+    Controls whether the generated schema (Avro or Parquet) will contain logical
+    types or not. See docs/type-conversion.md.
+  --useAvroLogicalTypes=<Boolean>
+    Deprecated alias of --useLogicalTypes, still supported. Setting both to
+    different values fails.
+  --useTimestampMicros=<Boolean>
+    Default: false
+    Requires --useLogicalTypes. TIMESTAMP, DATE, TIME and TIME_WITH_TIMEZONE
+    columns use timestamp-micros instead of timestamp-millis, preserving
+    sub-millisecond precision.
   --arrayMode=<String>
     Default: typed_first_row
     Configures how arrays are treated:
@@ -148,7 +159,10 @@ com.spotify.dbeam.options.JdbcExportPipelineOptions:
 #### Input Avro schema file
 
 If provided an input Avro schema file, dbeam will read input schema file and use some of the 
-properties when an output Avro schema is created.
+properties when an output Avro schema is created. The schema file is validated against the JDBC
+metadata before the export: it may rename fields and change docs/namespaces, but types, union
+shape and logical types must match what dbeam writes (see
+[rules](docs/type-conversion.md)).
 
 #### Following fields will be propagated from input into output schema:
 
@@ -276,6 +290,20 @@ java \
 ### IAM authentication
 
 When using Google Cloud, [IAM authentication](https://github.com/GoogleCloudPlatform/cloud-sql-jdbc-socket-factory/blob/main/docs/jdbc.md#iam-authentication) may be used by adding `enableIamAuth=true` to the JDBC URL, providing a dummy password, and following the appropriate rules for user naming with respect to the Service Account name.
+
+### Exit codes
+
+`JdbcAvroJob`, `JdbcParquetJob` and the other jobs exit with a code derived from the failure:
+
+| **Code** | **Exception**                     | **Typical cause**                                         |
+|----------|-----------------------------------|-----------------------------------------------------------|
+| 20       | `NotReadyException`               | PostgreSQL replication check: replica not up to date      |
+| 41       | `IOException`                     | Cannot read/write files (schema files, output, password)  |
+| 43       | `IllegalArgumentException`        | Invalid or conflicting command-line options               |
+| 45       | `SQLException`                    | Database connection or query failure                      |
+| 47       | `PipelineExecutionException`      | Failure while running the Beam pipeline                   |
+| 50       | `FailedValidationException`       | Validation failure: `--minRows` not met, or a `--avroSchemaFilePath` / `--parquetSchemaFilePath` schema that does not match what is written |
+| 49       | any other exception               |                                                           |
 
 ## Using as a library
 

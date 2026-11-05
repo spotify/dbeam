@@ -27,6 +27,8 @@ import com.spotify.dbeam.args.JdbcConnectionArgs;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
@@ -52,10 +54,45 @@ public abstract class JdbcParquetArgs implements Serializable {
 
   public abstract String arrayMode();
 
+  /** Write timestamp/date/time columns as epoch micros instead of millis. */
+  public abstract boolean useTimestampMicros();
+
+  /** {@code --parquetNativeTypes}: native Parquet DATE, TIME and DECIMAL types. */
+  public abstract boolean useNativeTypes();
+
   abstract Builder builder();
 
+  static final String SUPPORTED_CODECS =
+      "snappy, gzip, zstd, zstd1 .. zstd22 (zstd with compression level), lz4, none, uncompressed";
+
+  private static final Pattern CODEC_PATTERN =
+      Pattern.compile("snappy|gzip|zstd([1-9]|1[0-9]|2[0-2])?|lz4|none|uncompressed");
+
+  /**
+   * Fail with the list of supported values if {@code parquetCodec} is not one of them.
+   *
+   * @throws IllegalArgumentException for an unsupported codec
+   */
+  public static void validateParquetCodec(final String parquetCodec) {
+    Preconditions.checkArgument(
+        parquetCodec != null && CODEC_PATTERN.matcher(parquetCodec.toLowerCase()).matches(),
+        "Invalid --parquetCodec '%s'. Supported values: %s",
+        parquetCodec,
+        SUPPORTED_CODECS);
+  }
+
+  /** Zstandard compression level from {@code zstd<level>}, empty for the codec's default. */
+  public Optional<Integer> zstdLevel() {
+    final String codec = parquetCodec().toLowerCase();
+    if (codec.startsWith("zstd") && codec.length() > 4) {
+      return Optional.of(Integer.parseInt(codec.substring(4)));
+    }
+    return Optional.empty();
+  }
+
   public CompressionCodecName getCompressionCodecName() {
-    switch (parquetCodec().toLowerCase()) {
+    final String codec = parquetCodec().toLowerCase();
+    switch (codec.startsWith("zstd") ? "zstd" : codec) {
       case "snappy":
         return CompressionCodecName.SNAPPY;
       case "gzip":
@@ -91,6 +128,10 @@ public abstract class JdbcParquetArgs implements Serializable {
 
     abstract Builder setArrayMode(String arrayMode);
 
+    abstract Builder setUseTimestampMicros(boolean useTimestampMicros);
+
+    abstract Builder setUseNativeTypes(boolean useNativeTypes);
+
     abstract JdbcParquetArgs build();
   }
 
@@ -102,9 +143,49 @@ public abstract class JdbcParquetArgs implements Serializable {
       final long pageSize,
       final List<String> preCommand,
       final String arrayMode) {
-    Preconditions.checkArgument(
-        parquetCodec.matches("snappy|gzip|zstd|lz4|none|uncompressed"),
-        "Parquet codec should be one of: snappy, gzip, zstd, lz4, none, uncompressed");
+    return create(
+        jdbcConnectionArgs,
+        fetchSize,
+        parquetCodec,
+        rowGroupSize,
+        pageSize,
+        preCommand,
+        arrayMode,
+        false);
+  }
+
+  public static JdbcParquetArgs create(
+      final JdbcConnectionArgs jdbcConnectionArgs,
+      final int fetchSize,
+      final String parquetCodec,
+      final long rowGroupSize,
+      final long pageSize,
+      final List<String> preCommand,
+      final String arrayMode,
+      final boolean useTimestampMicros) {
+    return create(
+        jdbcConnectionArgs,
+        fetchSize,
+        parquetCodec,
+        rowGroupSize,
+        pageSize,
+        preCommand,
+        arrayMode,
+        useTimestampMicros,
+        false);
+  }
+
+  public static JdbcParquetArgs create(
+      final JdbcConnectionArgs jdbcConnectionArgs,
+      final int fetchSize,
+      final String parquetCodec,
+      final long rowGroupSize,
+      final long pageSize,
+      final List<String> preCommand,
+      final String arrayMode,
+      final boolean useTimestampMicros,
+      final boolean useNativeTypes) {
+    validateParquetCodec(parquetCodec);
     return new AutoValue_JdbcParquetArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)
         .setFetchSize(fetchSize)
@@ -113,6 +194,8 @@ public abstract class JdbcParquetArgs implements Serializable {
         .setPageSize(pageSize)
         .setPreCommand(preCommand)
         .setArrayMode(arrayMode)
+        .setUseTimestampMicros(useTimestampMicros)
+        .setUseNativeTypes(useNativeTypes)
         .build();
   }
 

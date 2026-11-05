@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CountingOutputStream;
 import com.spotify.dbeam.args.JdbcAvroArgs;
 import com.spotify.dbeam.args.JdbcExportArgs;
+import java.io.Closeable;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.sql.Connection;
@@ -47,6 +48,8 @@ import org.apache.beam.sdk.io.ShardNameTemplate;
 import org.apache.beam.sdk.io.WriteFiles;
 import org.apache.beam.sdk.io.WriteFilesResult;
 import org.apache.beam.sdk.io.fs.ResourceId;
+import org.apache.beam.sdk.metrics.MetricsContainer;
+import org.apache.beam.sdk.metrics.MetricsEnvironment;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.options.ValueProvider.StaticValueProvider;
 import org.apache.beam.sdk.transforms.PTransform;
@@ -62,6 +65,14 @@ public class JdbcAvroIO {
   private static final String DEFAULT_SHARD_TEMPLATE = ShardNameTemplate.INDEX_OF_MAX;
 
   public static PTransform<PCollection<String>, WriteFilesResult<Void>> createWrite(
+      final String filenamePrefix,
+      final String filenameSuffix,
+      final Schema schema,
+      final JdbcAvroArgs jdbcAvroArgs) {
+    return WriteFiles.to(createSink(filenamePrefix, filenameSuffix, schema, jdbcAvroArgs));
+  }
+
+  static FileBasedSink<String, Void, String> createSink(
       final String filenamePrefix,
       final String filenameSuffix,
       final Schema schema,
@@ -82,9 +93,7 @@ public class JdbcAvroIO {
             // since Beam does not support zstandard
             CodecFactory.nullCodec(),
             SerializableFunctions.identity());
-    final FileBasedSink<String, Void, String> sink =
-        new JdbcAvroSink<>(prefixProvider, destinations, jdbcAvroArgs);
-    return WriteFiles.to(sink);
+    return new JdbcAvroSink<>(prefixProvider, destinations, jdbcAvroArgs);
   }
 
   static class JdbcAvroSink<UserT> extends FileBasedSink<UserT, Void, String> {
@@ -139,6 +148,7 @@ public class JdbcAvroIO {
     private Connection connection;
     private JdbcMetering metering;
     private CountingOutputStream countingOutputStream;
+    private MetricsContainer bundleMetricsContainer;
 
     JdbcAvroWriter(
         FileBasedSink.WriteOperation<Void, String> writeOperation,
@@ -202,6 +212,7 @@ public class JdbcAvroIO {
     @Override
     public void write(final String query) throws Exception {
       checkArgument(dataFileWriter != null, "Avro DataFileWriter was not properly created");
+      bundleMetricsContainer = MetricsEnvironment.getCurrentContainer();
       LOGGER.info("jdbcavroio : Starting write...");
       try (ResultSet resultSet = executeQuery(query)) {
         metering.startWriteMeter();
@@ -214,7 +225,24 @@ public class JdbcAvroIO {
         }
         this.dataFileWriter.flush();
         this.metering.exposeWriteElapsed();
-        this.metering.exposeWrittenBytes(this.countingOutputStream.getCount());
+      }
+    }
+
+    /**
+     * Count each file exactly once, after close() flushed the last block (a writer can handle
+     * several queries, so counting per query would over-count). Beam closes writers in {@code
+     * @FinishBundle}, where the DirectRunner has no current metrics container; fall back to the
+     * bundle's container captured in {@link #write}.
+     */
+    private void exposeWrittenBytes() throws Exception {
+      final long bytes = countingOutputStream.getCount();
+      if (MetricsEnvironment.getCurrentContainer() == null && bundleMetricsContainer != null) {
+        try (Closeable ignored =
+            MetricsEnvironment.scopedMetricsContainer(bundleMetricsContainer)) {
+          this.metering.exposeWrittenBytes(bytes);
+        }
+      } else {
+        this.metering.exposeWrittenBytes(bytes);
       }
     }
 
@@ -226,6 +254,7 @@ public class JdbcAvroIO {
       }
       if (dataFileWriter != null) {
         dataFileWriter.close();
+        exposeWrittenBytes();
       }
       LOGGER.info("jdbcavroio : Write finished");
     }

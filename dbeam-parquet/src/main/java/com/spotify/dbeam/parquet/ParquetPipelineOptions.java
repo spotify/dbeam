@@ -27,17 +27,39 @@ import org.apache.beam.sdk.options.PipelineOptions;
 @Description("Parquet-specific export options")
 public interface ParquetPipelineOptions extends PipelineOptions {
 
-  @Description("Path to file with a target Parquet schema (MessageType text format).")
+  @Description(
+      "Path to file with a target Parquet schema (MessageType text format). Must match the"
+          + " JDBC-derived schema except for field names and compatible annotations.")
   String getParquetSchemaFilePath();
 
   void setParquetSchemaFilePath(String value);
 
+  @Default.String("snappy")
   @Description(
-      "Parquet compression codec (snappy, gzip, zstd, lz4, none). "
-          + "Overrides --avroCodec when set.")
+      "Parquet compression codec: snappy, gzip, zstd, zstd1 .. zstd22 (zstd with compression"
+          + " level), lz4, none, uncompressed. --avroCodec is ignored by Parquet exports.")
   String getParquetCodec();
 
   void setParquetCodec(String value);
+
+  @Default.Boolean(false)
+  @Description(
+      "Requires --useLogicalTypes. Write DATE as Parquet DATE, TIME/TIME_WITH_TIMEZONE as"
+          + " TIME(MILLIS|MICROS per --useTimestampMicros, UTC) and DECIMAL/NUMERIC with a JDBC"
+          + " precision of 1..38 as DECIMAL(precision, scale), instead of the Avro-compatible"
+          + " timestamp and string encodings. Default: false.")
+  Boolean isParquetNativeTypes();
+
+  void setParquetNativeTypes(Boolean value);
+
+  @Default.Boolean(false)
+  @Description(
+      "With a typed --arrayMode, write ARRAY elements of types without a Parquet mapping (e.g."
+          + " numeric, timestamp, date, json) as STRING using the JDBC driver's toString() of each"
+          + " element, logging a warning per column, instead of failing. Default: false.")
+  Boolean isParquetUnsupportedArrayItemsAsString();
+
+  void setParquetUnsupportedArrayItemsAsString(Boolean value);
 
   @Description(
       "Parquet row group size in bytes. Larger values improve read performance "

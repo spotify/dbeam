@@ -255,6 +255,101 @@ public class PostgresJdbcAvroTest {
   }
 
   @Test
+  public void shouldHandleBooleanAndFloatingPointArraysWithTypedPostgres()
+      throws SQLException, IOException, com.spotify.dbeam.jobs.FailedValidationException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(3);
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_bool", "_bool",
+        Types.BIT, "bool", null, (Object) new Boolean[] {true, false});
+    TestHelper.mockArrayColumn(meta, resultSet, 2, "array_field_float4", "_float4",
+        Types.REAL, "float4", null, (Object) new Float[] {1.5f});
+    TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field_float8", "_float8",
+        Types.DOUBLE, "float8", null, (Object) new Double[] {2.25d});
+
+    when(resultSet.next()).thenReturn(true, true, false);
+    when(resultSet.isFirst()).thenReturn(true);
+    String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
+
+    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", false, false, arrayMode, false);
+    Assertions.assertEquals(Schema.Type.BOOLEAN,
+        schema.getField("array_field_bool").schema().getTypes().get(1).getElementType().getType());
+    Assertions.assertEquals(Schema.Type.FLOAT,
+        schema.getField("array_field_float4").schema().getTypes().get(1).getElementType()
+            .getType());
+    Assertions.assertEquals(Schema.Type.DOUBLE,
+        schema.getField("array_field_float8").schema().getTypes().get(1).getElementType()
+            .getType());
+
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
+        false, false);
+    GenericRecord[] actualRecords = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes());
+    assertGenericRecordArrayField(actualRecords[1], "array_field_bool", true, false);
+    assertGenericRecordArrayField(actualRecords[1], "array_field_float4", 1.5f);
+    assertGenericRecordArrayField(actualRecords[1], "array_field_float8", 2.25d);
+
+    // a supplied --avroSchemaFilePath schema with these arrays (renamed fields) is accepted
+    final Schema provided = new Schema.Parser().parse(
+        schema.toString()
+            .replace("\"array_field_bool\"", "\"flags\"")
+            .replace("\"array_field_float4\"", "\"ratios\"")
+            .replace("\"array_field_float8\"", "\"scores\""));
+    final Schema derivedLogical = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", true, false, arrayMode, false);
+    AvroSchemaValidator.validate(provided, schema, derivedLogical);
+  }
+
+  @Test
+  public void shouldHandleJsonAndCharArraysWithTypedPostgres()
+      throws SQLException, IOException, com.spotify.dbeam.jobs.FailedValidationException {
+    final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+    when(meta.getColumnCount()).thenReturn(3);
+    final ResultSet resultSet = Mockito.mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(meta);
+
+    TestHelper.mockArrayColumn(meta, resultSet, 1, "array_field_json", "_json",
+        Types.OTHER, "json", null, (Object) new String[] {"{\"a\":1}"});
+    TestHelper.mockArrayColumn(meta, resultSet, 2, "array_field_jsonb", "_jsonb",
+        Types.OTHER, "jsonb", null, (Object) new String[] {"{\"b\": 2}"});
+    TestHelper.mockArrayColumn(meta, resultSet, 3, "array_field_bpchar", "_bpchar",
+        Types.CHAR, "bpchar", null, (Object) new String[] {"ab  "});
+
+    when(resultSet.next()).thenReturn(true, true, false);
+    when(resultSet.isFirst()).thenReturn(true);
+    String arrayMode = ArrayHandlingMode.TypedMetaPostgres;
+
+    final Schema schema = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", false, false, arrayMode, false);
+    for (String name : new String[] {"array_field_json", "array_field_jsonb",
+        "array_field_bpchar"}) {
+      Assertions.assertEquals(Schema.Type.STRING,
+          schema.getField(name).schema().getTypes().get(1).getElementType().getType());
+    }
+
+    final JdbcAvroRecordConverter converter = JdbcAvroRecordConverter.create(resultSet, arrayMode,
+        false, false);
+    GenericRecord[] actualRecords = bytesToGenericRecords(schema,
+        converter.convertResultSetIntoAvroBytes(), converter.convertResultSetIntoAvroBytes());
+    assertGenericRecordArrayField(actualRecords[1], "array_field_json", "{\"a\":1}");
+    assertGenericRecordArrayField(actualRecords[1], "array_field_jsonb", "{\"b\": 2}");
+    assertGenericRecordArrayField(actualRecords[1], "array_field_bpchar", "ab  ");
+
+    // a supplied --avroSchemaFilePath schema with these arrays (renamed fields) is accepted
+    final Schema provided = new Schema.Parser().parse(
+        schema.toString()
+            .replace("\"array_field_json\"", "\"docs\"")
+            .replace("\"array_field_jsonb\"", "\"docs_b\"")
+            .replace("\"array_field_bpchar\"", "\"codes\""));
+    final Schema derivedLogical = JdbcAvroSchema.createAvroSchema(resultSet, "ns", "conn_url",
+        Optional.empty(), "doc", true, false, arrayMode, false);
+    AvroSchemaValidator.validate(provided, schema, derivedLogical);
+  }
+
+  @Test
   public void shouldHandleArrayWithNullsIfEnabled() throws SQLException, IOException {
     final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
     when(meta.getColumnCount()).thenReturn(3);
@@ -476,5 +571,40 @@ public class PostgresJdbcAvroTest {
 
     // Should be plain millis — sub-ms precision lost
     Assertions.assertEquals(ts.getTime(), millisValue);
+  }
+
+  @Test
+  public void shouldFailClearlyOnMultidimensionalArrays() throws SQLException {
+    final Object[][] cases = {
+      {"_int4", Types.INTEGER, "int4", new Integer[][] {{1, 2}, {3, 4}}},
+      {"_int8", Types.BIGINT, "int8", new Long[][] {{1L}}},
+      {"_text", Types.VARCHAR, "text", new String[][] {{"a"}, {"b"}}},
+      {"_varchar", Types.VARCHAR, "varchar", new String[][] {{"a"}}},
+    };
+    for (Object[] c : cases) {
+      for (String arrayMode :
+          new String[] {
+            ArrayHandlingMode.TypedMetaFromFirstRow, ArrayHandlingMode.TypedMetaPostgres
+          }) {
+        final ResultSetMetaData meta = Mockito.mock(ResultSetMetaData.class);
+        when(meta.getColumnCount()).thenReturn(1);
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
+        when(resultSet.getMetaData()).thenReturn(meta);
+        TestHelper.mockArrayColumn(
+            meta, resultSet, 1, "matrix", (String) c[0], (Integer) c[1], (String) c[2], c[3], c[3]);
+        when(resultSet.isFirst()).thenReturn(true);
+        JdbcAvroSchema.createAvroSchema(
+            resultSet, "ns", "conn_url", Optional.empty(), "doc", true, false, arrayMode, false);
+        final JdbcAvroRecordConverter converter =
+            JdbcAvroRecordConverter.create(resultSet, arrayMode, false, false);
+        final RuntimeException e =
+            Assertions.assertThrows(
+                RuntimeException.class, converter::convertResultSetIntoAvroBytes);
+        Assertions.assertEquals(
+            "Column 'matrix' contains a multidimensional array, which is not supported;"
+                + " use --arrayMode=bytes to export the column as bytes",
+            e.getMessage());
+      }
+    }
   }
 }
