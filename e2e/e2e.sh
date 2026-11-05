@@ -145,14 +145,18 @@ run_docker_dbeam_parquet_jdbc() {
 # Maven repository, where a clean CI cache does not have them. Each module writes its own
 # target/verify-classpath.txt; dbeam-parquet's is the one used.
 parquetVerifierClasspath() {
+  # Kept in dbeam-parquet/target, not e2e/results: the dbeam containers create e2e/results as
+  # root, so the user running this script may not be able to write there.
   local VERIFY_CP_FILE
-  VERIFY_CP_FILE="$SCRIPT_PATH/results/verify_parquet_classpath.txt"
+  VERIFY_CP_FILE="$PROJECT_PATH/dbeam-parquet/target/verify-classpath.txt"
   if [[ ! -s "$VERIFY_CP_FILE" ]]; then
-    mkdir -p "$SCRIPT_PATH/results"
     (cd "$PROJECT_PATH"; mvn --quiet -pl dbeam-parquet -am test-compile \
       dependency:build-classpath -Dmdep.includeScope=test \
-      -Dmdep.outputFile=target/verify-classpath.txt) >&2
-    cp "$PROJECT_PATH/dbeam-parquet/target/verify-classpath.txt" "$VERIFY_CP_FILE"
+      -Dmdep.outputFile=target/verify-classpath.txt) >&2 || return 1
+  fi
+  if [[ ! -s "$VERIFY_CP_FILE" ]]; then
+    echo "Failed to write the Parquet verifier classpath to $VERIFY_CP_FILE" >&2
+    return 1
   fi
   echo "$PROJECT_PATH/dbeam-parquet/target/dbeam-parquet-shaded.jar:$(cat "$VERIFY_CP_FILE")"
 }
@@ -161,8 +165,11 @@ parquetVerifierClasspath() {
 # and checks row counts, row_number coverage and demo_table values.
 # Usage: verifyParquetOutput <outputDir> <rowsPerRun> [VerifyParquetOutput flags...]
 verifyParquetOutput() {
+  local VERIFY_CP
+  # a separate assignment, so that errexit stops the script if the classpath can't be built
+  VERIFY_CP="$(parquetVerifierClasspath)"
   java \
-    --class-path "$(parquetVerifierClasspath)" \
+    --class-path "$VERIFY_CP" \
     "$SCRIPT_PATH/VerifyParquetOutput.java" \
     "$@"
 }
@@ -222,8 +229,10 @@ runParquetTimestampMicrosTest() {
   set +o xtrace
 
   echo "--- verifying microsecond precision (parquet, all output files) ---"
+  local VERIFY_CP
+  VERIFY_CP="$(parquetVerifierClasspath)"
   java \
-    --class-path "$(parquetVerifierClasspath)" \
+    --class-path "$VERIFY_CP" \
     "$SCRIPT_PATH/VerifyParquetTimestampMicros.java" \
     "$OUTPUT" "${OUTPUT}_AVRO_SCHEMA.avsc"
   echo "PASS: parquet timestamp values retain microsecond precision"
