@@ -39,6 +39,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetFileReader;
@@ -117,6 +118,8 @@ public class JdbcParquetJobTest {
                 HadoopInputFile.fromPath(
                     new org.apache.hadoop.fs.Path(parquetFile.toUri()),
                     new org.apache.hadoop.conf.Configuration()))
+            // raw values: with Avro 1.12.1+ the default SpecificData converts logical types
+            .withDataModel(GenericData.get())
             .build()) {
       GenericRecord record;
       while ((record = reader.read()) != null) {
@@ -806,6 +809,8 @@ public class JdbcParquetJobTest {
                 HadoopInputFile.fromPath(
                     new org.apache.hadoop.fs.Path(parquetFile.toUri()),
                     new org.apache.hadoop.conf.Configuration()))
+            // raw values: with Avro 1.12.1+ the default SpecificData converts logical types
+            .withDataModel(GenericData.get())
             .build()) {
       GenericRecord record;
       while ((record = reader.read()) != null) {
@@ -1042,6 +1047,8 @@ public class JdbcParquetJobTest {
                     new org.apache.hadoop.fs.Path(
                         outputPath.resolve("part-00000-of-00001.parquet").toUri()),
                     new org.apache.hadoop.conf.Configuration()))
+            // raw values: with Avro 1.12.1+ the default SpecificData converts logical types
+            .withDataModel(GenericData.get())
             .build()) {
       GenericRecord record;
       while ((record = reader.read()) != null) {

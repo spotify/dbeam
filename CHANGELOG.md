@@ -98,6 +98,13 @@
 ### Changed
 
 - Minimum supported JDK raised from 11 to 17.
+- Apache Avro bumped from 1.12.0 to 1.12.1. Avro 1.12.0's readers narrow `double` array items
+  through `float` (`0.1` reads back as `0.10000000149011612`, `1e300` as `Infinity`), which
+  affected readers using the Avro dbeam ships with; the files dbeam writes are unchanged. Note
+  that Avro 1.12.1's `SpecificData` registers the standard logical type conversions, so
+  parquet-avro's `AvroParquetReader` (which defaults to `SpecificData` for generic records) now
+  returns e.g. `Instant` for timestamps and `LocalDate` for dates instead of epoch numbers. To keep
+  the raw values, read with `.withDataModel(GenericData.get())`.
 - An invalid `--arrayMode` value fails with `IllegalArgumentException` (exit code 43, like other
   invalid arguments) listing the allowed values, instead of a plain `RuntimeException` (49).
 - dbeam-core: Multidimensional ARRAY values fail with an error naming the column and suggesting

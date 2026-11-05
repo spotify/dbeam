@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.avro.AvroParquetReader;
@@ -145,6 +146,8 @@ public class FooterAvroSchemaTest {
     try (ParquetReader<GenericRecord> reader =
         AvroParquetReader.<GenericRecord>builder(
                 HadoopInputFile.fromPath(hadoopPath, new Configuration()))
+            // raw values: with Avro 1.12.1+ the default SpecificData converts logical types
+            .withDataModel(GenericData.get())
             .build()) {
       GenericRecord record;
       while ((record = reader.read()) != null) {

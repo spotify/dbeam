@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.TreeMap;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 
@@ -35,18 +34,6 @@ public final class VerifyTypedPostgresArrays {
 
   private VerifyTypedPostgresArrays() {}
 
-  /**
-   * Avro 1.12.0 reads double arrays into PrimitivesArrays.DoubleArray, whose add(int, Double)
-   * narrows each value through float (0.1 reads back as 0.10000000149011612, 1e300 as Infinity).
-   * The file holds the full doubles, so read arrays into GenericData.Array instead.
-   */
-  private static final class PlainArrays extends GenericData {
-    @Override
-    public Object newArray(final Object old, final int size, final Schema schema) {
-      return new GenericData.Array<Object>(size, schema);
-    }
-  }
-
   public static void main(String[] args) throws Exception {
     if (args.length != 1) {
       throw new IllegalArgumentException("Expected one Avro file path");
@@ -54,8 +41,7 @@ public final class VerifyTypedPostgresArrays {
     final TreeMap<Integer, GenericRecord> rows = new TreeMap<>();
     final Schema schema;
     try (DataFileReader<GenericRecord> reader =
-        new DataFileReader<>(
-            new File(args[0]), new GenericDatumReader<>(null, null, new PlainArrays()))) {
+        new DataFileReader<>(new File(args[0]), new GenericDatumReader<>())) {
       schema = reader.getSchema();
       while (reader.hasNext()) {
         final GenericRecord record = reader.next();

@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -154,6 +155,8 @@ public final class VerifyParquetOutput {
     try (ParquetReader<GenericRecord> reader =
         AvroParquetReader.<GenericRecord>builder(
                 HadoopInputFile.fromPath(new Path(file.toUri()), new Configuration()))
+            // raw values: with Avro 1.12.1+ the default SpecificData converts logical types
+            .withDataModel(GenericData.get())
             .build()) {
       GenericRecord record;
       boolean first = true;

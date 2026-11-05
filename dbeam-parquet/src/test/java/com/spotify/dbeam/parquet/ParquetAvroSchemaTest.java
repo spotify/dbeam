@@ -41,6 +41,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.avro.AvroParquetReader;
@@ -266,6 +267,8 @@ public class ParquetAvroSchemaTest {
         AvroParquetReader.<GenericRecord>builder(
                 HadoopInputFile.fromPath(
                     new org.apache.hadoop.fs.Path(tempFile.toUri()), new Configuration()))
+            // raw values: with Avro 1.12.1+ the default SpecificData converts logical types
+            .withDataModel(GenericData.get())
             .build()) {
       GenericRecord record;
       while ((record = reader.read()) != null) {
