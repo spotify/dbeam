@@ -24,7 +24,7 @@ import com.google.common.base.Preconditions;
 import com.spotify.dbeam.args.JdbcExportArgs;
 import com.spotify.dbeam.avro.BeamJdbcAvroSchema;
 import com.spotify.dbeam.avro.JdbcAvroIO;
-import com.spotify.dbeam.avro.JdbcAvroMetering;
+import com.spotify.dbeam.avro.JdbcMetering;
 import com.spotify.dbeam.beam.BeamHelper;
 import com.spotify.dbeam.beam.MetricsHelper;
 import com.spotify.dbeam.options.DBeamPipelineOptions;
@@ -145,7 +145,8 @@ public class JdbcAvroJob {
 
   private Schema createSchema(final Connection connection) throws Exception {
     if (this.jdbcExportArgs.inputAvroSchema().isPresent()) {
-      return this.jdbcExportArgs.inputAvroSchema().get();
+      return BeamJdbcAvroSchema.validateInputSchema(
+          this.pipeline, jdbcExportArgs, connection, this.jdbcExportArgs.inputAvroSchema().get());
     } else {
       return BeamJdbcAvroSchema.createSchema(this.pipeline, jdbcExportArgs, connection);
     }
@@ -172,7 +173,7 @@ public class JdbcAvroJob {
     if (!this.dataOnly) {
       BeamHelper.saveMetrics(metrics, output);
     }
-    final Long recordCount = metrics.getOrDefault(JdbcAvroMetering.RECORD_COUNT_METRIC_NAME, 0L);
+    final Long recordCount = metrics.getOrDefault(JdbcMetering.RECORD_COUNT_METRIC_NAME, 0L);
     if (recordCount < this.minRows) {
       throw new FailedValidationException(
           String.format(

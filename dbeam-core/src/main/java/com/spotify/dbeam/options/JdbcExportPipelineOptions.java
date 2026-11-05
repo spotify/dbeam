@@ -22,7 +22,9 @@ package com.spotify.dbeam.options;
 
 import java.util.List;
 import org.apache.beam.sdk.options.Default;
+import org.apache.beam.sdk.options.DefaultValueFactory;
 import org.apache.beam.sdk.options.Description;
+import org.apache.beam.sdk.options.PipelineOptions;
 
 @Description("Configures the DBeam SQL export")
 public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
@@ -81,15 +83,41 @@ public interface JdbcExportPipelineOptions extends DBeamPipelineOptions {
 
   void setAvroDoc(String value);
 
-  @Default.Boolean(false)
-  @Description("Controls whether generated Avro schema will contain logicalTypes or not.")
+  @Description(
+      "Controls whether the generated schema (Avro or Parquet) will contain logical types "
+          + "or not. Default: false.")
+  Boolean isUseLogicalTypes();
+
+  void setUseLogicalTypes(Boolean value);
+
+  /**
+   * Deprecated alias of {@link #isUseLogicalTypes()}. When not set it returns the value of {@code
+   * --useLogicalTypes} (false if that is not set either), so it is never null and never conflicts
+   * with {@code --useLogicalTypes} unless both are set to different values.
+   *
+   * @deprecated use {@code --useLogicalTypes} instead.
+   */
+  @Deprecated
+  @Default.InstanceFactory(UseLogicalTypesAliasFactory.class)
+  @Description(
+      "Deprecated alias of --useLogicalTypes, still supported. Controls whether generated "
+          + "schema will contain logicalTypes or not. Default: false.")
   Boolean isUseAvroLogicalTypes();
 
+  @Deprecated
   void setUseAvroLogicalTypes(Boolean value);
+
+  /** Default of {@link #isUseAvroLogicalTypes()}: the {@code --useLogicalTypes} value, or false. */
+  class UseLogicalTypesAliasFactory implements DefaultValueFactory<Boolean> {
+    @Override
+    public Boolean create(final PipelineOptions options) {
+      return Boolean.TRUE.equals(options.as(JdbcExportPipelineOptions.class).isUseLogicalTypes());
+    }
+  }
 
   @Default.Boolean(false)
   @Description(
-      "When set with --useAvroLogicalTypes, timestamp columns use timestamp-micros "
+      "When set with --useLogicalTypes, timestamp columns use timestamp-micros "
           + "(microsecond precision) instead of the default timestamp-millis. "
           + "PostgreSQL stores TIMESTAMPTZ at microsecond precision; this flag preserves it.")
   Boolean isUseTimestampMicros();

@@ -1,0 +1,567 @@
+/*-
+ * -\-\-
+ * DBeam Parquet
+ * --
+ * Copyright (C) 2016 - 2025 Spotify AB
+ * --
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * -/-/-
+ */
+
+package com.spotify.dbeam.parquet;
+
+import static java.sql.Types.ARRAY;
+import static java.sql.Types.BIGINT;
+import static java.sql.Types.BINARY;
+import static java.sql.Types.BIT;
+import static java.sql.Types.BLOB;
+import static java.sql.Types.BOOLEAN;
+import static java.sql.Types.CHAR;
+import static java.sql.Types.CLOB;
+import static java.sql.Types.DATALINK;
+import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
+import static java.sql.Types.DOUBLE;
+import static java.sql.Types.FLOAT;
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.LONGNVARCHAR;
+import static java.sql.Types.LONGVARBINARY;
+import static java.sql.Types.LONGVARCHAR;
+import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
+import static java.sql.Types.OTHER;
+import static java.sql.Types.REAL;
+import static java.sql.Types.REF;
+import static java.sql.Types.REF_CURSOR;
+import static java.sql.Types.SMALLINT;
+import static java.sql.Types.STRUCT;
+import static java.sql.Types.TIME;
+import static java.sql.Types.TIMESTAMP;
+import static java.sql.Types.TIME_WITH_TIMEZONE;
+import static java.sql.Types.TINYINT;
+import static java.sql.Types.VARBINARY;
+import static java.sql.Types.VARCHAR;
+
+import com.spotify.dbeam.args.QueryBuilderArgs;
+import com.spotify.dbeam.options.ArrayHandlingMode;
+import java.math.BigInteger;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
+import org.apache.parquet.schema.Types;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+public class JdbcParquetSchema {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcParquetSchema.class);
+
+  /** Run the {@code LIMIT 1} query and create the schema from its result set. */
+  public static MessageType createSchemaByReadingOneRow(
+      final Connection connection,
+      final QueryBuilderArgs queryBuilderArgs,
+      final Optional<String> schemaName,
+      final ParquetSchemaOptions options)
+      throws SQLException {
+    LOGGER.debug("Creating Parquet schema based on the first read row from the database");
+    try (Statement statement = connection.createStatement()) {
+      final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
+      resultSet.next();
+      final MessageType schema = createParquetSchema(resultSet, schemaName, options);
+      LOGGER.info("Parquet schema created successfully. {}. Generated schema: {}", options, schema);
+      return schema;
+    }
+  }
+
+  /**
+   * Creates the Parquet schema for a result set positioned on its first row (or with no row).
+   * With {@code --arrayMode=typed_first_row} the element type of an ARRAY column comes from that
+   * row's {@link Array} when it is not NULL, as in the Avro export, and otherwise from the column
+   * type name.
+   */
+  public static MessageType createParquetSchema(
+      final ResultSet resultSet,
+      final Optional<String> maybeSchemaName,
+      final ParquetSchemaOptions options)
+      throws SQLException {
+    final ResultSetMetaData meta = resultSet.getMetaData();
+    final String tableName = getDatabaseTableName(meta);
+    final String schemaName = maybeSchemaName.orElse(tableName);
+    final boolean onFirstRow =
+        ArrayHandlingMode.TypedMetaFromFirstRow.equals(options.arrayMode()) && resultSet.isFirst();
+
+    final List<Type> fields = new ArrayList<>();
+    final Map<String, List<String>> columnsByFieldName = new LinkedHashMap<>();
+    for (int i = 1; i <= meta.getColumnCount(); i++) {
+      final String columnName;
+      if (meta.getColumnName(i).isEmpty()) {
+        columnName = meta.getColumnLabel(i);
+      } else {
+        columnName = meta.getColumnName(i);
+      }
+
+      columnsByFieldName
+          .computeIfAbsent(normalizeFieldName(columnName), k -> new ArrayList<>())
+          .add(columnName);
+      final int columnType = meta.getColumnType(i);
+      final String firstRowArrayElementType =
+          columnType == ARRAY && onFirstRow
+              ? firstRowArrayElementType(resultSet.getArray(i))
+              : null;
+
+      fields.add(
+          buildParquetFieldType(
+              normalizeFieldName(columnName),
+              columnType,
+              meta.getPrecision(i),
+              meta.getScale(i),
+              meta.getColumnClassName(i),
+              meta.getColumnTypeName(i),
+              firstRowArrayElementType,
+              options));
+    }
+
+    if (!options.allowDuplicateFieldNames()) {
+      checkUniqueFieldNames(columnsByFieldName);
+    }
+    return new MessageType(schemaName, fields);
+  }
+
+  /**
+   * Element type of a {@code typed_first_row} ARRAY value: from its base type name (e.g. {@code
+   * int4} for PostgreSQL, {@code INTEGER} for H2), else from its JDBC base type; null for a NULL
+   * value.
+   */
+  static String firstRowArrayElementType(final Array array) throws SQLException {
+    if (array == null) {
+      return null;
+    }
+    final String byName = resolveArrayElementTypeName(array.getBaseTypeName());
+    if (array.getBaseTypeName() != null && isSupportedArrayElementType(byName)) {
+      return byName;
+    }
+    switch (array.getBaseType()) {
+      case INTEGER:
+        return "int4";
+      case SMALLINT:
+      case TINYINT:
+        return "int2";
+      case BIGINT:
+        return "int8";
+      case REAL:
+        return "float4";
+      case FLOAT:
+      case DOUBLE:
+        return "float8";
+      case BOOLEAN:
+        return "bool";
+      case BINARY:
+      case VARBINARY:
+      case LONGVARBINARY:
+        return "bytea";
+      case CHAR:
+      case VARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
+      case LONGNVARCHAR:
+      case CLOB:
+        return "text";
+      default:
+        return byName;
+    }
+  }
+
+  /**
+   * Field names are the column names with characters other than {@code [A-Za-z0-9_]} replaced by
+   * {@code _}, so distinct columns (e.g. {@code a-b} and {@code a_b}) can collide. Fail with the
+   * colliding columns instead of writing a schema with duplicate field names.
+   */
+  static void checkUniqueFieldNames(final Map<String, List<String>> columnsByFieldName) {
+    final List<String> collisions = new ArrayList<>();
+    columnsByFieldName.forEach(
+        (fieldName, columns) -> {
+          if (columns.size() > 1) {
+            collisions.add(
+                String.format("columns %s all map to field name '%s'", columns, fieldName));
+          }
+        });
+    if (!collisions.isEmpty()) {
+      throw new RuntimeException(
+          "Duplicate field names after normalizing column names to [A-Za-z0-9_]: "
+              + String.join("; ", collisions)
+              + ". Use column aliases (e.g. with --sqlFile) to make them unique.");
+    }
+  }
+
+  static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
+    final String defaultTableName = "no_table_name";
+    for (int i = 1; i <= meta.getColumnCount(); i++) {
+      String metaTableName = meta.getTableName(i);
+      if (metaTableName != null && !metaTableName.isEmpty()) {
+        return normalizeFieldName(metaTableName);
+      }
+    }
+    return defaultTableName;
+  }
+
+  /**
+   * Parquet type of one column.
+   *
+   * @param firstRowArrayElementType element type from the first row's ARRAY value (see {@link
+   *     #firstRowArrayElementType}), or null to resolve it from {@code columnTypeName}
+   */
+  static Type buildParquetFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final String columnClassName,
+      final String columnTypeName,
+      final String firstRowArrayElementType,
+      final ParquetSchemaOptions options) {
+    final boolean useLogicalTypes = options.useLogicalTypes();
+    final boolean useTimestampMicros = options.useTimestampMicros();
+    if (options.nativeTypes()) {
+      final Optional<Type> nativeType =
+          buildNativeFieldType(columnName, columnType, precision, scale, useTimestampMicros);
+      if (nativeType.isPresent()) {
+        return nativeType.get();
+      }
+    }
+    switch (columnType) {
+      case BIGINT:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
+      case INTEGER:
+      case SMALLINT:
+      case TINYINT:
+        if (Long.class.getCanonicalName().equals(columnClassName)) {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
+        } else {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named(columnName);
+        }
+      case TIMESTAMP:
+      case DATE: // stored as TIMESTAMP(MILLIS|MICROS) for Avro-path compatibility
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+        if (useLogicalTypes) {
+          final LogicalTypeAnnotation.TimeUnit unit =
+              useTimestampMicros
+                  ? LogicalTypeAnnotation.TimeUnit.MICROS
+                  : LogicalTypeAnnotation.TimeUnit.MILLIS;
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+              .as(LogicalTypeAnnotation.timestampType(true, unit))
+              .named(columnName);
+        } else {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named(columnName);
+        }
+      case BOOLEAN:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named(columnName);
+      case BIT:
+        if (precision <= 1) {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BOOLEAN).named(columnName);
+        } else {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
+        }
+      case BINARY:
+      case VARBINARY:
+      case LONGVARBINARY:
+      case BLOB:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
+      case DOUBLE:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named(columnName);
+      case FLOAT:
+      case REAL:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named(columnName);
+      case ARRAY:
+        if (ArrayHandlingMode.Bytes.equals(options.arrayMode())) {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
+        }
+        // Parquet 3-level LIST convention with typed elements, inferred from the first row
+        // (typed_first_row) or from columnTypeName (e.g. _int4, _text for PostgreSQL).
+        return Types.optionalList()
+            .element(
+                buildArrayElementType(
+                    columnName,
+                    firstRowArrayElementType != null
+                        ? firstRowArrayElementType
+                        : resolveArrayElementTypeName(columnTypeName),
+                    columnTypeName,
+                    options))
+            .named(columnName);
+      // Same as dbeam-core's JdbcAvroSchema
+      case STRUCT:
+        throw new RuntimeException("STRUCT type is not supported");
+      case REF:
+      case REF_CURSOR:
+        throw new RuntimeException("REF and REF_CURSOR type are not supported");
+      case DATALINK:
+        throw new RuntimeException("DATALINK type is not supported");
+      case OTHER:
+        if (useLogicalTypes && "uuid".equals(columnTypeName)) {
+          return Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)
+              .length(16)
+              .as(LogicalTypeAnnotation.uuidType())
+              .named(columnName);
+        }
+        // fall through to string
+      case VARCHAR:
+      case CHAR:
+      case CLOB:
+      case LONGNVARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
+      default:
+        return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY)
+            .as(LogicalTypeAnnotation.stringType())
+            .named(columnName);
+    }
+  }
+
+  /** Largest DECIMAL precision written as a Parquet DECIMAL with {@code --parquetNativeTypes}. */
+  static final int MAX_NATIVE_DECIMAL_PRECISION = 38;
+
+  /** Whether a DECIMAL/NUMERIC column is written as Parquet DECIMAL with --parquetNativeTypes. */
+  static boolean isNativeDecimal(final int precision, final int scale) {
+    return precision >= 1
+        && precision <= MAX_NATIVE_DECIMAL_PRECISION
+        && scale >= 0
+        && scale <= precision;
+  }
+
+  /** Smallest FIXED_LEN_BYTE_ARRAY length holding any unscaled value of {@code precision}. */
+  static int decimalByteLength(final int precision) {
+    final BigInteger max = BigInteger.TEN.pow(precision);
+    int bytes = 1;
+    while (BigInteger.ONE.shiftLeft(8 * bytes - 1).compareTo(max) < 0) {
+      bytes++;
+    }
+    return bytes;
+  }
+
+  /**
+   * {@code --parquetNativeTypes} mapping: DATE as {@code int32 (DATE)}, TIME/TIME_WITH_TIMEZONE
+   * as {@code TIME(MILLIS|MICROS, true)} ({@code int32} for millis, {@code int64} for micros),
+   * DECIMAL/NUMERIC with precision 1..38 and 0 <= scale <= precision as {@code
+   * fixed_len_byte_array(n) (DECIMAL(p,s))} with the smallest {@code n} for {@code p}. Empty for
+   * other columns, which keep the default mapping.
+   */
+  static Optional<Type> buildNativeFieldType(
+      final String columnName,
+      final int columnType,
+      final int precision,
+      final int scale,
+      final boolean useTimestampMicros) {
+    switch (columnType) {
+      case DATE:
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                .as(LogicalTypeAnnotation.dateType())
+                .named(columnName));
+      case TIME:
+      case TIME_WITH_TIMEZONE:
+        if (useTimestampMicros) {
+          return Optional.of(
+              Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                  .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MICROS))
+                  .named(columnName));
+        }
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                .named(columnName));
+      case DECIMAL:
+      case NUMERIC:
+        if (!isNativeDecimal(precision, scale)) {
+          return Optional.empty();
+        }
+        // Always fixed_len_byte_array (allowed by the Parquet spec for any precision): parquet-avro
+        // maps int32/int64 DECIMAL to plain Avro int/long, which would lose the scale in the
+        // footer Avro schema used by AvroParquetReader (Scio, Beam ParquetIO).
+        return Optional.of(
+            Types.optional(PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY)
+                .length(decimalByteLength(precision))
+                .as(LogicalTypeAnnotation.decimalType(scale, precision))
+                .named(columnName));
+      default:
+        return Optional.empty();
+    }
+  }
+
+  /**
+   * Parquet LIST element for an ARRAY column whose element type (see {@link
+   * #resolveArrayElementTypeName}) is {@code elementType}: {@code optional} with {@code
+   * --nullableArrayItems} and {@code required} without it. Element types other than the integer,
+   * floating point, boolean, bytea and string-like types (text, varchar, bpchar/char, name, uuid)
+   * are rejected, or with {@code --parquetUnsupportedArrayItemsAsString} become {@code binary
+   * (STRING)} (written with the value's toString()) with a warning.
+   */
+  static Type buildArrayElementType(
+      final String columnName,
+      final String elementType,
+      final String columnTypeName,
+      final ParquetSchemaOptions options) {
+    final Type.Repetition repetition =
+        options.nullableArrayItems() ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED;
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.INT32, repetition).named("element");
+      case "int8":
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.INT64, repetition).named("element");
+      case "float4":
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.FLOAT, repetition).named("element");
+      case "float8":
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.DOUBLE, repetition).named("element");
+      case "bool":
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BOOLEAN, repetition)
+            .named("element");
+      case "bytea":
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition).named("element");
+      default:
+        if (!isStringArrayElementType(elementType)) {
+          if (!options.unsupportedArrayItemsAsString()) {
+            throw new IllegalArgumentException(
+                "columnName="
+                    + columnName
+                    + " ARRAY element type '"
+                    + elementType
+                    + "' (column type '"
+                    + columnTypeName
+                    + "') is not supported for typed Parquet arrays;"
+                    + " use --arrayMode=bytes to export the column as bytes, or"
+                    + " --parquetUnsupportedArrayItemsAsString to write the elements as strings");
+          }
+          LOGGER.warn(
+              "columnName={} ARRAY element type '{}' (column type '{}') has no Parquet mapping;"
+                  + " writing elements as STRING (--parquetUnsupportedArrayItemsAsString)",
+              columnName,
+              elementType,
+              columnTypeName);
+        }
+        return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition)
+            .as(LogicalTypeAnnotation.stringType())
+            .named("element");
+    }
+  }
+
+  /** ARRAY element types with a Parquet mapping (see {@link #buildArrayElementType}). */
+  static boolean isSupportedArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+      case "int8":
+      case "float4":
+      case "float8":
+      case "bool":
+      case "bytea":
+        return true;
+      default:
+        return isStringArrayElementType(elementType);
+    }
+  }
+
+  /** ARRAY element types written as {@code binary (STRING)} with the value's toString(). */
+  static boolean isStringArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "text":
+      case "varchar":
+      case "bpchar":
+      case "char":
+      case "name":
+      case "uuid":
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Extract the element type name from an array column type name. PostgreSQL uses underscore prefix
+   * (e.g. _int4 -> int4, _text -> text). H2 and others use "INTEGER ARRAY" style names; unknown
+   * ones resolve to the lower-case base name (e.g. "TIMESTAMP ARRAY" -> timestamp).
+   */
+  static String resolveArrayElementTypeName(final String columnTypeName) {
+    if (columnTypeName == null) {
+      return "text";
+    }
+    if (columnTypeName.startsWith("_")) {
+      return columnTypeName.substring(1);
+    }
+    // H2 style: "INTEGER ARRAY", "CHARACTER VARYING(10) ARRAY", etc.
+    final String lower = columnTypeName.toLowerCase(Locale.ROOT);
+    if (lower.startsWith("integer") || lower.startsWith("int ")) {
+      return "int4";
+    } else if (lower.startsWith("smallint") || lower.startsWith("tinyint")) {
+      return "int2";
+    } else if (lower.startsWith("bigint")) {
+      return "int8";
+    } else if (lower.startsWith("real") || lower.startsWith("float4")) {
+      return "float4";
+    } else if (lower.startsWith("float")) {
+      return resolveFloatPrecision(lower);
+    } else if (lower.startsWith("double")) {
+      return "float8";
+    } else if (lower.startsWith("boolean")) {
+      return "bool";
+    } else if (lower.startsWith("binary") || lower.startsWith("varbinary")) {
+      return "bytea";
+    } else if (lower.startsWith("uuid")) {
+      return "uuid";
+    } else if (lower.startsWith("char")
+        || lower.startsWith("varchar")
+        || lower.startsWith("clob")
+        || lower.startsWith("text")) {
+      // includes "character", "character varying", "character large object"
+      return "text";
+    }
+    return lower.replaceAll("\\(.*?\\)", "").replaceAll("\\s+array$", "").trim();
+  }
+
+  private static final Pattern FLOAT_PRECISION =
+      Pattern.compile("^float\\s*\\(\\s*(\\d+)\\s*\\).*");
+
+  /**
+   * SQL {@code FLOAT(p)} is single precision for {@code p <= 24} and double precision otherwise,
+   * and an unsized {@code FLOAT} is double precision (H2, HSQLDB and the SQL standard), as is
+   * PostgreSQL's {@code float8}.
+   */
+  private static String resolveFloatPrecision(final String lowerTypeName) {
+    final Matcher sized = FLOAT_PRECISION.matcher(lowerTypeName);
+    if (sized.matches()) {
+      return Integer.parseInt(sized.group(1)) <= 24 ? "float4" : "float8";
+    }
+    return "float8";
+  }
+
+  static String normalizeFieldName(final String input) {
+    return input.replaceAll("[^A-Za-z0-9_]", "_");
+  }
+}

@@ -39,6 +39,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class JdbcExportOptionsTest {
+  private static final String BASE_ARGS =
+      "--connectionUrl=jdbc:postgresql://some_db --table=some_table --password=secret";
   private static File sqlFile;
 
   @BeforeAll
@@ -235,6 +237,90 @@ public class JdbcExportOptionsTest {
                 + "--password=secret --useAvroLogicalTypes=true");
 
     Assertions.assertTrue(options.useAvroLogicalTypes());
+  }
+
+  @Test
+  public void shouldConfigureLogicalTypes() throws IOException, ClassNotFoundException {
+    Assertions.assertTrue(optionsFromArgs(BASE_ARGS + " --useLogicalTypes=true")
+        .useAvroLogicalTypes());
+    Assertions.assertTrue(optionsFromArgs(BASE_ARGS + " --useLogicalTypes")
+        .useAvroLogicalTypes());
+    Assertions.assertFalse(optionsFromArgs(BASE_ARGS + " --useLogicalTypes=false")
+        .useAvroLogicalTypes());
+  }
+
+  @Test
+  public void shouldConfigureAvroLogicalTypesAlias() throws IOException, ClassNotFoundException {
+    Assertions.assertTrue(optionsFromArgs(BASE_ARGS + " --useAvroLogicalTypes")
+        .useAvroLogicalTypes());
+    Assertions.assertFalse(optionsFromArgs(BASE_ARGS + " --useAvroLogicalTypes=false")
+        .useAvroLogicalTypes());
+  }
+
+  @Test
+  public void shouldDefaultLogicalTypesToFalse() throws IOException, ClassNotFoundException {
+    Assertions.assertFalse(optionsFromArgs(BASE_ARGS).useAvroLogicalTypes());
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void shouldDefaultDeprecatedAliasGetterToLogicalTypes() {
+    // embedding code may unbox the deprecated getter directly, so it must never be null
+    final java.util.function.Function<String, Boolean> alias =
+        args ->
+            org.apache.beam.sdk.options.PipelineOptionsFactory.fromArgs(
+                    args.isEmpty() ? new String[0] : args.split(" "))
+                .as(com.spotify.dbeam.options.JdbcExportPipelineOptions.class)
+                .isUseAvroLogicalTypes();
+    Assertions.assertEquals(Boolean.FALSE, alias.apply(""));
+    Assertions.assertEquals(Boolean.TRUE, alias.apply("--useLogicalTypes"));
+    Assertions.assertEquals(Boolean.FALSE, alias.apply("--useLogicalTypes=false"));
+    Assertions.assertEquals(Boolean.TRUE, alias.apply("--useAvroLogicalTypes"));
+  }
+
+  @Test
+  public void shouldAcceptAgreeingLogicalTypesAndAlias()
+      throws IOException, ClassNotFoundException {
+    Assertions.assertTrue(
+        optionsFromArgs(BASE_ARGS + " --useLogicalTypes=true --useAvroLogicalTypes=true")
+            .useAvroLogicalTypes());
+    Assertions.assertFalse(
+        optionsFromArgs(BASE_ARGS + " --useLogicalTypes=false --useAvroLogicalTypes=false")
+            .useAvroLogicalTypes());
+  }
+
+  @Test
+  public void shouldRejectConflictingLogicalTypesAndAlias() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> optionsFromArgs(
+                BASE_ARGS + " --useLogicalTypes=true --useAvroLogicalTypes=false"));
+    Assertions.assertTrue(e.getMessage().contains("--useAvroLogicalTypes"));
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () -> optionsFromArgs(
+            BASE_ARGS + " --useLogicalTypes=false --useAvroLogicalTypes=true"));
+  }
+
+  @Test
+  public void shouldConfigureTimestampMicrosWithLogicalTypes()
+      throws IOException, ClassNotFoundException {
+    final JdbcExportArgs options =
+        optionsFromArgs(BASE_ARGS + " --useTimestampMicros --useLogicalTypes");
+
+    Assertions.assertTrue(options.useTimestampMicros());
+    Assertions.assertTrue(options.useAvroLogicalTypes());
+  }
+
+  @Test
+  public void shouldRejectTimestampMicrosWithLogicalTypesFalse() {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> optionsFromArgs(
+                BASE_ARGS + " --useTimestampMicros=true --useLogicalTypes=false"));
+    Assertions.assertTrue(e.getMessage().contains("--useLogicalTypes"));
   }
 
   @Test

@@ -21,6 +21,11 @@
         <artifactId>dbeam-core</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.spotify</groupId>
+        <artifactId>dbeam-parquet</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

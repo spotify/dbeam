@@ -59,6 +59,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -116,6 +120,38 @@ public class JdbcAvroSchema {
       final String arrayMode,
       final boolean nullableArrayItems)
       throws SQLException {
+    return createAvroSchema(
+        resultSet,
+        avroSchemaNamespace,
+        connectionUrl,
+        maybeSchemaName,
+        avroDoc,
+        useLogicalTypes,
+        useTimestampMicros,
+        arrayMode,
+        nullableArrayItems,
+        false);
+  }
+
+  /**
+   * Same as above; with {@code forSchemaFileValidation} the schema is only used to validate a
+   * {@code --avroSchemaFilePath} schema, which matches fields by position and supplies the item
+   * types and field names: a typed_first_row ARRAY column whose item type cannot be inferred (no
+   * row or a NULL first value) gets {@code null} items instead of failing, and columns whose
+   * normalized names collide get a {@code _<position>} suffix instead of failing.
+   */
+  static Schema createAvroSchema(
+      final ResultSet resultSet,
+      final String avroSchemaNamespace,
+      final String connectionUrl,
+      final Optional<String> maybeSchemaName,
+      final String avroDoc,
+      final boolean useLogicalTypes,
+      final boolean useTimestampMicros,
+      final String arrayMode,
+      final boolean nullableArrayItems,
+      final boolean forSchemaFileValidation)
+      throws SQLException {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
@@ -129,11 +165,17 @@ public class JdbcAvroSchema {
             .prop("connectionUrl", connectionUrl)
             .fields();
     return createAvroFields(
-            resultSet, builder, useLogicalTypes, useTimestampMicros, arrayMode, nullableArrayItems)
+            resultSet,
+            builder,
+            useLogicalTypes,
+            useTimestampMicros,
+            arrayMode,
+            nullableArrayItems,
+            forSchemaFileValidation)
         .endRecord();
   }
 
-  static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
+  public static String getDatabaseTableName(final ResultSetMetaData meta) throws SQLException {
     final String defaultTableName = "no_table_name";
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
@@ -151,10 +193,15 @@ public class JdbcAvroSchema {
       final boolean useLogicalTypes,
       final boolean useTimestampMicros,
       final String arrayMode,
-      final boolean nullableArrayItems)
+      final boolean nullableArrayItems,
+      final boolean forSchemaFileValidation)
       throws SQLException {
 
     ResultSetMetaData meta = resultSet.getMetaData();
+    if (!forSchemaFileValidation) {
+      checkUniqueFieldNames(meta);
+    }
+    final java.util.Set<String> fieldNames = new java.util.HashSet<>();
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
@@ -171,7 +218,7 @@ public class JdbcAvroSchema {
       final String columnTypeName = meta.getColumnTypeName(i);
       SchemaBuilder.FieldBuilder<Schema> field =
           builder
-              .name(normalizeForAvro(columnName))
+              .name(uniqueFieldName(normalizeForAvro(columnName), i, fieldNames))
               .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
               .prop("columnName", columnName)
               .prop("sqlCode", String.valueOf(columnType))
@@ -187,7 +234,7 @@ public class JdbcAvroSchema {
           fieldSchemaBuilder = field.type().unionOf().nullBuilder().endNull().and();
 
       Array arrayInstance =
-          resultSet.isFirst() && columnType == ARRAY
+          columnType == ARRAY && resultSet.isFirst()
           && arrayMode.equals(ArrayHandlingMode.TypedMetaFromFirstRow)
           ? resultSet.getArray(i) : null;
 
@@ -203,6 +250,7 @@ public class JdbcAvroSchema {
               useTimestampMicros,
               arrayMode,
               nullableArrayItems,
+              forSchemaFileValidation,
               fieldSchemaBuilder);
 
       schemaFieldAssembler.endUnion().nullDefault();
@@ -233,6 +281,7 @@ public class JdbcAvroSchema {
       final boolean useTimestampMicros,
       final String arrayMode,
       final boolean nullableArrayItems,
+      final boolean forSchemaFileValidation,
       final SchemaBuilder.BaseTypeBuilder<SchemaBuilder.UnionAccumulator<
           SchemaBuilder.NullDefault<Schema>>> field) throws SQLException {
     switch (columnType) {
@@ -284,6 +333,9 @@ public class JdbcAvroSchema {
               useLogicalTypes, buildArrayItems(nullableArrayItems, field));
         }
 
+        if (arrayInstance == null && forSchemaFileValidation) {
+          return field.array().items().nullType();
+        }
         if (arrayInstance == null) {
           throw new RuntimeException(
               "When inspecting ARRAY column type in '" + columnName
@@ -300,6 +352,7 @@ public class JdbcAvroSchema {
             useTimestampMicros,
             arrayMode,
             nullableArrayItems,
+            forSchemaFileValidation,
             buildArrayItems(nullableArrayItems, field));
       case BINARY:
       case VARBINARY:
@@ -368,12 +421,63 @@ public class JdbcAvroSchema {
         return field.intType();
       case "int8":
         return field.longType();
+      // PostgreSQL JDBC returns Boolean, Float and Double elements, which the converter writes
+      case "bool":
+        return field.booleanType();
+      case "float4":
+        return field.floatType();
+      case "float8":
+        return field.doubleType();
+      // PostgreSQL JDBC returns String elements for these, which the converter writes
       case "varchar":
       case "text":
+      case "bpchar":
+      case "json":
+      case "jsonb":
         return field.stringType();
       default:
         throw new RuntimeException("columnName=" + columnName + " Postgres type '"
                                    + columnTypeName + "' is " + "not " + "supported");
+    }
+  }
+
+  /** {@code name}, or with a {@code _<position>} suffix if a previous field already has it. */
+  private static String uniqueFieldName(
+      final String name, final int position, final java.util.Set<String> fieldNames) {
+    String unique = name;
+    for (int n = position; !fieldNames.add(unique); n++) {
+      unique = name + "_" + n;
+    }
+    return unique;
+  }
+
+  /**
+   * Field names are the column names with characters other than {@code [A-Za-z0-9_]} replaced by
+   * {@code _}, so distinct columns (e.g. {@code a-b} and {@code a_b}) can collide. Fail with the
+   * colliding columns instead of Avro's generic duplicate field error.
+   */
+  static void checkUniqueFieldNames(final ResultSetMetaData meta) throws SQLException {
+    final Map<String, List<String>> columnsByFieldName = new LinkedHashMap<>();
+    for (int i = 1; i <= meta.getColumnCount(); i++) {
+      final String columnName =
+          meta.getColumnName(i).isEmpty() ? meta.getColumnLabel(i) : meta.getColumnName(i);
+      columnsByFieldName
+          .computeIfAbsent(normalizeForAvro(columnName), k -> new ArrayList<>())
+          .add(columnName);
+    }
+    final List<String> collisions = new ArrayList<>();
+    columnsByFieldName.forEach(
+        (fieldName, columns) -> {
+          if (columns.size() > 1) {
+            collisions.add(
+                String.format("columns %s all map to field name '%s'", columns, fieldName));
+          }
+        });
+    if (!collisions.isEmpty()) {
+      throw new RuntimeException(
+          "Duplicate field names after normalizing column names to [A-Za-z0-9_]: "
+              + String.join("; ", collisions)
+              + ". Use column aliases (e.g. with --sqlFile) to make them unique.");
     }
   }
 

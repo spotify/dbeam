@@ -58,3 +58,25 @@ VALUES
           '2026-08-20 19:06:02.654321+00'),
   ('row3', '2026-08-20 19:06:01.879000+00',
           '2026-08-20 19:06:02.000000+00');
+
+-- typed_postgres arrays whose elements pgjdbc may not return as String (#1 in review):
+-- json[]/jsonb[] (PGobject?) and char(n)[] (bpchar), next to bool/float arrays
+DROP TABLE IF EXISTS typed_postgres_array_test;
+CREATE TABLE typed_postgres_array_test (
+  id integer PRIMARY KEY,
+  json_arr json[],
+  jsonb_arr jsonb[],
+  bpchar_arr char(3)[],
+  bool_arr boolean[],
+  float4_arr real[],
+  float8_arr double precision[]
+);
+INSERT INTO typed_postgres_array_test VALUES
+  (1,
+   ARRAY['{"a": 1}', '[1, 2]']::json[],
+   ARRAY['{"b": true}', '"x"']::jsonb[],
+   ARRAY['ab', 'xyz']::char(3)[],
+   ARRAY[true, false],
+   ARRAY[1.5, -2.25]::real[],
+   ARRAY[0.1, 1e300]::double precision[]),
+  (2, NULL, NULL, NULL, NULL, NULL, NULL);
