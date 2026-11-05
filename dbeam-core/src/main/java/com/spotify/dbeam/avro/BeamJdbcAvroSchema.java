@@ -58,9 +58,29 @@ public class BeamJdbcAvroSchema {
       throws Exception {
     final long startTime = System.nanoTime();
     final Schema generatedSchema = generateAvroSchema(args, connection);
-    final long elapsedTimeSchema = (System.nanoTime() - startTime) / 1000000;
-    LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
+    exposeSchemaMetrics(pipeline, (System.nanoTime() - startTime) / 1000000);
+    return generatedSchema;
+  }
 
+  /**
+   * Validate a {@code --avroSchemaFilePath} schema against the JDBC result set (see {@link
+   * AvroSchemaValidator}), counting the time of its {@code LIMIT 1} query in {@code
+   * schemaElapsedTimeMs} like a generated schema's.
+   */
+  public static Schema validateInputSchema(
+      final Pipeline pipeline,
+      final JdbcExportArgs args,
+      final Connection connection,
+      final Schema inputSchema)
+      throws Exception {
+    final long startTime = System.nanoTime();
+    AvroSchemaValidator.validate(connection, args, inputSchema);
+    exposeSchemaMetrics(pipeline, (System.nanoTime() - startTime) / 1000000);
+    return inputSchema;
+  }
+
+  private static void exposeSchemaMetrics(final Pipeline pipeline, final long elapsedTimeSchema) {
+    LOGGER.info("Elapsed time to schema {} seconds", elapsedTimeSchema / 1000.0);
     final Counter cnt =
         Metrics.counter(BeamJdbcAvroSchema.class.getCanonicalName(), "schemaElapsedTimeMs");
     pipeline
@@ -75,7 +95,6 @@ public class BeamJdbcAvroSchema {
                       cnt.inc(elapsedTimeSchema);
                       return v;
                     }));
-    return generatedSchema;
   }
 
   private static Schema generateAvroSchema(final JdbcExportArgs args, final Connection connection)

@@ -48,6 +48,7 @@ import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -58,6 +59,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -97,26 +99,14 @@ public class JdbcParquetWriteSupport {
   }
 
   public static JdbcParquetWriteSupport create(
-      ResultSet resultSet, MessageType schema, String arrayMode, boolean useTimestampMicros)
-      throws SQLException {
-    return create(resultSet, schema, arrayMode, useTimestampMicros, false);
-  }
-
-  public static JdbcParquetWriteSupport create(
-      ResultSet resultSet,
-      MessageType schema,
-      String arrayMode,
-      boolean useTimestampMicros,
-      boolean nativeTypes)
+      final ResultSet resultSet, final MessageType schema, final ParquetSchemaOptions options)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final int columnCount = meta.getColumnCount();
     final ColumnWriter[] writers = new ColumnWriter[columnCount + 1];
 
     for (int i = 1; i <= columnCount; i++) {
-      writers[i] =
-          computeColumnWriter(
-              meta, i, arrayMode, schema.getType(i - 1), useTimestampMicros, nativeTypes);
+      writers[i] = computeColumnWriter(meta, i, schema.getType(i - 1), options);
     }
 
     return new JdbcParquetWriteSupport(schema, writers, columnCount);
@@ -136,42 +126,31 @@ public class JdbcParquetWriteSupport {
   }
 
   /**
-   * Timestamp/date/time columns are written as epoch micros when {@code useTimestampMicros} is set
-   * and as epoch millis otherwise, regardless of the target field's annotation (a schema file whose
-   * annotation disagrees is rejected by {@link ParquetSchemaValidator}).
+   * Writer for one column, matching {@link JdbcParquetSchema#buildParquetFieldType} for the same
+   * options. Timestamp/date/time columns are written as epoch micros with {@code
+   * useTimestampMicros} and as epoch millis otherwise, regardless of the target field's annotation
+   * (a schema file whose annotation disagrees is rejected by {@link ParquetSchemaValidator}). With
+   * {@code nativeTypes} ({@code --parquetNativeTypes}), DATE, TIME and DECIMAL/NUMERIC columns are
+   * written as described in {@link JdbcParquetSchema#buildNativeFieldType}. Values are written to
+   * the field of {@code fieldType}, whose name may differ from the column's in a schema file.
    */
   static ColumnWriter computeColumnWriter(
       final ResultSetMetaData meta,
       final int column,
-      final String arrayMode,
       final Type fieldType,
-      final boolean useTimestampMicros)
+      final ParquetSchemaOptions options)
       throws SQLException {
-    return computeColumnWriter(meta, column, arrayMode, fieldType, useTimestampMicros, false);
-  }
-
-  /**
-   * With {@code nativeTypes} ({@code --parquetNativeTypes}), DATE, TIME and DECIMAL/NUMERIC
-   * columns are written as described in {@link JdbcParquetSchema#buildNativeFieldType}; like the
-   * schema, this depends only on the JDBC metadata and the flags.
-   */
-  static ColumnWriter computeColumnWriter(
-      final ResultSetMetaData meta,
-      final int column,
-      final String arrayMode,
-      final Type fieldType,
-      final boolean useTimestampMicros,
-      final boolean nativeTypes)
-      throws SQLException {
+    final String arrayMode = options.arrayMode();
+    final boolean useTimestampMicros = options.useTimestampMicros();
     final int columnType = meta.getColumnType(column);
     final int fieldIndex = column - 1;
     final String fieldName =
         meta.getColumnName(column).isEmpty()
             ? meta.getColumnLabel(column)
             : meta.getColumnName(column);
-    final String normalizedName = JdbcParquetSchema.normalizeFieldName(fieldName);
+    final String normalizedName = fieldType.getName();
 
-    if (nativeTypes) {
+    if (options.nativeTypes()) {
       final ColumnWriter nativeWriter =
           nativeColumnWriter(meta, column, fieldIndex, normalizedName, useTimestampMicros);
       if (nativeWriter != null) {
@@ -288,22 +267,17 @@ public class JdbcParquetWriteSupport {
         }
         final String arrayElementType =
             writtenArrayElementType(
+                fieldType,
                 JdbcParquetSchema.resolveArrayElementTypeName(meta.getColumnTypeName(column)),
-                fieldType);
+                arrayMode,
+                fieldName);
         final boolean nullableItems = hasOptionalListElement(fieldType);
         return (consumer, rs) -> {
           final java.sql.Array sqlArray = rs.getArray(column);
           if (sqlArray != null && !rs.wasNull()) {
             final Object[] items = (Object[]) sqlArray.getArray();
             // check before writing anything, so no partial or garbage list is written
-            for (Object item : items) {
-              if (isNestedArray(item, arrayElementType)) {
-                throw multidimensionalArrayException(fieldName);
-              }
-              if (item == null && !nullableItems) {
-                throw nullArrayItemException(fieldName);
-              }
-            }
+            checkArrayItems(items, arrayElementType, nullableItems, fieldName);
             consumer.startField(normalizedName, fieldIndex);
             consumer.startGroup(); // LIST group
             consumer.startField("list", 0); // repeated list field
@@ -512,47 +486,139 @@ public class JdbcParquetWriteSupport {
       return true;
     }
     if (item instanceof byte[]) {
-      return !"bytea".equals(elementType);
+      return !"bytea".equals(elementType) && !"binary".equals(elementType);
     }
     return item.getClass().isArray();
   }
 
   /**
-   * An element type without a Parquet mapping is written as a string (toString()) when the schema
-   * declares the element as {@code binary}: {@code STRING} as derived with {@code
-   * --parquetUnsupportedArrayItemsAsString}, or the unannotated, {@code JSON} or {@code ENUM}
-   * binary a schema file may use instead (see {@link ParquetSchemaValidator}). Without the flag no
-   * such schema passes validation, so the type is kept and rejected on write.
+   * The element type to write for a LIST field, reconciling the schema's element with {@code
+   * metadataElementType} (from the column type name, see {@link
+   * JdbcParquetSchema#resolveArrayElementTypeName}):
+   *
+   * <ul>
+   *   <li>a supported metadata type must match the schema element ({@code int4}/{@code int2} with
+   *       INT32, {@code int8} with INT64, {@code float4} with FLOAT, {@code float8} with DOUBLE,
+   *       {@code bool} with BOOLEAN, {@code bytea} with an unannotated binary, string-like types
+   *       with a binary) and is written as itself;
+   *   <li>an unsupported metadata type (e.g. {@code timestamp}, {@code numeric}, or a generic
+   *       {@code ARRAY} name) is written with the value's toString() into a binary element: {@code
+   *       STRING} as derived with {@code --parquetUnsupportedArrayItemsAsString}, or the
+   *       unannotated, {@code JSON} or {@code ENUM} binary a schema file may use (an unannotated
+   *       one takes {@code byte[]} values as bytes). With {@code typed_first_row}, where the
+   *       schema element came from the first row's values, it also follows a non-binary element.
+   * </ul>
+   *
+   * <p>Anything else fails, instead of converting values to a type the column does not have
+   * (schema files are rejected earlier by {@link ParquetSchemaValidator}; this guards the writer).
    */
-  static String writtenArrayElementType(final String elementType, final Type fieldType) {
-    if (isKnownArrayElementType(elementType) || fieldType == null || fieldType.isPrimitive()) {
-      return elementType;
+  static String writtenArrayElementType(
+      final Type fieldType,
+      final String metadataElementType,
+      final String arrayMode,
+      final String columnName) {
+    final String schemaElementType = schemaArrayElementType(fieldType);
+    if (schemaElementType == null) {
+      return metadataElementType;
+    }
+    final String expected;
+    if (JdbcParquetSchema.isStringArrayElementType(metadataElementType)) {
+      expected = "text";
+    } else if ("int".equals(metadataElementType) || "int2".equals(metadataElementType)) {
+      expected = "int4";
+    } else if ("bytea".equals(metadataElementType)) {
+      expected = "binary";
+    } else if (JdbcParquetSchema.isSupportedArrayElementType(metadataElementType)) {
+      expected = metadataElementType;
+    } else if ("text".equals(schemaElementType)
+        || "binary".equals(schemaElementType)
+        || ArrayHandlingMode.TypedMetaFromFirstRow.equals(arrayMode)) {
+      return schemaElementType;
+    } else {
+      throw arrayElementMismatch(columnName, metadataElementType, fieldType);
+    }
+    final boolean matches =
+        expected.equals(schemaElementType)
+            // a string column may use an unannotated binary element (a schema file's choice)
+            || ("text".equals(expected) && "binary".equals(schemaElementType));
+    if (!matches) {
+      throw arrayElementMismatch(columnName, metadataElementType, fieldType);
+    }
+    return "binary".equals(expected) ? "bytea" : metadataElementType;
+  }
+
+  /**
+   * {@code int4}, {@code int8}, {@code float4}, {@code float8}, {@code bool}, {@code text} (an
+   * annotated binary) or {@code binary} (an unannotated one) for the LIST element of {@code
+   * fieldType}; {@code fixed}-style and other elements give the primitive's name; null when {@code
+   * fieldType} is not a LIST.
+   */
+  private static String schemaArrayElementType(final Type fieldType) {
+    if (fieldType == null || fieldType.isPrimitive()) {
+      return null;
     }
     final Type repeated = fieldType.asGroupType().getType(0);
     if (repeated.isPrimitive() || repeated.asGroupType().getFieldCount() == 0) {
-      return elementType;
+      return null;
     }
     final Type element = repeated.asGroupType().getType(0);
-    final boolean isBinary =
-        element.isPrimitive()
-            && element.asPrimitiveType().getPrimitiveTypeName()
-                == PrimitiveType.PrimitiveTypeName.BINARY;
-    return isBinary ? "text" : elementType;
+    if (!element.isPrimitive()) {
+      return null;
+    }
+    switch (element.asPrimitiveType().getPrimitiveTypeName()) {
+      case INT32:
+        return "int4";
+      case INT64:
+        return "int8";
+      case FLOAT:
+        return "float4";
+      case DOUBLE:
+        return "float8";
+      case BOOLEAN:
+        return "bool";
+      case BINARY:
+        return element.getLogicalTypeAnnotation() == null ? "binary" : "text";
+      default:
+        return element.asPrimitiveType().getPrimitiveTypeName().name().toLowerCase(Locale.ROOT);
+    }
   }
 
-  private static boolean isKnownArrayElementType(final String elementType) {
-    switch (elementType) {
-      case "int":
-      case "int4":
-      case "int2":
-      case "int8":
-      case "float4":
-      case "float8":
-      case "bool":
-      case "bytea":
-        return true;
-      default:
-        return JdbcParquetSchema.isStringArrayElementType(elementType);
+  private static IllegalArgumentException arrayElementMismatch(
+      final String columnName, final String metadataElementType, final Type fieldType) {
+    return new IllegalArgumentException(
+        String.format(
+            "Column '%s' has ARRAY element type '%s', which cannot be written to the schema's"
+                + " LIST element %s",
+            columnName,
+            metadataElementType,
+            fieldType.asGroupType().getType(0).asGroupType().getType(0)));
+  }
+
+  /**
+   * Fail on a multidimensional array or, without {@code nullableItems}, a NULL item. All elements
+   * of a SQL array share its dimensions, so only the first non-null item is checked for nesting;
+   * NULL items are only scanned for when they are not allowed.
+   */
+  static void checkArrayItems(
+      final Object[] items,
+      final String elementType,
+      final boolean nullableItems,
+      final String columnName) {
+    boolean checkedNesting = false;
+    for (Object item : items) {
+      if (item == null) {
+        if (!nullableItems) {
+          throw nullArrayItemException(columnName);
+        }
+      } else if (!checkedNesting) {
+        if (isNestedArray(item, elementType)) {
+          throw multidimensionalArrayException(columnName);
+        }
+        checkedNesting = true;
+        if (nullableItems) {
+          return;
+        }
+      }
     }
   }
 
@@ -607,6 +673,12 @@ public class JdbcParquetWriteSupport {
         break;
       case "bytea":
         consumer.addBinary(Binary.fromConstantByteArray((byte[]) item));
+        break;
+      case "binary":
+        consumer.addBinary(
+            item instanceof byte[]
+                ? Binary.fromConstantByteArray((byte[]) item)
+                : Binary.fromString(item.toString()));
         break;
       default:
         if (!JdbcParquetSchema.isStringArrayElementType(elementType)) {

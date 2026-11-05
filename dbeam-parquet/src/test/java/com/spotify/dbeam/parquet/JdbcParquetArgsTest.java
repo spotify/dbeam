@@ -38,9 +38,21 @@ public class JdbcParquetArgsTest {
 
   private static final JdbcConnectionArgs CONN_ARGS = connArgs();
 
+  /** The defaults of the removed {@code JdbcParquetArgs.create(connArgs)}. */
+  private static JdbcParquetArgs defaultArgs() {
+    return JdbcParquetArgs.create(
+        CONN_ARGS,
+        10000,
+        "snappy",
+        128 * 1024 * 1024,
+        1024 * 1024,
+        Collections.emptyList(),
+        ParquetSchemaOptions.of("typed_first_row"));
+  }
+
   @Test
   public void shouldCreateWithDefaults() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(CONN_ARGS);
+    final JdbcParquetArgs args = defaultArgs();
 
     Assertions.assertEquals(10000, args.fetchSize());
     Assertions.assertEquals("snappy", args.parquetCodec());
@@ -51,7 +63,7 @@ public class JdbcParquetArgsTest {
 
   @Test
   public void shouldMapSnappyCodec() {
-    final JdbcParquetArgs args = JdbcParquetArgs.create(CONN_ARGS);
+    final JdbcParquetArgs args = defaultArgs();
 
     Assertions.assertEquals(CompressionCodecName.SNAPPY, args.getCompressionCodecName());
   }
@@ -66,7 +78,7 @@ public class JdbcParquetArgsTest {
             64 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(CompressionCodecName.GZIP, args.getCompressionCodecName());
   }
@@ -81,7 +93,7 @@ public class JdbcParquetArgsTest {
             64 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(CompressionCodecName.ZSTD, args.getCompressionCodecName());
   }
@@ -97,12 +109,12 @@ public class JdbcParquetArgsTest {
               64 * 1024 * 1024,
               1024 * 1024,
               Collections.emptyList(),
-              "typed_first_row");
+              ParquetSchemaOptions.of("typed_first_row"));
       Assertions.assertEquals(CompressionCodecName.ZSTD, args.getCompressionCodecName());
       Assertions.assertEquals(
           Integer.valueOf(codec.substring(4)), args.zstdLevel().orElseThrow());
     }
-    Assertions.assertTrue(JdbcParquetArgs.create(CONN_ARGS).zstdLevel().isEmpty());
+    Assertions.assertTrue(defaultArgs().zstdLevel().isEmpty());
   }
 
   @Test
@@ -125,7 +137,7 @@ public class JdbcParquetArgsTest {
             64 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(CompressionCodecName.LZ4_RAW, args.getCompressionCodecName());
   }
@@ -140,7 +152,7 @@ public class JdbcParquetArgsTest {
             64 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
   }
@@ -155,7 +167,7 @@ public class JdbcParquetArgsTest {
             64 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(CompressionCodecName.UNCOMPRESSED, args.getCompressionCodecName());
   }
@@ -172,7 +184,7 @@ public class JdbcParquetArgsTest {
                 64 * 1024 * 1024,
                 1024 * 1024,
                 Collections.emptyList(),
-                "typed_first_row"));
+                ParquetSchemaOptions.of("typed_first_row")));
   }
 
   @Test
@@ -185,7 +197,7 @@ public class JdbcParquetArgsTest {
             64 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(50000, args.fetchSize());
   }
@@ -200,7 +212,7 @@ public class JdbcParquetArgsTest {
             128 * 1024 * 1024,
             1024 * 1024,
             Collections.emptyList(),
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals(128L * 1024 * 1024, args.rowGroupSize());
   }

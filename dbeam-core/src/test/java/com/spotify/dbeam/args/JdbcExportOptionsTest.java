@@ -263,6 +263,22 @@ public class JdbcExportOptionsTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
+  public void shouldDefaultDeprecatedAliasGetterToLogicalTypes() {
+    // embedding code may unbox the deprecated getter directly, so it must never be null
+    final java.util.function.Function<String, Boolean> alias =
+        args ->
+            org.apache.beam.sdk.options.PipelineOptionsFactory.fromArgs(
+                    args.isEmpty() ? new String[0] : args.split(" "))
+                .as(com.spotify.dbeam.options.JdbcExportPipelineOptions.class)
+                .isUseAvroLogicalTypes();
+    Assertions.assertEquals(Boolean.FALSE, alias.apply(""));
+    Assertions.assertEquals(Boolean.TRUE, alias.apply("--useLogicalTypes"));
+    Assertions.assertEquals(Boolean.FALSE, alias.apply("--useLogicalTypes=false"));
+    Assertions.assertEquals(Boolean.TRUE, alias.apply("--useAvroLogicalTypes"));
+  }
+
+  @Test
   public void shouldAcceptAgreeingLogicalTypesAndAlias()
       throws IOException, ClassNotFoundException {
     Assertions.assertTrue(

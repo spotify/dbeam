@@ -94,7 +94,14 @@ public class JdbcParquetSchemaTest {
   public void shouldConvertIntegerWithLongColumnClassNameToInt64() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "column1", Types.INTEGER, 0, "java.lang.Long", null, false, "typed_first_row");
+            "column1",
+            Types.INTEGER,
+            0,
+            0,
+            "java.lang.Long",
+            null,
+            null,
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
   }
@@ -137,7 +144,17 @@ public class JdbcParquetSchemaTest {
         new int[] {Types.TIMESTAMP, Types.DATE, Types.TIME, Types.TIME_WITH_TIMEZONE}) {
       final Type fieldType =
           JdbcParquetSchema.buildParquetFieldType(
-              "column1", sqlType, 0, "foobar", null, true, true, "typed_first_row");
+              "column1",
+              sqlType,
+              0,
+              0,
+              "foobar",
+              null,
+              null,
+              ParquetSchemaOptions.builder()
+                  .setUseLogicalTypes(true)
+                  .setUseTimestampMicros(true)
+                  .build());
 
       assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
       Assertions.assertEquals(
@@ -150,7 +167,14 @@ public class JdbcParquetSchemaTest {
   public void shouldIgnoreTimestampMicrosWithoutLogicalTypes() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "column1", Types.TIMESTAMP, 0, "foobar", null, false, true, "typed_first_row");
+            "column1",
+            Types.TIMESTAMP,
+            0,
+            0,
+            "foobar",
+            null,
+            null,
+            ParquetSchemaOptions.builder().setUseTimestampMicros(true).build());
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.INT64);
     Assertions.assertNull(fieldType.asPrimitiveType().getLogicalTypeAnnotation());
@@ -196,7 +220,14 @@ public class JdbcParquetSchemaTest {
   public void shouldConvertBitSqlTypeWithPrecision2ToBinary() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "column1", Types.BIT, 2, "foobar", null, false, "typed_first_row");
+            "column1",
+            Types.BIT,
+            2,
+            0,
+            "foobar",
+            null,
+            null,
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
   }
@@ -274,7 +305,14 @@ public class JdbcParquetSchemaTest {
   public void shouldConvertArraySqlTypeToListWithStringElements() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "column1", Types.ARRAY, 0, "java.sql.Array", "_text", false, "typed_first_row");
+            "column1",
+            Types.ARRAY,
+            0,
+            0,
+            "java.sql.Array",
+            "_text",
+            null,
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertFalse(fieldType.isPrimitive());
     Assertions.assertEquals(LogicalTypeAnnotation.listType(), fieldType.getLogicalTypeAnnotation());
@@ -286,15 +324,30 @@ public class JdbcParquetSchemaTest {
     for (String typeName : new String[] {"_int4", "_int8", "_float8", "_bool", "_bytea", "_text"}) {
       Assertions.assertEquals(
           Type.Repetition.REQUIRED,
-          JdbcParquetSchema.buildArrayElementType("arr", typeName).getRepetition(),
+          JdbcParquetSchema.buildArrayElementType(
+                  "arr",
+                  JdbcParquetSchema.resolveArrayElementTypeName(typeName),
+                  typeName,
+                  ParquetSchemaOptions.of("typed_first_row"))
+              .getRepetition(),
           typeName);
       Assertions.assertEquals(
           Type.Repetition.REQUIRED,
-          JdbcParquetSchema.buildArrayElementType("arr", typeName, false).getRepetition(),
+          JdbcParquetSchema.buildArrayElementType(
+                  "arr",
+                  JdbcParquetSchema.resolveArrayElementTypeName(typeName),
+                  typeName,
+                  ParquetSchemaOptions.of("typed_first_row"))
+              .getRepetition(),
           typeName);
       Assertions.assertEquals(
           Type.Repetition.OPTIONAL,
-          JdbcParquetSchema.buildArrayElementType("arr", typeName, true).getRepetition(),
+          JdbcParquetSchema.buildArrayElementType(
+                  "arr",
+                  JdbcParquetSchema.resolveArrayElementTypeName(typeName),
+                  typeName,
+                  ParquetSchemaOptions.builder().setNullableArrayItems(true).build())
+              .getRepetition(),
           typeName);
     }
     final Type list =
@@ -305,11 +358,11 @@ public class JdbcParquetSchemaTest {
             0,
             "java.sql.Array",
             "_int4",
-            false,
-            false,
-            "typed_postgres",
-            false,
-            true);
+            null,
+            ParquetSchemaOptions.builder()
+                .setArrayMode("typed_postgres")
+                .setNullableArrayItems(true)
+                .build());
     // the LIST group itself stays optional
     Assertions.assertEquals(Type.Repetition.OPTIONAL, list.getRepetition());
     Assertions.assertEquals(
@@ -319,42 +372,72 @@ public class JdbcParquetSchemaTest {
 
   @Test
   public void shouldConvertIntegerArrayToListOfInt32() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_int4");
+    final Type elementType =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_int4"),
+            "_int4",
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.INT32);
   }
 
   @Test
   public void shouldConvertBigintArrayToListOfInt64() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_int8");
+    final Type elementType =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_int8"),
+            "_int8",
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.INT64);
   }
 
   @Test
   public void shouldConvertFloat4ArrayToListOfFloat() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_float4");
+    final Type elementType =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_float4"),
+            "_float4",
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.FLOAT);
   }
 
   @Test
   public void shouldConvertFloat8ArrayToListOfDouble() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_float8");
+    final Type elementType =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_float8"),
+            "_float8",
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.DOUBLE);
   }
 
   @Test
   public void shouldConvertBoolArrayToListOfBoolean() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_bool");
+    final Type elementType =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_bool"),
+            "_bool",
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BOOLEAN);
   }
 
   @Test
   public void shouldConvertTextArrayToListOfString() {
-    final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", "_text");
+    final Type elementType =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_text"),
+            "_text",
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assertions.assertEquals(
@@ -367,7 +450,12 @@ public class JdbcParquetSchemaTest {
     for (String typeName :
         new String[] {"_text", "_varchar", "_bpchar", "_char", "_name", "_uuid", "VARCHAR ARRAY",
             "CHARACTER VARYING ARRAY", "CHARACTER(3) ARRAY", "UUID ARRAY"}) {
-      final Type elementType = JdbcParquetSchema.buildArrayElementType("arr", typeName);
+      final Type elementType =
+          JdbcParquetSchema.buildArrayElementType(
+              "arr",
+              JdbcParquetSchema.resolveArrayElementTypeName(typeName),
+              typeName,
+              ParquetSchemaOptions.of("typed_first_row"));
       assertPrimitiveType(elementType, PrimitiveType.PrimitiveTypeName.BINARY);
       Assertions.assertEquals(
           LogicalTypeAnnotation.stringType(),
@@ -379,18 +467,39 @@ public class JdbcParquetSchemaTest {
   @Test
   public void shouldConvertTypedArraysToTypedLists() {
     assertPrimitiveType(
-        JdbcParquetSchema.buildArrayElementType("arr", "_int2"),
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_int2"),
+            "_int2",
+            ParquetSchemaOptions.of("typed_first_row")),
         PrimitiveType.PrimitiveTypeName.INT32);
     assertPrimitiveType(
-        JdbcParquetSchema.buildArrayElementType("arr", "SMALLINT ARRAY"),
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("SMALLINT ARRAY"),
+            "SMALLINT ARRAY",
+            ParquetSchemaOptions.of("typed_first_row")),
         PrimitiveType.PrimitiveTypeName.INT32);
     assertPrimitiveType(
-        JdbcParquetSchema.buildArrayElementType("arr", "DOUBLE PRECISION ARRAY"),
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("DOUBLE PRECISION ARRAY"),
+            "DOUBLE PRECISION ARRAY",
+            ParquetSchemaOptions.of("typed_first_row")),
         PrimitiveType.PrimitiveTypeName.DOUBLE);
     assertPrimitiveType(
-        JdbcParquetSchema.buildArrayElementType("arr", "BOOLEAN ARRAY"),
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("BOOLEAN ARRAY"),
+            "BOOLEAN ARRAY",
+            ParquetSchemaOptions.of("typed_first_row")),
         PrimitiveType.PrimitiveTypeName.BOOLEAN);
-    final Type bytea = JdbcParquetSchema.buildArrayElementType("arr", "_bytea");
+    final Type bytea =
+        JdbcParquetSchema.buildArrayElementType(
+            "arr",
+            JdbcParquetSchema.resolveArrayElementTypeName("_bytea"),
+            "_bytea",
+            ParquetSchemaOptions.of("typed_first_row"));
     assertPrimitiveType(bytea, PrimitiveType.PrimitiveTypeName.BINARY);
     Assertions.assertNull(bytea.asPrimitiveType().getLogicalTypeAnnotation());
   }
@@ -415,7 +524,14 @@ public class JdbcParquetSchemaTest {
                 IllegalArgumentException.class,
                 () ->
                     JdbcParquetSchema.buildParquetFieldType(
-                        "my_col", Types.ARRAY, 0, "java.sql.Array", typeName[0], false, arrayMode));
+                        "my_col",
+                        Types.ARRAY,
+                        0,
+                        0,
+                        "java.sql.Array",
+                        typeName[0],
+                        null,
+                        ParquetSchemaOptions.of(arrayMode)));
         Assertions.assertTrue(e.getMessage().contains("columnName=my_col"), e.getMessage());
         Assertions.assertTrue(
             e.getMessage().contains("element type '" + typeName[1] + "'"), e.getMessage());
@@ -431,7 +547,14 @@ public class JdbcParquetSchemaTest {
     for (String typeName : new String[] {"_timestamp", "_numeric", "_json", "TIMESTAMP ARRAY"}) {
       for (boolean nullable : new boolean[] {false, true}) {
         final Type element =
-            JdbcParquetSchema.buildArrayElementType("my_col", typeName, nullable, true);
+            JdbcParquetSchema.buildArrayElementType(
+                "my_col",
+                JdbcParquetSchema.resolveArrayElementTypeName(typeName),
+                typeName,
+                ParquetSchemaOptions.builder()
+                    .setNullableArrayItems(nullable)
+                    .setUnsupportedArrayItemsAsString(true)
+                    .build());
         Assertions.assertEquals(PrimitiveType.PrimitiveTypeName.BINARY, element.asPrimitiveType()
             .getPrimitiveTypeName());
         Assertions.assertEquals(
@@ -447,7 +570,14 @@ public class JdbcParquetSchemaTest {
   public void shouldKeepUnsupportedArrayElementTypesAsBytesWithBytesMode() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "my_col", Types.ARRAY, 0, "java.sql.Array", "_timestamp", false, "bytes");
+            "my_col",
+            Types.ARRAY,
+            0,
+            0,
+            "java.sql.Array",
+            "_timestamp",
+            null,
+            ParquetSchemaOptions.of("bytes"));
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
   }
 
@@ -470,7 +600,14 @@ public class JdbcParquetSchemaTest {
   public void shouldConvertUuidWithLogicalType() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "column1", Types.OTHER, 0, "foobar", "uuid", true, "typed_first_row");
+            "column1",
+            Types.OTHER,
+            0,
+            0,
+            "foobar",
+            "uuid",
+            null,
+            ParquetSchemaOptions.builder().setUseLogicalTypes(true).build());
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY);
     Assertions.assertEquals(16, fieldType.asPrimitiveType().getTypeLength());
@@ -482,7 +619,14 @@ public class JdbcParquetSchemaTest {
   public void shouldConvertUuidWithoutLogicalType() throws SQLException {
     final Type fieldType =
         JdbcParquetSchema.buildParquetFieldType(
-            "column1", Types.OTHER, 0, "foobar", "uuid", false, "typed_first_row");
+            "column1",
+            Types.OTHER,
+            0,
+            0,
+            "foobar",
+            "uuid",
+            null,
+            ParquetSchemaOptions.of("typed_first_row"));
 
     assertPrimitiveType(fieldType, PrimitiveType.PrimitiveTypeName.BINARY);
     Assertions.assertEquals(
@@ -520,7 +664,7 @@ public class JdbcParquetSchemaTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals("test_table", schema.getName());
     Assertions.assertEquals(3, schema.getFieldCount());
@@ -549,7 +693,7 @@ public class JdbcParquetSchemaTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.of("CustomName"), false, "typed_first_row");
+            resultSet, Optional.of("CustomName"), ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals("CustomName", schema.getName());
   }
@@ -568,7 +712,7 @@ public class JdbcParquetSchemaTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals("test_table_name", schema.getName());
     Assertions.assertEquals("column_name_with_spaces", schema.getFields().get(0).getName());
@@ -576,7 +720,14 @@ public class JdbcParquetSchemaTest {
 
   private Type buildFieldType(final int sqlType, final boolean useLogicalTypes) {
     return JdbcParquetSchema.buildParquetFieldType(
-        "column1", sqlType, 0, "foobar", null, useLogicalTypes, "typed_first_row");
+        "column1",
+        sqlType,
+        0,
+        0,
+        "foobar",
+        null,
+        null,
+        ParquetSchemaOptions.builder().setUseLogicalTypes(useLogicalTypes).build());
   }
 
   private void assertPrimitiveType(
@@ -601,7 +752,14 @@ public class JdbcParquetSchemaTest {
               RuntimeException.class,
               () ->
                   JdbcParquetSchema.buildParquetFieldType(
-                      "col", type, 0, "java.lang.Object", "t", false, "typed_first_row"));
+                      "col",
+                      type,
+                      0,
+                      0,
+                      "java.lang.Object",
+                      "t",
+                      null,
+                      ParquetSchemaOptions.of("typed_first_row")));
       Assertions.assertEquals(messages[i], e.getMessage());
     }
   }
@@ -609,8 +767,18 @@ public class JdbcParquetSchemaTest {
   private static Type nativeField(final int type, final int precision, final int scale,
       final boolean micros) {
     return JdbcParquetSchema.buildParquetFieldType(
-        "c", type, precision, scale, "java.lang.Object", "t", true, micros, "typed_first_row",
-        true);
+        "c",
+        type,
+        precision,
+        scale,
+        "java.lang.Object",
+        "t",
+        null,
+        ParquetSchemaOptions.builder()
+            .setUseLogicalTypes(true)
+            .setUseTimestampMicros(micros)
+            .setNativeTypes(true)
+            .build());
   }
 
   @Test
@@ -651,12 +819,26 @@ public class JdbcParquetSchemaTest {
     Assertions.assertEquals(
         "optional int64 c (TIMESTAMP(MILLIS,true))",
         JdbcParquetSchema.buildParquetFieldType(
-                "c", Types.DATE, 0, "java.sql.Date", "date", true, "typed_first_row")
+                "c",
+                Types.DATE,
+                0,
+                0,
+                "java.sql.Date",
+                "date",
+                null,
+                ParquetSchemaOptions.builder().setUseLogicalTypes(true).build())
             .toString());
     Assertions.assertEquals(
         "optional binary c (STRING)",
         JdbcParquetSchema.buildParquetFieldType(
-                "c", Types.DECIMAL, 10, "java.math.BigDecimal", "numeric", true, "typed_first_row")
+                "c",
+                Types.DECIMAL,
+                10,
+                0,
+                "java.math.BigDecimal",
+                "numeric",
+                null,
+                ParquetSchemaOptions.builder().setUseLogicalTypes(true).build())
             .toString());
   }
 

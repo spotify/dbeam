@@ -62,8 +62,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertNotNull(schema);
     Assertions.assertEquals("COFFEES", schema.getName());
@@ -92,8 +91,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            true,
-            "typed_first_row");
+            ParquetSchemaOptions.builder().setUseLogicalTypes(true).build());
 
     Assertions.assertEquals(14, schema.getFieldCount());
     // CREATED and UPDATED should have timestamp logical type
@@ -111,8 +109,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.of("CustomSchema"),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     Assertions.assertEquals("CustomSchema", schema.getName());
   }
@@ -126,8 +123,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     // Write records to a temp file
     final Path tempFile = Files.createTempFile("parquet-test-", ".parquet");
@@ -143,7 +139,8 @@ public class JdbcParquetRecordTest {
                 java.nio.file.StandardOpenOption.WRITE));
 
     try (ParquetWriter<ResultSet> writer =
-        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(
+                outputFile, schema, null, ParquetSchemaOptions.of("typed_first_row"))
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       while (rs.next()) {
@@ -183,8 +180,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-values-test-", ".parquet");
     Files.delete(tempFile);
@@ -200,7 +196,8 @@ public class JdbcParquetRecordTest {
                 java.nio.file.StandardOpenOption.WRITE));
 
     try (ParquetWriter<ResultSet> writer =
-        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(
+                outputFile, schema, null, ParquetSchemaOptions.of("typed_first_row"))
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       while (rs.next()) {
@@ -250,8 +247,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-null-test-", ".parquet");
     Files.delete(tempFile);
@@ -266,7 +262,8 @@ public class JdbcParquetRecordTest {
                 java.nio.file.StandardOpenOption.WRITE));
 
     try (ParquetWriter<ResultSet> writer =
-        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(
+                outputFile, schema, null, ParquetSchemaOptions.of("typed_first_row"))
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       while (rs.next()) {
@@ -304,8 +301,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     final String avroSchemaJson =
         "{\"type\":\"record\",\"name\":\"COFFEES\","
@@ -324,7 +320,8 @@ public class JdbcParquetRecordTest {
                 java.nio.file.StandardOpenOption.WRITE));
 
     try (ParquetWriter<ResultSet> writer =
-        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema, avroSchemaJson)
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(
+                outputFile, schema, avroSchemaJson, ParquetSchemaOptions.of("typed_first_row"))
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       while (rs.next()) {
@@ -356,8 +353,7 @@ public class JdbcParquetRecordTest {
             connection,
             QueryBuilderArgs.create("COFFEES"),
             Optional.empty(),
-            false,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-no-avro-test-", ".parquet");
     Files.delete(tempFile);
@@ -373,7 +369,8 @@ public class JdbcParquetRecordTest {
 
     // No avroSchemaJson provided (2-arg constructor)
     try (ParquetWriter<ResultSet> writer =
-        new JdbcParquetIO.ResultSetParquetWriterBuilder(outputFile, schema)
+        new JdbcParquetIO.ResultSetParquetWriterBuilder(
+                outputFile, schema, null, ParquetSchemaOptions.of("typed_first_row"))
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       while (rs.next()) {

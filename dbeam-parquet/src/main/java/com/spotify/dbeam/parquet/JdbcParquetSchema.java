@@ -53,7 +53,9 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import com.spotify.dbeam.args.QueryBuilderArgs;
+import com.spotify.dbeam.options.ArrayHandlingMode;
 import java.math.BigInteger;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -65,6 +67,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -78,134 +82,39 @@ public class JdbcParquetSchema {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JdbcParquetSchema.class);
 
+  /** Run the {@code LIMIT 1} query and create the schema from its result set. */
   public static MessageType createSchemaByReadingOneRow(
       final Connection connection,
       final QueryBuilderArgs queryBuilderArgs,
       final Optional<String> schemaName,
-      final boolean useLogicalTypes,
-      final String arrayMode)
-      throws SQLException {
-    return createSchemaByReadingOneRow(
-        connection, queryBuilderArgs, schemaName, useLogicalTypes, false, arrayMode);
-  }
-
-  public static MessageType createSchemaByReadingOneRow(
-      final Connection connection,
-      final QueryBuilderArgs queryBuilderArgs,
-      final Optional<String> schemaName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode)
+      final ParquetSchemaOptions options)
       throws SQLException {
     LOGGER.debug("Creating Parquet schema based on the first read row from the database");
     try (Statement statement = connection.createStatement()) {
       final ResultSet resultSet = statement.executeQuery(queryBuilderArgs.sqlQueryWithLimitOne());
       resultSet.next();
-      final MessageType schema =
-          createParquetSchema(
-              resultSet, schemaName, useLogicalTypes, useTimestampMicros, arrayMode);
-      LOGGER.info(
-          "Parquet schema created successfully. useLogicalTypes={}, useTimestampMicros={}. "
-              + "Generated schema: {}",
-          useLogicalTypes,
-          useTimestampMicros,
-          schema);
+      final MessageType schema = createParquetSchema(resultSet, schemaName, options);
+      LOGGER.info("Parquet schema created successfully. {}. Generated schema: {}", options, schema);
       return schema;
     }
   }
 
-  public static MessageType createParquetSchema(
-      final ResultSet resultSet,
-      final Optional<String> maybeSchemaName,
-      final boolean useLogicalTypes,
-      final String arrayMode)
-      throws SQLException {
-    return createParquetSchema(resultSet, maybeSchemaName, useLogicalTypes, false, arrayMode);
-  }
-
-  public static MessageType createParquetSchema(
-      final ResultSet resultSet,
-      final Optional<String> maybeSchemaName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode)
-      throws SQLException {
-    return createParquetSchema(
-        resultSet, maybeSchemaName, useLogicalTypes, useTimestampMicros, arrayMode, false);
-  }
-
   /**
-   * Creates the Parquet schema for a result set.
-   *
-   * @param nativeTypes {@code --parquetNativeTypes}: DATE, TIME and DECIMAL/NUMERIC (with a valid
-   *     precision) use Parquet's DATE, TIME and DECIMAL types instead of the Avro-compatible
-   *     encodings. Annotations are added even without {@code useLogicalTypes}, since the physical
-   *     type depends on them (only used that way to validate schema files).
+   * Creates the Parquet schema for a result set positioned on its first row (or with no row).
+   * With {@code --arrayMode=typed_first_row} the element type of an ARRAY column comes from that
+   * row's {@link Array} when it is not NULL, as in the Avro export, and otherwise from the column
+   * type name.
    */
   public static MessageType createParquetSchema(
       final ResultSet resultSet,
       final Optional<String> maybeSchemaName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode,
-      final boolean nativeTypes)
-      throws SQLException {
-    return createParquetSchema(
-        resultSet,
-        maybeSchemaName,
-        useLogicalTypes,
-        useTimestampMicros,
-        arrayMode,
-        nativeTypes,
-        false);
-  }
-
-  /**
-   * Creates the Parquet schema for a result set.
-   *
-   * @param nullableArrayItems {@code --nullableArrayItems}: typed LIST elements are {@code
-   *     optional} with the flag and {@code required} without it, as in the Avro export.
-   */
-  public static MessageType createParquetSchema(
-      final ResultSet resultSet,
-      final Optional<String> maybeSchemaName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode,
-      final boolean nativeTypes,
-      final boolean nullableArrayItems)
-      throws SQLException {
-    return createParquetSchema(
-        resultSet,
-        maybeSchemaName,
-        useLogicalTypes,
-        useTimestampMicros,
-        arrayMode,
-        nativeTypes,
-        nullableArrayItems,
-        false);
-  }
-
-  /**
-   * Creates the Parquet schema for a result set.
-   *
-   * @param unsupportedArrayItemsAsString {@code --parquetUnsupportedArrayItemsAsString}: typed
-   *     LIST elements without a Parquet mapping (e.g. numeric, timestamp, date, json) become
-   *     {@code binary (STRING)} instead of failing.
-   */
-  public static MessageType createParquetSchema(
-      final ResultSet resultSet,
-      final Optional<String> maybeSchemaName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode,
-      final boolean nativeTypes,
-      final boolean nullableArrayItems,
-      final boolean unsupportedArrayItemsAsString)
+      final ParquetSchemaOptions options)
       throws SQLException {
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
     final String schemaName = maybeSchemaName.orElse(tableName);
+    final boolean onFirstRow =
+        ArrayHandlingMode.TypedMetaFromFirstRow.equals(options.arrayMode()) && resultSet.isFirst();
 
     final List<Type> fields = new ArrayList<>();
     final Map<String, List<String>> columnsByFieldName = new LinkedHashMap<>();
@@ -221,29 +130,71 @@ public class JdbcParquetSchema {
           .computeIfAbsent(normalizeFieldName(columnName), k -> new ArrayList<>())
           .add(columnName);
       final int columnType = meta.getColumnType(i);
-      final int precision = meta.getPrecision(i);
-      final int scale = meta.getScale(i);
-      final String columnClassName = meta.getColumnClassName(i);
-      final String columnTypeName = meta.getColumnTypeName(i);
+      final String firstRowArrayElementType =
+          columnType == ARRAY && onFirstRow
+              ? firstRowArrayElementType(resultSet.getArray(i))
+              : null;
 
       fields.add(
           buildParquetFieldType(
               normalizeFieldName(columnName),
               columnType,
-              precision,
-              scale,
-              columnClassName,
-              columnTypeName,
-              useLogicalTypes,
-              useTimestampMicros,
-              arrayMode,
-              nativeTypes,
-              nullableArrayItems,
-              unsupportedArrayItemsAsString));
+              meta.getPrecision(i),
+              meta.getScale(i),
+              meta.getColumnClassName(i),
+              meta.getColumnTypeName(i),
+              firstRowArrayElementType,
+              options));
     }
 
-    checkUniqueFieldNames(columnsByFieldName);
+    if (!options.allowDuplicateFieldNames()) {
+      checkUniqueFieldNames(columnsByFieldName);
+    }
     return new MessageType(schemaName, fields);
+  }
+
+  /**
+   * Element type of a {@code typed_first_row} ARRAY value: from its base type name (e.g. {@code
+   * int4} for PostgreSQL, {@code INTEGER} for H2), else from its JDBC base type; null for a NULL
+   * value.
+   */
+  static String firstRowArrayElementType(final Array array) throws SQLException {
+    if (array == null) {
+      return null;
+    }
+    final String byName = resolveArrayElementTypeName(array.getBaseTypeName());
+    if (array.getBaseTypeName() != null && isSupportedArrayElementType(byName)) {
+      return byName;
+    }
+    switch (array.getBaseType()) {
+      case INTEGER:
+        return "int4";
+      case SMALLINT:
+      case TINYINT:
+        return "int2";
+      case BIGINT:
+        return "int8";
+      case REAL:
+        return "float4";
+      case FLOAT:
+      case DOUBLE:
+        return "float8";
+      case BOOLEAN:
+        return "bool";
+      case BINARY:
+      case VARBINARY:
+      case LONGVARBINARY:
+        return "bytea";
+      case CHAR:
+      case VARCHAR:
+      case LONGVARCHAR:
+      case NCHAR:
+      case LONGNVARCHAR:
+      case CLOB:
+        return "text";
+      default:
+        return byName;
+    }
   }
 
   /**
@@ -279,47 +230,12 @@ public class JdbcParquetSchema {
     return defaultTableName;
   }
 
-  static Type buildParquetFieldType(
-      final String columnName,
-      final int columnType,
-      final int precision,
-      final String columnClassName,
-      final String columnTypeName,
-      final boolean useLogicalTypes,
-      final String arrayMode) {
-    return buildParquetFieldType(
-        columnName,
-        columnType,
-        precision,
-        columnClassName,
-        columnTypeName,
-        useLogicalTypes,
-        false,
-        arrayMode);
-  }
-
-  static Type buildParquetFieldType(
-      final String columnName,
-      final int columnType,
-      final int precision,
-      final String columnClassName,
-      final String columnTypeName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode) {
-    return buildParquetFieldType(
-        columnName,
-        columnType,
-        precision,
-        0,
-        columnClassName,
-        columnTypeName,
-        useLogicalTypes,
-        useTimestampMicros,
-        arrayMode,
-        false);
-  }
-
+  /**
+   * Parquet type of one column.
+   *
+   * @param firstRowArrayElementType element type from the first row's ARRAY value (see {@link
+   *     #firstRowArrayElementType}), or null to resolve it from {@code columnTypeName}
+   */
   static Type buildParquetFieldType(
       final String columnName,
       final int columnType,
@@ -327,65 +243,11 @@ public class JdbcParquetSchema {
       final int scale,
       final String columnClassName,
       final String columnTypeName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode,
-      final boolean nativeTypes) {
-    return buildParquetFieldType(
-        columnName,
-        columnType,
-        precision,
-        scale,
-        columnClassName,
-        columnTypeName,
-        useLogicalTypes,
-        useTimestampMicros,
-        arrayMode,
-        nativeTypes,
-        false);
-  }
-
-  static Type buildParquetFieldType(
-      final String columnName,
-      final int columnType,
-      final int precision,
-      final int scale,
-      final String columnClassName,
-      final String columnTypeName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode,
-      final boolean nativeTypes,
-      final boolean nullableArrayItems) {
-    return buildParquetFieldType(
-        columnName,
-        columnType,
-        precision,
-        scale,
-        columnClassName,
-        columnTypeName,
-        useLogicalTypes,
-        useTimestampMicros,
-        arrayMode,
-        nativeTypes,
-        nullableArrayItems,
-        false);
-  }
-
-  static Type buildParquetFieldType(
-      final String columnName,
-      final int columnType,
-      final int precision,
-      final int scale,
-      final String columnClassName,
-      final String columnTypeName,
-      final boolean useLogicalTypes,
-      final boolean useTimestampMicros,
-      final String arrayMode,
-      final boolean nativeTypes,
-      final boolean nullableArrayItems,
-      final boolean unsupportedArrayItemsAsString) {
-    if (nativeTypes) {
+      final String firstRowArrayElementType,
+      final ParquetSchemaOptions options) {
+    final boolean useLogicalTypes = options.useLogicalTypes();
+    final boolean useTimestampMicros = options.useTimestampMicros();
+    if (options.nativeTypes()) {
       final Optional<Type> nativeType =
           buildNativeFieldType(columnName, columnType, precision, scale, useTimestampMicros);
       if (nativeType.isPresent()) {
@@ -437,18 +299,20 @@ public class JdbcParquetSchema {
       case REAL:
         return Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named(columnName);
       case ARRAY:
-        if ("bytes".equals(arrayMode)) {
+        if (ArrayHandlingMode.Bytes.equals(options.arrayMode())) {
           return Types.optional(PrimitiveType.PrimitiveTypeName.BINARY).named(columnName);
         }
-        // Parquet 3-level LIST convention with typed elements.
-        // Element type is inferred from columnTypeName (e.g. _int4, _text for PostgreSQL).
+        // Parquet 3-level LIST convention with typed elements, inferred from the first row
+        // (typed_first_row) or from columnTypeName (e.g. _int4, _text for PostgreSQL).
         return Types.optionalList()
             .element(
                 buildArrayElementType(
                     columnName,
+                    firstRowArrayElementType != null
+                        ? firstRowArrayElementType
+                        : resolveArrayElementTypeName(columnTypeName),
                     columnTypeName,
-                    nullableArrayItems,
-                    unsupportedArrayItemsAsString))
+                    options))
             .named(columnName);
       // Same as dbeam-core's JdbcAvroSchema
       case STRUCT:
@@ -550,37 +414,20 @@ public class JdbcParquetSchema {
   }
 
   /**
-   * Determine the Parquet element type for an ARRAY column based on the column type name. For
-   * PostgreSQL, array column type names are prefixed with underscore (e.g. _int4, _text). Element
-   * types other than the integer, floating point, boolean, bytea and string-like types (text,
-   * varchar, bpchar/char, name, uuid) are rejected, instead of being written as strings.
-   */
-  static Type buildArrayElementType(final String columnName, final String columnTypeName) {
-    return buildArrayElementType(columnName, columnTypeName, false);
-  }
-
-  /**
-   * Like {@link #buildArrayElementType(String, String)}; the element is {@code optional} with
-   * {@code nullableArrayItems} and {@code required} without it.
-   */
-  static Type buildArrayElementType(
-      final String columnName, final String columnTypeName, final boolean nullableArrayItems) {
-    return buildArrayElementType(columnName, columnTypeName, nullableArrayItems, false);
-  }
-
-  /**
-   * Like {@link #buildArrayElementType(String, String, boolean)}; with {@code
-   * unsupportedArrayItemsAsString}, unsupported element types become {@code binary (STRING)}
-   * (written with the value's toString()) and a warning is logged, instead of failing.
+   * Parquet LIST element for an ARRAY column whose element type (see {@link
+   * #resolveArrayElementTypeName}) is {@code elementType}: {@code optional} with {@code
+   * --nullableArrayItems} and {@code required} without it. Element types other than the integer,
+   * floating point, boolean, bytea and string-like types (text, varchar, bpchar/char, name, uuid)
+   * are rejected, or with {@code --parquetUnsupportedArrayItemsAsString} become {@code binary
+   * (STRING)} (written with the value's toString()) with a warning.
    */
   static Type buildArrayElementType(
       final String columnName,
+      final String elementType,
       final String columnTypeName,
-      final boolean nullableArrayItems,
-      final boolean unsupportedArrayItemsAsString) {
+      final ParquetSchemaOptions options) {
     final Type.Repetition repetition =
-        nullableArrayItems ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED;
-    final String elementType = resolveArrayElementTypeName(columnTypeName);
+        options.nullableArrayItems() ? Type.Repetition.OPTIONAL : Type.Repetition.REQUIRED;
     switch (elementType) {
       case "int":
       case "int4":
@@ -599,7 +446,7 @@ public class JdbcParquetSchema {
         return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition).named("element");
       default:
         if (!isStringArrayElementType(elementType)) {
-          if (!unsupportedArrayItemsAsString) {
+          if (!options.unsupportedArrayItemsAsString()) {
             throw new IllegalArgumentException(
                 "columnName="
                     + columnName
@@ -621,6 +468,23 @@ public class JdbcParquetSchema {
         return Types.primitive(PrimitiveType.PrimitiveTypeName.BINARY, repetition)
             .as(LogicalTypeAnnotation.stringType())
             .named("element");
+    }
+  }
+
+  /** ARRAY element types with a Parquet mapping (see {@link #buildArrayElementType}). */
+  static boolean isSupportedArrayElementType(final String elementType) {
+    switch (elementType) {
+      case "int":
+      case "int4":
+      case "int2":
+      case "int8":
+      case "float4":
+      case "float8":
+      case "bool":
+      case "bytea":
+        return true;
+      default:
+        return isStringArrayElementType(elementType);
     }
   }
 
@@ -659,8 +523,10 @@ public class JdbcParquetSchema {
       return "int2";
     } else if (lower.startsWith("bigint")) {
       return "int8";
-    } else if (lower.startsWith("real") || lower.startsWith("float")) {
+    } else if (lower.startsWith("real") || lower.startsWith("float4")) {
       return "float4";
+    } else if (lower.startsWith("float")) {
+      return resolveFloatPrecision(lower);
     } else if (lower.startsWith("double")) {
       return "float8";
     } else if (lower.startsWith("boolean")) {
@@ -677,6 +543,22 @@ public class JdbcParquetSchema {
       return "text";
     }
     return lower.replaceAll("\\(.*?\\)", "").replaceAll("\\s+array$", "").trim();
+  }
+
+  private static final Pattern FLOAT_PRECISION =
+      Pattern.compile("^float\\s*\\(\\s*(\\d+)\\s*\\).*");
+
+  /**
+   * SQL {@code FLOAT(p)} is single precision for {@code p <= 24} and double precision otherwise,
+   * and an unsized {@code FLOAT} is double precision (H2, HSQLDB and the SQL standard), as is
+   * PostgreSQL's {@code float8}.
+   */
+  private static String resolveFloatPrecision(final String lowerTypeName) {
+    final Matcher sized = FLOAT_PRECISION.matcher(lowerTypeName);
+    if (sized.matches()) {
+      return Integer.parseInt(sized.group(1)) <= 24 ? "float4" : "float8";
+    }
+    return "float8";
   }
 
   static String normalizeFieldName(final String input) {

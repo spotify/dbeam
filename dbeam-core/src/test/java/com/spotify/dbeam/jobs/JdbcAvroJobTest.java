@@ -570,4 +570,52 @@ public class JdbcAvroJobTest {
         e.getMessage());
     Assertions.assertFalse(outputPath.toFile().exists());
   }
+
+  @Test
+  public void shouldExportCollidingColumnNamesWithSchemaFile() throws Exception {
+    // Names that collide after normalization (H2 rejects identical names in dbeam's subquery):
+    // the schema file supplies unique field names and values are written by position
+    final Path sql = testDir.resolve("collide-avro-schema-file.sql");
+    Files.write(
+        sql,
+        ("SELECT COF_NAME AS \"cof-name\", COF_NAME AS \"cof_name\", COF_NAME AS \"cof.name\","
+                + " COF_NAME AS \"cof name\", TOTAL FROM COFFEES")
+            .getBytes());
+    final Path schemaFile = testDir.resolve("collide-avro-schema-file.avsc");
+    Files.write(
+        schemaFile,
+        ("{\"type\":\"record\",\"name\":\"coffees\",\"fields\":["
+                + "{\"name\":\"name_a\",\"type\":[\"null\",\"string\"]},"
+                + "{\"name\":\"name_b\",\"type\":[\"null\",\"string\"]},"
+                + "{\"name\":\"name_c\",\"type\":[\"null\",\"string\"]},"
+                + "{\"name\":\"name_d\",\"type\":[\"null\",\"string\"]},"
+                + "{\"name\":\"total\",\"type\":[\"null\",\"long\"]}]}")
+            .getBytes());
+    final Path outputPath = testDir.resolve("collide-avro-schema-file");
+    JdbcAvroJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--sqlFile=" + sql,
+              "--output=" + outputPath,
+              "--avroSchemaFilePath=" + schemaFile
+            })
+        .runExport();
+
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final List<GenericRecord> records =
+        readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
+    assertThat(records, hasSize(2));
+    for (GenericRecord record : records) {
+      final String name = record.get("name_a").toString();
+      Assertions.assertEquals(name, record.get("name_b").toString());
+      Assertions.assertEquals(name, record.get("name_c").toString());
+      Assertions.assertEquals(name, record.get("name_d").toString());
+    }
+  }
 }

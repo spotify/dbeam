@@ -80,7 +80,9 @@ public class PostgresJdbcParquetTest {
       final ResultSet resultSet = mockNumeric(precision, 0, "12345678901234567890.123456789");
       final MessageType schema =
           JdbcParquetSchema.createParquetSchema(
-              resultSet, Optional.empty(), true, false, "typed_first_row", true);
+              resultSet,
+              Optional.empty(),
+              ParquetSchemaOptions.builder().setUseLogicalTypes(true).setNativeTypes(true).build());
       Assertions.assertEquals(
           LogicalTypeAnnotation.stringType(), schema.getType(0).getLogicalTypeAnnotation());
 
@@ -104,7 +106,9 @@ public class PostgresJdbcParquetTest {
     final ResultSet resultSet = mockNumeric(10, 2, "-1234.5");
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), true, false, "typed_first_row", true);
+            resultSet,
+            Optional.empty(),
+            ParquetSchemaOptions.builder().setUseLogicalTypes(true).setNativeTypes(true).build());
     Assertions.assertEquals(
         LogicalTypeAnnotation.decimalType(2, 10), schema.getType(0).getLogicalTypeAnnotation());
 
@@ -129,7 +133,9 @@ public class PostgresJdbcParquetTest {
     final ResultSet resultSet = mockNumeric(10, 2, "1234.567");
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), true, false, "typed_first_row", true);
+            resultSet,
+            Optional.empty(),
+            ParquetSchemaOptions.builder().setUseLogicalTypes(true).setNativeTypes(true).build());
     final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
     Files.delete(tempFile);
     final RuntimeException e =
@@ -156,7 +162,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-uuid-test-", ".parquet");
     Files.delete(tempFile);
@@ -187,7 +193,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-string-test-", ".parquet");
     Files.delete(tempFile);
@@ -216,7 +222,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-ts-test-", ".parquet");
     Files.delete(tempFile);
@@ -248,7 +254,12 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), true, true, "typed_first_row");
+            resultSet,
+            Optional.empty(),
+            ParquetSchemaOptions.builder()
+                .setUseLogicalTypes(true)
+                .setUseTimestampMicros(true)
+                .build());
     Assertions.assertEquals(
         LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS),
         schema.getType("ts_field").getLogicalTypeAnnotation());
@@ -283,7 +294,9 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), true, "typed_first_row");
+            resultSet,
+            Optional.empty(),
+            ParquetSchemaOptions.builder().setUseLogicalTypes(true).build());
 
     final Path tempFile = Files.createTempFile("parquet-ts-millis-test-", ".parquet");
     Files.delete(tempFile);
@@ -314,7 +327,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-null-test-", ".parquet");
     Files.delete(tempFile);
@@ -350,7 +363,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-numeric-test-", ".parquet");
     Files.delete(tempFile);
@@ -379,7 +392,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-bool-test-", ".parquet");
     Files.delete(tempFile);
@@ -407,7 +420,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     // Verify schema has LIST type
     Assertions.assertFalse(schema.getFields().get(0).isPrimitive());
@@ -445,7 +458,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-int-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -477,7 +490,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-long-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -509,7 +522,9 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, false, "typed_first_row", false, true);
+            resultSet,
+            Optional.empty(),
+            ParquetSchemaOptions.builder().setNullableArrayItems(true).build());
     Assertions.assertEquals(
         Type.Repetition.OPTIONAL,
         schema.getType("tags").asGroupType().getType(0).asGroupType().getType(0).getRepetition());
@@ -547,13 +562,13 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
     Assertions.assertEquals(
         Type.Repetition.REQUIRED,
         schema.getType("tags").asGroupType().getType(0).asGroupType().getType(0).getRepetition());
     final JdbcParquetWriteSupport.ColumnWriter writer =
         JdbcParquetWriteSupport.computeColumnWriter(
-            meta, 1, "typed_first_row", schema.getType(0), false, false);
+            meta, 1, schema.getType(0), ParquetSchemaOptions.of("typed_first_row"));
     final org.apache.parquet.io.api.RecordConsumer consumer =
         Mockito.mock(org.apache.parquet.io.api.RecordConsumer.class);
     final RuntimeException e =
@@ -577,7 +592,7 @@ public class PostgresJdbcParquetTest {
 
     final MessageType schema =
         JdbcParquetSchema.createParquetSchema(
-            resultSet, Optional.empty(), false, "typed_first_row");
+            resultSet, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
 
     final Path tempFile = Files.createTempFile("parquet-null-sql-array-test-", ".parquet");
     Files.delete(tempFile);
@@ -629,7 +644,13 @@ public class PostgresJdbcParquetTest {
 
     try (ParquetWriter<ResultSet> writer =
         new JdbcParquetIO.ResultSetParquetWriterBuilder(
-                outputFile, schema, null, "typed_first_row", useTimestampMicros, nativeTypes)
+                outputFile,
+                schema,
+                null,
+                ParquetSchemaOptions.builder()
+                    .setUseTimestampMicros(useTimestampMicros)
+                    .setNativeTypes(nativeTypes)
+                    .build())
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       writer.write(resultSet);

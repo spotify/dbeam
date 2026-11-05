@@ -32,7 +32,8 @@ public class JdbcMetering {
   private final int countReportEvery;
   private final int logEvery;
   private final String formatName;
-  private final Logger logger = LoggerFactory.getLogger(JdbcMetering.class);
+  // the subclass, so log configs keep matching e.g. com.spotify.dbeam.avro.JdbcAvroMetering
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private Counter recordCount =
       Metrics.counter(this.getClass().getCanonicalName(), RECORD_COUNT_METRIC_NAME);
   private Counter executeQueryElapsedMs =

@@ -239,6 +239,45 @@ runParquetTimestampMicrosTest() {
   echo "PASS: footer parquet.avro.schema equals _AVRO_SCHEMA.avsc"
 }
 
+# json[], jsonb[], char(n)[], bool[], real[] and double precision[] with --arrayMode=typed_postgres,
+# over both pgjdbc text and binary transfer (they decode array elements differently).
+runTypedPostgresArraysTest() {
+  echo "=== typed_postgres arrays e2e test ==="
+  local OUTPUT AVRO_FILE BINARY
+  for BINARY in false true; do
+    OUTPUT="$SCRIPT_PATH/results/typed_postgres_arrays_binary_$BINARY/"
+    rm -rf "$OUTPUT"
+    set -o xtrace
+    run_docker_dbeam_jdbc \
+      --skipPartitionCheck \
+      --runner=DirectRunner \
+      "--connectionUrl=jdbc:postgresql://dbeam-postgres:5432/$PSQL_DB?binaryTransfer=$BINARY" \
+      "--username=$PSQL_USER" \
+      "--password=$PSQL_PASSWORD" \
+      "--table=typed_postgres_array_test" \
+      "--output=$OUTPUT" \
+      --arrayMode=typed_postgres
+    set +o xtrace
+    AVRO_FILE="$(find "$OUTPUT" -name '*.avro' | head -n 1)"
+    if [[ -z "$AVRO_FILE" ]]; then
+      echo "FAIL: no avro output file found (binaryTransfer=$BINARY)"
+      return 1
+    fi
+    java \
+      --class-path "$PROJECT_PATH/dbeam-core/target/dbeam-core-shaded.jar" \
+      "$SCRIPT_PATH/VerifyTypedPostgresArrays.java" \
+      "$AVRO_FILE"
+    echo "PASS: typed_postgres arrays (binaryTransfer=$BINARY)"
+  done
+}
+
+typedPostgresArrays() {
+  dockerClean
+  trap dockerClean EXIT
+  startPostgres
+  runTypedPostgresArraysTest
+}
+
 timestampMicros() {
   dockerClean
   trap dockerClean EXIT
@@ -280,6 +319,7 @@ runSuite() {
   BINARY_TRANSFER='false' runDBeamDockerCon --executions=3 --avroCodec=deflate1 --arrayMode=typed_postgres
   runTimestampMicrosTest
   runParquetTimestampMicrosTest
+  runTypedPostgresArraysTest
 }
 
 # Parquet counterparts of runSuite, plus the logical type, uuid and --dataOnly variants.

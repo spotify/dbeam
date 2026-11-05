@@ -580,6 +580,8 @@ public class PostgresJdbcAvroTest {
       {"_int8", Types.BIGINT, "int8", new Long[][] {{1L}}},
       {"_text", Types.VARCHAR, "text", new String[][] {{"a"}, {"b"}}},
       {"_varchar", Types.VARCHAR, "varchar", new String[][] {{"a"}}},
+      // only the first non-null item is checked for nesting
+      {"_int4", Types.INTEGER, "int4", new Integer[][] {null, {3, 4}}},
     };
     for (Object[] c : cases) {
       for (String arrayMode :

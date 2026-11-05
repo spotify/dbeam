@@ -1000,4 +1000,60 @@ public class JdbcParquetJobTest {
         e.getMessage());
     Assertions.assertFalse(outputPath.toFile().exists());
   }
+
+  @Test
+  public void shouldExportCollidingColumnNamesWithSchemaFile() throws Exception {
+    // the schema file supplies unique field names and values are written by position
+    final Path sql = testDir.resolve("collide-parquet-schema-file.sql");
+    Files.write(
+        sql,
+        ("SELECT COF_NAME AS \"cof-name\", COF_NAME AS \"cof_name\", COF_NAME AS \"cof.name\","
+                + " TOTAL FROM COFFEES")
+            .getBytes());
+    final Path schemaFile = testDir.resolve("collide-parquet-schema-file.txt");
+    Files.write(
+        schemaFile,
+        ("message COFFEES {\n"
+                + "  optional binary name_a (STRING);\n"
+                + "  optional binary name_b (STRING);\n"
+                + "  optional binary name_c (STRING);\n"
+                + "  optional int64 total;\n"
+                + "}")
+            .getBytes());
+    final Path outputPath = testDir.resolve("collide-parquet-schema-file");
+    JdbcParquetJob.create(
+            new String[] {
+              "--targetParallelism=1",
+              "--skipPartitionCheck",
+              "--exportTimeout=PT1M",
+              "--connectionUrl=" + CONNECTION_URL,
+              "--username=",
+              "--passwordFile=" + passwordPath.toString(),
+              "--sqlFile=" + sql,
+              "--output=" + outputPath,
+              "--parquetSchemaFilePath=" + schemaFile
+            })
+        .runExport();
+
+    final List<GenericRecord> records = new ArrayList<>();
+    try (ParquetReader<GenericRecord> reader =
+        AvroParquetReader.<GenericRecord>builder(
+                HadoopInputFile.fromPath(
+                    new org.apache.hadoop.fs.Path(
+                        outputPath.resolve("part-00000-of-00001.parquet").toUri()),
+                    new org.apache.hadoop.conf.Configuration()))
+            .build()) {
+      GenericRecord record;
+      while ((record = reader.read()) != null) {
+        records.add(record);
+      }
+    }
+    Assertions.assertEquals(2, records.size());
+    for (GenericRecord record : records) {
+      final String name = record.get("name_a").toString();
+      Assertions.assertEquals(name, record.get("name_b").toString());
+      Assertions.assertEquals(name, record.get("name_c").toString());
+      Assertions.assertNotNull(record.get("total"));
+    }
+  }
 }

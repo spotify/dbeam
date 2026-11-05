@@ -199,7 +199,13 @@ public class ParquetAvroSchemaTest {
   public void shouldConvertArrayColumnWithoutListWrapperRecord() throws SQLException {
     final ResultSet rs = arrayResultSet("_int8", new Long[] {1L});
     final MessageType parquet =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.of("t"), true, "typed_postgres");
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            Optional.of("t"),
+            ParquetSchemaOptions.builder()
+                .setArrayMode("typed_postgres")
+                .setUseLogicalTypes(true)
+                .build());
     final Schema arr = convert(parquet.toString()).getField("arr").schema();
     // required elements (no --nullableArrayItems): array<long>
     Assertions.assertEquals(nullable(Schema.createArray(Schema.create(Schema.Type.LONG))), arr);
@@ -217,7 +223,13 @@ public class ParquetAvroSchemaTest {
       final ResultSet rs, final boolean useLogicalTypes, final String arrayMode)
       throws SQLException {
     return JdbcParquetSchema.createParquetSchema(
-        rs, Optional.empty(), useLogicalTypes, false, arrayMode, false, true);
+        rs,
+        Optional.empty(),
+        ParquetSchemaOptions.builder()
+            .setArrayMode(arrayMode)
+            .setUseLogicalTypes(useLogicalTypes)
+            .setNullableArrayItems(true)
+            .build());
   }
 
   @Test
@@ -242,8 +254,7 @@ public class ParquetAvroSchemaTest {
                         tempFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE)),
                 schema,
                 avro.toString(),
-                arrayMode,
-                false)
+                ParquetSchemaOptions.of(arrayMode))
             .withWriteMode(ParquetFileWriter.Mode.CREATE)
             .build()) {
       for (int i = 0; i < rows; i++) {
@@ -283,7 +294,8 @@ public class ParquetAvroSchemaTest {
   public void shouldRoundTripUuidWithLogicalTypes() throws Exception {
     final ResultSet rs = uuidResultSet();
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            rs, Optional.empty(), ParquetSchemaOptions.builder().setUseLogicalTypes(true).build());
     final List<GenericRecord> records = writeAndRead(schema, rs, "typed_first_row", 2);
     Assertions.assertEquals(
         "uuid", records.get(0).getSchema().getField("id").schema().getTypes().get(1)
@@ -296,7 +308,8 @@ public class ParquetAvroSchemaTest {
   public void shouldRoundTripUuidWithoutLogicalTypes() throws Exception {
     final ResultSet rs = uuidResultSet();
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), false, "typed_first_row");
+        JdbcParquetSchema.createParquetSchema(
+            rs, Optional.empty(), ParquetSchemaOptions.of("typed_first_row"));
     final List<GenericRecord> records = writeAndRead(schema, rs, "typed_first_row", 2);
     Assertions.assertEquals(
         nullable(Schema.create(Schema.Type.STRING)),
@@ -335,10 +348,21 @@ public class ParquetAvroSchemaTest {
       final ResultSet rs = arrayResultSet("_numeric", values);
       final MessageType derived =
           JdbcParquetSchema.createParquetSchema(
-              rs, Optional.empty(), false, false, "typed_postgres", false, false, true);
+              rs,
+              Optional.empty(),
+              ParquetSchemaOptions.builder()
+                  .setArrayMode("typed_postgres")
+                  .setUnsupportedArrayItemsAsString(true)
+                  .build());
       final MessageType derivedLogical =
           JdbcParquetSchema.createParquetSchema(
-              rs, Optional.empty(), true, false, "typed_postgres", false, false, true);
+              rs,
+              Optional.empty(),
+              ParquetSchemaOptions.builder()
+                  .setArrayMode("typed_postgres")
+                  .setUseLogicalTypes(true)
+                  .setUnsupportedArrayItemsAsString(true)
+                  .build());
       final MessageType provided =
           MessageTypeParser.parseMessageType(
               "message t { optional group arr (LIST) { repeated group list {"
@@ -389,7 +413,13 @@ public class ParquetAvroSchemaTest {
   public void shouldRoundTripIntArrayWithRequiredElements() throws Exception {
     final ResultSet rs = arrayResultSet("_int8", new Long[] {1L, 3L});
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "typed_postgres");
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            Optional.empty(),
+            ParquetSchemaOptions.builder()
+                .setArrayMode("typed_postgres")
+                .setUseLogicalTypes(true)
+                .build());
     final List<GenericRecord> records = writeAndRead(schema, rs, "typed_postgres", 2);
     Assertions.assertEquals(
         nullable(Schema.createArray(Schema.create(Schema.Type.LONG))),
@@ -402,7 +432,13 @@ public class ParquetAvroSchemaTest {
   public void shouldRejectNullElementWithRequiredElements() throws Exception {
     final ResultSet rs = arrayResultSet("_int8", new Long[] {1L, null, 3L});
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "typed_postgres");
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            Optional.empty(),
+            ParquetSchemaOptions.builder()
+                .setArrayMode("typed_postgres")
+                .setUseLogicalTypes(true)
+                .build());
     final RuntimeException e =
         Assertions.assertThrows(
             RuntimeException.class, () -> writeAndRead(schema, rs, "typed_postgres", 1));
@@ -425,7 +461,10 @@ public class ParquetAvroSchemaTest {
     when(rs.getBytes(1)).thenReturn(new byte[] {1, 2}, (byte[]) null);
     when(rs.wasNull()).thenReturn(false, true);
     final MessageType schema =
-        JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), true, "bytes");
+        JdbcParquetSchema.createParquetSchema(
+            rs,
+            Optional.empty(),
+            ParquetSchemaOptions.builder().setArrayMode("bytes").setUseLogicalTypes(true).build());
     final List<GenericRecord> records = writeAndRead(schema, rs, "bytes", 2);
     Assertions.assertEquals(
         nullable(Schema.create(Schema.Type.BYTES)),

@@ -59,8 +59,29 @@ public class JdbcParquetWriteSupportTest {
 
   private void write(int sqlType, String arrayMode, Type fieldType) throws SQLException {
     when(meta.getColumnType(1)).thenReturn(sqlType);
-    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, fieldType, false)
+    final Type field = fieldType != null ? fieldType : derivedFieldType(arrayMode);
+    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, field, ParquetSchemaOptions.of(arrayMode))
         .write(consumer, rs);
+  }
+
+  /**
+   * The field derived from the mocked column metadata, for tests without a schema field (the
+   * writer no longer accepts a null one). Its LIST elements are optional, as a null field allowed
+   * NULL items.
+   */
+  private Type derivedFieldType(final String arrayMode) throws SQLException {
+    return JdbcParquetSchema.buildParquetFieldType(
+        "col",
+        meta.getColumnType(1),
+        meta.getPrecision(1),
+        meta.getScale(1),
+        meta.getColumnClassName(1),
+        meta.getColumnTypeName(1),
+        null,
+        ParquetSchemaOptions.builder()
+            .setArrayMode(arrayMode)
+            .setNullableArrayItems(true)
+            .build());
   }
 
   private void writeTimestamp(final Type fieldType, final boolean micros) throws SQLException {
@@ -68,7 +89,14 @@ public class JdbcParquetWriteSupportTest {
     ts.setNanos(123456789);
     when(meta.getColumnType(1)).thenReturn(Types.TIMESTAMP);
     when(rs.getTimestamp(Mockito.eq(1), Mockito.any())).thenReturn(ts);
-    JdbcParquetWriteSupport.computeColumnWriter(meta, 1, "bytes", fieldType, micros)
+    JdbcParquetWriteSupport.computeColumnWriter(
+            meta,
+            1,
+            fieldType,
+            ParquetSchemaOptions.builder()
+                .setArrayMode("bytes")
+                .setUseTimestampMicros(micros)
+                .build())
         .write(consumer, rs);
   }
 
@@ -209,7 +237,8 @@ public class JdbcParquetWriteSupportTest {
         when(rs.getArray(1)).thenReturn(array);
         when(array.getArray()).thenReturn(c[1]);
         final JdbcParquetWriteSupport.ColumnWriter writer =
-            JdbcParquetWriteSupport.computeColumnWriter(meta, 1, arrayMode, null, false);
+            JdbcParquetWriteSupport.computeColumnWriter(
+                meta, 1, derivedFieldType(arrayMode), ParquetSchemaOptions.of(arrayMode));
         final IllegalArgumentException e =
             Assertions.assertThrows(
                 IllegalArgumentException.class, () -> writer.write(recordConsumer, rs));
@@ -256,7 +285,11 @@ public class JdbcParquetWriteSupportTest {
     verify(consumer).addBinary(Binary.fromConstantByteArray(bytes));
     Assertions.assertEquals(
         PrimitiveTypeName.BINARY,
-        JdbcParquetSchema.buildArrayElementType("arr", "_bytea")
+        JdbcParquetSchema.buildArrayElementType(
+                "arr",
+                JdbcParquetSchema.resolveArrayElementTypeName("_bytea"),
+                "_bytea",
+                ParquetSchemaOptions.of("typed_first_row"))
             .asPrimitiveType()
             .getPrimitiveTypeName());
   }
@@ -278,18 +311,53 @@ public class JdbcParquetWriteSupportTest {
   public void shouldWriteUnsupportedArrayElementAsStringOnlyForStringSchemaElement() {
     final org.apache.parquet.schema.Type stringList =
         org.apache.parquet.schema.Types.optionalList()
-            .element(JdbcParquetSchema.buildArrayElementType("arr", "_timestamp", false, true))
+            .element(
+                JdbcParquetSchema.buildArrayElementType(
+                    "arr",
+                    JdbcParquetSchema.resolveArrayElementTypeName("_timestamp"),
+                    "_timestamp",
+                    ParquetSchemaOptions.builder().setUnsupportedArrayItemsAsString(true).build()))
             .named("arr");
-    Assertions.assertEquals(
-        "text", JdbcParquetWriteSupport.writtenArrayElementType("timestamp", stringList));
+    Assertions.assertEquals("text", written(stringList, "timestamp", "typed_postgres"));
     final org.apache.parquet.schema.Type intList =
         org.apache.parquet.schema.Types.optionalList()
-            .element(JdbcParquetSchema.buildArrayElementType("arr", "_int4", false))
+            .element(
+                JdbcParquetSchema.buildArrayElementType(
+                    "arr",
+                    JdbcParquetSchema.resolveArrayElementTypeName("_int4"),
+                    "_int4",
+                    ParquetSchemaOptions.of("typed_first_row")))
             .named("arr");
-    Assertions.assertEquals(
-        "timestamp", JdbcParquetWriteSupport.writtenArrayElementType("timestamp", intList));
-    Assertions.assertEquals(
-        "int4", JdbcParquetWriteSupport.writtenArrayElementType("int4", stringList));
+    Assertions.assertEquals("int4", written(intList, "int4", "typed_postgres"));
+    Assertions.assertEquals("int2", written(intList, "int2", "typed_postgres"));
+    Assertions.assertEquals("varchar", written(stringList, "varchar", "typed_postgres"));
+
+    // an unsupported column type is only written into a non-string element when that element
+    // came from the first row (typed_first_row)
+    assertMismatch(intList, "timestamp", "typed_postgres");
+    Assertions.assertEquals("int4", written(intList, "array", "typed_first_row"));
+    // a supported column type must match the schema element in every mode
+    assertMismatch(stringList, "int4", "typed_postgres");
+    assertMismatch(stringList, "int4", "typed_first_row");
+    assertMismatch(intList, "int8", "typed_first_row");
+    assertMismatch(intList, "text", "typed_postgres");
+  }
+
+  private static String written(
+      final org.apache.parquet.schema.Type list, final String metadataType, final String mode) {
+    return JdbcParquetWriteSupport.writtenArrayElementType(list, metadataType, mode, "arr");
+  }
+
+  private static void assertMismatch(
+      final org.apache.parquet.schema.Type list, final String metadataType, final String mode) {
+    final IllegalArgumentException e =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> written(list, metadataType, mode));
+    Assertions.assertTrue(
+        e.getMessage()
+            .startsWith(
+                "Column 'arr' has ARRAY element type '" + metadataType + "', which cannot be"),
+        e.getMessage());
   }
 
   @Test

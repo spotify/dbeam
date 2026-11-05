@@ -52,13 +52,8 @@ public abstract class JdbcParquetArgs implements Serializable {
 
   public abstract List<String> preCommand();
 
-  public abstract String arrayMode();
-
-  /** Write timestamp/date/time columns as epoch micros instead of millis. */
-  public abstract boolean useTimestampMicros();
-
-  /** {@code --parquetNativeTypes}: native Parquet DATE, TIME and DECIMAL types. */
-  public abstract boolean useNativeTypes();
+  /** How columns are written; must be the options the schema was created with. */
+  public abstract ParquetSchemaOptions schemaOptions();
 
   abstract Builder builder();
 
@@ -126,11 +121,7 @@ public abstract class JdbcParquetArgs implements Serializable {
 
     abstract Builder setPreCommand(List<String> preCommand);
 
-    abstract Builder setArrayMode(String arrayMode);
-
-    abstract Builder setUseTimestampMicros(boolean useTimestampMicros);
-
-    abstract Builder setUseNativeTypes(boolean useNativeTypes);
+    abstract Builder setSchemaOptions(ParquetSchemaOptions schemaOptions);
 
     abstract JdbcParquetArgs build();
   }
@@ -142,49 +133,7 @@ public abstract class JdbcParquetArgs implements Serializable {
       final long rowGroupSize,
       final long pageSize,
       final List<String> preCommand,
-      final String arrayMode) {
-    return create(
-        jdbcConnectionArgs,
-        fetchSize,
-        parquetCodec,
-        rowGroupSize,
-        pageSize,
-        preCommand,
-        arrayMode,
-        false);
-  }
-
-  public static JdbcParquetArgs create(
-      final JdbcConnectionArgs jdbcConnectionArgs,
-      final int fetchSize,
-      final String parquetCodec,
-      final long rowGroupSize,
-      final long pageSize,
-      final List<String> preCommand,
-      final String arrayMode,
-      final boolean useTimestampMicros) {
-    return create(
-        jdbcConnectionArgs,
-        fetchSize,
-        parquetCodec,
-        rowGroupSize,
-        pageSize,
-        preCommand,
-        arrayMode,
-        useTimestampMicros,
-        false);
-  }
-
-  public static JdbcParquetArgs create(
-      final JdbcConnectionArgs jdbcConnectionArgs,
-      final int fetchSize,
-      final String parquetCodec,
-      final long rowGroupSize,
-      final long pageSize,
-      final List<String> preCommand,
-      final String arrayMode,
-      final boolean useTimestampMicros,
-      final boolean useNativeTypes) {
+      final ParquetSchemaOptions schemaOptions) {
     validateParquetCodec(parquetCodec);
     return new AutoValue_JdbcParquetArgs.Builder()
         .setJdbcConnectionConfiguration(jdbcConnectionArgs)
@@ -193,20 +142,7 @@ public abstract class JdbcParquetArgs implements Serializable {
         .setRowGroupSize(rowGroupSize)
         .setPageSize(pageSize)
         .setPreCommand(preCommand)
-        .setArrayMode(arrayMode)
-        .setUseTimestampMicros(useTimestampMicros)
-        .setUseNativeTypes(useNativeTypes)
+        .setSchemaOptions(schemaOptions)
         .build();
-  }
-
-  public static JdbcParquetArgs create(final JdbcConnectionArgs jdbcConnectionArgs) {
-    return create(
-        jdbcConnectionArgs,
-        10000,
-        "snappy",
-        128 * 1024 * 1024,
-        1024 * 1024,
-        Collections.emptyList(),
-        "typed_first_row");
   }
 }

@@ -197,9 +197,7 @@ public class JdbcParquetIO {
                   channelOutputFile,
                   schema,
                   avroSchemaJson,
-                  jdbcParquetArgs.arrayMode(),
-                  jdbcParquetArgs.useTimestampMicros(),
-                  jdbcParquetArgs.useNativeTypes())
+                  jdbcParquetArgs.schemaOptions())
               .withCompressionCodec(jdbcParquetArgs.getCompressionCodecName())
               .withRowGroupSize(jdbcParquetArgs.rowGroupSize())
               .withPageSize((int) jdbcParquetArgs.pageSize())
@@ -322,41 +320,21 @@ public class JdbcParquetIO {
 
     private final MessageType schema;
     private final String avroSchemaJson;
-    private final String arrayMode;
-    private final boolean useTimestampMicros;
-    private final boolean nativeTypes;
+    private final ParquetSchemaOptions options;
 
-    ResultSetParquetWriterBuilder(OutputFile outputFile, MessageType schema) {
-      this(outputFile, schema, null, "typed_first_row", false);
-    }
-
-    ResultSetParquetWriterBuilder(
-        OutputFile outputFile, MessageType schema, String avroSchemaJson) {
-      this(outputFile, schema, avroSchemaJson, "typed_first_row", false);
-    }
-
+    /**
+     * @param avroSchemaJson written to the {@code parquet.avro.schema} footer key, or null
+     * @param options the options {@code schema} was created with
+     */
     ResultSetParquetWriterBuilder(
         OutputFile outputFile,
         MessageType schema,
         String avroSchemaJson,
-        String arrayMode,
-        boolean useTimestampMicros) {
-      this(outputFile, schema, avroSchemaJson, arrayMode, useTimestampMicros, false);
-    }
-
-    ResultSetParquetWriterBuilder(
-        OutputFile outputFile,
-        MessageType schema,
-        String avroSchemaJson,
-        String arrayMode,
-        boolean useTimestampMicros,
-        boolean nativeTypes) {
+        ParquetSchemaOptions options) {
       super(outputFile);
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
-      this.arrayMode = arrayMode;
-      this.useTimestampMicros = useTimestampMicros;
-      this.nativeTypes = nativeTypes;
+      this.options = options;
     }
 
     @Override
@@ -366,8 +344,7 @@ public class JdbcParquetIO {
 
     @Override
     protected WriteSupport<ResultSet> getWriteSupport(Configuration conf) {
-      return new ResultSetWriteSupport(
-          schema, avroSchemaJson, arrayMode, useTimestampMicros, nativeTypes);
+      return new ResultSetWriteSupport(schema, avroSchemaJson, options);
     }
   }
 
@@ -375,32 +352,16 @@ public class JdbcParquetIO {
 
     private final MessageType schema;
     private final String avroSchemaJson;
-    private final String arrayMode;
-    private final boolean useTimestampMicros;
-    private final boolean nativeTypes;
+    private final ParquetSchemaOptions options;
     private JdbcParquetWriteSupport writeSupport;
     private RecordConsumer recordConsumer;
     private boolean initialized = false;
 
     ResultSetWriteSupport(
-        MessageType schema,
-        String avroSchemaJson,
-        String arrayMode,
-        boolean useTimestampMicros) {
-      this(schema, avroSchemaJson, arrayMode, useTimestampMicros, false);
-    }
-
-    ResultSetWriteSupport(
-        MessageType schema,
-        String avroSchemaJson,
-        String arrayMode,
-        boolean useTimestampMicros,
-        boolean nativeTypes) {
+        MessageType schema, String avroSchemaJson, ParquetSchemaOptions options) {
       this.schema = schema;
       this.avroSchemaJson = avroSchemaJson;
-      this.arrayMode = arrayMode;
-      this.useTimestampMicros = useTimestampMicros;
-      this.nativeTypes = nativeTypes;
+      this.options = options;
     }
 
     @Override
@@ -424,8 +385,7 @@ public class JdbcParquetIO {
       try {
         if (!initialized) {
           this.writeSupport =
-              JdbcParquetWriteSupport.create(
-                  resultSet, schema, arrayMode, useTimestampMicros, nativeTypes);
+              JdbcParquetWriteSupport.create(resultSet, schema, options);
           initialized = true;
         }
         writeSupport.writeRecord(recordConsumer, resultSet);

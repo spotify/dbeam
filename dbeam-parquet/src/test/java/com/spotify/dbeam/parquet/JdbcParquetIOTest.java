@@ -68,7 +68,9 @@ public class JdbcParquetIOTest {
         ResultSet rs =
             connection.createStatement().executeQuery("SELECT COF_NAME, TOTAL FROM COFFEES")) {
       rs.next();
-      schema = JdbcParquetSchema.createParquetSchema(rs, Optional.empty(), false, "bytes");
+      schema =
+          JdbcParquetSchema.createParquetSchema(
+              rs, Optional.empty(), ParquetSchemaOptions.of("bytes"));
     }
     final JdbcParquetArgs args =
         JdbcParquetArgs.create(
@@ -78,7 +80,7 @@ public class JdbcParquetIOTest {
             128 * 1024 * 1024,
             1024 * 1024,
             preCommand,
-            "typed_first_row");
+            ParquetSchemaOptions.of("typed_first_row"));
     return JdbcParquetIO.createSink(
             testDir.resolve(name).toString(), ".parquet", schema, args, null)
         .createWriteOperation()
