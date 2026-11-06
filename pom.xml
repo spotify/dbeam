@@ -126,7 +126,7 @@
     <slf4j.version>2.0.16</slf4j.version>
     <threetenbp.version>1.6.8</threetenbp.version>
     <zstd-jni.version>1.5.7-7</zstd-jni.version>
-    <parquet.version>1.14.4</parquet.version>
+    <parquet.version>1.18.1</parquet.version>
     <hadoop.version>3.5.0</hadoop.version>
     <!-- pinned to satisfy requireUpperBoundDeps:
          hadoop-common pulls older woodstox/stax2 than google-cloud-storage -->
@@ -265,6 +265,12 @@
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
       <!-- overrides with vulnerability fixes - end-->
+      <!-- hadoop-common pulls re2j 1.1, google-cloud-storage needs 1.8 -->
+      <dependency>
+        <groupId>com.google.re2j</groupId>
+        <artifactId>re2j</artifactId>
+        <version>1.8</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.parquet</groupId>
         <artifactId>parquet-hadoop</artifactId>
@@ -628,7 +634,6 @@
                       <exclude>org.apache.commons:commons-lang3</exclude>
                       <exclude>commons-logging:commons-logging</exclude>
                       <exclude>org.apache.commons:commons-text</exclude>
-                      <exclude>com.google.re2j:re2j</exclude>
                       <exclude>com.github.luben:zstd-jni</exclude>
                       <exclude>com.google.auto.value:auto-value</exclude>
                       <exclude>com.google.auto.value:auto-value-annotations</exclude>
