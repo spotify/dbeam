@@ -137,8 +137,10 @@ public class JdbcAvroSchema {
    * Same as above; with {@code forSchemaFileValidation} the schema is only used to validate a
    * {@code --avroSchemaFilePath} schema, which matches fields by position and supplies the item
    * types and field names: a typed_first_row ARRAY column whose item type cannot be inferred (no
-   * row or a NULL first value) gets {@code null} items instead of failing, and columns whose
-   * normalized names collide get a {@code _<position>} suffix instead of failing.
+   * row or a NULL first value) gets {@code null} items instead of failing, and the record and
+   * fields get synthetic names ({@code validation_record}, {@code field_<position>}) so SQL names
+   * that are not valid Avro names (e.g. a column named {@code 123}) or collide cannot fail; the
+   * original column names stay in the {@code columnName} property.
    */
   static Schema createAvroSchema(
       final ResultSet resultSet,
@@ -155,7 +157,10 @@ public class JdbcAvroSchema {
 
     final ResultSetMetaData meta = resultSet.getMetaData();
     final String tableName = getDatabaseTableName(meta);
-    final String schemaName = maybeSchemaName.orElse(tableName);
+    // validation-only schemas get a synthetic record name: the SQL table name may not be a valid
+    // Avro name (the original stays in the tableName property)
+    final String schemaName =
+        forSchemaFileValidation ? "validation_record" : maybeSchemaName.orElse(tableName);
 
     final SchemaBuilder.FieldAssembler<Schema> builder =
         SchemaBuilder.record(schemaName)
@@ -218,7 +223,10 @@ public class JdbcAvroSchema {
       final String columnTypeName = meta.getColumnTypeName(i);
       SchemaBuilder.FieldBuilder<Schema> field =
           builder
-              .name(uniqueFieldName(normalizeForAvro(columnName), i, fieldNames))
+              .name(
+                  forSchemaFileValidation
+                      ? "field_" + i
+                      : uniqueFieldName(normalizeForAvro(columnName), i, fieldNames))
               .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
               .prop("columnName", columnName)
               .prop("sqlCode", String.valueOf(columnType))

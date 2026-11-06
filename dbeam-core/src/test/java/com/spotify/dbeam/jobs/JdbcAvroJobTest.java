@@ -618,4 +618,69 @@ public class JdbcAvroJobTest {
       Assertions.assertEquals(name, record.get("name_d").toString());
     }
   }
+
+  private static String[] digitColumnArgs(final Path outputPath, final Path schemaFile) {
+    return new String[] {
+      "--targetParallelism=1",
+      "--skipPartitionCheck",
+      "--exportTimeout=PT1M",
+      "--connectionUrl=" + CONNECTION_URL,
+      "--username=",
+      "--passwordFile=" + passwordPath.toString(),
+      "--table=DIGIT_COLUMN",
+      "--output=" + outputPath,
+      "--avroSchemaName=valid_record",
+      "--avroSchemaFilePath=" + schemaFile
+    };
+  }
+
+  private static void createDigitColumnTable() throws Exception {
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      connection.createStatement().execute("DROP TABLE IF EXISTS DIGIT_COLUMN");
+      connection.createStatement().execute("CREATE TABLE DIGIT_COLUMN (\"123\" INTEGER)");
+      connection.createStatement().execute("INSERT INTO DIGIT_COLUMN VALUES (7)");
+    }
+  }
+
+  @Test
+  public void shouldAcceptSchemaFileThatRenamesDigitLeadingColumn() throws Exception {
+    createDigitColumnTable();
+    final Path outputPath = testDir.resolve("shouldAcceptSchemaFileRenamingDigitColumn");
+    final Path schemaFile = testDir.resolve("digit_column.avsc");
+    Files.write(
+        schemaFile,
+        ("{\"type\":\"record\",\"name\":\"valid_record\",\"fields\":["
+                + "{\"name\":\"valid_field\",\"type\":[\"null\",\"int\"],\"default\":null}]}")
+            .getBytes());
+
+    JdbcAvroJob.create(digitColumnArgs(outputPath, schemaFile)).runExport();
+
+    final Schema schema =
+        new Schema.Parser().parse(outputPath.resolve("_AVRO_SCHEMA.avsc").toFile());
+    final List<GenericRecord> records =
+        readAvroRecords(outputPath.resolve("part-00000-of-00001.avro").toFile(), schema);
+    assertThat(records, hasSize(1));
+    Assertions.assertEquals(7, records.get(0).get("valid_field"));
+  }
+
+  @Test
+  public void shouldStillRejectIncompatibleTypeForDigitLeadingColumn() throws Exception {
+    createDigitColumnTable();
+    final Path outputPath = testDir.resolve("shouldRejectIncompatibleDigitColumn");
+    final Path schemaFile = testDir.resolve("digit_column_string.avsc");
+    Files.write(
+        schemaFile,
+        ("{\"type\":\"record\",\"name\":\"valid_record\",\"fields\":["
+                + "{\"name\":\"valid_field\",\"type\":[\"null\",\"string\"],\"default\":null}]}")
+            .getBytes());
+
+    final FailedValidationException exception =
+        Assertions.assertThrows(
+            FailedValidationException.class,
+            () -> JdbcAvroJob.create(digitColumnArgs(outputPath, schemaFile)).runExport());
+    Assertions.assertTrue(
+        exception.getMessage().contains("valid_field (#1, JDBC column 123)"),
+        exception.getMessage());
+    Assertions.assertFalse(outputPath.toFile().exists());
+  }
 }
