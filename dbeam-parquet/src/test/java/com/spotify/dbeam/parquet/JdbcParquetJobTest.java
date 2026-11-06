@@ -1063,4 +1063,81 @@ public class JdbcParquetJobTest {
       Assertions.assertNotNull(record.get("total"));
     }
   }
+
+  private static void createArraysTable() throws Exception {
+    try (Connection connection = DbTestHelper.createConnection(CONNECTION_URL)) {
+      connection.createStatement().execute("DROP TABLE IF EXISTS ARRAYS");
+      connection
+          .createStatement()
+          .execute("CREATE TABLE ARRAYS (ID INT NOT NULL, I INTEGER ARRAY, T VARCHAR(20) ARRAY)");
+      connection
+          .createStatement()
+          .execute(
+              "INSERT INTO ARRAYS VALUES (1, NULL, NULL), (2, ARRAY[], ARRAY[]),"
+                  + " (3, ARRAY[1, 2], ARRAY['a', 'b'])");
+    }
+  }
+
+  private static List<GenericRecord> runArraysExport(
+      final String name, final String sql, final String... extraArgs) throws Exception {
+    final Path sqlFile = testDir.resolve(name + ".sql");
+    Files.write(sqlFile, sql.getBytes());
+    final Path outputPath = testDir.resolve(name);
+    final List<String> args =
+        new ArrayList<>(
+            List.of(
+                "--targetParallelism=1",
+                "--skipPartitionCheck",
+                "--exportTimeout=PT1M",
+                "--connectionUrl=" + CONNECTION_URL,
+                "--username=",
+                "--passwordFile=" + passwordPath.toString(),
+                "--sqlFile=" + sqlFile,
+                "--output=" + outputPath));
+    args.addAll(List.of(extraArgs));
+    JdbcParquetJob.create(args.toArray(new String[0])).runExport();
+    return readAllWithAvro(outputPath.resolve("part-00000-of-00001.parquet"));
+  }
+
+  private static List<String> strings(final Object list) {
+    final List<String> out = new ArrayList<>();
+    for (Object o : (java.util.Collection<?>) list) {
+      out.add(String.valueOf(o));
+    }
+    return out;
+  }
+
+  @Test
+  public void shouldKeepNullEmptyAndNonEmptyArraysDistinct() throws Exception {
+    createArraysTable();
+    for (String mode : List.of("typed_first_row", "typed_postgres")) {
+      for (boolean nullableItems : List.of(false, true)) {
+        final List<GenericRecord> records =
+            runArraysExport(
+                "arrays-" + mode + "-" + nullableItems,
+                "SELECT * FROM ARRAYS ORDER BY ID",
+                "--arrayMode=" + mode,
+                "--nullableArrayItems=" + nullableItems);
+        final String label = mode + " nullableItems=" + nullableItems;
+        Assertions.assertEquals(3, records.size(), label);
+        Assertions.assertNull(records.get(0).get("I"), label);
+        Assertions.assertNull(records.get(0).get("T"), label);
+        Assertions.assertEquals(List.of(), strings(records.get(1).get("I")), label);
+        Assertions.assertEquals(List.of(), strings(records.get(1).get("T")), label);
+        Assertions.assertEquals(List.of("1", "2"), strings(records.get(2).get("I")), label);
+        Assertions.assertEquals(List.of("a", "b"), strings(records.get(2).get("T")), label);
+      }
+    }
+  }
+
+  @Test
+  public void shouldInferArrayTypeWhenFirstRowArrayIsEmpty() throws Exception {
+    createArraysTable();
+    final List<GenericRecord> records =
+        runArraysExport("arrays-empty-first", "SELECT * FROM ARRAYS WHERE ID >= 2 ORDER BY ID");
+    Assertions.assertEquals(2, records.size());
+    Assertions.assertEquals(List.of(), strings(records.get(0).get("I")));
+    Assertions.assertEquals(List.of("1", "2"), strings(records.get(1).get("I")));
+    Assertions.assertEquals(List.of("a", "b"), strings(records.get(1).get("T")));
+  }
 }
