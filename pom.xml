@@ -125,7 +125,7 @@
     <netty.version>4.1.133.Final</netty.version>
     <slf4j.version>2.0.16</slf4j.version>
     <threetenbp.version>1.6.8</threetenbp.version>
-    <zstd-jni.version>1.5.7-7</zstd-jni.version>
+    <zstd-jni.version>1.5.7-15</zstd-jni.version>
     <parquet.version>1.18.1</parquet.version>
     <hadoop.version>3.5.0</hadoop.version>
     <!-- pinned to satisfy requireUpperBoundDeps:
@@ -262,15 +262,16 @@
         <artifactId>opentelemetry-gcp-resources</artifactId>
         <version>1.45.0-alpha</version>
       </dependency>
-      <!-- overrides to resolve dependency conflicts - end-->
-      <!-- overrides with vulnerability fixes - start-->
-      <!-- overrides with vulnerability fixes - end-->
-      <!-- hadoop-common pulls re2j 1.1, google-cloud-storage needs 1.8 -->
+      <!-- hadoop-common brings re2j 1.1, google-cloud-storage needs 1.8;
+           required by requireUpperBoundDeps -->
       <dependency>
         <groupId>com.google.re2j</groupId>
         <artifactId>re2j</artifactId>
         <version>1.8</version>
       </dependency>
+      <!-- overrides to resolve dependency conflicts - end-->
+      <!-- overrides with vulnerability fixes - start-->
+      <!-- overrides with vulnerability fixes - end-->
       <dependency>
         <groupId>org.apache.parquet</groupId>
         <artifactId>parquet-hadoop</artifactId>

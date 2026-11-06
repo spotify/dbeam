@@ -751,6 +751,9 @@ public class JdbcParquetJobTest {
         readCodec(
             runCoffeesExport(
                 "shouldUseParquetCodecZstdLevel", "--avroCodec=deflate1", "--parquetCodec=zstd9")));
+    Assertions.assertEquals(
+        CompressionCodecName.LZ4_RAW,
+        readCodec(runCoffeesExport("shouldUseParquetCodecLz4", "--parquetCodec=lz4")));
   }
 
   @Test
