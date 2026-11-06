@@ -68,7 +68,7 @@ JAVA_OPTS=(
 pack() {
   java -version
   # create fat jars
-  (cd "$PROJECT_PATH"; mvn package -Ppack -DskipTests -Dmaven.test.skip=true -Dmaven.site.skip=true -Dmaven.javadoc.skip=true)
+  (cd "$PROJECT_PATH"; mvn package -Ppack -DskipTests -Dmaven.site.skip=true -Dmaven.javadoc.skip=true)
 }
 
 run_docker_dbeam() {
