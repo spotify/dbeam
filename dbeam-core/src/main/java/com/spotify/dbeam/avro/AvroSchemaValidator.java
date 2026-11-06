@@ -119,7 +119,9 @@ public class AvroSchemaValidator {
               "--avroSchemaFilePath schema is incompatible with the JDBC result set. Values are"
                   + " written by field position from the JDBC column types, so a schema file may"
                   + " only rename fields and change docs, namespaces or matching logical types."
-                  + " Problems:%n  %s%nExpected schema (derived from JDBC):%n%s",
+                  + " Problems:%n  %s%nExpected schema (derived from JDBC;"
+                  + " fields are matched by position, the SQL column is in each field's"
+                  + " columnName property):%n%s",
               String.join(String.format("%n  "), errors),
               derived.toString(true)));
     }

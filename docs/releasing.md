@@ -39,7 +39,9 @@ There is **no validation** of the input. A typo (`1.0.31`, `0.1.031`) is accepte
 permanently. Read the value twice before submitting.
 
 Use the version to signal compatibility. 0.10.30 raised `maven.compiler.release` from 8 to 11,
-dropping Java 8 support in a patch release — avoid repeating that.
+dropping Java 8 support in a patch release — avoid repeating that. Master now targets Java 17
+(raised from 11 in #1040), so the next release drops Java 11 and should be cut as a minor version
+(0.11.0), which requires bumping the SNAPSHOT version first.
 
 ## Step by step
 
@@ -184,7 +186,7 @@ who pinned it.
 
 v0.10.30's manifest shows `Build-Jdk-Spec: 21` because it was released from a laptop rather than
 through the workflow. The bytecode target is unaffected (`maven.compiler.release` was 11 then and
-is 17 now), but for reproducible provenance, cut releases through the workflow.
+is 17 now; the next release drops Java 11 and should be 0.11.0), but for reproducible provenance, cut releases through the workflow.
 
 ### 7. Signing depends on one person's personal key
 

@@ -1139,5 +1139,9 @@ public class JdbcParquetJobTest {
     Assertions.assertEquals(List.of(), strings(records.get(0).get("I")));
     Assertions.assertEquals(List.of("1", "2"), strings(records.get(1).get("I")));
     Assertions.assertEquals(List.of("a", "b"), strings(records.get(1).get("T")));
+    // strings() hides the item type: a text fallback for the empty first array must fail here
+    for (final Object item : (java.util.Collection<?>) records.get(1).get("I")) {
+      Assertions.assertInstanceOf(Integer.class, item);
+    }
   }
 }

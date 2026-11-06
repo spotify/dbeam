@@ -206,7 +206,6 @@ public class JdbcAvroSchema {
     if (!forSchemaFileValidation) {
       checkUniqueFieldNames(meta);
     }
-    final java.util.Set<String> fieldNames = new java.util.HashSet<>();
 
     for (int i = 1; i <= meta.getColumnCount(); i++) {
 
@@ -226,7 +225,7 @@ public class JdbcAvroSchema {
               .name(
                   forSchemaFileValidation
                       ? "field_" + i
-                      : uniqueFieldName(normalizeForAvro(columnName), i, fieldNames))
+                      : normalizeForAvro(columnName))
               .doc(String.format("From sqlType %d %s (%s)", columnType, typeName, columnClassName))
               .prop("columnName", columnName)
               .prop("sqlCode", String.valueOf(columnType))
@@ -447,16 +446,6 @@ public class JdbcAvroSchema {
         throw new RuntimeException("columnName=" + columnName + " Postgres type '"
                                    + columnTypeName + "' is " + "not " + "supported");
     }
-  }
-
-  /** {@code name}, or with a {@code _<position>} suffix if a previous field already has it. */
-  private static String uniqueFieldName(
-      final String name, final int position, final java.util.Set<String> fieldNames) {
-    String unique = name;
-    for (int n = position; !fieldNames.add(unique); n++) {
-      unique = name + "_" + n;
-    }
-    return unique;
   }
 
   /**
