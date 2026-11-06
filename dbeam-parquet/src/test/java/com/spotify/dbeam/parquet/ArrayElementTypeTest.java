@@ -90,6 +90,9 @@ public class ArrayElementTypeTest {
     Assertions.assertEquals("bytea", firstRow(null, Types.VARBINARY));
     Assertions.assertEquals("text", firstRow(null, Types.CLOB));
     Assertions.assertEquals("mystery", firstRow("mystery", Types.OTHER));
+    // unknown base type (e.g. an empty array on H2): undecided, the column type decides
+    Assertions.assertNull(firstRow(null, Types.NULL));
+    Assertions.assertNull(firstRow("mystery", Types.NULL));
   }
 
   @Test

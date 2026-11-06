@@ -38,6 +38,7 @@ import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
 import static java.sql.Types.NCHAR;
+import static java.sql.Types.NULL;
 import static java.sql.Types.NUMERIC;
 import static java.sql.Types.OTHER;
 import static java.sql.Types.REAL;
@@ -156,7 +157,7 @@ public class JdbcParquetSchema {
   /**
    * Element type of a {@code typed_first_row} ARRAY value: from its base type name (e.g. {@code
    * int4} for PostgreSQL, {@code INTEGER} for H2), else from its JDBC base type; null for a NULL
-   * value.
+   * value or when the driver cannot tell (e.g. an empty array).
    */
   static String firstRowArrayElementType(final Array array) throws SQLException {
     if (array == null) {
@@ -167,6 +168,9 @@ public class JdbcParquetSchema {
       return byName;
     }
     switch (array.getBaseType()) {
+      case NULL:
+        // unknown, e.g. an empty array on H2: resolve it from the column type instead
+        return null;
       case INTEGER:
         return "int4";
       case SMALLINT:

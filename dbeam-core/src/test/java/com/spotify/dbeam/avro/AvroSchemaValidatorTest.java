@@ -135,6 +135,8 @@ public class AvroSchemaValidatorTest {
     final String msg = rejected(nullable("\"int\""), nullable("\"long\""), nullable("\"long\""));
     Assertions.assertTrue(msg.contains("f0 (#1, JDBC column f0)"), msg);
     Assertions.assertTrue(msg.contains("expected long but schema file has int"), msg);
+    Assertions.assertTrue(msg.contains("matched by position"), msg);
+    Assertions.assertTrue(msg.contains("columnName property"), msg);
     rejected(nullable("\"float\""), nullable("\"double\""), nullable("\"double\""));
     rejected(nullable("\"string\""), nullable("\"bytes\""), nullable("\"bytes\""));
     rejected(

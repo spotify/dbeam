@@ -280,17 +280,20 @@ public class JdbcParquetWriteSupport {
             checkArrayItems(items, arrayElementType, nullableItems, fieldName);
             consumer.startField(normalizedName, fieldIndex);
             consumer.startGroup(); // LIST group
-            consumer.startField("list", 0); // repeated list field
-            for (Object item : items) {
-              consumer.startGroup(); // list element group
-              if (item != null) {
-                consumer.startField("element", 0);
-                writeArrayElement(consumer, item, arrayElementType);
-                consumer.endField("element", 0);
+            // an empty list has the LIST group but no repeated field: Parquet rejects empty fields
+            if (items.length > 0) {
+              consumer.startField("list", 0); // repeated list field
+              for (Object item : items) {
+                consumer.startGroup(); // list element group
+                if (item != null) {
+                  consumer.startField("element", 0);
+                  writeArrayElement(consumer, item, arrayElementType);
+                  consumer.endField("element", 0);
+                }
+                consumer.endGroup();
               }
-              consumer.endGroup();
+              consumer.endField("list", 0);
             }
-            consumer.endField("list", 0);
             consumer.endGroup();
             consumer.endField(normalizedName, fieldIndex);
           }
