@@ -109,7 +109,7 @@ Then **check the pre-release flag and edit the notes** — see [Known issues](#k
 
 ## What the workflow actually does
 
-`release.yml` checks out master, configures the `github-actions[bot]` identity, sets up **JDK 11**
+`release.yml` checks out master, configures the `github-actions[bot]` identity, sets up **JDK 17**
 and imports the GPG key, then runs a single command:
 
 ```shell
@@ -180,11 +180,11 @@ tag-to-artifact correspondence for that one version, and treat `v0.10.29...vX` c
 over-reporting. The tag was left in place deliberately: force-moving a published tag breaks anyone
 who pinned it.
 
-### 6. Release builds on JDK 11, but v0.10.30 was cut locally on JDK 21
+### 6. Release builds on JDK 17, but v0.10.30 was cut locally on JDK 21
 
 v0.10.30's manifest shows `Build-Jdk-Spec: 21` because it was released from a laptop rather than
-through the workflow. The bytecode target is unaffected (`maven.compiler.release=11`), but for
-reproducible provenance, cut releases through the workflow.
+through the workflow. The bytecode target is unaffected (`maven.compiler.release` was 11 then and
+is 17 now), but for reproducible provenance, cut releases through the workflow.
 
 ### 7. Signing depends on one person's personal key
 
