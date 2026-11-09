@@ -11,7 +11,7 @@
 
   <groupId>com.spotify</groupId>
   <artifactId>dbeam-parent</artifactId>
-  <version>0.10.33-SNAPSHOT</version>
+  <version>0.11.0</version>
   <packaging>pom</packaging>
   <name>dbeam-parent</name>
 
@@ -83,7 +83,7 @@
   <scm>
     <connection>scm:git:https://github.com/spotify/dbeam.git</connection>
     <developerConnection>scm:git:https://github.com/spotify/dbeam.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v0.11.0</tag>
     <url>scm:https://github.com/spotify/dbeam/</url>
   </scm>
 
