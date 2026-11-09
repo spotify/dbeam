@@ -130,7 +130,7 @@
     <hadoop.version>3.5.0</hadoop.version>
     <!-- pinned to satisfy requireUpperBoundDeps:
          hadoop-common pulls older woodstox/stax2 than google-cloud-storage -->
-    <woodstox-core.version>7.0.0</woodstox-core.version>
+    <woodstox-core.version>7.3.0</woodstox-core.version>
     <stax2-api.version>4.2.2</stax2-api.version>
 
     <!-- GCP BOM -->
