@@ -269,6 +269,14 @@
         <artifactId>re2j</artifactId>
         <version>1.8</version>
       </dependency>
+      <!-- hadoop-common brings jakarta.activation-api 1.2.1, hadoop-yarn-common
+           (test, via jackson-module-jaxb-annotations) needs 1.2.2;
+           required by requireUpperBoundDeps -->
+      <dependency>
+        <groupId>jakarta.activation</groupId>
+        <artifactId>jakarta.activation-api</artifactId>
+        <version>1.2.2</version>
+      </dependency>
       <!-- overrides to resolve dependency conflicts - end-->
       <!-- overrides with vulnerability fixes - start-->
       <!-- overrides with vulnerability fixes - end-->
